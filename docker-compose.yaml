@@ -8,15 +8,15 @@ services:
     volumes:
       - .:/go/src/
     environment:
-      MYSQL_DNS: root:root@tcp(mysql:3306)/ephemeris?charset=utf8&parseTime=True&loc=Local
+      MYSQL_DNS: root:root@tcp(mysql_ephemeris:3306)/ephemeris?charset=utf8&parseTime=True&loc=Local
       BUSINNESS_ID: cardoso&barbosa
       TZ: America/Sao_Paulo
     ports:
-      - "8080:8081"
+      - "8080:8080"
 
-  mysql:
+  mysql_ephemeris:
     image: mysql:8
-    container_name: mysql_invoice
+    container_name: mysql_ephemeris
     command: --default-authentication-plugin=mysql_native_password
     restart: always
     tty: true
