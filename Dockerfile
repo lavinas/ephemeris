@@ -1,4 +1,4 @@
-FROM golang:1.21.3
+FROM golang:1.22.1
 
 WORKDIR /go/src
 ENV PATH="/go/bin:${PATH}"
