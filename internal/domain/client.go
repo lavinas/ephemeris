@@ -4,6 +4,8 @@ import (
 	"errors"
 	"net/mail"
 	"slices"
+	"strings"
+	"regexp"
 
 	"github.com/nyaruka/phonenumbers"
 	"github.com/klassmann/cpfcnpj"
@@ -56,26 +58,17 @@ func NewClient(id string, name string, email string, phone string, contact strin
 // Validate is a method that validates the client
 func (c *Client) Validate() error {
 	message := ""
-	if c.Name == "" {
-		message += ErrEmptyName + ", "
+	validMap := map[string]func() error{
+		"name":     c.validateName,
+		"email":    c.validateEmail,
+		"phone":    c.validatePhone,
+		"contact":  c.validateContact,
+		"document": c.validateDocument,
 	}
-	if c.Email == "" {
-		message += ErrEmptyEmail + ", "
-	} else if _, err := mail.ParseAddress(c.Email); err != nil {
-		message += ErrInvalidEmail + ", "
-	}
-	if c.Phone == "" {
-		message += ErrEmptyPhone + ", "
-	} else if _, err := phonenumbers.Parse(c.Phone, ""); err != nil {
-		message += ErrInvalidPhone + ", "
-	}
-	if c.Contact == "" {
-		message += ErrEmptyContact + ", "
-	} else if !slices.Contains(ContactWays, c.Contact) {
-		message += ErrInvalidContact + ", "
-	}
-	if c.Document != "" && !cpfcnpj.ValidateCPF(c.Document) && !cpfcnpj.ValidateCNPJ(c.Document) {
-		message += ErrInvalidDocument + ", "
+	for _, f := range validMap {
+		if err := f(); err != nil {
+			message += err.Error() + ", "
+		}
 	}
 	if message == "" {
 		return nil
@@ -83,7 +76,87 @@ func (c *Client) Validate() error {
 	return errors.New(message[:len(message)-2])
 }
 
-// Validate is a method that validates the client
-func (c *Client) Format() error {
+// Format is a method that formats the client
+func (c *Client) Format() {
+	formatMap := map[string]func(){
+		"name":     c.formatName,
+		"email":    c.formatEmail,
+		// "phone":    c.formatPhone,
+		// "contact":  c.formatContact,
+		// "document": c.formatDocument,
+	}
+	for _, f := range formatMap {
+		f()
+	}
+}
+
+// validateName is a method that validates the name field
+func (c *Client) validateName() error {
+	if c.Name == "" {
+		return errors.New(ErrEmptyName)
+	}
 	return nil
 }
+
+// formatName is a method that formats the name field
+func (c *Client) formatName() {
+	c.Name = strings.Title(strings.ToLower(c.Name))
+	c.Name = strings.TrimSpace(c.Name)
+	space := regexp.MustCompile(`\s+`)
+	c.Name = space.ReplaceAllString(c.Name, " ")
+}
+
+// validateEmail is a method that validates the email field
+func (c *Client) validateEmail() error {
+	if c.Email == "" {
+		return errors.New(ErrEmptyEmail)
+	}
+	if _, err := mail.ParseAddress(c.Email); err != nil {
+		return errors.New(ErrInvalidEmail)
+	}
+	return nil
+}
+
+// formatEmail is a method that formats the email field
+func (c *Client) formatEmail() {
+	a, _:= mail.ParseAddress(c.Email)
+	if a == nil {
+		c.Email = ""
+		return
+	}
+	c.Email = a.Address
+}
+	
+// validatePhone is a method that validates the phone field
+func (c *Client) validatePhone() error {
+	if c.Phone == "" {
+		return errors.New(ErrEmptyPhone)
+	}
+	if _, err := phonenumbers.Parse(c.Phone, ""); err != nil {
+		return errors.New(ErrInvalidPhone)
+	}
+	return nil
+}
+
+// validateContact is a method that validates the contact field
+func (c *Client) validateContact() error {
+	if c.Contact == "" {
+		return errors.New(ErrEmptyContact)
+	}
+	if !slices.Contains(ContactWays, c.Contact) {
+		return errors.New(ErrInvalidContact)
+	}
+	return nil
+}
+
+// validateDocument is a method that validates the document field
+func (c *Client) validateDocument() error {
+	if c.Document == ""{
+		return nil
+	}
+	if !cpfcnpj.ValidateCPF(c.Document) && !cpfcnpj.ValidateCNPJ(c.Document) {
+		return errors.New(ErrInvalidDocument)
+	}
+	return nil
+}
+
