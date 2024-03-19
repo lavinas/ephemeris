@@ -3,17 +3,23 @@ package domain
 import (
 	"errors"
 	"net/mail"
+	"regexp"
 	"slices"
 	"strings"
-	"regexp"
 
-	"github.com/nyaruka/phonenumbers"
 	"github.com/klassmann/cpfcnpj"
+	"github.com/nyaruka/phonenumbers"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 const (
 	// ErrEmptyName is a variable that represents the error message for empty name
 	ErrEmptyName = "empty name"
+	// ErrLongName is a variable that represents the error message for long name
+	ErrLongName = "name should have at most 100"
+	// ErrInvalidName is a variable that represents the error message for invalid name
+	ErrInvalidName = "name should have at least two words"
 	// ErrEmptyEmail is a variable that represents the error message for empty email
 	ErrEmptyEmail = "empty email"
 	// ErrInvalidEmail is a variable that represents the error message for invalid email
@@ -81,9 +87,9 @@ func (c *Client) Format() {
 	formatMap := map[string]func(){
 		"name":     c.formatName,
 		"email":    c.formatEmail,
-		// "phone":    c.formatPhone,
-		// "contact":  c.formatContact,
-		// "document": c.formatDocument,
+		"phone":    c.formatPhone,
+		"contact":  c.formatContact,
+		"document": c.formatDocument,
 	}
 	for _, f := range formatMap {
 		f()
@@ -92,15 +98,23 @@ func (c *Client) Format() {
 
 // validateName is a method that validates the name field
 func (c *Client) validateName() error {
-	if c.Name == "" {
+	name := strings.TrimSpace(c.Name)
+	if name == "" {
 		return errors.New(ErrEmptyName)
+	}
+	if len(name) > 100 {
+		return errors.New(ErrLongName)
+	}
+	if len(strings.Split(name, " ")) < 2 {
+		return errors.New(ErrInvalidName)
 	}
 	return nil
 }
 
 // formatName is a method that formats the name field
 func (c *Client) formatName() {
-	c.Name = strings.Title(strings.ToLower(c.Name))
+	caser := cases.Title(language.Und)
+	c.Name = caser.String(c.Name)
 	c.Name = strings.TrimSpace(c.Name)
 	space := regexp.MustCompile(`\s+`)
 	c.Name = space.ReplaceAllString(c.Name, " ")
@@ -119,39 +133,53 @@ func (c *Client) validateEmail() error {
 
 // formatEmail is a method that formats the email field
 func (c *Client) formatEmail() {
-	a, _:= mail.ParseAddress(c.Email)
+	a, _ := mail.ParseAddress(c.Email)
 	if a == nil {
 		c.Email = ""
 		return
 	}
 	c.Email = a.Address
 }
-	
+
 // validatePhone is a method that validates the phone field
 func (c *Client) validatePhone() error {
 	if c.Phone == "" {
 		return errors.New(ErrEmptyPhone)
 	}
-	if _, err := phonenumbers.Parse(c.Phone, ""); err != nil {
+	if _, err := phonenumbers.Parse(c.Phone, "BR"); err != nil {
 		return errors.New(ErrInvalidPhone)
 	}
 	return nil
 }
 
+// formatPhone is a method that formats the phone field
+func (c *Client) formatPhone() {
+	phone, _ := phonenumbers.Parse(c.Phone, "")
+	c.Phone = phonenumbers.Format(phone, phonenumbers.E164)
+}
+
 // validateContact is a method that validates the contact field
 func (c *Client) validateContact() error {
-	if c.Contact == "" {
+	contact := strings.TrimSpace(c.Contact)
+	contact = strings.ToLower(contact)
+	if contact == "" {
 		return errors.New(ErrEmptyContact)
 	}
-	if !slices.Contains(ContactWays, c.Contact) {
+	if !slices.Contains(ContactWays, contact) {
 		return errors.New(ErrInvalidContact)
 	}
 	return nil
 }
 
+// formatContact is a method that formats the contact field
+func (c *Client) formatContact() {
+	c.Contact = strings.TrimSpace(c.Contact)
+	c.Contact = strings.ToLower(c.Contact)
+}
+
 // validateDocument is a method that validates the document field
 func (c *Client) validateDocument() error {
-	if c.Document == ""{
+	if c.Document == "" {
 		return nil
 	}
 	if !cpfcnpj.ValidateCPF(c.Document) && !cpfcnpj.ValidateCNPJ(c.Document) {
@@ -160,3 +188,16 @@ func (c *Client) validateDocument() error {
 	return nil
 }
 
+// formatDocument is a method that formats the document field
+func (c *Client) formatDocument() {
+	cpf := cpfcnpj.NewCPF(c.Document)
+	if cpf.IsValid() {
+		c.Document = cpf.String()
+		return
+	}
+	cnpj := cpfcnpj.NewCNPJ(c.Document)
+	if cnpj.IsValid() {
+		c.Document = cnpj.String()
+		return
+	}
+}
