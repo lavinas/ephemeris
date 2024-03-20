@@ -22,3 +22,10 @@ func NewBase(id string) *Base {
 func (b *Base) Validate() error {
 	return nil
 }
+
+// GetBase returns a new base object
+func GetDomain() []interface{} {
+	return []interface{}{
+		&Client{},
+	}
+}

@@ -54,12 +54,12 @@ var (
 
 // Client represents the client entity
 type Client struct {
-	Base        `gorm:"embedded"`
-	Name        string `gorm:"type:varchar(100), not null"`
+	Base
+	Name        string `gorm:"type:varchar(100); not null"`
 	Responsible string `gorm:"type:varchar(100)"`
-	Email       string `gorm:"type:varchar(100), not null"`
-	Phone       string `gorm:"type:varchar(20), not null"`
-	Contact     string `gorm:"type:varchar(20), not null"`
+	Email       string `gorm:"type:varchar(100); not null"`
+	Phone       string `gorm:"type:varchar(20); not null"`
+	Contact     string `gorm:"type:varchar(20); not null"`
 	Document    string `gorm:"type:varchar(20)"`
 }
 

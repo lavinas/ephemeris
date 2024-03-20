@@ -41,6 +41,11 @@ func (r *MySql) Add(obj interface{}) error {
 	return r.Db.Create(obj).Error
 }
 
+// Delete deletes a object from the database by id
+func (r *MySql) Delete(obj interface{}, id string) error {
+	return r.Db.Delete(obj, id).Error
+}
+
 // Get gets a object from the database by id
 func (r *MySql) Get(obj interface{}, id string) (bool, error) {
 	tx := r.Db.First(obj, "ID = ?", id)
