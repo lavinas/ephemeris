@@ -66,6 +66,7 @@ type Client struct {
 // NewClient is a function that creates a new client
 func NewClient(id string, name string, responsible string, email string, phone string, contact string, document string) *Client {
 	return &Client{
+		Base:        *NewBase(id),
 		Name:        name,
 		Responsible: responsible,
 		Email:       email,
