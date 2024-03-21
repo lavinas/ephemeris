@@ -13,6 +13,10 @@ func TestClientOk(t *testing.T) {
 	dns := os.Getenv("MYSQL_DNS")
 	repo, error := repository.NewRepository(dns)
 	if error != nil {
+		t.Errorf("TestClientOk failed: %s", error)
+	}
+	defer repo.Close()
+	if error != nil {
 		t.Errorf("TestAddClient failed: %s", error)
 	}
 	if err := repo.Migrate([]interface{}{&domain.Client{}}); err != nil {
@@ -30,8 +34,8 @@ func TestClientOk(t *testing.T) {
 	if err != nil {
 		t.Errorf("TestAddClient failed: %s", err)
 	}
-	if cli.Name != "Test test" {
-		t.Errorf("TestAddClient failed: %s", cli.Name)
+	if cli != "id: 1; name: Test Test; responsible: Test Test; email: test@test.com; phone: +5511980876112; contact: email; document: 044.179.328-24" {
+		t.Errorf("TestAddClient failed: %s", cli)
 	}
 	repo.Delete(&domain.Client{}, "1")
 }

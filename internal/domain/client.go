@@ -122,6 +122,23 @@ func (c *Client) GetID() string {
 	return c.ID
 }
 
+// String is a method that returns a string representation of the client
+func (c *Client) String() string {
+	ret := ""
+	ret += "id: " + c.ID + "; "
+	ret += "name: " + c.Name + "; "
+	if c.Responsible != "" {
+		ret += "responsible: " + c.Responsible + "; "
+	}
+	ret += "email: " + c.Email + "; "
+	ret += "phone: " + c.Phone + "; "
+	ret += "contact: " + c.Contact
+	if c.Document != "" {
+		ret += "; document: " + c.Document
+	}
+	return ret
+}
+
 // validateName is a method that validates the name field
 func (c *Client) validateName() error {
 	name := strings.TrimSpace(c.Name)

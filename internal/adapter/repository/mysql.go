@@ -26,6 +26,15 @@ func NewRepository(dns string) (*MySql, error) {
 	return &MySql{Db: db}, nil
 }
 
+// Close closes the database connection
+func (r *MySql) Close() {
+	db, err := r.Db.DB()
+	if err != nil {
+		return
+	}
+	db.Close()
+}
+
 // Migrate migrates the database
 func (r *MySql) Migrate(domain []interface{}) error {
 	for _, d := range domain {
@@ -38,12 +47,26 @@ func (r *MySql) Migrate(domain []interface{}) error {
 
 // Add adds a object to the database
 func (r *MySql) Add(obj interface{}) error {
-	return r.Db.Create(obj).Error
+	tx := r.Db.Begin()
+	tx = tx.Create(obj)
+	if tx.Error != nil {
+		tx.Rollback()
+		return tx.Error
+	}
+	tx.Commit()
+	return nil
 }
 
 // Delete deletes a object from the database by id
 func (r *MySql) Delete(obj interface{}, id string) error {
-	return r.Db.Delete(obj, id).Error
+	tx := r.Db.Begin()
+	tx = tx.Delete(obj, "ID = ?", id)
+	if tx.Error != nil {
+		tx.Rollback()
+		return tx.Error
+	}
+	tx.Commit()
+	return nil
 }
 
 // Get gets a object from the database by id

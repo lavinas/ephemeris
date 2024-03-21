@@ -26,18 +26,18 @@ func (c *Usecase) AddClient(id string, name string, responsible string, email st
 }
 
 // Get is a method that gets a client from the repository
-func (c *Usecase) GetClient(id string) (*domain.Client, error) {
+func (c *Usecase) GetClient(id string) (string, error) {
 	c.Log.Println("Getting client")
 	client := &domain.Client{}
 	if f, err := c.Repo.Get(client, id); err != nil {
 		c.Log.Println(err.Error())
-		return nil, errors.New("internal error: " + err.Error())
+		return "", errors.New("internal error: " + err.Error())
 	} else if !f {
 		err := errors.New("client not found")
 		c.Log.Println(err.Error())
-		return nil, errors.New("not found: " + err.Error())
+		return "", errors.New("not found: " + err.Error())
 	}
-	return client, nil
+	return client.String(), nil
 }
 
 // validate is a method that validates the client
