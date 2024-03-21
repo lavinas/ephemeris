@@ -79,15 +79,15 @@ func NewClient(id string, name string, responsible string, email string, phone s
 // Validate is a method that validates the client
 func (c *Client) Validate() error {
 	message := ""
-	validMap := map[string]func() error{
-		"name":        c.validateName,
-		"responsible": c.validateResponsible,
-		"email":       c.validateEmail,
-		"phone":       c.validatePhone,
-		"contact":     c.validateContact,
-		"document":    c.validateDocument,
+	validSlice := []func() error{
+		c.validateName,
+		c.validateResponsible,
+		c.validateEmail,
+		c.validatePhone,
+		c.validateContact,
+		c.validateDocument,
 	}
-	for _, f := range validMap {
+	for _, f := range validSlice {
 		if err := f(); err != nil {
 			message += err.Error() + ", "
 		}

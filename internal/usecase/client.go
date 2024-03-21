@@ -10,14 +10,15 @@ import (
 func (c *Usecase) AddClient(id string, name string, responsible string, email string, 
 	                        phone string, contactWay string, document string) error {
 	c.Log.Println("Registering client")
-	addMap := map[string]func(*domain.Client) error{
-		"validate":       c.validateClient,
-		"format":         c.formatClient,
-		"checkExistence": c.checkExistsClient,
-		"add":            c.addClient,
+	addSlice := []func(*domain.Client) error{
+		c.validateClient,
+		c.formatClient,
+		c.checkExistsClient,
+		c.addClient,
 	}
 	client := domain.NewClient(id, name, responsible, email, phone, contactWay, document)
-	for _, f := range addMap {
+	c.Log.Println("Doc1: " + client.Document)
+	for _, f := range addSlice {
 		if err := f(client); err != nil {
 			return err
 		}
@@ -42,6 +43,7 @@ func (c *Usecase) GetClient(id string) (string, error) {
 
 // validate is a method that validates the client
 func (c *Usecase) validateClient(client *domain.Client) error {
+	c.Log.Println("Doc: " + client.Document)
 	if err := client.Validate(); err != nil {
 		c.Log.Println(err.Error())
 		return errors.New("bad request: " + err.Error())
