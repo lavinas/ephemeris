@@ -2,14 +2,47 @@ package usecase
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/lavinas/ephemeris/internal/domain"
 )
 
+const (
+	ErrorClientCommandShort = "client command should have at least 1 parameter"
+)
+
+
+var (
+	/*
+	cmdsClient = map[string]func(*Usecase, string) string{
+		"add": (*Usecase).CommandAddClient,
+		"get": (*Usecase).CommandClientGet,
+	}
+	*/
+)
+
+// CommandClient is a method that receives a command and execute it
+func (c *Usecase) CommandClient(cmd string) string {
+	cmd = strings.ToLower(cmd)
+	cmdSlice := strings.Split(cmd, " ")
+	if len(cmdSlice) == 0 {
+		return ErrorClientCommandShort
+	}
+	return "ok"
+}
+
+// CommandAddClient is a method that receives a command and execute it
+func (c *Usecase) CommandAddClient(cmd string) string {
+	cmd = strings.ToLower(cmd)
+	strings.Split(cmd, " ")
+	return "ok"
+}
+		
+
+
 // Add is a method that add a client to the repository
 func (c *Usecase) AddClient(id string, name string, responsible string, email string, 
 	                        phone string, contactWay string, document string) error {
-	c.Log.Println("Registering client")
 	addSlice := []func(*domain.Client) error{
 		c.validateClient,
 		c.formatClient,
@@ -28,7 +61,6 @@ func (c *Usecase) AddClient(id string, name string, responsible string, email st
 
 // Get is a method that gets a client from the repository
 func (c *Usecase) GetClient(id string) (string, error) {
-	c.Log.Println("Getting client")
 	client := &domain.Client{}
 	if f, err := c.Repo.Get(client, id); err != nil {
 		c.Log.Println(err.Error())
