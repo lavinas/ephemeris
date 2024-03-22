@@ -64,7 +64,6 @@ func (c *Usecase) GetClient(dtoIn port.DTO) error {
 
 // validate is a method that validates the client
 func (c *Usecase) validateClient(client *domain.Client) error {
-	c.Log.Println("Doc: " + client.Document)
 	if err := client.Validate(); err != nil {
 		c.Log.Println(err.Error())
 		return errors.New("bad request: " + err.Error())
