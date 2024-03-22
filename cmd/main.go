@@ -1,15 +1,21 @@
 package main
 
+/*
+
 import (
 	"strings"
 	"fmt"
 )
+
+
 
 func main() {
 	x := "add client name ' paulo celso lavinas barbosa' document '044.179.328-24' responsible 'amelia cardoso' email 'lavinas@gmail.com' phone '11980876112' contact 'email'"
 	y, _ := MapCommand(x)
 	fmt.Print(y)
 }
+
+
 
 func MapCommand(cmd string) (map[string]string, error) {
 	cmdSlice := strings.Split(strings.ToLower(cmd), " ")
@@ -33,3 +39,5 @@ func MapCommand(cmd string) (map[string]string, error) {
 	}
 	return maps, nil
 }
+
+*/

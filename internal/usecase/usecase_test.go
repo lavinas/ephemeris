@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/lavinas/ephemeris/internal/adapter/repository"
+	"github.com/lavinas/ephemeris/internal/adapters/repository"
 
 )
 

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/lavinas/ephemeris/internal/domain"
+	"github.com/lavinas/ephemeris/internal/dto"
 )
 
 const (
@@ -38,18 +39,16 @@ func (c *Usecase) CommandAddClient(cmd string) string {
 	return "ok"
 }
 		
-
-
 // Add is a method that add a client to the repository
-func (c *Usecase) AddClient(id string, name string, responsible string, email string, 
-	                        phone string, contactWay string, document string) error {
+func (c *Usecase) AddClient(dto *dto.ClientAdd) error {
 	addSlice := []func(*domain.Client) error{
 		c.validateClient,
 		c.formatClient,
 		c.checkExistsClient,
 		c.addClient,
 	}
-	client := domain.NewClient(id, name, responsible, email, phone, contactWay, document)
+	client := domain.NewClient(dto.ID, dto.Name, dto.Responsible, dto.Email, 
+		                       dto.Phone, dto.Contact, dto.Document)
 	c.Log.Println("Doc1: " + client.Document)
 	for _, f := range addSlice {
 		if err := f(client); err != nil {
@@ -60,17 +59,20 @@ func (c *Usecase) AddClient(id string, name string, responsible string, email st
 }
 
 // Get is a method that gets a client from the repository
-func (c *Usecase) GetClient(id string) (string, error) {
+func (c *Usecase) GetClient(id string) (*dto.ClientGet, error) {
 	client := &domain.Client{}
 	if f, err := c.Repo.Get(client, id); err != nil {
 		c.Log.Println(err.Error())
-		return "", errors.New("internal error: " + err.Error())
+		return nil, errors.New("internal error: " + err.Error())
 	} else if !f {
 		err := errors.New("client not found")
 		c.Log.Println(err.Error())
-		return "", errors.New("not found: " + err.Error())
+		return nil, errors.New("not found: " + err.Error())
 	}
-	return client.String(), nil
+	dto := &dto.ClientGet{ID: client.ID, Name: client.Name, Responsible: client.Responsible,
+		Email: client.Email,  Phone: client.Phone, Contact: client.Contact, Document: client.Document,
+	}
+	return dto, nil
 }
 
 // validate is a method that validates the client

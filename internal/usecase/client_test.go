@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/lavinas/ephemeris/internal/domain"
+	"github.com/lavinas/ephemeris/internal/dto"
 )
 
 func TestClient(t *testing.T) {
@@ -12,7 +13,11 @@ func TestClient(t *testing.T) {
 	// add a client ok
 	usecase.Repo.Delete(&domain.Client{}, "1")
 	defer usecase.Repo.Delete(&domain.Client{}, "1")
-	err := usecase.AddClient("1", "Test test", "Test test", "test@test.com", "11980876112", "email", "04417932824")
+	dto := &dto.ClientAdd{
+		ID: "1", Name: "Test test", Responsible: "Test test", Email: "test@test.com",
+		Phone: "11980876112", Contact: "email", Document: "04417932824",
+	}
+	err := usecase.AddClient(dto)
 	if err != nil {
 		t.Errorf("TestAddClient failed: %s", err)
 	}
@@ -20,8 +25,26 @@ func TestClient(t *testing.T) {
 	if err != nil {
 		t.Errorf("TestAddClient failed: %s", err)
 	}
-	if cli != "id: 1; name: Test Test; responsible: Test Test; email: test@test.com; phone: +5511980876112; contact: email; document: 044.179.328-24" {
-		t.Errorf("TestAddClient failed: %s", cli)
+	if cli.ID != "1" {
+		t.Errorf("TestAddClient ID failed: %s", cli.ID)
+	}
+	if cli.Name != "Test Test" {
+		t.Errorf("TestAddClient Name failed: %s", cli.Name)
+	}
+	if cli.Responsible != "Test Test" {
+		t.Errorf("TestAddClient Responsible failed: %s", cli.Responsible)
+	}
+	if cli.Email != "test@test.com" {
+		t.Errorf("TestAddClient Email failed: %s", cli.Email)
+	}
+	if cli.Phone != "+5511980876112" {
+		t.Errorf("TestAddClient Phone failed: %s", cli.Phone)
+	}
+	if cli.Contact != "email" {
+		t.Errorf("TestAddClient Contact failed: %s", cli.Contact)
+	}
+	if cli.Document != "044.179.328-24" {
+		t.Errorf("TestAddClient Document failed: %s", cli.Document)
 	}
 	// terminate
 	terminate(usecase)
