@@ -2,55 +2,34 @@ package usecase
 
 import (
 	"errors"
-	"strings"
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/dto"
+	"github.com/lavinas/ephemeris/internal/port"
+	
 )
 
 const (
-	ErrorClientCommandShort = "client command should have at least 1 parameter"
+	ErrWrongAddClientDTO = "internal error: wrong AddClient dto"
+	ErrWrongGetClientDTO = "internal error: wrong GetClient dto"
+
 )
 
-
-var (
-	/*
-	cmdsClient = map[string]func(*Usecase, string) string{
-		"add": (*Usecase).CommandAddClient,
-		"get": (*Usecase).CommandClientGet,
-	}
-	*/
-)
-
-// CommandClient is a method that receives a command and execute it
-func (c *Usecase) CommandClient(cmd string) string {
-	cmd = strings.ToLower(cmd)
-	cmdSlice := strings.Split(cmd, " ")
-	if len(cmdSlice) == 0 {
-		return ErrorClientCommandShort
-	}
-	return "ok"
-}
-
-// CommandAddClient is a method that receives a command and execute it
-func (c *Usecase) CommandAddClient(cmd string) string {
-	cmd = strings.ToLower(cmd)
-	strings.Split(cmd, " ")
-	return "ok"
-}
-		
 // Add is a method that add a client to the repository
-func (c *Usecase) AddClient(dto *dto.ClientAdd) error {
-	addSlice := []func(*domain.Client) error{
+func (c *Usecase) AddClient(dtoIn port.DTO) error {
+	dto, ok := dtoIn.(*dto.ClientAdd)
+	if !ok {
+		return errors.New(ErrWrongAddClientDTO)
+	}
+	loop := []func(*domain.Client) error{
 		c.validateClient,
 		c.formatClient,
 		c.checkExistsClient,
 		c.addClient,
 	}
-	client := domain.NewClient(dto.ID, dto.Name, dto.Responsible, dto.Email, 
-		                       dto.Phone, dto.Contact, dto.Document)
-	c.Log.Println("Doc1: " + client.Document)
-	for _, f := range addSlice {
+	client := domain.NewClient(dto.ID, dto.Name, dto.Responsible, dto.Email,
+		dto.Phone, dto.Contact, dto.Document)
+	for _, f := range loop {
 		if err := f(client); err != nil {
 			return err
 		}
@@ -59,20 +38,28 @@ func (c *Usecase) AddClient(dto *dto.ClientAdd) error {
 }
 
 // Get is a method that gets a client from the repository
-func (c *Usecase) GetClient(id string) (*dto.ClientGet, error) {
+func (c *Usecase) GetClient(dtoIn port.DTO) error {
+	dto, ok := dtoIn.(*dto.ClientGet)
+	if !ok {
+		return errors.New(ErrWrongGetClientDTO)
+	}
 	client := &domain.Client{}
-	if f, err := c.Repo.Get(client, id); err != nil {
+	if f, err := c.Repo.Get(client, dto.ID); err != nil {
 		c.Log.Println(err.Error())
-		return nil, errors.New("internal error: " + err.Error())
+		return errors.New("internal error: " + err.Error())
 	} else if !f {
 		err := errors.New("client not found")
 		c.Log.Println(err.Error())
-		return nil, errors.New("not found: " + err.Error())
+		return errors.New("not found: " + err.Error())
 	}
-	dto := &dto.ClientGet{ID: client.ID, Name: client.Name, Responsible: client.Responsible,
-		Email: client.Email,  Phone: client.Phone, Contact: client.Contact, Document: client.Document,
-	}
-	return dto, nil
+	dto.ID = client.ID
+	dto.Name = client.Name
+	dto.Responsible = client.Responsible
+	dto.Email = client.Email
+	dto.Phone = client.Phone
+	dto.Contact = client.Contact
+	dto.Document = client.Document
+	return nil
 }
 
 // validate is a method that validates the client
@@ -96,7 +83,7 @@ func (c *Usecase) formatClient(client *domain.Client) error {
 
 // checkExistence is a method that checks if the client exists
 func (c *Usecase) checkExistsClient(client *domain.Client) error {
-	if f, err := c.Repo.Get(&domain.Client{}, client.GetID()); err != nil {
+	if f, err := c.Repo.Get(&domain.Client{}, client.ID); err != nil {
 		c.Log.Println(err.Error())
 		return errors.New("internal error: " + err.Error())
 	} else if f {

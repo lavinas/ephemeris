@@ -1,21 +1,25 @@
 package usecase
 
 import (
-	"fmt"
+	"slices"
 	"strings"
+	"reflect"
+	"fmt"
 
+	"github.com/lavinas/ephemeris/internal/dto"
 	"github.com/lavinas/ephemeris/internal/port"
 )
 
 const (
-	ErrorCommandShort = "command should have at least 1 parameter"
-	ErrorCommandNotFound = "command not found: %s, possible commands: %s"
+	ErrorCommandShort = "wrong command. Should have: object action <paramenters>. Ex: client get nickname. Use help for more information"
+	ErrorObjectAction = "wrong object or action. Use help for more information"
+	ErrorMissingParameter = "missing parameter: %s"
 )
 
 var (
-	// cmds is a map that groups all starting commands
-	cmds = map[string]func(*Usecase, string) string{
-		"client":  (*Usecase).CommandClient,
+	dtos = map[port.DTO]func(*Usecase, port.DTO) error{
+		&dto.ClientAdd{Base: dto.Base{Object: "client", Action: "add"}}: (*Usecase).AddClient,
+		&dto.ClientGet{Base: dto.Base{Object: "client", Action: "get"}}: (*Usecase).GetClient,
 	}
 )
 
@@ -34,41 +38,76 @@ func NewClientUsecase(repo port.Repository, log port.Logger) *Usecase {
 	}
 }
 
-// Command is a method that receives a command and execute it
-func (c *Usecase) Command(cmd string) string {
+// GetDTO is a function that converts a string command to a DTO
+func (u *Usecase) Command(cmd string) string {
 	cmd = strings.ToLower(cmd)
-	c.Log.Println(cmd)
 	cmdSlice := strings.Split(cmd, " ")
-	if len(cmdSlice) == 0 {
+	if len(cmdSlice) < 2 {
 		return ErrorCommandShort
 	}
-	if f, ok := cmds[cmdSlice[0]]; ok {
-		cmd := strings.Join(cmdSlice[1:], " ")
-		return f(c, cmd)
-	}		
-	return fmt.Sprintf(ErrorCommandNotFound, cmdSlice[0], cmdString(cmds))
-}	
-
-// getCommands is a method that returns all possible commands
-func cmdString[K string, V any](map[K]V) string {
-	commands := make([]string, 0, len(cmds))
-	for k := range cmds {
-		commands = append(commands, k)
+	for dto, f := range dtos {
+		if slices.Contains(cmdSlice, dto.GetObject()) && slices.Contains(cmdSlice, dto.GetAction()) {
+			if err := u.getparams(dto, cmdSlice); err != nil {
+				return  err.Error()
+			}
+			if err := f(u, dto); err != nil {
+				return err.Error()
+			}
+		}
 	}
-	return strings.Join(commands, ", ")
+	return ErrorObjectAction
 }
 
+// getparams is a function that converts a string command to a DTO
+func (u *Usecase) getparams(dto port.DTO, cmdSlice []string) error {
+	st := reflect.TypeOf(dto).Elem()
+	tags := u.commandGetTags(st)
+	values, err := u.commandMapValues(tags, cmdSlice)
+	if err != nil {
+		return err
+	}
+	u.commandSetFields(dto, values)
+	return nil
+}
 
-// MapCommand is a function that returns a map of the command
-func MapCommand(cmd string)map[string]string {
-	cmd = strings.ToLower(cmd)
-	cmdSlice := strings.Split(cmd, " ")
-	maps := make(map[string]string)
-	for _, f := range cmdSlice {
-		if f[0:1] == "'" || f[0:1] == "\"" {
+// getCommandTags is a function that returns all tags of a struct
+func (u *Usecase) commandGetTags(st reflect.Type) map[string]string {
+	tags := map[string]string{}
+	for i := 0; i < st.NumField(); i++ {
+		tag := st.Field(i).Tag.Get("command")
+		if tag == "" {
 			continue
 		}
-		maps[f] = ""
+		tags[tag] = st.Field(i).Name
 	}
-	return maps
+	return tags
 }
+
+// mapCommandValues is a function that maps command fields values
+func (u *Usecase) commandMapValues(alltags map[string]string, cmdSlice []string) (map[string]string, error) {
+	valueMap := map[string]string{}
+	for tag, field := range alltags {
+		if !slices.Contains(cmdSlice, tag) {
+			return valueMap, fmt.Errorf(ErrorMissingParameter, tag)
+		}
+		param := ""
+		for j := slices.Index(cmdSlice, tag) + 1; j < len(cmdSlice); j++ {
+			if alltags[cmdSlice[j]] != "" {
+				break
+			}
+			param += cmdSlice[j] + " "
+		}
+		valueMap[field] = param
+	}
+	return valueMap, nil
+}
+
+// setCommandFields is a function that sets the fields of a DTO
+func (u *Usecase) commandSetFields(dto port.DTO, values map[string]string) {
+	for k, v := range values {
+		field := reflect.ValueOf(dto).Elem().FieldByName(k)
+		field.SetString(v)
+	}
+
+}
+

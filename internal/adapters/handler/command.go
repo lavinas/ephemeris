@@ -16,5 +16,5 @@ func NewCommandHandler(usecase port.UseCase) *CommandHandler {
 }
 
 func (h *CommandHandler) Run() {
-	
+
 }

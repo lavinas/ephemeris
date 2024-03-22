@@ -11,7 +11,6 @@ import (
 	"github.com/nyaruka/phonenumbers"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
-
 )
 
 const (
@@ -116,11 +115,6 @@ func (c *Client) Format() error {
 		}
 	}
 	return nil
-}
-
-// GetID is a method that returns client id
-func (c *Client) GetID() string {
-	return c.ID
 }
 
 // String is a method that returns a string representation of the client
