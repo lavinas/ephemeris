@@ -40,6 +40,7 @@ func NewClientUsecase(repo port.Repository, log port.Logger) *Usecase {
 
 // GetDTO is a function that converts a string command to a DTO
 func (u *Usecase) Command(cmd string) string {
+	u.Log.Println("Command: ", cmd)
 	cmd = strings.ToLower(cmd)
 	cmdSlice := strings.Split(cmd, " ")
 	if len(cmdSlice) < 2 {
@@ -48,13 +49,16 @@ func (u *Usecase) Command(cmd string) string {
 	for dto, f := range dtos {
 		if slices.Contains(cmdSlice, dto.GetObject()) && slices.Contains(cmdSlice, dto.GetAction()) {
 			if err := u.getparams(dto, cmdSlice); err != nil {
+				u.Log.Println(err.Error())
 				return  err.Error()
 			}
 			if err := f(u, dto); err != nil {
+				u.Log.Println(err.Error())
 				return err.Error()
 			}
 		}
 	}
+	u.Log.Println(ErrorObjectAction)
 	return ErrorObjectAction
 }
 
