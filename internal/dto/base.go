@@ -25,5 +25,3 @@ func (b *Base) GetObject() string {
 func (b *Base) GetAction() string {
 	return b.Action
 }
-
-

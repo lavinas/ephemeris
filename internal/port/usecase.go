@@ -6,7 +6,7 @@ import (
 
 // UseCase is an interface that defines the methods for the use case
 type UseCase interface {
-	Command (string) string
+	Command(string) string
 	AddClient(*dto.ClientAdd) error
 	GetClient(*dto.ClientGet) error
 }

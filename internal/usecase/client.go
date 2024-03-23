@@ -6,13 +6,11 @@ import (
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/dto"
 	"github.com/lavinas/ephemeris/internal/port"
-	
 )
 
 const (
 	ErrWrongAddClientDTO = "internal error: wrong AddClient dto"
 	ErrWrongGetClientDTO = "internal error: wrong GetClient dto"
-
 )
 
 // Add is a method that add a client to the repository

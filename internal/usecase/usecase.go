@@ -1,18 +1,18 @@
 package usecase
 
 import (
+	"fmt"
+	"reflect"
 	"slices"
 	"strings"
-	"reflect"
-	"fmt"
 
 	"github.com/lavinas/ephemeris/internal/dto"
 	"github.com/lavinas/ephemeris/internal/port"
 )
 
 const (
-	ErrorCommandShort = "wrong command. Should have: object action <paramenters>. Ex: client get nickname. Use help for more information"
-	ErrorObjectAction = "wrong object or action. Use help for more information"
+	ErrorCommandShort     = "wrong command. Should have: object action <paramenters>. Ex: client get nickname. Use help for more information"
+	ErrorObjectAction     = "wrong object or action. Use help for more information"
 	ErrorMissingParameter = "missing parameter: %s"
 )
 
@@ -50,7 +50,7 @@ func (u *Usecase) Command(cmd string) string {
 		if slices.Contains(cmdSlice, dto.GetObject()) && slices.Contains(cmdSlice, dto.GetAction()) {
 			if err := u.getparams(dto, cmdSlice); err != nil {
 				u.Log.Println(err.Error())
-				return  err.Error()
+				return err.Error()
 			}
 			if err := f(u, dto); err != nil {
 				u.Log.Println(err.Error())
@@ -114,4 +114,3 @@ func (u *Usecase) commandSetFields(dto port.DTO, values map[string]string) {
 	}
 
 }
-
