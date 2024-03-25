@@ -13,10 +13,10 @@ const (
 	ErrorNotStringField  = "not all fields are strings"
 	ErrorKeyNotFound     = "tag %s not found"
 	ErrorNotNullField    = "tag %s is null"
-	fieldtag             = "command"
-	tagname              = "name:"
-	tagnotnull           = "not null"
-	tagkey               = "key"
+	Fieldtag             = "command"
+	Tagname              = "name:"
+	Tagnotnull           = "not null"
+	Tagkey               = "key"
 )
 
 // Command is a struct that represents a command
@@ -37,6 +37,17 @@ func NewCommands() *Commands {
 	return &Commands{}
 }
 
+// Choose is a function that chooses the correct struct to return
+func (s *Commands) UnmarshalOne(data string, v []interface{}) interface{} {
+	for _, i := range v {
+		if err:= s.Unmarshal(data, i); err != nil{
+			continue
+		}
+		return i
+	}
+	return nil
+}
+
 // ToStruc is a function that converts a string to a struct
 func (s *Commands) Unmarshal(data string, v interface{}) error {
 	ss := strings.Split(data, " ")
@@ -44,7 +55,7 @@ func (s *Commands) Unmarshal(data string, v interface{}) error {
 	if err := s.checkFieldsType(st); err != nil {
 		return err
 	}
-	tags := s.getTags(st, fieldtag)
+	tags := s.getTags(st, Fieldtag)
 	s.mapValues(tags, ss)
 	if err := s.checkValues(tags); err != nil {
 		return err
@@ -88,13 +99,13 @@ func (s *Commands) splitValues(tag string) (string, bool, bool) {
 	notnull := false
 	iskey := false
 	for _, fd := range fields {
-		if strings.Contains(fd, tagname) {
+		if strings.Contains(fd, Tagname) {
 			name = strings.Split(fd, ":")[1]
 		}
-		if strings.Contains(fd, tagnotnull) {
+		if strings.Contains(fd, Tagnotnull) {
 			notnull = true
 		}
-		if strings.Contains(fd, tagkey) {
+		if strings.Contains(fd, Tagkey) {
 			iskey = true
 		}
 	}
