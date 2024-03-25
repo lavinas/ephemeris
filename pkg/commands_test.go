@@ -10,7 +10,7 @@ func TestOk(t *testing.T) {
 		Name string `command:"name"`
 		Age  string `command:"age"`
 	}{}
-	if err := commands.Unmarshal("name alex age 20", &s, "command"); err != nil {
+	if err := commands.Unmarshal("name alex age 20", &s); err != nil {
 		t.Errorf("Error: %s", err.Error())
 	}
 	if s.Name != "alex" {
@@ -27,7 +27,7 @@ func TestErrorEmptyData(t *testing.T) {
 		Name string `command:"name"`
 		Age  string `command:"age"`
 	}{}
-	if err := commands.Unmarshal("", &s, "command"); err == nil {
+	if err := commands.Unmarshal("", &s); err == nil {
 		t.Errorf("Error is nil")
 	}
 }

@@ -9,11 +9,11 @@ import (
 func main() {
 	commands := pkg.NewCommands()
 	var s = struct {
-		Name string `json:"name"`
-		Age  string    `json:"age"`
+		Name string `command:"name: #name; not null"`
+		Age  string `command:"name: #age"`
 	}{}
 
-	if err := commands.Unmarshal("", &s, "json"); err != nil {
+	if err := commands.Unmarshal("#name test1 #age teste2", &s); err != nil {
 		fmt.Println(err.Error())
 		return
 	}
