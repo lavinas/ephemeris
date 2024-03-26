@@ -40,7 +40,7 @@ func NewCommands() *Commands {
 // Choose is a function that chooses the correct struct to return
 func (s *Commands) UnmarshalOne(data string, v []interface{}) interface{} {
 	for _, i := range v {
-		if err:= s.Unmarshal(data, i); err != nil{
+		if err := s.Unmarshal(data, i); err != nil {
 			continue
 		}
 		return i
@@ -142,7 +142,7 @@ func (s *Commands) getValue(tag string, tags map[string]*Command, ss []string) s
 func (s *Commands) checkValues(tags map[string]*Command) error {
 	message := ""
 	for tag, field := range tags {
-		if field.isfound == "false" && (field.iskey || field.notnull){
+		if field.isfound == "false" && (field.iskey || field.notnull) {
 			message += fmt.Sprintf(ErrorKeyNotFound, tag) + " | "
 		} else if field.notnull && field.value == "" {
 			message += fmt.Sprintf(ErrorNotNullField, tag) + " | "

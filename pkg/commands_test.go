@@ -6,11 +6,11 @@ import (
 
 var (
 	s = struct {
-		Nono string
-		Name string `command:"name:#name; key; not null"`
-		Age  string `command:"name:#age; key; not null"`
-		Mood string `command:"name:#mood; key"`
-		Other string `command:"name:#other; not null"`
+		Nono    string
+		Name    string `command:"name:#name; key; not null"`
+		Age     string `command:"name:#age; key; not null"`
+		Mood    string `command:"name:#mood; key"`
+		Other   string `command:"name:#other; not null"`
 		Another string `command:"name:#another"`
 	}{}
 
@@ -21,9 +21,6 @@ var (
 
 	v = []interface{}{&s, &u}
 )
-
-
-
 
 func TestUnmarshallOk(t *testing.T) {
 	commands := NewCommands()
@@ -52,12 +49,11 @@ func TestUnmarshallOk(t *testing.T) {
 func TestUnmarshallComplete(t *testing.T) {
 	testMap := map[string]string{
 		"#name alex #age 20 #mood test #other test2 #another xxx": "",
-		"#name alex #age 20 #mood test #other test2 #another": "",
-		"#name alex #age 20 #mood test #other test2": "",
-		"#name alex #age 20 #mood test #other": "tag #other is null",
-		"#name alex #age 20 #mood test": "tag #other not found",
-		"#name alex #age 20": "tag #mood not found | tag #other not found",
-
+		"#name alex #age 20 #mood test #other test2 #another":     "",
+		"#name alex #age 20 #mood test #other test2":              "",
+		"#name alex #age 20 #mood test #other":                    "tag #other is null",
+		"#name alex #age 20 #mood test":                           "tag #other not found",
+		"#name alex #age 20":                                      "tag #mood not found | tag #other not found",
 	}
 	commands := NewCommands()
 	for k, v := range testMap {
@@ -74,12 +70,12 @@ func TestUnmarshallComplete(t *testing.T) {
 	}
 }
 
-func TestUnmarshallNotStringField(t *testing.T)	{
+func TestUnmarshallNotStringField(t *testing.T) {
 	s := struct {
-		Name int `command:"name:#name; key; not null"`
-		Age  string `command:"name:#age; key; not null"`
-		Mood string `command:"name:#mood; key"`
-		Other string `command:"name:#other; not null"`
+		Name    int    `command:"name:#name; key; not null"`
+		Age     string `command:"name:#age; key; not null"`
+		Mood    string `command:"name:#mood; key"`
+		Other   string `command:"name:#other; not null"`
 		Another string `command:"name:#another"`
 	}{}
 	commands := NewCommands()
