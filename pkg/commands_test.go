@@ -13,7 +13,16 @@ var (
 		Other string `command:"name:#other; not null"`
 		Another string `command:"name:#another"`
 	}{}
+
+	u = struct {
+		Name string `command:"name:#name; key; not null"`
+		Test string `command:"name:#test; key; not null"`
+	}{}
+
+	v = []interface{}{&s, &u}
 )
+
+
 
 
 func TestUnmarshallOk(t *testing.T) {
@@ -80,5 +89,30 @@ func TestUnmarshallNotStringField(t *testing.T)	{
 	}
 	if err.Error() != ErrorNotStringField {
 		t.Errorf("Expected error %s, got %s", ErrorNotStringField, err.Error())
+	}
+}
+
+func TestUnmarshalOne(t *testing.T) {
+	// Ok
+	commands := NewCommands()
+	cmd := "#name alex #test 20"
+	i := commands.UnmarshalOne(cmd, v)
+	if i == nil {
+		t.Errorf("Expected struct, got nil")
+	}
+	if i != &u {
+		t.Errorf("Expected struct, got %v", i)
+	}
+	if u.Name != "alex" {
+		t.Errorf("Expected alex, got %s", u.Name)
+	}
+	if u.Test != "20" {
+		t.Errorf("Expected 20, got %s", u.Test)
+	}
+	//  Not found
+	cmd = "#name alex"
+	i = commands.UnmarshalOne(cmd, v)
+	if i != nil {
+		t.Errorf("Expected nil, got %v", i)
 	}
 }
