@@ -37,6 +37,16 @@ func NewCommands() *Commands {
 	return &Commands{}
 }
 
+// Marshal is a function that converts a struct to a string
+func (s *Commands) Marshal(v interface{}) string {
+	st := reflect.TypeOf(v).Elem()
+	ret := ""
+	for i := 0; i < st.NumField(); i++ {
+		ret += fmt.Sprintf("%s: %s | ", st.Field(i).Name, reflect.ValueOf(v).Elem().Field(i).String())
+	}
+	return ret[:len(ret)-3]	
+}
+
 // Choose is a function that chooses the correct struct to return
 func (s *Commands) UnmarshalOne(data string, v []interface{}) interface{} {
 	for _, i := range v {
@@ -161,3 +171,4 @@ func (s *Commands) setFields(v interface{}, tags map[string]*Command) {
 		field.SetString(i.value)
 	}
 }
+

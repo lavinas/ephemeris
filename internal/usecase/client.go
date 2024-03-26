@@ -6,6 +6,7 @@ import (
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/dto"
 	"github.com/lavinas/ephemeris/internal/port"
+	"github.com/lavinas/ephemeris/pkg"
 )
 
 const (
@@ -14,10 +15,10 @@ const (
 )
 
 // Add is a method that add a client to the repository
-func (c *Usecase) AddClient(dtoIn port.DTO) error {
+func (c *Usecase) ClientAdd(dtoIn port.DTO) (string, error) {
 	dto, ok := dtoIn.(*dto.ClientAdd)
 	if !ok {
-		return errors.New(ErrWrongAddClientDTO)
+		return ErrWrongAddClientDTO, errors.New(ErrWrongAddClientDTO)
 	}
 	loop := []func(*domain.Client) error{
 		c.validateClient,
@@ -29,26 +30,28 @@ func (c *Usecase) AddClient(dtoIn port.DTO) error {
 		dto.Phone, dto.Contact, dto.Document)
 	for _, f := range loop {
 		if err := f(client); err != nil {
-			return err
+			return err.Error(), err
 		}
 	}
-	return nil
+	return "ok: client added", nil
 }
 
 // Get is a method that gets a client from the repository
-func (c *Usecase) GetClient(dtoIn port.DTO) error {
+func (c *Usecase) ClientGet(dtoIn port.DTO) (string, error) {
 	dto, ok := dtoIn.(*dto.ClientGet)
 	if !ok {
-		return errors.New(ErrWrongGetClientDTO)
+		c.Log.Println(ErrWrongGetClientDTO)
+		return ErrWrongGetClientDTO, errors.New(ErrWrongGetClientDTO)
 	}
 	client := &domain.Client{}
 	if f, err := c.Repo.Get(client, dto.ID); err != nil {
-		c.Log.Println(err.Error())
-		return errors.New("internal error: " + err.Error())
+		errMsg := "internal error: " + err.Error()
+		c.Log.Println(errMsg)
+		return errMsg, errors.New(errMsg)
 	} else if !f {
-		err := errors.New("client not found")
-		c.Log.Println(err.Error())
-		return errors.New("not found: " + err.Error())
+		errMsg := "not found: client not found"
+		c.Log.Println(errMsg)
+		return errMsg, errors.New(errMsg)
 	}
 	dto.ID = client.ID
 	dto.Name = client.Name
@@ -57,7 +60,8 @@ func (c *Usecase) GetClient(dtoIn port.DTO) error {
 	dto.Phone = client.Phone
 	dto.Contact = client.Contact
 	dto.Document = client.Document
-	return nil
+	comm := &pkg.Commands{}
+	return comm.Marshal(dto), nil
 }
 
 // validate is a method that validates the client
