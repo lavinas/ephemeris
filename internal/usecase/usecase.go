@@ -8,6 +8,7 @@ import (
 
 	"github.com/lavinas/ephemeris/internal/dto"
 	"github.com/lavinas/ephemeris/internal/port"
+	"github.com/lavinas/ephemeris/pkg"
 )
 
 const (
@@ -39,9 +40,16 @@ func NewClientUsecase(repo port.Repository, log port.Logger) *Usecase {
 }
 
 // GetDTO is a function that converts a string command to a DTO
-func (u *Usecase) Command(cmd string) string {
-	u.Log.Println("Command: ", cmd)
-	cmd = strings.ToLower(cmd)
+func (u *Usecase) Command(line string) string {
+	u.Log.Println("Command: " + line)
+	line = strings.ToLower(line)
+	cmd := pkg.Commands{}
+	
+	
+
+
+
+
 	cmdSlice := strings.Split(cmd, " ")
 	if len(cmdSlice) < 2 {
 		return ErrorCommandShort
