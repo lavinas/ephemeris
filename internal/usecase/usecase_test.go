@@ -22,7 +22,7 @@ func getUsecase(t *testing.T) *Usecase {
 		t.Errorf("TestClientOk failed: %s", error)
 	}
 	log := log.New(f, "test: ", log.LstdFlags)
-	return NewClientUsecase(repo, log)
+	return NewUsecase(repo, log)
 
 }
 

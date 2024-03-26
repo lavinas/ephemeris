@@ -28,8 +28,8 @@ type Usecase struct {
 	Cfg  port.Config
 }
 
-// NewClientUsecase is a function that returns a new ClientUsecase
-func NewClientUsecase(repo port.Repository, log port.Logger) *Usecase {
+// UseCase is a function that returns a new UseCase struct
+func NewUsecase(repo port.Repository, log port.Logger) *Usecase {
 	return &Usecase{
 		Repo: repo,
 		Log:  log,
