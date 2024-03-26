@@ -14,7 +14,7 @@ import (
 func main() {
 	repo, err := repository.NewRepository(os.Getenv("MYSQL_DNS"))
 	if err != nil {
-		fmt.Println("error: ", err)
+		fmt.Println("internal error: " + err.Error())
 		return
 	}
 	logger := log.New(os.Stdout, "ephemeris: ", log.LstdFlags)
