@@ -6,10 +6,9 @@ import (
 
 var (
 	x = struct {
-		Name string `command:"name:name; key; not null"`
+		Name  string `command:"name:name; key; not null"`
 		Name2 string `command:"name:name; key; not null"`
 	}{}
-
 )
 
 func main() {

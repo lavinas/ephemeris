@@ -4,6 +4,7 @@ package port
 type Repository interface {
 	Add(obj interface{}) error
 	Get(obj interface{}, id string) (bool, error)
+	Find(obj interface{}) (bool, error)
 	Delete(obj interface{}, id string) error
 	Close()
 }

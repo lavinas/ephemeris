@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	ErrWrongAddClientDTO = "internal error: wrong AddClient dto"
-	ErrWrongGetClientDTO = "internal error: wrong GetClient dto"
+	ErrWrongAddClientDTO   = "internal error: wrong AddClient dto"
+	ErrWrongGetClientDTO   = "internal error: wrong GetClient dto"
 	ErrClientAlreadyExists = "conflict: client already exists with id %s"
 )
 
@@ -45,8 +45,11 @@ func (c *Usecase) ClientGet(dtoIn port.DTO) (string, error) {
 		c.Log.Println(ErrWrongGetClientDTO)
 		return ErrWrongGetClientDTO, errors.New(ErrWrongGetClientDTO)
 	}
-	client := &domain.Client{}
-	if f, err := c.Repo.Get(client, dto.ID); err != nil {
+	client := domain.NewClient(dto.ID, dto.Name, dto.Responsible, dto.Email,
+		dto.Phone, dto.Contact, dto.Document)
+	client.Format()
+	fmt.Println(1, client)
+	if f, err := c.Repo.Find(client); err != nil {
 		errMsg := "internal error: " + err.Error()
 		c.Log.Println(errMsg)
 		return errMsg, errors.New(errMsg)
@@ -55,6 +58,19 @@ func (c *Usecase) ClientGet(dtoIn port.DTO) (string, error) {
 		c.Log.Println(errMsg)
 		return errMsg, errors.New(errMsg)
 	}
+
+	/*
+		client := &domain.Client{}
+		if f, err := c.Repo.Get(client, dto.ID); err != nil {
+			errMsg := "internal error: " + err.Error()
+			c.Log.Println(errMsg)
+			return errMsg, errors.New(errMsg)
+		} else if !f {
+			errMsg := "not found: client not found"
+			c.Log.Println(errMsg)
+			return errMsg, errors.New(errMsg)
+		}
+	*/
 	dto.ID = client.ID
 	dto.Name = client.Name
 	dto.Responsible = client.Responsible
@@ -77,10 +93,7 @@ func (c *Usecase) validateClient(client *domain.Client) error {
 
 // format is a method that formats the client
 func (c *Usecase) formatClient(client *domain.Client) error {
-	if err := client.Format(); err != nil {
-		c.Log.Println(err.Error())
-		return errors.New("internal error: " + err.Error())
-	}
+	client.Format()
 	return nil
 }
 

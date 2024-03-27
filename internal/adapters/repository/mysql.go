@@ -80,3 +80,15 @@ func (r *MySql) Get(obj interface{}, id string) (bool, error) {
 	}
 	return false, tx.Error
 }
+
+// First gets first object from the database matching the object
+func (r *MySql) Find(obj interface{}) (bool, error) {
+	tx := r.Db.Find(obj)
+	if tx.Error == nil {
+		return true, nil
+	}
+	if errors.Is(tx.Error, gorm.ErrRecordNotFound) {
+		return false, nil
+	}
+	return false, tx.Error
+}

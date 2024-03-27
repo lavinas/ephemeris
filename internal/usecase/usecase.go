@@ -44,7 +44,7 @@ func (u *Usecase) Command(line string) string {
 	for k := range dtos {
 		inter = append(inter, k)
 	}
-	
+
 	// dto, err := cmd.UnmarshalOne(line, []interface{}{&dto.ClientAdd{}})
 	dto, err := cmd.UnmarshalOne(line, inter)
 	if err != nil {

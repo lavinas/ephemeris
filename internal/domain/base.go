@@ -1,12 +1,14 @@
 package domain
 
 import (
-	"time"
 	"errors"
+	"strings"
+	"time"
 )
 
 const (
-	ErrEmptyID = "id is empty"
+	ErrEmptyID   = "id is empty"
+	ErrInvalidID = "id is invalid. It should not have spaces"
 )
 
 // Base represents the base entity of all entities
@@ -28,7 +30,20 @@ func (b *Base) Validate() error {
 	if b.ID == "" {
 		return errors.New(ErrEmptyID)
 	}
+	if len(strings.Split(b.ID, " ")) > 1 {
+		return errors.New(ErrInvalidID)
+	}
 	return nil
+}
+
+// Formmat formats the base entity
+func (b *Base) Format() {
+	if err := b.Validate(); err != nil {
+		b.ID = ""
+		return
+	}
+	b.ID = strings.TrimSpace(b.ID)
+	b.ID = strings.ToLower(b.ID)
 }
 
 // GetBase returns a new base object
