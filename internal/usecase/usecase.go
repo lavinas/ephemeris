@@ -1,7 +1,6 @@
 package usecase
 
 import (
-	"reflect"
 	"strings"
 
 	"github.com/lavinas/ephemeris/internal/dto"
@@ -11,13 +10,12 @@ import (
 
 const (
 	ErrCommandNotFound = "command not identified. Please, see the help command"
-	Err
 )
 
 var (
-	dtos = map[port.DTO]func(*Usecase, port.DTO) (string, error){
-		reflect.TypeOf(dto.ClientAdd{}): (*Usecase).ClientAdd,
-		reflect.TypeOf(dto.ClientGet{}): (*Usecase).ClientGet,
+	dtos = map[interface{}]func(*Usecase, port.DTO) (string, error){
+		&dto.ClientAdd{}: (*Usecase).ClientAdd,
+		&dto.ClientGet{}: (*Usecase).ClientGet,
 	}
 )
 
@@ -41,10 +39,17 @@ func (u *Usecase) Command(line string) string {
 	u.Log.Println("Command: " + line)
 	line = strings.ToLower(line)
 	cmd := pkg.Commands{}
-	dto, err := cmd.UnmarshalOne(line, []interface{}{&dto.ClientAdd{}, &dto.ClientGet{}})
+
+	inter := []interface{}{}
+	for k := range dtos {
+		inter = append(inter, k)
+	}
+	
+	// dto, err := cmd.UnmarshalOne(line, []interface{}{&dto.ClientAdd{}})
+	dto, err := cmd.UnmarshalOne(line, inter)
 	if err != nil {
 		return err.Error()
 	}
-	str, _ := dtos[reflect.TypeOf(dto).Elem()](u, dto)
+	str, _ := dtos[dto](u, dto)
 	return str
 }

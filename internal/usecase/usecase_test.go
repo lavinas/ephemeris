@@ -17,7 +17,7 @@ func getUsecase(t *testing.T) *Usecase {
 		t.Errorf("TestClientOk failed: %s", error)
 	}
 	// create a new log
-	f, err := os.OpenFile("./client_test.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	f, err := os.OpenFile("/dev/stdout", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		t.Errorf("TestClientOk failed: %s", error)
 	}

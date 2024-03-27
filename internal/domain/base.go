@@ -2,6 +2,11 @@ package domain
 
 import (
 	"time"
+	"errors"
+)
+
+const (
+	ErrEmptyID = "id is empty"
 )
 
 // Base represents the base entity of all entities
@@ -20,6 +25,9 @@ func NewBase(id string) *Base {
 
 // Validate validates the base entity
 func (b *Base) Validate() error {
+	if b.ID == "" {
+		return errors.New(ErrEmptyID)
+	}
 	return nil
 }
 

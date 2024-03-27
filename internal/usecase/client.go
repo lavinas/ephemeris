@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/dto"
@@ -12,6 +13,7 @@ import (
 const (
 	ErrWrongAddClientDTO = "internal error: wrong AddClient dto"
 	ErrWrongGetClientDTO = "internal error: wrong GetClient dto"
+	ErrClientAlreadyExists = "conflict: client already exists with id %s"
 )
 
 // Add is a method that add a client to the repository
@@ -61,7 +63,7 @@ func (c *Usecase) ClientGet(dtoIn port.DTO) (string, error) {
 	dto.Contact = client.Contact
 	dto.Document = client.Document
 	comm := &pkg.Commands{}
-	return comm.Marshal(dto), nil
+	return comm.MarshallNoKeys(dto), nil
 }
 
 // validate is a method that validates the client
@@ -88,9 +90,9 @@ func (c *Usecase) checkExistsClient(client *domain.Client) error {
 		c.Log.Println(err.Error())
 		return errors.New("internal error: " + err.Error())
 	} else if f {
-		err := errors.New("client already exists")
-		c.Log.Println(err.Error())
-		return errors.New("conflict: " + err.Error())
+		err := "conflict: " + fmt.Sprintf(ErrClientAlreadyExists, client.ID)
+		c.Log.Println(err)
+		return errors.New(err)
 	}
 	return nil
 }

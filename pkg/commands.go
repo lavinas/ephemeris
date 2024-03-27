@@ -11,7 +11,8 @@ import (
 const (
 	ErrorStructDuplicated  = "command words are duplicated in the struct"
 	ErrorCommandDuplicated = "more than one command found. Try use . in front of the parameter words if parameter has command words"
-	ErrorWordDuplicated    = "command words are duplicated %s. Try use . in front of the parameter words if parameter has command words"
+	ErrorCommandNotFound   = "command not found with the given parameters"
+	ErrorWordDuplicated    = "command word(s) %s are duplicated. Try use . in front of the parameter words if parameter has command words"
 	ErrorTagNameNotFound   = "tag name not found"
 	ErrorNotStringField    = "not all fields are strings"
 	ErrorKeyNotFound       = "tag %s not found"
@@ -24,6 +25,7 @@ const (
 
 // Command is a struct that represents a command
 type Command struct {
+	name    string
 	field   string
 	iskey   bool
 	notnull bool
@@ -50,6 +52,20 @@ func (s *Commands) Marshal(v interface{}) string {
 	return ret[:len(ret)-3]
 }
 
+// MarshallNoKeys is a function that converts a struct to a string without keys
+func (s *Commands) MarshallNoKeys(v interface{}) string {
+	st := reflect.TypeOf(v).Elem()
+	ret := ""
+	for i := 0; i < st.NumField(); i++ {
+		tag := s.getTag(st.Field(i), Fieldtag)
+		if tag == nil || tag.iskey {
+			continue
+		}
+		ret += fmt.Sprintf("%s: %s | ", st.Field(i).Name, reflect.ValueOf(v).Elem().Field(i).String())
+	}
+	return ret[:len(ret)-3]
+}
+
 // Choose is a function that chooses the correct struct to return
 func (s *Commands) UnmarshalOne(data string, v []interface{}) (interface{}, error) {
 	found := []interface{}{}
@@ -60,7 +76,7 @@ func (s *Commands) UnmarshalOne(data string, v []interface{}) (interface{}, erro
 		found = append(found, i)
 	}
 	if len(found) == 0 {
-		return nil, errors.New(ErrorTagNameNotFound)
+		return nil, errors.New(ErrorCommandNotFound)
 	}
 	if len(found) > 1 {
 		return nil, errors.New(ErrorCommandDuplicated)
@@ -121,23 +137,32 @@ func (s *Commands) checkFields(st reflect.Type) error {
 }
 
 // getTags is a function that returns all tags of a struct
-func (s *Commands) getTags(st reflect.Type, tag string) (map[string]*Command, error) {
+func (s *Commands) getTags(st reflect.Type, tagname string) (map[string]*Command, error) {
 	ret := map[string]*Command{}
 	for i := 0; i < st.NumField(); i++ {
-		tag := st.Field(i).Tag.Get(tag)
-		if tag == "" {
+		tag := s.getTag(st.Field(i), tagname)
+		if tag == nil {
 			continue
 		}
-		name, notnull, iskey := s.splitValues(tag)
-		if name != "" {
-			if _, ok := ret[name]; ok {
-				return nil, errors.New(ErrorStructDuplicated)
-			}
-
-			ret[name] = &Command{field: st.Field(i).Name, iskey: iskey, notnull: notnull}
+		if _, ok := ret[tag.name]; ok {
+			return nil, errors.New(ErrorStructDuplicated)
 		}
+		ret[tag.name] = tag
 	}
 	return ret, nil
+}
+
+// getTag is a function that returns a tag struct of a struct
+func (s *Commands) getTag(field reflect.StructField, tagname string) *Command {
+	tag := field.Tag.Get(tagname)
+	if tag == "" {
+		return nil
+	}
+	name, notnull, iskey := s.splitValues(tag)
+	if name != "" {
+		return &Command{name: name, field: field.Name, iskey: iskey, notnull: notnull}
+	}
+	return nil
 }
 
 // splitValues is a function that splits the values of a tag into name, notnull and iskey
@@ -176,19 +201,19 @@ func (s *Commands) mapValues(tags map[string]*Command, ss []string) {
 
 // getValue is a function that returns the value of a tag
 func (s *Commands) getValue(tag string, tags map[string]*Command, ss []string) string {
-	param := ""
+	value := ""
 	for j := slices.Index(ss, tag) + 1; j < len(ss); j++ {
 		if _, ok := tags[ss[j]]; ok {
 			break
 		}
 		if ss[j][0] == '.' {
-			param += ss[j][1:]
+			ss[j] = ss[j][1:]
 		}
 		if ss[j] != "" {
-			param += ss[j] + " "
+			value += ss[j] + " "
 		}
 	}
-	return param
+	return value
 }
 
 // checkValues is a function that checks if all values are correct

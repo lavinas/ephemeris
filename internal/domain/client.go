@@ -80,6 +80,7 @@ func NewClient(id string, name string, responsible string, email string, phone s
 func (c *Client) Validate() error {
 	message := ""
 	validSlice := []func() error{
+		c.Base.Validate,
 		c.validateName,
 		c.validateResponsible,
 		c.validateEmail,
@@ -100,13 +101,13 @@ func (c *Client) Validate() error {
 
 // Format is a method that formats the client
 func (c *Client) Format() error {
-	formatMap := map[string]func() error{
-		"name":        c.formatName,
-		"responsible": c.formatResponsible,
-		"email":       c.formatEmail,
-		"phone":       c.formatPhone,
-		"contact":     c.formatContact,
-		"document":    c.formatDocument,
+	formatMap := []func() error{
+		c.formatName,
+		c.formatResponsible,
+		c.formatEmail,
+		c.formatPhone,
+		c.formatContact,
+		c.formatDocument,
 	}
 	for _, f := range formatMap {
 		err := f()

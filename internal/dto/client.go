@@ -13,6 +13,7 @@ type ClientAdd struct {
 	Document    string `json:"document" command:"name:document"`
 }
 
+
 // ClientGet represents the dto for getting a client
 type ClientGet struct {
 	Object      string `json:"-" command:"name:client;key"`

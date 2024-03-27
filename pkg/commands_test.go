@@ -7,6 +7,7 @@ import (
 var (
 	s = struct {
 		Nono    string
+		Non2    string `command:"key; not null"`
 		Name    string `command:"name:name; key; not null"`
 		Age     string `command:"name:age; key; not null"`
 		Mood    string `command:"name:mood; key"`
@@ -59,7 +60,7 @@ func TestUnmarshallComplete(t *testing.T) {
 		"name alex age 20 mood test other":                      "tag other is null",
 		"name alex age 20 mood test":                            "tag other not found",
 		"name alex age 20":                                      "tag mood not found | tag other not found",
-		"name name age 20 mood test other test2 another xxx":    "command words are duplicated name. Try use . in front of the parameter words if parameter has command words",
+		"name name age 20 mood test other test2 another xxx":    "command word(s) name are duplicated. Try use . in front of the parameter words if parameter has command words",
 	}
 	commands := NewCommands()
 	for k, v := range testMap {
@@ -158,5 +159,24 @@ func TestMarshal(t *testing.T) {
 	}
 	if commands.Marshal(&s) != "Name: alex | Age: 20 | Mood: test | Other: test2 | Another: xxx" {
 		t.Errorf("Expected Name: alex | Age: 20 | Mood: test | Other: test2 | Another: xxx, got %s", commands.Marshal(&s))
+	}
+}
+
+func TestMarshalNoKeys(t *testing.T) {
+	commands := NewCommands()
+	cmd := "name alex age 20 mood test other test2 another xxx"
+	s := struct {
+		Name    string `command:"name:name; key; not null"`
+		Age     string `command:"name:age; key; not null"`
+		Mood    string `command:"name:mood"`
+		Other   string `command:"name:other; not null"`
+		Another string `command:"name:another"`
+	}{}
+	err := commands.Unmarshal(cmd, &s)
+	if err != nil {
+		t.Errorf("Expected: nil error, got: %s", err.Error())
+	}
+	if commands.MarshallNoKeys(&s) != "Mood: test | Other: test2 | Another: xxx" {
+		t.Errorf("Expected: Mood: test | Other: test2 | Another: xxx, got: %s", commands.MarshallNoKeys(&s))
 	}
 }
