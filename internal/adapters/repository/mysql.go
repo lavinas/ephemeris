@@ -71,7 +71,7 @@ func (r *MySql) Delete(obj interface{}, id string) error {
 
 // Get gets a object from the database by id
 func (r *MySql) Get(obj interface{}, id string) (bool, error) {
-	tx := r.Db.First(obj, "ID = ?", id)
+	tx := r.Db.First(obj)
 	if tx.Error == nil {
 		return true, nil
 	}
@@ -91,4 +91,11 @@ func (r *MySql) Find(obj interface{}) (bool, error) {
 		return false, nil
 	}
 	return false, tx.Error
+}
+
+// Search gets all objects from the database matching the object
+func (r *MySql) Search(obj interface{}) ([]interface{}, error) {
+	rows := []interface{}{}
+	tx := r.Db.Model(obj).Find(rows)
+	return rows, tx.Error
 }

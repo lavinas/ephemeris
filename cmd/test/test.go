@@ -1,21 +1,24 @@
 package main
 
 import (
-	"github.com/lavinas/ephemeris/pkg"
+	"fmt"
+	"os"
+
+	"github.com/lavinas/ephemeris/internal/adapters/repository"
+	"github.com/lavinas/ephemeris/internal/domain"
 )
 
-var (
-	x = struct {
-		Name  string `command:"name:name; key; not null"`
-		Name2 string `command:"name:name; key; not null"`
-	}{}
-)
 
 func main() {
-	com := pkg.Commands{}
-	err := com.Unmarshal("name alex age 20 mood test other test2 another xxx", &x)
+	repo, err := repository.NewRepository(os.Getenv("MYSQL_DNS"))
 	if err != nil {
-		println(err.Error())
+		panic(err)
 	}
-	println(com.Marshal(&x))
+	defer repo.Close()
+	client := domain.Client{Base: domain.Base{ID: "paulo"}}
+	x, err := repo.Search(&client)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(x)
 }
