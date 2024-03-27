@@ -11,7 +11,7 @@ import (
 )
 
 // main is the entry point of the application
-func main() {
+func main2() {
 	repo, err := repository.NewRepository(os.Getenv("MYSQL_DNS"))
 	if err != nil {
 		fmt.Println("internal error: " + err.Error())

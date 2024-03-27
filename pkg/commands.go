@@ -9,8 +9,9 @@ import (
 )
 
 const (
-	ErrorCommandNotFound   = "command words are not found"
-	ErrorCommandDuplicated = "more than one command found. Try use . in front of the parameter words if parameter has command words. Ex: .name"
+	ErrorStructDuplicated  = "command words are duplicated in the struct"
+	ErrorCommandDuplicated = "more than one command found. Try use . in front of the parameter words if parameter has command words"
+	ErrorWordDuplicated    = "command words are duplicated %s. Try use . in front of the parameter words if parameter has command words"
 	ErrorTagNameNotFound   = "tag name not found"
 	ErrorNotStringField    = "not all fields are strings"
 	ErrorKeyNotFound       = "tag %s not found"
@@ -69,12 +70,18 @@ func (s *Commands) UnmarshalOne(data string, v []interface{}) (interface{}, erro
 
 // ToStruc is a function that converts a string to a struct
 func (s *Commands) Unmarshal(data string, v interface{}) error {
-	ss := s.prepareData(data)
+	ss := strings.Split(data, " ")
 	st := reflect.TypeOf(v).Elem()
-	if err := s.checkFieldsType(st); err != nil {
+	if err := s.checkFields(st); err != nil {
 		return err
 	}
-	tags := s.getTags(st, Fieldtag)
+	tags, err := s.getTags(st, Fieldtag)
+	if err != nil {
+		return err
+	}
+	if err := s.checkDuplicatedComms(ss, tags); err != nil {
+		return err
+	}
 	s.mapValues(tags, ss)
 	if err := s.checkValues(tags); err != nil {
 		return err
@@ -83,23 +90,28 @@ func (s *Commands) Unmarshal(data string, v interface{}) error {
 	return nil
 }
 
-// prepareData is a function that prepares the data and splits it into a slice
-func (s *Commands) prepareData(data string) []string {
-	ss := strings.Split(data, " ")
-	for i := 0; i < len(ss); i++ {
-		if ss[i][0] == '.' {
-			ss[i] = ss[i][1:]
-		}
-		if ss[i] == "" {
-			ss = append(ss[:i], ss[i+1:]...)
-			i--
+// checkDuplicatedWords is a function that checks if all command words are unique
+func (s *Commands) checkDuplicatedComms(ss []string, tags map[string]*Command) error {
+	wordMap := map[string]int{}
+	for _, i := range ss {
+		if tags[i] != nil {
+			wordMap[i]++
 		}
 	}
-	return ss
+	errorStr := ""
+	for k, v := range wordMap {
+		if v > 1 {
+			errorStr += k + ", "
+		}
+	}
+	if errorStr != "" {
+		return fmt.Errorf(ErrorWordDuplicated, errorStr[:len(errorStr)-2])
+	}
+	return nil
 }
 
 // checkFieldsType is a function that checks if all fields of a struct are strings
-func (s *Commands) checkFieldsType(st reflect.Type) error {
+func (s *Commands) checkFields(st reflect.Type) error {
 	for i := 0; i < st.NumField(); i++ {
 		if st.Field(i).Type.String() != "string" {
 			return errors.New(ErrorNotStringField)
@@ -109,7 +121,7 @@ func (s *Commands) checkFieldsType(st reflect.Type) error {
 }
 
 // getTags is a function that returns all tags of a struct
-func (s *Commands) getTags(st reflect.Type, tag string) map[string]*Command {
+func (s *Commands) getTags(st reflect.Type, tag string) (map[string]*Command, error) {
 	ret := map[string]*Command{}
 	for i := 0; i < st.NumField(); i++ {
 		tag := st.Field(i).Tag.Get(tag)
@@ -118,11 +130,14 @@ func (s *Commands) getTags(st reflect.Type, tag string) map[string]*Command {
 		}
 		name, notnull, iskey := s.splitValues(tag)
 		if name != "" {
+			if _, ok := ret[name]; ok {
+				return nil, errors.New(ErrorStructDuplicated)
+			}
+
 			ret[name] = &Command{field: st.Field(i).Name, iskey: iskey, notnull: notnull}
 		}
-
 	}
-	return ret
+	return ret, nil
 }
 
 // splitValues is a function that splits the values of a tag into name, notnull and iskey
@@ -166,7 +181,12 @@ func (s *Commands) getValue(tag string, tags map[string]*Command, ss []string) s
 		if _, ok := tags[ss[j]]; ok {
 			break
 		}
-		param += ss[j] + " "
+		if ss[j][0] == '.' {
+			param += ss[j][1:]
+		}
+		if ss[j] != "" {
+			param += ss[j] + " "
+		}
 	}
 	return param
 }
