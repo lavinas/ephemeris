@@ -92,7 +92,10 @@ func TestUnmarshalOne(t *testing.T) {
 	// Ok
 	commands := NewCommands()
 	cmd := "#name alex #test 20"
-	i := commands.UnmarshalOne(cmd, v)
+	i, err := commands.UnmarshalOne(cmd, v)
+	if err != nil {
+		t.Errorf("Expected nil error, got %s", err.Error())
+	}
 	if i == nil {
 		t.Errorf("Expected struct, got nil")
 	}
@@ -107,8 +110,36 @@ func TestUnmarshalOne(t *testing.T) {
 	}
 	//  Not found
 	cmd = "#name alex"
-	i = commands.UnmarshalOne(cmd, v)
+	i, err = commands.UnmarshalOne(cmd, v)
+	if err == nil {
+		t.Errorf("Expected error, got nil")
+	}
 	if i != nil {
 		t.Errorf("Expected nil, got %v", i)
+	}
+	// Duplicated
+	cmd = "#name alex #age 20 #mood #test #other test2 #another xxx"
+	_, err = commands.UnmarshalOne(cmd, v)
+	if err == nil {
+		t.Errorf("Expected error, got nil")
+	}
+}
+
+func TestMarshal(t *testing.T) {
+	commands := NewCommands()
+	cmd := "#name alex #age 20 #mood test #other test2 #another xxx"
+	s := struct {
+		Name    string `command:"name:#name; key; not null"`
+		Age     string `command:"name:#age; key; not null"`
+		Mood    string `command:"name:#mood; key"`
+		Other   string `command:"name:#other; not null"`
+		Another string `command:"name:#another"`
+	}{}
+	err := commands.Unmarshal(cmd, &s)
+	if err != nil {
+		t.Errorf("Expected nil error, got %s", err.Error())
+	}
+	if commands.Marshal(&s) != "Name: alex | Age: 20 | Mood: test | Other: test2 | Another: xxx" {
+		t.Errorf("Expected Name: alex | Age: 20 | Mood: test | Other: test2 | Another: xxx, got %s", commands.Marshal(&s))
 	}
 }

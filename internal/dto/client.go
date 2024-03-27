@@ -25,4 +25,3 @@ type ClientGet struct {
 	Contact     string `json:"contact" command:"name:contact"`
 	Document    string `json:"document" command:"name:document"`
 }
-

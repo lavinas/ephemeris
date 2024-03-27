@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"os"
 	"fmt"
+	"os"
 
 	"github.com/lavinas/ephemeris/internal/port"
 )

@@ -41,11 +41,10 @@ func (u *Usecase) Command(line string) string {
 	u.Log.Println("Command: " + line)
 	line = strings.ToLower(line)
 	cmd := pkg.Commands{}
-	dto := cmd.UnmarshalOne(line, []interface{}{&dto.ClientAdd{}, &dto.ClientGet{}})
-	if dto == nil {
-		return ErrCommandNotFound
+	dto, err := cmd.UnmarshalOne(line, []interface{}{&dto.ClientAdd{}, &dto.ClientGet{}})
+	if err != nil {
+		return err.Error()
 	}
 	str, _ := dtos[reflect.TypeOf(dto).Elem()](u, dto)
 	return str
 }
-

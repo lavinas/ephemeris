@@ -9,14 +9,16 @@ import (
 )
 
 const (
-	ErrorTagNameNotFound = "tag name not found"
-	ErrorNotStringField  = "not all fields are strings"
-	ErrorKeyNotFound     = "tag %s not found"
-	ErrorNotNullField    = "tag %s is null"
-	Fieldtag             = "command"
-	Tagname              = "name:"
-	Tagnotnull           = "not null"
-	Tagkey               = "key"
+	ErrorCommandNotFound   = "command words are not found"
+	ErrorCommandDuplicated = "more than one command found. Try use . in front of the parameter words if parameter has command words. Ex: .name"
+	ErrorTagNameNotFound   = "tag name not found"
+	ErrorNotStringField    = "not all fields are strings"
+	ErrorKeyNotFound       = "tag %s not found"
+	ErrorNotNullField      = "tag %s is null"
+	Fieldtag               = "command"
+	Tagname                = "name:"
+	Tagnotnull             = "not null"
+	Tagkey                 = "key"
 )
 
 // Command is a struct that represents a command
@@ -44,23 +46,30 @@ func (s *Commands) Marshal(v interface{}) string {
 	for i := 0; i < st.NumField(); i++ {
 		ret += fmt.Sprintf("%s: %s | ", st.Field(i).Name, reflect.ValueOf(v).Elem().Field(i).String())
 	}
-	return ret[:len(ret)-3]	
+	return ret[:len(ret)-3]
 }
 
 // Choose is a function that chooses the correct struct to return
-func (s *Commands) UnmarshalOne(data string, v []interface{}) interface{} {
+func (s *Commands) UnmarshalOne(data string, v []interface{}) (interface{}, error) {
+	found := []interface{}{}
 	for _, i := range v {
 		if err := s.Unmarshal(data, i); err != nil {
 			continue
 		}
-		return i
+		found = append(found, i)
 	}
-	return nil
+	if len(found) == 0 {
+		return nil, errors.New(ErrorTagNameNotFound)
+	}
+	if len(found) > 1 {
+		return nil, errors.New(ErrorCommandDuplicated)
+	}
+	return found[0], nil
 }
 
 // ToStruc is a function that converts a string to a struct
 func (s *Commands) Unmarshal(data string, v interface{}) error {
-	ss := strings.Split(data, " ")
+	ss := s.prepareData(data)
 	st := reflect.TypeOf(v).Elem()
 	if err := s.checkFieldsType(st); err != nil {
 		return err
@@ -72,7 +81,21 @@ func (s *Commands) Unmarshal(data string, v interface{}) error {
 	}
 	s.setFields(v, tags)
 	return nil
+}
 
+// prepareData is a function that prepares the data and splits it into a slice
+func (s *Commands) prepareData(data string) []string {
+	ss := strings.Split(data, " ")
+	for i := 0; i < len(ss); i++ {
+		if ss[i][0] == '.' {
+			ss[i] = ss[i][1:]
+		}
+		if ss[i] == "" {
+			ss = append(ss[:i], ss[i+1:]...)
+			i--
+		}
+	}
+	return ss
 }
 
 // checkFieldsType is a function that checks if all fields of a struct are strings
@@ -171,4 +194,3 @@ func (s *Commands) setFields(v interface{}, tags map[string]*Command) {
 		field.SetString(i.value)
 	}
 }
-
