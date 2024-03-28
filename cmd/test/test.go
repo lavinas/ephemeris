@@ -8,17 +8,21 @@ import (
 	"github.com/lavinas/ephemeris/internal/domain"
 )
 
-
 func main() {
 	repo, err := repository.NewRepository(os.Getenv("MYSQL_DNS"))
 	if err != nil {
 		panic(err)
 	}
 	defer repo.Close()
-	client := domain.Client{Base: domain.Base{ID: "paulo"}}
-	x, err := repo.Search(&client)
+	// client := domain.Client{Base: domain.Base{ID: "paulo"}}
+	client := domain.Client{ID: "paulo"}
+	clients := []domain.Client{}
+
+	err = repo.Find(&client, &clients)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(x)
+	for _, c := range clients {
+		fmt.Println(c)
+	}
 }

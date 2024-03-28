@@ -3,6 +3,7 @@ package usecase
 import (
 	"strings"
 
+	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/dto"
 	"github.com/lavinas/ephemeris/internal/port"
 	"github.com/lavinas/ephemeris/pkg"
@@ -13,7 +14,7 @@ const (
 )
 
 var (
-	dtos = map[interface{}]func(*Usecase, port.DTO) (string, error){
+	dtos = map[interface{}]func(*Usecase, port.DTO) (interface{}, string, error){
 		&dto.ClientAdd{}: (*Usecase).ClientAdd,
 		&dto.ClientGet{}: (*Usecase).ClientGet,
 	}
@@ -28,6 +29,7 @@ type Usecase struct {
 
 // UseCase is a function that returns a new UseCase struct
 func NewUsecase(repo port.Repository, log port.Logger) *Usecase {
+	repo.Migrate(domain.GetDomain())
 	return &Usecase{
 		Repo: repo,
 		Log:  log,
@@ -50,6 +52,6 @@ func (u *Usecase) Command(line string) string {
 	if err != nil {
 		return err.Error()
 	}
-	str, _ := dtos[dto](u, dto)
+	_, str, _ := dtos[dto](u, dto)
 	return str
 }

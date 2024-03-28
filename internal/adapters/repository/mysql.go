@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"reflect"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -9,7 +10,8 @@ import (
 )
 
 const (
-	DB_DNS = "MYSQL_INVOICE_DNS"
+	DB_DNS      = "MYSQL_INVOICE_DNS"
+	ErrNoFilter = "no fields where provided on base object"
 )
 
 // RepoMySql is the repository handler for the application
@@ -71,7 +73,7 @@ func (r *MySql) Delete(obj interface{}, id string) error {
 
 // Get gets a object from the database by id
 func (r *MySql) Get(obj interface{}, id string) (bool, error) {
-	tx := r.Db.First(obj)
+	tx := r.Db.First(obj, "ID = ?", id)
 	if tx.Error == nil {
 		return true, nil
 	}
@@ -81,21 +83,25 @@ func (r *MySql) Get(obj interface{}, id string) (bool, error) {
 	return false, tx.Error
 }
 
-// First gets first object from the database matching the object
-func (r *MySql) Find(obj interface{}) (bool, error) {
-	tx := r.Db.Find(obj)
-	if tx.Error == nil {
-		return true, nil
-	}
-	if errors.Is(tx.Error, gorm.ErrRecordNotFound) {
-		return false, nil
-	}
-	return false, tx.Error
-}
 
 // Search gets all objects from the database matching the object
-func (r *MySql) Search(obj interface{}) ([]interface{}, error) {
-	rows := []interface{}{}
-	tx := r.Db.Model(obj).Find(rows)
-	return rows, tx.Error
+func (r *MySql) Find(base interface{}, result interface{}) error {
+	sob := reflect.TypeOf(base).Elem()
+	filtered := false
+	for i := 0; i < sob.NumField(); i++ {
+		name := sob.Field(i).Name
+		if name == "CreatedAt" || name == "UpdatedAt" {
+			continue
+		}
+		if reflect.ValueOf(base).Elem().Field(i).Interface() == "" {
+			continue
+		}
+		filtered = true
+		r.Db = r.Db.Where(sob.Field(i).Name+" = ?", reflect.ValueOf(base).Elem().Field(i).Interface())
+	}
+	if !filtered {
+		return errors.New(ErrNoFilter)
+	}
+	tx := r.Db.Find(result)
+	return tx.Error
 }

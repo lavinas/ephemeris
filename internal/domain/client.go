@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/klassmann/cpfcnpj"
 	"github.com/nyaruka/phonenumbers"
@@ -54,19 +55,21 @@ var (
 
 // Client represents the client entity
 type Client struct {
-	Base
-	Name        string `gorm:"type:varchar(100); not null"`
-	Responsible string `gorm:"type:varchar(100)"`
-	Email       string `gorm:"type:varchar(100); not null"`
-	Phone       string `gorm:"type:varchar(20); not null"`
-	Contact     string `gorm:"type:varchar(20); not null"`
-	Document    string `gorm:"type:varchar(20)"`
+	ID          string    `gorm:"type:varchar(25); primaryKey"`
+	CreatedAt   time.Time `gorm:"type:datetime; not null"`
+	Name        string    `gorm:"type:varchar(100); not null"`
+	Responsible string    `gorm:"type:varchar(100)"`
+	Email       string    `gorm:"type:varchar(100); not null"`
+	Phone       string    `gorm:"type:varchar(20); not null"`
+	Contact     string    `gorm:"type:varchar(20); not null"`
+	Document    string    `gorm:"type:varchar(20)"`
 }
 
 // NewClient is a function that creates a new client
 func NewClient(id string, name string, responsible string, email string, phone string, contact string, document string) *Client {
 	return &Client{
-		Base:        *NewBase(id),
+		ID:          id,
+		CreatedAt:   time.Now(),
 		Name:        name,
 		Responsible: responsible,
 		Email:       email,
@@ -80,7 +83,7 @@ func NewClient(id string, name string, responsible string, email string, phone s
 func (c *Client) Validate() error {
 	message := ""
 	validSlice := []func() error{
-		c.Base.Validate,
+		c.validateID,
 		c.validateName,
 		c.validateResponsible,
 		c.validateEmail,
@@ -102,6 +105,7 @@ func (c *Client) Validate() error {
 // Format is a method that formats the client
 func (c *Client) Format() {
 	formatMap := []func(){
+		c.formatID,
 		c.formatName,
 		c.formatResponsible,
 		c.formatEmail,
@@ -129,6 +133,27 @@ func (c *Client) String() string {
 		ret += "; document: " + c.Document
 	}
 	return ret
+}
+
+// validateID is a method that validates the id field
+func (b *Client) validateID() error {
+	if b.ID == "" {
+		return errors.New(ErrEmptyID)
+	}
+	if len(strings.Split(b.ID, " ")) > 1 {
+		return errors.New(ErrInvalidID)
+	}
+	return nil
+}
+
+// formatID is a method that formats the id field
+func (b *Client) formatID() {
+	if err := b.Validate(); err != nil {
+		b.ID = ""
+		return
+	}
+	b.ID = strings.TrimSpace(b.ID)
+	b.ID = strings.ToLower(b.ID)
 }
 
 // validateName is a method that validates the name field

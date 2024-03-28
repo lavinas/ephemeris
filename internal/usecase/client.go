@@ -17,10 +17,10 @@ const (
 )
 
 // Add is a method that add a client to the repository
-func (c *Usecase) ClientAdd(dtoIn port.DTO) (string, error) {
-	dto, ok := dtoIn.(*dto.ClientAdd)
+func (c *Usecase) ClientAdd(in port.DTO) (interface{}, string, error) {
+	dto, ok := in.(*dto.ClientAdd)
 	if !ok {
-		return ErrWrongAddClientDTO, errors.New(ErrWrongAddClientDTO)
+		return nil, ErrWrongAddClientDTO, errors.New(ErrWrongAddClientDTO)
 	}
 	loop := []func(*domain.Client) error{
 		c.validateClient,
@@ -32,54 +32,49 @@ func (c *Usecase) ClientAdd(dtoIn port.DTO) (string, error) {
 		dto.Phone, dto.Contact, dto.Document)
 	for _, f := range loop {
 		if err := f(client); err != nil {
-			return err.Error(), err
+			return nil, err.Error(), err
 		}
 	}
-	return "ok: client added", nil
+	return nil, "ok: client added", nil
 }
 
 // Get is a method that gets a client from the repository
-func (c *Usecase) ClientGet(dtoIn port.DTO) (string, error) {
-	dto, ok := dtoIn.(*dto.ClientGet)
+func (c *Usecase) ClientGet(dtoIn port.DTO) (interface{}, string, error) {
+	din, ok := dtoIn.(*dto.ClientGet)
 	if !ok {
 		c.Log.Println(ErrWrongGetClientDTO)
-		return ErrWrongGetClientDTO, errors.New(ErrWrongGetClientDTO)
+		return nil, ErrWrongGetClientDTO, errors.New(ErrWrongGetClientDTO)
 	}
-	client := domain.NewClient(dto.ID, dto.Name, dto.Responsible, dto.Email,
-		dto.Phone, dto.Contact, dto.Document)
+	client := domain.NewClient(din.ID, din.Name, din.Responsible, din.Email,
+		din.Phone, din.Contact, din.Document)
 	client.Format()
-	fmt.Println(1, client)
-	if f, err := c.Repo.Find(client); err != nil {
+	clients := []domain.Client{}
+	if err := c.Repo.Find(client, &clients); err != nil {
 		errMsg := "internal error: " + err.Error()
 		c.Log.Println(errMsg)
-		return errMsg, errors.New(errMsg)
-	} else if !f {
-		errMsg := "not found: client not found"
-		c.Log.Println(errMsg)
-		return errMsg, errors.New(errMsg)
+		return nil, errMsg, errors.New(errMsg)
 	}
-
-	/*
-		client := &domain.Client{}
-		if f, err := c.Repo.Get(client, dto.ID); err != nil {
-			errMsg := "internal error: " + err.Error()
-			c.Log.Println(errMsg)
-			return errMsg, errors.New(errMsg)
-		} else if !f {
-			errMsg := "not found: client not found"
-			c.Log.Println(errMsg)
-			return errMsg, errors.New(errMsg)
-		}
-	*/
-	dto.ID = client.ID
-	dto.Name = client.Name
-	dto.Responsible = client.Responsible
-	dto.Email = client.Email
-	dto.Phone = client.Phone
-	dto.Contact = client.Contact
-	dto.Document = client.Document
+	if len(clients) == 0 {
+		errMsg := fmt.Sprintf("not found: client with id %s", din.ID)
+		c.Log.Println(errMsg)
+		return nil, errMsg, errors.New(errMsg)
+	}
+	strout := ""
 	comm := &pkg.Commands{}
-	return comm.MarshallNoKeys(dto), nil
+	dout := []*dto.ClientGet{}
+	for _, client := range clients {
+		d := &dto.ClientGet{}
+		d.ID = client.ID
+		d.Name = client.Name
+		d.Responsible = client.Responsible
+		d.Email = client.Email
+		d.Phone = client.Phone
+		d.Contact = client.Contact
+		d.Document = client.Document
+		dout = append(dout, d)
+		strout += comm.MarshallNoKeys(d) + "\n"
+	}
+	return dout, strout, nil
 }
 
 // validate is a method that validates the client
@@ -103,7 +98,7 @@ func (c *Usecase) checkExistsClient(client *domain.Client) error {
 		c.Log.Println(err.Error())
 		return errors.New("internal error: " + err.Error())
 	} else if f {
-		err := "conflict: " + fmt.Sprintf(ErrClientAlreadyExists, client.ID)
+		err := fmt.Sprintf(ErrClientAlreadyExists, client.ID)
 		c.Log.Println(err)
 		return errors.New(err)
 	}

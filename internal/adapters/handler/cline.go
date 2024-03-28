@@ -7,6 +7,10 @@ import (
 	"github.com/lavinas/ephemeris/internal/port"
 )
 
+const (
+	ErrNoCommandFound = "no command found"
+)
+
 type CommandLineHandler struct {
 	Usecase port.UseCase
 }
@@ -22,7 +26,7 @@ func NewCommandHandler(usecase port.UseCase) *CommandLineHandler {
 func (h *CommandLineHandler) Run() {
 	args := os.Args[1:]
 	if len(args) == 0 {
-		fmt.Println("no command found")
+		fmt.Println(ErrNoCommandFound)
 		return
 	}
 	command := ""
