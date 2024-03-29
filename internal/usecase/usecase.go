@@ -14,8 +14,8 @@ const (
 )
 
 var (
-	dtos = map[interface{}]func(*Usecase, port.DTO) (interface{}, string, error){
-		&dto.ClientAdd{}: (*Usecase).ClientAdd,
+	dtos = map[interface{}]func(*Usecase, interface{}) (interface{}, string, error){
+		&dto.ClientAdd{}: (*Usecase).Add,
 		&dto.ClientGet{}: (*Usecase).ClientGet,
 	}
 )

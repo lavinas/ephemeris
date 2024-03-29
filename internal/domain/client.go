@@ -15,37 +15,21 @@ import (
 )
 
 const (
-	// ErrEmptyName is a variable that represents the error message for empty name
 	ErrEmptyName = "empty name"
-	// ErrLongName is a variable that represents the error message for long name
 	ErrLongName = "name should have at most 100"
-	// ErrInvalidName is a variable that represents the error message for invalid name
 	ErrInvalidName = "name should have at least two words"
-	// ErrLongResponsible is a variable that represents the error message for long responsible
 	ErrLongResponsible = "responsible should have at most 100"
-	// ErrInvalidResponsible is a variable that represents the error message for invalid responsible
 	ErrInvalidResponsible = "responsible should have at least two words"
-	// ErrEmptyEmail is a variable that represents the error message for empty email
 	ErrEmptyEmail = "empty email"
-	// ErrInvalidEmail is a variable that represents the error message for invalid email
 	ErrInvalidEmail = "invalid email"
-	// ErrLongEmail is a variable that represents the error message for long email
 	ErrLongEmail = "email should have at most 100"
-	// ErrEmptyPhone is a variable that represents the error message for empty phone
 	ErrEmptyPhone = "empty phone"
-	// ErrLongPhone is a variable that represents the error message for long phone
 	ErrLongPhone = "phone should have at most 20"
-	// ErrInvalidPhone is a variable that represents the error message for invalid phone
 	ErrInvalidPhone = "invalid phone"
-	// ErrEmptyContact is a variable that represents the error message for empty contact
 	ErrEmptyContact = "empty contact"
-	// ErrLongContract is a variable that represents the error message for long contact
 	ErrLongContact = "contact should have at most 20"
-	// ErrInvalidContact is a variable that represents the error message for invalid contact
 	ErrInvalidContact = "invalid contact"
-	// ErrInvalidDocument is a variable that represents the error message for invalid document
 	ErrInvalidDocument = "invalid document"
-	// ErrLongDocument is a variable that represents the error message for long document
 	ErrLongDocument = "document should have at most 20"
 )
 
@@ -118,6 +102,11 @@ func (c *Client) Format() {
 	}
 }
 
+// GetID is a method that returns the id of the client
+func (c *Client) GetID() string {
+	return c.ID
+}
+
 // String is a method that returns a string representation of the client
 func (c *Client) String() string {
 	ret := ""
@@ -148,7 +137,7 @@ func (b *Client) validateID() error {
 
 // formatID is a method that formats the id field
 func (b *Client) formatID() {
-	if err := b.Validate(); err != nil {
+	if err := b.validateID(); err != nil {
 		b.ID = ""
 		return
 	}
