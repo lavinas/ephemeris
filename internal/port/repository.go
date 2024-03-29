@@ -5,7 +5,7 @@ type Repository interface {
 	Migrate(domain []interface{}) error
 	Add(obj interface{}) error
 	Get(obj interface{}, id string) (bool, error)
-	Find(base interface{}, result interface{}) error
+	Find(base interface{}) (interface{}, error)
 	Delete(obj interface{}, id string) error
 	Close()
 }

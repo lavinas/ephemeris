@@ -124,6 +124,7 @@ func (c *Client) String() string {
 	return ret
 }
 
+
 // validateID is a method that validates the id field
 func (b *Client) validateID() error {
 	if b.ID == "" {

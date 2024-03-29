@@ -3,7 +3,6 @@ package usecase
 import (
 	"errors"
 	"fmt"
-
 	"github.com/lavinas/ephemeris/internal/dto"
 	"github.com/lavinas/ephemeris/internal/port"
 	"github.com/lavinas/ephemeris/pkg"
@@ -46,26 +45,16 @@ func (c *Usecase) ClientGet(in interface{}) (interface{}, string, error) {
 	}
 	client := din.GetDomain()
 	client.Format()
-	clients := []port.Domain{}
-	if err := c.Repo.Find(client, &clients); err != nil {
+	clients, err := c.Repo.Find(client)
+	if err != nil {
 		errMsg := "internal error: " + err.Error()
 		c.Log.Println(errMsg)
 		return nil, errMsg, errors.New(errMsg)
 	}
-	if len(clients) == 0 {
-		errMsg := fmt.Sprintf("not found: client with id %s", din.ID)
-		c.Log.Println(errMsg)
-		return nil, errMsg, errors.New(errMsg)
-	}
-	strout := ""
-	comm := &pkg.Commands{}
-	out := []*dto.ClientGet{}
-	for _, client := range clients {
-		dout := din.GetDto(&client)
-		out = append(out, dout) 
-		strout += comm.MarshallNoKeys(dout) + "\n"
-	}
-	return out, strout, nil
+	out := din.GetDto(clients)
+	comm := pkg.NewCommands()
+	x := comm.MarshalSlice(out)
+	return out, x, nil
 }
 
 // validate is a method that validates the client
@@ -105,4 +94,3 @@ func (c *Usecase) addClient(domain port.Domain) error {
 	}
 	return nil
 }
-

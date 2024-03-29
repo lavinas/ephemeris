@@ -84,9 +84,11 @@ func (r *MySql) Get(obj interface{}, id string) (bool, error) {
 }
 
 
-// Search gets all objects from the database matching the object
-func (r *MySql) Find(base interface{}, result interface{}) error {
+// Find2 gets all objects from the database matching the object
+func (r *MySql) Find(base interface{}) (interface{}, error) {
 	sob := reflect.TypeOf(base).Elem()
+	result := reflect.New(reflect.SliceOf(sob)).Interface()
+
 	filtered := false
 	for i := 0; i < sob.NumField(); i++ {
 		name := sob.Field(i).Name
@@ -100,8 +102,8 @@ func (r *MySql) Find(base interface{}, result interface{}) error {
 		r.Db = r.Db.Where(sob.Field(i).Name+" = ?", reflect.ValueOf(base).Elem().Field(i).Interface())
 	}
 	if !filtered {
-		return errors.New(ErrNoFilter)
+		return nil, errors.New(ErrNoFilter)
 	}
 	tx := r.Db.Find(result)
-	return tx.Error
+	return result, tx.Error 
 }

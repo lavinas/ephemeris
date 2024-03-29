@@ -45,11 +45,33 @@ func NewCommands() *Commands {
 // Marshal is a function that converts a struct to a string
 func (s *Commands) Marshal(v interface{}) string {
 	st := reflect.TypeOf(v).Elem()
+	vl := reflect.ValueOf(v).Elem()
 	ret := ""
 	for i := 0; i < st.NumField(); i++ {
-		ret += fmt.Sprintf("%s: %s | ", st.Field(i).Name, reflect.ValueOf(v).Elem().Field(i).String())
+		ret += fmt.Sprintf("%s: %s | ", st.Field(i).Name, vl.Field(i).String())
 	}
-	return ret[:len(ret)-3]
+	return "ok"
+}
+
+// MarshalSlice is a function that converts a slice of structs to a string
+func (s *Commands) MarshalSlice(v interface{}) string {
+	vl := reflect.ValueOf(v)
+	if vl.Kind() == reflect.Ptr {
+		vl = vl.Elem()
+	}
+	if vl.Len() == 0 {
+		return ""
+	}
+	ret := make([][]string, vl.Len()+1)
+	for i := 0; i < vl.Index(0).NumField(); i++ {
+		ret[0] = append(ret[0], vl.Index(0).Type().Field(i).Name)
+	}
+	for i := 0; i < vl.Len(); i++ {
+		for j := 0; j < vl.Index(i).NumField(); j++ {
+			ret[i+1] = append(ret[i+1], vl.Index(i).Field(j).String())
+		}
+	}
+	return mountTable(ret)
 }
 
 // MarshallNoKeys is a function that converts a struct to a string without keys
@@ -238,4 +260,38 @@ func (s *Commands) setFields(v interface{}, tags map[string]*Command) {
 		field := reflect.ValueOf(v).Elem().FieldByName(i.field)
 		field.SetString(i.value)
 	}
+}
+
+
+func mountTable(table [][]string) string {
+	ret := ""
+    // get number of columns from the first table row
+    columnLengths := make([]int, len(table[0]))
+    for _, line := range table {
+        for i, val := range line {
+            if len(val) > columnLengths[i] {
+                columnLengths[i] = len(val)
+            }
+        }
+    }
+    var lineLength int
+    for _, c := range columnLengths {
+        lineLength += c + 3
+    }
+    lineLength += 1
+	for i, line := range table {
+		if i == 0 {
+			ret += fmt.Sprintf("+%s+\n", strings.Repeat("-", lineLength-2))
+		}
+		for j, val := range line {
+			ret += fmt.Sprintf("| %-*s ", columnLengths[j], val)
+			if j == len(line)-1 {
+				ret += "|\n"
+			}
+		}
+		if i == 0 || i == len(table)-1 {
+			ret += fmt.Sprintf("+%s+\n", strings.Repeat("-", lineLength-2))
+		}
+	}
+	return ret
 }
