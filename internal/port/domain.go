@@ -7,4 +7,3 @@ type Domain interface {
 	String() string
 	GetID() string
 }
-

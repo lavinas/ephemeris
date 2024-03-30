@@ -15,17 +15,10 @@ var (
 		Another string `command:"name:another"`
 	}{}
 
-	u = struct {
-		Name string `command:"name:name; key; not null"`
-		Test string `command:"name:test; key; not null"`
-	}{}
-
 	x = struct {
 		Name  string `command:"name:name; key; not null"`
 		Name2 string `command:"name:name; key; not null"`
 	}{}
-
-	v = []interface{}{&s, &u}
 )
 
 func TestUnmarshallOk(t *testing.T) {
@@ -103,43 +96,6 @@ func TestUnmarshallNotStringField(t *testing.T) {
 	}
 	if err.Error() != ErrorNotStringField {
 		t.Errorf("Expected error: %s, got: %s", ErrorNotStringField, err.Error())
-	}
-}
-
-func TestUnmarshalOne(t *testing.T) {
-	// Ok
-	commands := NewCommands()
-	cmd := "name alex test 20"
-	i, err := commands.UnmarshalOne(cmd, v)
-	if err != nil {
-		t.Errorf("Expected nil error, got: %s", err.Error())
-	}
-	if i == nil {
-		t.Errorf("Expected: struct, got: nil")
-	}
-	if i != &u {
-		t.Errorf("Expected: struct, got: %v", i)
-	}
-	if u.Name != "alex" {
-		t.Errorf("Expected: alex, got: %s", u.Name)
-	}
-	if u.Test != "20" {
-		t.Errorf("Expected: 20, got %s", u.Test)
-	}
-	//  Not found
-	cmd = "name alex"
-	i, err = commands.UnmarshalOne(cmd, v)
-	if err == nil {
-		t.Errorf("Expected: error, got: nil")
-	}
-	if i != nil {
-		t.Errorf("Expected: nil, got: %v", i)
-	}
-	// Duplicated
-	cmd = "name alex age 20 mood test other test2 another xxx"
-	_, err = commands.UnmarshalOne(cmd, v)
-	if err == nil {
-		t.Errorf("Expected: error, got: nil")
 	}
 }
 

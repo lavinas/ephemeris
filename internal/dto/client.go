@@ -3,7 +3,6 @@ package dto
 import (
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"
-	
 )
 
 // ClientAdd represents the dto for adding a client
@@ -38,6 +37,15 @@ func (c *ClientAdd) GetDto(in interface{}) interface{} {
 	}
 }
 
+// IsEmpty is a method that returns true if the dto is empty
+func (c *ClientAdd) IsEmpty() bool {
+	if c.Object == "" && c.Action == "" && c.ID == "" && c.Name == "" && c.Responsible == "" &&
+		c.Email == "" && c.Phone == "" && c.Contact == "" && c.Document == "" {
+		return true
+	}
+	return false
+}
+
 // ClientGet represents the dto for getting a client
 type ClientGet struct {
 	Object      string `json:"-" command:"name:client;key"`
@@ -56,7 +64,6 @@ func (c *ClientGet) GetDomain() port.Domain {
 	return domain.NewClient(c.ID, c.Name, c.Responsible, c.Email, c.Phone, c.Contact, c.Document)
 }
 
-
 // GetDto is a method that returns a DTO representation of the client domain
 func (c *ClientGet) GetDto(in interface{}) interface{} {
 	ret := make([]ClientGet, 0)
@@ -72,25 +79,17 @@ func (c *ClientGet) GetDto(in interface{}) interface{} {
 			Document:    v.Document,
 		})
 	}
+	if len(ret) == 0 {
+		return nil
+	}
 	return ret
 }
 
-/*
-func (c *ClientGet) GetDto(in interface{}) interface{} {
-	ret := ClientGet{}
-	d := in.(*[]domain.Client)
-	if len(*d) == 0 {
-		return ret
+// IsEmpty is a method that returns true if the dto is empty
+func (c *ClientGet) IsEmpty() bool {
+	if c.Object == "" && c.Action == "" && c.ID == "" && c.Name == "" && c.Responsible == "" &&
+		c.Email == "" && c.Phone == "" && c.Contact == "" && c.Document == "" {
+		return true
 	}
-	ret = ClientGet{
-		ID:          (*d)[0].ID,
-		Name:        (*d)[0].Name,
-		Responsible: (*d)[0].Responsible,
-		Email:       (*d)[0].Email,
-		Phone:       (*d)[0].Phone,
-		Contact:     (*d)[0].Contact,
-		Document:    (*d)[0].Document,
-	}
-	return &ret
+	return false
 }
-*/

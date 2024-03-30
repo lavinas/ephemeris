@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"errors"
 	"strings"
 
 	"github.com/lavinas/ephemeris/internal/domain"
@@ -10,11 +11,15 @@ import (
 )
 
 const (
-	ErrCommandNotFound = "command not identified. Please, see the help command"
+	ErrPrefBadRequest      = "bad request"
+	ErrPrefCommandNotFound = "command not identified"
+	ErrPrefInternal        = "internal error"
+	ErrPrefConflict        = "conflict"
+	ErrCommandNotFound     = "command not identified. Please, see the help command"
 )
 
 var (
-	dtos = map[interface{}]func(*Usecase, interface{}) (interface{}, string, error){
+	dtos = map[interface{}]func(*Usecase, port.DTO) (interface{}, string, error){
 		&dto.ClientAdd{}: (*Usecase).Add,
 		&dto.ClientGet{}: (*Usecase).Get,
 	}
@@ -41,17 +46,25 @@ func (u *Usecase) Command(line string) string {
 	u.Log.Println("Command: " + line)
 	line = strings.ToLower(line)
 	cmd := pkg.Commands{}
-
 	inter := []interface{}{}
 	for k := range dtos {
 		inter = append(inter, k)
 	}
-
-	// dto, err := cmd.UnmarshalOne(line, []interface{}{&dto.ClientAdd{}})
-	dto, err := cmd.UnmarshalOne(line, inter)
+	dto, err := cmd.FindOne(line, inter)
 	if err != nil {
-		return err.Error()
+		return u.error(ErrPrefCommandNotFound, err.Error()).Error()
 	}
-	_, str, _ := dtos[dto](u, dto)
+	if err := cmd.Unmarshal(line, dto); err != nil {
+		return u.error(ErrPrefBadRequest, err.Error()).Error()
+	}
+	dtx := dto.(port.DTO)
+	_, str, _ := dtos[dto](u, dtx)
 	return str
+}
+
+// error is a function that logs an error and returns it
+func (u *Usecase) error(prefix string, err string) error {
+	err = prefix + ": " + err
+	u.Log.Println(err)
+	return errors.New(err)
 }

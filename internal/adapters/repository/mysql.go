@@ -83,8 +83,7 @@ func (r *MySql) Get(obj interface{}, id string) (bool, error) {
 	return false, tx.Error
 }
 
-
-// Find2 gets all objects from the database matching the object
+// Find gets all objects from the database matching the object
 func (r *MySql) Find(base interface{}) (interface{}, error) {
 	sob := reflect.TypeOf(base).Elem()
 	result := reflect.New(reflect.SliceOf(sob)).Interface()
@@ -105,5 +104,5 @@ func (r *MySql) Find(base interface{}) (interface{}, error) {
 		return nil, errors.New(ErrNoFilter)
 	}
 	tx := r.Db.Find(result)
-	return result, tx.Error 
+	return result, tx.Error
 }
