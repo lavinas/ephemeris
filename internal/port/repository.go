@@ -6,6 +6,7 @@ type Repository interface {
 	Add(obj interface{}) error
 	Get(obj interface{}, id string) (bool, error)
 	Find(base interface{}) (interface{}, error)
+	Save(obj interface{}) error
 	Delete(obj interface{}, id string) error
 	Close()
 }

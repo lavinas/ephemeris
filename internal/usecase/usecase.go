@@ -22,6 +22,7 @@ var (
 	dtos = map[interface{}]func(*Usecase, port.DTO) (interface{}, string, error){
 		&dto.ClientAdd{}: (*Usecase).Add,
 		&dto.ClientGet{}: (*Usecase).Get,
+		&dto.ClientUp{}:  (*Usecase).Up,
 	}
 )
 

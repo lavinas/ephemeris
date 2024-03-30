@@ -83,6 +83,18 @@ func (r *MySql) Get(obj interface{}, id string) (bool, error) {
 	return false, tx.Error
 }
 
+// Save saves a object to the database
+func (r *MySql) Save(obj interface{}) error {
+	tx := r.Db.Begin()
+	tx = tx.Save(obj)
+	if tx.Error != nil {
+		tx.Rollback()
+		return tx.Error
+	}
+	tx.Commit()
+	return nil
+}
+
 // Find gets all objects from the database matching the object
 func (r *MySql) Find(base interface{}) (interface{}, error) {
 	sob := reflect.TypeOf(base).Elem()

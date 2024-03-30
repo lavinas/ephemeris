@@ -1,5 +1,6 @@
 package port
 
+// Messages is a struct that contains all messages returned by the application
 const (
 	ErrAlreadyExists      = "register already exists with id %s"
 	ErrUnfound            = "registers unfound with the informed params"
@@ -21,4 +22,5 @@ const (
 	ErrInvalidContact     = "invalid contact"
 	ErrInvalidDocument    = "invalid document"
 	ErrLongDocument       = "document should have at most 20"
+	ErrInvalidTypeOnMerge = "invalid type on merge structures"
 )
