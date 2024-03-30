@@ -2,6 +2,6 @@ package port
 
 type DTO interface {
 	GetDomain() Domain
-	GetDto(interface{}) interface{}
-	IsEmpty() bool
+	GetDto(interface{}) (interface{}, string)
+	Validate() error
 }

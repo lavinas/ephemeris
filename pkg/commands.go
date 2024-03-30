@@ -44,12 +44,11 @@ func NewCommands() *Commands {
 
 // MarshalSlice is a function that converts a slice of structs to a string
 func (c *Commands) Marshal(v interface{}, args ...string) string {
-	nokeys := slices.Contains(args, "nokeys")
 	rvl := c.getInputSlice(v)
 	if len(rvl) == 0 {
 		return ""
 	}
-	ret := c.getValuesSlice(rvl, nokeys)
+	ret := c.getValuesSlice(rvl, slices.Contains(args, "nokeys"))
 	return c.mountTable(ret)
 }
 
@@ -106,13 +105,6 @@ func (c *Commands) getInputSlice(v interface{}) []reflect.Value {
 		vl = vl.Elem()
 	}
 	rvl := []reflect.Value{}
-	if vl.Kind() != reflect.Slice {
-		rvl = append(rvl, vl)
-	} else {
-		for i := 0; i < vl.Len(); i++ {
-			rvl = append(rvl, vl.Index(i))
-		}
-	}
 	if vl.Kind() != reflect.Slice {
 		rvl = append(rvl, vl)
 	} else {

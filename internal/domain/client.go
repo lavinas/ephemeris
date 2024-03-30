@@ -9,28 +9,10 @@ import (
 	"time"
 
 	"github.com/klassmann/cpfcnpj"
+	"github.com/lavinas/ephemeris/internal/port"
 	"github.com/nyaruka/phonenumbers"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
-)
-
-const (
-	ErrEmptyName          = "empty name"
-	ErrLongName           = "name should have at most 100"
-	ErrInvalidName        = "name should have at least two words"
-	ErrLongResponsible    = "responsible should have at most 100"
-	ErrInvalidResponsible = "responsible should have at least two words"
-	ErrEmptyEmail         = "empty email"
-	ErrInvalidEmail       = "invalid email"
-	ErrLongEmail          = "email should have at most 100"
-	ErrEmptyPhone         = "empty phone"
-	ErrLongPhone          = "phone should have at most 20"
-	ErrInvalidPhone       = "invalid phone"
-	ErrEmptyContact       = "empty contact"
-	ErrLongContact        = "contact should have at most 20"
-	ErrInvalidContact     = "invalid contact"
-	ErrInvalidDocument    = "invalid document"
-	ErrLongDocument       = "document should have at most 20"
 )
 
 var (
@@ -149,13 +131,13 @@ func (b *Client) formatID() {
 func (c *Client) validateName() error {
 	name := strings.TrimSpace(c.Name)
 	if name == "" {
-		return errors.New(ErrEmptyName)
+		return errors.New(port.ErrEmptyName)
 	}
 	if len(name) > 100 {
-		return errors.New(ErrLongName)
+		return errors.New(port.ErrLongName)
 	}
 	if len(strings.Split(name, " ")) < 2 {
-		return errors.New(ErrInvalidName)
+		return errors.New(port.ErrInvalidName)
 	}
 	return nil
 }
@@ -180,10 +162,10 @@ func (c *Client) validateResponsible() error {
 		return nil
 	}
 	if len(responsible) > 100 {
-		return errors.New(ErrLongResponsible)
+		return errors.New(port.ErrLongResponsible)
 	}
 	if len(strings.Split(responsible, " ")) < 2 {
-		return errors.New(ErrInvalidResponsible)
+		return errors.New(port.ErrInvalidResponsible)
 	}
 	return nil
 }
@@ -204,13 +186,13 @@ func (c *Client) formatResponsible() {
 // validateEmail is a method that validates the email field
 func (c *Client) validateEmail() error {
 	if c.Email == "" {
-		return errors.New(ErrEmptyEmail)
+		return errors.New(port.ErrEmptyEmail)
 	}
 	if len(c.Email) > 100 {
-		return errors.New(ErrLongEmail)
+		return errors.New(port.ErrLongEmail)
 	}
 	if _, err := mail.ParseAddress(c.Email); err != nil {
-		return errors.New(ErrInvalidEmail)
+		return errors.New(port.ErrInvalidEmail)
 	}
 	return nil
 }
@@ -228,17 +210,17 @@ func (c *Client) formatEmail() {
 // validatePhone is a method that validates the phone field
 func (c *Client) validatePhone() error {
 	if c.Phone == "" {
-		return errors.New(ErrEmptyPhone)
+		return errors.New(port.ErrEmptyPhone)
 	}
 	if len(c.Phone) > 20 {
-		return errors.New(ErrLongPhone)
+		return errors.New(port.ErrLongPhone)
 	}
 	p, err := phonenumbers.Parse(c.Phone, "BR")
 	if err != nil {
-		return errors.New(ErrInvalidPhone)
+		return errors.New(port.ErrInvalidPhone)
 	}
 	if !phonenumbers.IsValidNumberForRegion(p, "BR") {
-		return errors.New(ErrInvalidPhone)
+		return errors.New(port.ErrInvalidPhone)
 	}
 	return nil
 }
@@ -258,13 +240,13 @@ func (c *Client) validateContact() error {
 	contact := strings.TrimSpace(c.Contact)
 	contact = strings.ToLower(contact)
 	if contact == "" {
-		return errors.New(ErrEmptyContact)
+		return errors.New(port.ErrEmptyContact)
 	}
 	if len(contact) > 20 {
-		return errors.New(ErrLongContact)
+		return errors.New(port.ErrLongContact)
 	}
 	if !slices.Contains(ContactWays, contact) {
-		return errors.New(ErrInvalidContact)
+		return errors.New(port.ErrInvalidContact)
 	}
 	return nil
 }
@@ -290,10 +272,10 @@ func (c *Client) validateDocument() error {
 		return nil
 	}
 	if len(document) > 20 {
-		return errors.New(ErrLongDocument)
+		return errors.New(port.ErrLongDocument)
 	}
 	if !cpfcnpj.ValidateCPF(document) && !cpfcnpj.ValidateCNPJ(document) {
-		return errors.New(ErrInvalidDocument)
+		return errors.New(port.ErrInvalidDocument)
 	}
 	return nil
 }

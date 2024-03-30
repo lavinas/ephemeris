@@ -2,6 +2,8 @@ package domain
 
 import (
 	"testing"
+
+	"github.com/lavinas/ephemeris/internal/port"
 )
 
 func TestValidate(t *testing.T) {
@@ -11,25 +13,25 @@ func TestValidate(t *testing.T) {
 		NewClient("1", "  John Doe  ", "  ", " john@doe.com", "  011980876112", "  email  ", "  04417932824"): "",
 		NewClient("1", "John Doe", "", "john@doe.com", "011980876112", "email", ""):                           "",
 		NewClient("1", "John Doe", "Responsible John", "john@doe.com", "011980876112", "email", ""):           "",
-		NewClient("1", "  ", "", "john@doe.com", "011980876112", "email", "04417932824"):                      ErrEmptyName,
-		NewClient("1", "John", "", "john@doe.com", "011980876112", "email", "04417932824"):                    ErrInvalidName,
-		NewClient("1", longstring, "", "john@doe.com", "011980876112", "email", "04417932824"):                ErrLongName,
-		NewClient("1", "John Doe", "John", "john@doe.com", "011980876112", "email", "04417932824"):            ErrInvalidResponsible,
-		NewClient("1", "John Doe", longstring, "john@doe.com", "011980876112", "email", "04417932824"):        ErrLongResponsible,
-		NewClient("1", "  ", "", "john@doe.com", "011980876112", "email", "04417932824"):                      ErrEmptyName,
-		NewClient("1", "John", "", "john@doe.com", "011980876112", "email", "04417932824"):                    ErrInvalidName,
-		NewClient("1", longstring, "", "john@doe.com", "011980876112", "email", "04417932824"):                ErrLongName,
-		NewClient("1", "John Doe", "", "", "011980876112", "email", "04417932824"):                            ErrEmptyEmail,
-		NewClient("1", "John Doe", "", "john", "011980876112", "email", "04417932824"):                        ErrInvalidEmail,
-		NewClient("1", "John Doe", "", longstring, "011980876112", "email", "04417932824"):                    ErrLongEmail,
-		NewClient("1", "John Doe", "", "john@doe.com", "", "email", "04417932824"):                            ErrEmptyPhone,
-		NewClient("1", "John Doe", "", "john@doe.com", "211980876112", "email", "04417932824"):                ErrInvalidPhone,
-		NewClient("1", "John Doe", "", "john@doe.com", longstring, "email", "04417932824"):                    ErrLongPhone,
-		NewClient("1", "John Doe", "", "john@doe.com", "011980876112", "", "04417932824"):                     ErrEmptyContact,
-		NewClient("1", "John Doe", "", "john@doe.com", "011980876112", "phone", "04417932824"):                ErrInvalidContact,
-		NewClient("1", "John Doe", "", "john@doe.com", "011980876112", longstring, "04417932824"):             ErrLongContact,
-		NewClient("1", "John Doe", "", "john@doe.com", "011980876112", "email", "84417932824"):                ErrInvalidDocument,
-		NewClient("1", "John Doe", "", "john@doe.com", "011980876112", "email", longstring):                   ErrLongDocument,
+		NewClient("1", "  ", "", "john@doe.com", "011980876112", "email", "04417932824"):                      port.ErrEmptyName,
+		NewClient("1", "John", "", "john@doe.com", "011980876112", "email", "04417932824"):                    port.ErrInvalidName,
+		NewClient("1", longstring, "", "john@doe.com", "011980876112", "email", "04417932824"):                port.ErrLongName,
+		NewClient("1", "John Doe", "John", "john@doe.com", "011980876112", "email", "04417932824"):            port.ErrInvalidResponsible,
+		NewClient("1", "John Doe", longstring, "john@doe.com", "011980876112", "email", "04417932824"):        port.ErrLongResponsible,
+		NewClient("1", "  ", "", "john@doe.com", "011980876112", "email", "04417932824"):                      port.ErrEmptyName,
+		NewClient("1", "John", "", "john@doe.com", "011980876112", "email", "04417932824"):                    port.ErrInvalidName,
+		NewClient("1", longstring, "", "john@doe.com", "011980876112", "email", "04417932824"):                port.ErrLongName,
+		NewClient("1", "John Doe", "", "", "011980876112", "email", "04417932824"):                            port.ErrEmptyEmail,
+		NewClient("1", "John Doe", "", "john", "011980876112", "email", "04417932824"):                        port.ErrInvalidEmail,
+		NewClient("1", "John Doe", "", longstring, "011980876112", "email", "04417932824"):                    port.ErrLongEmail,
+		NewClient("1", "John Doe", "", "john@doe.com", "", "email", "04417932824"):                            port.ErrEmptyPhone,
+		NewClient("1", "John Doe", "", "john@doe.com", "211980876112", "email", "04417932824"):                port.ErrInvalidPhone,
+		NewClient("1", "John Doe", "", "john@doe.com", longstring, "email", "04417932824"):                    port.ErrLongPhone,
+		NewClient("1", "John Doe", "", "john@doe.com", "011980876112", "", "04417932824"):                     port.ErrEmptyContact,
+		NewClient("1", "John Doe", "", "john@doe.com", "011980876112", "phone", "04417932824"):                port.ErrInvalidContact,
+		NewClient("1", "John Doe", "", "john@doe.com", "011980876112", longstring, "04417932824"):             port.ErrLongContact,
+		NewClient("1", "John Doe", "", "john@doe.com", "011980876112", "email", "84417932824"):                port.ErrInvalidDocument,
+		NewClient("1", "John Doe", "", "john@doe.com", "011980876112", "email", longstring):                   port.ErrLongDocument,
 	}
 	for k, v := range TestMap {
 		err := k.Validate()
