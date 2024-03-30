@@ -22,7 +22,7 @@ func TestClient(t *testing.T) {
 	in := &dto.ClientGet{Object: "client", Action: "get", ID: "1"}
 	resp := &dto.ClientGet{Object: "", Action: "", ID: "1", Name: "Test Test", Responsible: "Test Test",
 		Email: "test@test.com", Phone: "+5511980876112", Contact: "email", Document: "044.179.328-24"}
-	iout, _, err := usecase.ClientGet(in)
+	iout, _, err := usecase.Get(in)
 	if err != nil {
 		t.Errorf("TestGetClient failed: %s", err)
 	}

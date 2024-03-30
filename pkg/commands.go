@@ -42,50 +42,47 @@ func NewCommands() *Commands {
 	return &Commands{}
 }
 
-// Marshal is a function that converts a struct to a string
-func (s *Commands) Marshal(v interface{}) string {
-	st := reflect.TypeOf(v).Elem()
-	vl := reflect.ValueOf(v).Elem()
-	ret := ""
-	for i := 0; i < st.NumField(); i++ {
-		ret += fmt.Sprintf("%s: %s | ", st.Field(i).Name, vl.Field(i).String())
-	}
-	return "ok"
-}
 
 // MarshalSlice is a function that converts a slice of structs to a string
-func (s *Commands) MarshalSlice(v interface{}) string {
+func (s *Commands) Marshal(v interface{}, args ...string) string {
+	nokeys := slices.Contains(args, "nokeys")
 	vl := reflect.ValueOf(v)
 	if vl.Kind() == reflect.Ptr {
 		vl = vl.Elem()
 	}
-	if vl.Len() == 0 {
+	rvl := []reflect.Value{}
+	if vl.Kind() != reflect.Slice {
+		rvl = append(rvl, vl)
+	} else {
+		for i := 0; i < vl.Len(); i++ {
+			rvl = append(rvl, vl.Index(i))
+		}
+	}
+	ret := make([][]string, len(rvl)+1)
+	if len(rvl) == 0 {
 		return ""
 	}
-	ret := make([][]string, vl.Len()+1)
-	for i := 0; i < vl.Index(0).NumField(); i++ {
-		ret[0] = append(ret[0], vl.Index(0).Type().Field(i).Name)
+	for i := 0; i < rvl[0].NumField(); i++ {
+		if nokeys {
+			tag := s.getTag(rvl[0].Type().Field(i), Fieldtag)
+			if tag == nil || tag.iskey {
+				continue
+			}
+		}
+		ret[0] = append(ret[0], rvl[0].Type().Field(i).Name)
 	}
-	for i := 0; i < vl.Len(); i++ {
-		for j := 0; j < vl.Index(i).NumField(); j++ {
-			ret[i+1] = append(ret[i+1], vl.Index(i).Field(j).String())
+	for i := 0; i < len(rvl); i++ {
+		for j := 0; j < rvl[i].NumField(); j++ {
+			if nokeys {
+				tag := s.getTag(rvl[i].Type().Field(j), Fieldtag)
+				if tag == nil || tag.iskey {
+					continue
+				}
+			}
+			ret[i+1] = append(ret[i+1], rvl[i].Field(j).String())
 		}
 	}
 	return mountTable(ret)
-}
-
-// MarshallNoKeys is a function that converts a struct to a string without keys
-func (s *Commands) MarshallNoKeys(v interface{}) string {
-	st := reflect.TypeOf(v).Elem()
-	ret := ""
-	for i := 0; i < st.NumField(); i++ {
-		tag := s.getTag(st.Field(i), Fieldtag)
-		if tag == nil || tag.iskey {
-			continue
-		}
-		ret += fmt.Sprintf("%s: %s | ", st.Field(i).Name, reflect.ValueOf(v).Elem().Field(i).String())
-	}
-	return ret[:len(ret)-3]
 }
 
 // Choose is a function that chooses the correct struct to return

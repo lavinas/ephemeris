@@ -4,5 +4,5 @@ package port
 type UseCase interface {
 	Command(string) string
 	Add(interface{}) (interface{}, string, error)
-	ClientGet(interface{}) (interface{}, string, error)
+	Get(interface{}) (interface{}, string, error)
 }

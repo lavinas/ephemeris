@@ -37,7 +37,7 @@ func (c *Usecase) Add(in interface{}) (interface{}, string, error) {
 }
 
 // Get is a method that gets a client from the repository
-func (c *Usecase) ClientGet(in interface{}) (interface{}, string, error) {
+func (c *Usecase) Get(in interface{}) (interface{}, string, error) {
 	din, ok := in.(*dto.ClientGet)
 	if !ok {
 		c.Log.Println(ErrWrongGetClientDTO)
@@ -53,7 +53,7 @@ func (c *Usecase) ClientGet(in interface{}) (interface{}, string, error) {
 	}
 	out := din.GetDto(clients)
 	comm := pkg.NewCommands()
-	x := comm.MarshalSlice(out)
+	x := comm.Marshal(out, "nokeys")
 	return out, x, nil
 }
 
@@ -74,7 +74,6 @@ func (c *Usecase) format(domain port.Domain) error {
 
 // checkExistence is a method that checks if the client exists
 func (c *Usecase) checkExists(domain port.Domain) error {
-
 	if f, err := c.Repo.Get(domain, domain.GetID()); err != nil {
 		c.Log.Println(err.Error())
 		return errors.New("internal error: " + err.Error())

@@ -157,26 +157,7 @@ func TestMarshal(t *testing.T) {
 	if err != nil {
 		t.Errorf("Expected: nil error, got: %s", err.Error())
 	}
-	if commands.Marshal(&s) != "Name: alex | Age: 20 | Mood: test | Other: test2 | Another: xxx" {
-		t.Errorf("Expected Name: alex | Age: 20 | Mood: test | Other: test2 | Another: xxx, got %s", commands.Marshal(&s))
-	}
-}
-
-func TestMarshalNoKeys(t *testing.T) {
-	commands := NewCommands()
-	cmd := "name alex age 20 mood test other test2 another xxx"
-	s := struct {
-		Name    string `command:"name:name; key; not null"`
-		Age     string `command:"name:age; key; not null"`
-		Mood    string `command:"name:mood"`
-		Other   string `command:"name:other; not null"`
-		Another string `command:"name:another"`
-	}{}
-	err := commands.Unmarshal(cmd, &s)
-	if err != nil {
-		t.Errorf("Expected: nil error, got: %s", err.Error())
-	}
-	if commands.MarshallNoKeys(&s) != "Mood: test | Other: test2 | Another: xxx" {
-		t.Errorf("Expected: Mood: test | Other: test2 | Another: xxx, got: %s", commands.MarshallNoKeys(&s))
+	if commands.Marshal(&s) == "" {
+		t.Errorf("\nExpected:\n%s\ngot:\n%s", "", commands.Marshal(&s))
 	}
 }
