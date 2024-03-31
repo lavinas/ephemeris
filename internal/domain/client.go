@@ -4,9 +4,9 @@ import (
 	"errors"
 	"net/mail"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
-	"slices"
 
 	"github.com/klassmann/cpfcnpj"
 	"github.com/lavinas/ephemeris/internal/port"
@@ -71,7 +71,7 @@ func (c *Client) GetID() string {
 }
 
 // formatID is a method that formats the id field
-func (c *Client) formatID(filled bool) error{
+func (c *Client) formatID(filled bool) error {
 	id := c.formatString(c.ID)
 	if id == "" {
 		if filled {
@@ -109,7 +109,7 @@ func (c *Client) formatName(filled bool) error {
 }
 
 // formatResponsible is a method that formats the responsible field
-func (c *Client) formatResponsible(filled bool) error{
+func (c *Client) formatResponsible(filled bool) error {
 	responsible := c.formatString(c.Responsible)
 	if responsible == "" {
 		return nil
@@ -165,8 +165,7 @@ func (c *Client) formatPhone(filled bool) error {
 	}
 	c.Phone = phone
 	return nil
-}	
-
+}
 
 // formatContact is a method that formats the contact field
 func (c *Client) formatContact(filled bool) error {

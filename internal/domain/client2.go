@@ -4,9 +4,9 @@ import (
 	"errors"
 	"net/mail"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
-	"slices"
 
 	"github.com/klassmann/cpfcnpj"
 	"github.com/lavinas/ephemeris/internal/port"
@@ -17,13 +17,13 @@ import (
 
 // Client represents the client entity
 type Client2 struct {
-	ID          string    `gorm:"type:varchar(25); primaryKey"`
-	Name        string    `gorm:"type:varchar(100); not null"`
-	Email       string    `gorm:"type:varchar(100); not null"`
-	Phone       string    `gorm:"type:varchar(20); not null"`
-	Date        time.Time `gorm:"type:datetime; not null"`
-	Document    string    `gorm:"type:varchar(20)"`
-	Contact     string	  `gorm:"type:varchar(20)"`
+	ID       string    `gorm:"type:varchar(25); primaryKey"`
+	Name     string    `gorm:"type:varchar(100); not null"`
+	Email    string    `gorm:"type:varchar(100); not null"`
+	Phone    string    `gorm:"type:varchar(20); not null"`
+	Date     time.Time `gorm:"type:datetime; not null"`
+	Document string    `gorm:"type:varchar(20)"`
+	Contact  string    `gorm:"type:varchar(20)"`
 }
 
 // NewClient2 is a function that creates a new client
@@ -65,7 +65,7 @@ func (c *Client2) GetID() string {
 }
 
 // formatID is a method that formats the id field
-func (c *Client2) formatID(filled bool) error{
+func (c *Client2) formatID(filled bool) error {
 	id := c.formatString(c.ID)
 	if id == "" {
 		if filled {
@@ -101,7 +101,6 @@ func (c *Client2) formatName(filled bool) error {
 	c.Name = cases.Title(language.Und).String(name)
 	return nil
 }
-
 
 // formatEmail is a method that formats the email field
 func (c *Client2) formatEmail(filled bool) error {
@@ -144,7 +143,7 @@ func (c *Client2) formatPhone(filled bool) error {
 	}
 	c.Phone = phone
 	return nil
-}	
+}
 
 // formatDate is a method that formats the date field
 func (c *Client2) formatDate(filled bool) error {
@@ -203,7 +202,6 @@ func (c *Client2) formatContact(filled bool) error {
 	c.Contact = strings.ToLower(contact)
 	return nil
 }
-
 
 // formatNumber is a method that formats a number
 func (c *Client2) formatNumber(number string) string {

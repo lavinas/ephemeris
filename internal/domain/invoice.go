@@ -5,21 +5,21 @@ import (
 )
 
 type InvoiceStatus struct {
-	ID          string    `gorm:"type:varchar(25); primaryKey"`
-	CreatedAt   time.Time `gorm:"type:datetime; not null"`
-	Name string `gorm:"type:varchar(100), not null"`
+	ID        string    `gorm:"type:varchar(25); primaryKey"`
+	CreatedAt time.Time `gorm:"type:datetime; not null"`
+	Name      string    `gorm:"type:varchar(100), not null"`
 }
 
 type InvoiceSendStatus struct {
-	ID          string    `gorm:"type:varchar(25); primaryKey"`
-	CreatedAt   time.Time `gorm:"type:datetime; not null"`
-	Name string `gorm:"type:varchar(100), not null"`
+	ID        string    `gorm:"type:varchar(25); primaryKey"`
+	CreatedAt time.Time `gorm:"type:datetime; not null"`
+	Name      string    `gorm:"type:varchar(100), not null"`
 }
 
 type InvoicePaymentStatus struct {
-	ID          string    `gorm:"type:varchar(25); primaryKey"`
-	CreatedAt   time.Time `gorm:"type:datetime; not null"`
-	Name string `gorm:"type:varchar(100), not null"`
+	ID        string    `gorm:"type:varchar(25); primaryKey"`
+	CreatedAt time.Time `gorm:"type:datetime; not null"`
+	Name      string    `gorm:"type:varchar(100), not null"`
 }
 
 type InvoiceItem struct {
@@ -33,8 +33,8 @@ type InvoiceItem struct {
 }
 
 type Invoice struct {
-	ID          string    `gorm:"type:varchar(25); primaryKey"`
-	CreatedAt   time.Time `gorm:"type:datetime; not null"`
+	ID            string                `gorm:"type:varchar(25); primaryKey"`
+	CreatedAt     time.Time             `gorm:"type:datetime; not null"`
 	Ref           string                `gorm:"type:varchar(25); not null"`
 	Client        *Client               `gorm:"foreignKey:ID, not null"`
 	Date          time.Time             `gorm:"type:date; not null"`
