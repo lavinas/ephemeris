@@ -192,7 +192,7 @@ func (c *Client2) formatContact(filled bool) error {
 		if filled {
 			return nil
 		}
-		return errors.New(port.ErrEmptyContact)
+		contact = "email"
 	}
 	if len(contact) > 20 {
 		return errors.New(port.ErrLongContact)
