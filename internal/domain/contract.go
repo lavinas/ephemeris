@@ -6,7 +6,8 @@ import (
 
 // Contract represents the contract entity
 type Contract struct {
-	Base        `gorm:"embedded"`
+	ID          string    `gorm:"type:varchar(25); primaryKey"`
+	CreatedAt   time.Time `gorm:"type:datetime; not null"`
 	Client      *Client     `gorm:"foreignKey:ID, not null"`
 	Service     *Service    `gorm:"foreignKey:ID, not null"`
 	Start       time.Time   `gorm:"type:datetime; not null"`

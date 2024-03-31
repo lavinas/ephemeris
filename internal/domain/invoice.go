@@ -5,22 +5,26 @@ import (
 )
 
 type InvoiceStatus struct {
-	Base `gorm:"embedded"`
+	ID          string    `gorm:"type:varchar(25); primaryKey"`
+	CreatedAt   time.Time `gorm:"type:datetime; not null"`
 	Name string `gorm:"type:varchar(100), not null"`
 }
 
 type InvoiceSendStatus struct {
-	Base `gorm:"embedded"`
+	ID          string    `gorm:"type:varchar(25); primaryKey"`
+	CreatedAt   time.Time `gorm:"type:datetime; not null"`
 	Name string `gorm:"type:varchar(100), not null"`
 }
 
 type InvoicePaymentStatus struct {
-	Base `gorm:"embedded"`
+	ID          string    `gorm:"type:varchar(25); primaryKey"`
+	CreatedAt   time.Time `gorm:"type:datetime; not null"`
 	Name string `gorm:"type:varchar(100), not null"`
 }
 
 type InvoiceItem struct {
-	Base        `gorm:"embedded"`
+	ID          string    `gorm:"type:varchar(25); primaryKey"`
+	CreatedAt   time.Time `gorm:"type:datetime; not null"`
 	Invoice     *Invoice  `gorm:"foreignKey:ID, not null"`
 	Contract    *Contract `gorm:"foreignKey:ID, not null"`
 	Agenda      *Agenda   `gorm:"foreignKey:ID, not null"`
@@ -29,7 +33,8 @@ type InvoiceItem struct {
 }
 
 type Invoice struct {
-	Base          `gorm:"embedded"`
+	ID          string    `gorm:"type:varchar(25); primaryKey"`
+	CreatedAt   time.Time `gorm:"type:datetime; not null"`
 	Ref           string                `gorm:"type:varchar(25); not null"`
 	Client        *Client               `gorm:"foreignKey:ID, not null"`
 	Date          time.Time             `gorm:"type:date; not null"`

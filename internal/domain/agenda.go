@@ -6,19 +6,22 @@ import (
 
 // AgendaType represents the agenda type entity
 type AgendaType struct {
-	Base `gorm:"embedded"`
+	ID          string    `gorm:"type:varchar(25); primaryKey"`
+	CreatedAt   time.Time `gorm:"type:datetime; not null"`
 	Name string `gorm:"type:varchar(100), not null"`
 }
 
 // AgendaStatus represents the agenda status entity
 type AgendaStatus struct {
-	Base `gorm:"embedded"`
+	ID          string    `gorm:"type:varchar(25); primaryKey"`
+	CreatedAt   time.Time `gorm:"type:datetime; not null"`
 	Name string `gorm:"type:varchar(100), not null"`
 }
 
 // Agenda represents the agenda entity
 type Agenda struct {
-	Base         `gorm:"embedded"`
+	ID          string    `gorm:"type:varchar(25); primaryKey"`
+	CreatedAt   time.Time `gorm:"type:datetime; not null"`
 	Contract     *Contract     `gorm:"foreignKey:ID, not null"`
 	Start        time.Time     `gorm:"type:datetime; not null"`
 	End          time.Time     `gorm:"type:datetime; not null"`

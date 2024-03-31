@@ -47,7 +47,7 @@ func (c *ClientAdd) Validate() error {
 		return errors.New(port.ErrParamsNotInformed)
 	}
 	domain := c.GetDomain()
-	return domain.Validate()
+	return domain.Format()
 }
 
 // IsEmpty is a method that returns true if the dto is empty

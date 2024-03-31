@@ -26,6 +26,10 @@ func (u *Usecase) Up(in port.DTO) (interface{}, string, error) {
 		err := u.error(ErrPrefInternal, err.Error())
 		return nil, err.Error(), err
 	}
+	if err := target.Format(); err != nil {
+		err := u.error(ErrPrefBadRequest, err.Error())
+		return nil, err.Error(), err
+	}
 	if err := u.Repo.Save(target); err != nil {
 		err := u.error(ErrPrefInternal, err.Error())
 		return nil, err.Error(), err

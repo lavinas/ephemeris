@@ -4,9 +4,9 @@ import (
 	"errors"
 	"net/mail"
 	"regexp"
-	"slices"
 	"strings"
 	"time"
+	"slices"
 
 	"github.com/klassmann/cpfcnpj"
 	"github.com/lavinas/ephemeris/internal/port"
@@ -46,9 +46,10 @@ func NewClient(id string, name string, responsible string, email string, phone s
 }
 
 // Validate is a method that validates the client
-func (c *Client) Validate() error {
+func (c *Client) Validate(args ...string) error {
+	filled := slices.Contains(args, "filled")
 	message := ""
-	validSlice := []func() error{
+	validSlice := []func(filled bool) error{
 		c.validateID,
 		c.validateName,
 		c.validateResponsible,
@@ -58,7 +59,7 @@ func (c *Client) Validate() error {
 		c.validateDocument,
 	}
 	for _, f := range validSlice {
-		if err := f(); err != nil {
+		if err := f(filled); err != nil {
 			message += err.Error() + ", "
 		}
 	}
@@ -69,8 +70,9 @@ func (c *Client) Validate() error {
 }
 
 // Format is a method that formats the client
-func (c *Client) Format() {
-	formatMap := []func(){
+func (c *Client) Format(args ...string) error {
+	filled := slices.Contains(args, "filled")
+	formatMap := []func(filled bool) error{
 		c.formatID,
 		c.formatName,
 		c.formatResponsible,
@@ -80,8 +82,11 @@ func (c *Client) Format() {
 		c.formatDocument,
 	}
 	for _, f := range formatMap {
-		f()
+		if err := f(filled); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 // GetID is a method that returns the id of the client
@@ -89,46 +94,44 @@ func (c *Client) GetID() string {
 	return c.ID
 }
 
-// String is a method that returns a string representation of the client
-func (c *Client) String() string {
-	ret := ""
-	ret += "id: " + c.ID + "; "
-	ret += "name: " + c.Name + "; "
-	if c.Responsible != "" {
-		ret += "responsible: " + c.Responsible + "; "
-	}
-	ret += "email: " + c.Email + "; "
-	ret += "phone: " + c.Phone + "; "
-	ret += "contact: " + c.Contact
-	if c.Document != "" {
-		ret += "; document: " + c.Document
-	}
-	return ret
-}
-
 // validateID is a method that validates the id field
-func (b *Client) validateID() error {
-	if b.ID == "" {
-		return errors.New(ErrEmptyID)
+func (c *Client) validateID(filled bool) error {
+	if filled && c.ID == "" {
+		return nil
 	}
-	if len(strings.Split(b.ID, " ")) > 1 {
-		return errors.New(ErrInvalidID)
+	if c.ID == "" {
+		return errors.New(port.ErrEmptyID)
+	}
+	if len(strings.Split(c.ID, " ")) > 1 {
+		return errors.New(port.ErrInvalidID)
 	}
 	return nil
 }
 
 // formatID is a method that formats the id field
-func (b *Client) formatID() {
-	if err := b.validateID(); err != nil {
-		b.ID = ""
-		return
+func (c *Client) formatID(filled bool) error{
+	id := c.formatString(c.ID)
+	if id == "" {
+		if filled {
+			return nil
+		}
+		return errors.New(port.ErrEmptyID)
 	}
-	b.ID = strings.TrimSpace(b.ID)
-	b.ID = strings.ToLower(b.ID)
+	if len(c.ID) > 25 {
+		return errors.New(port.ErrLongID)
+	}
+	if len(strings.Split(c.ID, " ")) > 1 {
+		return errors.New(port.ErrInvalidID)
+	}
+	c.ID = strings.ToLower(c.ID)
+	return nil
 }
 
 // validateName is a method that validates the name field
-func (c *Client) validateName() error {
+func (c *Client) validateName(filled bool) error {
+	if filled && c.Name == "" {
+		return nil
+	}
 	name := strings.TrimSpace(c.Name)
 	if name == "" {
 		return errors.New(port.ErrEmptyName)
@@ -143,20 +146,27 @@ func (c *Client) validateName() error {
 }
 
 // formatName is a method that formats the name field
-func (c *Client) formatName() {
-	if err := c.validateName(); err != nil {
-		c.Name = ""
-		return
+func (c *Client) formatName(filled bool) error {
+	name := c.formatString(c.Name)
+	if name == "" {
+		if filled {
+			return nil
+		}
+		return errors.New(port.ErrEmptyName)
+	}
+	if len(name) > 100 {
+		return errors.New(port.ErrLongName)
+	}
+	if len(strings.Split(name, " ")) < 2 {
+		return errors.New(port.ErrInvalidName)
 	}
 	caser := cases.Title(language.Und)
 	c.Name = caser.String(c.Name)
-	c.Name = strings.TrimSpace(c.Name)
-	space := regexp.MustCompile(`\s+`)
-	c.Name = space.ReplaceAllString(c.Name, " ")
+	return nil
 }
 
 // validateResponsible is a method that validates the responsible field
-func (c *Client) validateResponsible() error {
+func (c *Client) validateResponsible(filled bool) error {
 	responsible := strings.TrimSpace(c.Responsible)
 	if responsible == "" {
 		return nil
@@ -171,10 +181,23 @@ func (c *Client) validateResponsible() error {
 }
 
 // formatResponsible is a method that formats the responsible field
-func (c *Client) formatResponsible() {
-	if err := c.validateResponsible(); err != nil {
+func (c *Client) formatResponsible(filled bool) error{
+	responsible := c.formatString(c.Responsible)
+	if responsible == "" {
+		return nil
+	}
+	if len(responsible) > 100 {
+		return errors.New(port.ErrLongResponsible)
+	}
+	
+
+
+	if filled && c.Responsible == "" {
+		return nil
+	}
+	if err := c.validateResponsible(filled); err != nil {
 		c.Responsible = ""
-		return
+		return err
 	}
 	caser := cases.Title(language.Und)
 	c.Responsible = caser.String(c.Responsible)
@@ -184,7 +207,10 @@ func (c *Client) formatResponsible() {
 }
 
 // validateEmail is a method that validates the email field
-func (c *Client) validateEmail() error {
+func (c *Client) validateEmail(filled bool) error {
+	if filled && c.Email == "" {
+		return nil
+	}
 	if c.Email == "" {
 		return errors.New(port.ErrEmptyEmail)
 	}
@@ -198,17 +224,23 @@ func (c *Client) validateEmail() error {
 }
 
 // formatEmail is a method that formats the email field
-func (c *Client) formatEmail() {
-	if err := c.validateEmail(); err != nil {
+func (c *Client) formatEmail(filled bool) error {
+	if filled && c.Email == "" {
+		return nil
+	}
+	if err := c.validateEmail(filled); err != nil {
 		c.Email = ""
-		return
+		return err
 	}
 	a, _ := mail.ParseAddress(c.Email)
 	c.Email = a.Address
 }
 
 // validatePhone is a method that validates the phone field
-func (c *Client) validatePhone() error {
+func (c *Client) validatePhone(filled bool) error {
+	if filled && c.Phone == "" {
+		return nil
+	}
 	if c.Phone == "" {
 		return errors.New(port.ErrEmptyPhone)
 	}
@@ -226,18 +258,26 @@ func (c *Client) validatePhone() error {
 }
 
 // formatPhone is a method that formats the phone field
-func (c *Client) formatPhone() {
-	if err := c.validatePhone(); err != nil {
-		c.Phone = ""
-		return
+func (c *Client) formatPhone(filled bool) error {
+	phone := c.formatString(c.Phone)
+	if filled && c.Phone == "" {
+		return nil
 	}
-	phone, _ := phonenumbers.Parse(c.Phone, "BR")
+	if err := c.validatePhone(filled); err != nil {
+		c.Phone = ""
+		return err
+	}
+	phone = c.formatNumber(phone)
+	phone, _ = phonenumbers.Parse(phone, "BR")
 	c.Phone = phonenumbers.Format(phone, phonenumbers.E164)
 }
 
 // validateContact is a method that validates the contact field
-func (c *Client) validateContact() error {
-	contact := strings.TrimSpace(c.Contact)
+func (c *Client) validateContact(filled bool) error {
+	contact := c.formatString(c.Contact)
+	if filled && c.Contact == "" {
+		return nil
+	}
 	contact = strings.ToLower(contact)
 	if contact == "" {
 		return errors.New(port.ErrEmptyContact)
@@ -252,12 +292,15 @@ func (c *Client) validateContact() error {
 }
 
 // formatContact is a method that formats the contact field
-func (c *Client) formatContact() {
-	if err := c.validateContact(); err != nil {
-		c.Contact = ""
-		return
+func (c *Client) formatContact(filled bool) error {
+	contact := c.formatString(c.Contact)	
+	if filled && c.Contact == "" {
+		return nil
 	}
-	contact := strings.TrimSpace(c.Contact)
+	if err := c.validateContact(filled); err != nil {
+		c.Contact = ""
+		return err
+	}
 	contact = strings.ToLower(contact)
 	if !slices.Contains(ContactWays, contact) {
 		c.Contact = ""
@@ -266,10 +309,14 @@ func (c *Client) formatContact() {
 }
 
 // validateDocument is a method that validates the document field
-func (c *Client) validateDocument() error {
-	document := strings.TrimSpace(c.Document)
+func (c *Client) validateDocument(filled bool) error {
+	document := c.formatString(c.Document)
 	if document == "" {
 		return nil
+	}
+	document = c.formatNumber(c.Document)
+	if document == "" {
+		return errors.New(port.ErrInvalidDocument)
 	}
 	if len(document) > 20 {
 		return errors.New(port.ErrLongDocument)
@@ -281,17 +328,41 @@ func (c *Client) validateDocument() error {
 }
 
 // formatDocument is a method that formats the document field
-func (c *Client) formatDocument() {
-	if err := c.validateDocument(); err != nil {
-		c.Document = ""
-		return
+func (c *Client) formatDocument(filled bool) error {
+	doc := c.formatString(c.Document)
+	if doc == "" {
+		return nil
 	}
-	document := strings.TrimSpace(c.Document)
+	if err := c.validateDocument(filled); err != nil {
+		return err
+	}
+	document := c.formatNumber(c.Document)
+	re := regexp.MustCompile("[0-9]+")
+	document = re.FindString(document)
 	cpf := cpfcnpj.NewCPF(document)
 	if cpf.IsValid() {
 		c.Document = cpf.String()
-		return
+		return nil
 	}
 	cnpj := cpfcnpj.NewCNPJ(document)
 	c.Document = cnpj.String()
+	return nil
+}
+
+// formatNumber is a method that formats a number
+func (c *Client) formatNumber(number string) string {
+	re := regexp.MustCompile("[0-9]+")
+	ret := ""
+	for _, s := range re.FindAllString(number, -1) {
+		ret += s
+	}
+	return ret
+}
+
+// formatString is a method that formats a string
+func (c *Client) formatString(str string) string {
+	str = strings.TrimSpace(str)
+	space := regexp.MustCompile(`\s+`)
+	str = space.ReplaceAllString(str, " ")
+	return str
 }
