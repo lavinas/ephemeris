@@ -11,7 +11,10 @@ func (u *Usecase) Get(in port.DTO) (interface{}, string, error) {
 		return nil, err.Error(), err
 	}
 	domain := in.GetDomain()
-	domain.Format()
+	if err := domain.Format("filled"); err != nil {
+		err := u.error(ErrPrefBadRequest, err.Error())
+		return nil, err.Error(), err
+	}
 	found, err := u.Repo.Find(domain)
 	if err != nil {
 		err := u.error(ErrPrefInternal, err.Error())

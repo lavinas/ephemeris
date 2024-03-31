@@ -7,12 +7,11 @@ import (
 
 // Add is a method that add a dto to the repository
 func (u *Usecase) Add(in port.DTO) (interface{}, string, error) {
-	if err := in.Validate(); err != nil {
+	domain := in.GetDomain()
+	if err := domain.Format(); err != nil {
 		err := u.error(ErrPrefBadRequest, err.Error())
 		return nil, err.Error(), err
 	}
-	domain := in.GetDomain()
-	domain.Format()
 	if f, err := u.Repo.Get(domain, domain.GetID()); err != nil {
 		err := u.error(ErrPrefInternal, err.Error())
 		return nil, err.Error(), err

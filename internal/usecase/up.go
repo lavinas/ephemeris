@@ -14,20 +14,19 @@ func (u *Usecase) Up(in port.DTO) (interface{}, string, error) {
 	}
 	source := in.GetDomain()
 	target := in.GetDomain()
-	source.Format()
+	if err := source.Format("filled"); err != nil {
+		err := u.error(ErrPrefBadRequest, err.Error())
+		return nil, err.Error(), err
+	}
 	if f, err := u.Repo.Get(target, source.GetID()); err != nil {
 		err := u.error(ErrPrefInternal, err.Error())
 		return nil, err.Error(), err
 	} else if !f {
-		err := u.error(ErrPrefConflict, port.ErrUnfound)
+		err := u.error(ErrPrefBadRequest, port.ErrUnfound)
 		return nil, err.Error(), err
 	}
-	if err := u.Merge(source, target); err != nil {
+	if err := u.merge(source, target); err != nil {
 		err := u.error(ErrPrefInternal, err.Error())
-		return nil, err.Error(), err
-	}
-	if err := target.Format(); err != nil {
-		err := u.error(ErrPrefBadRequest, err.Error())
 		return nil, err.Error(), err
 	}
 	if err := u.Repo.Save(target); err != nil {
@@ -43,7 +42,7 @@ func (u *Usecase) Up(in port.DTO) (interface{}, string, error) {
 }
 
 // merge is a method that merges two structs
-func (u *Usecase) Merge(source interface{}, target interface{}) error {
+func (u *Usecase) merge(source interface{}, target interface{}) error {
 	if reflect.TypeOf(source) != reflect.TypeOf(target) {
 		return u.error(ErrPrefInternal, port.ErrInvalidTypeOnMerge)
 	}

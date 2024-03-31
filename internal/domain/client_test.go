@@ -34,7 +34,7 @@ func TestValidate(t *testing.T) {
 		NewClient("1", "John Doe", "", "john@doe.com", "011980876112", "email", longstring):                   port.ErrLongDocument,
 	}
 	for k, v := range TestMap {
-		err := k.Validate()
+		err := k.Format()
 		if err == nil && v == "" {
 			continue
 		}

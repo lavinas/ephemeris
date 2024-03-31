@@ -57,8 +57,8 @@ func (c *ClientGet) Validate() error {
 
 // IsEmpty is a method that returns true if the dto is empty
 func (c *ClientGet) IsEmpty() bool {
-	if c.Object == "" && c.Action == "" && c.ID == "" && c.Name == "" && c.Responsible == "" &&
-		c.Email == "" && c.Phone == "" && c.Contact == "" && c.Document == "" {
+	if c.ID == "" && c.Name == "" && c.Responsible == "" && c.Email == "" && 
+	   c.Phone == "" && c.Contact == "" && c.Document == "" {
 		return true
 	}
 	return false
