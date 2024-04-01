@@ -19,6 +19,7 @@ type ClientGet struct {
 	Email    string `json:"email" command:"name:email"`
 	Phone    string `json:"phone" command:"name:phone"`
 	Document string `json:"document" command:"name:document"`
+	Contact  string `json:"contact" command:"name:contact"`
 }
 
 // Validate is a method that validates the dto
@@ -31,7 +32,7 @@ func (c *ClientGet) Validate() error {
 
 // GetDomain is a method that returns a string representation of the client
 func (c *ClientGet) GetDomain() port.Domain {
-	return domain.NewClient(c.ID, c.Date, c.Name, c.Email, c.Phone, c.Document, "")
+	return domain.NewClient(c.ID, c.Date, c.Name, c.Email, c.Phone, c.Document, c.Contact)
 }
 
 // GetDto is a method that returns a DTO representation of the client domain
@@ -47,6 +48,7 @@ func (c *ClientGet) GetDto(in interface{}) (interface{}, string) {
 			Email:    v.Email,
 			Phone:    v.Phone,
 			Document: v.Document,
+			Contact:  v.Contact,
 		})
 	}
 	if len(ret) == 0 {
