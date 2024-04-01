@@ -4,6 +4,5 @@ package domain
 func GetDomain() []interface{} {
 	return []interface{}{
 		&Client{},
-		&Client2{},
 	}
 }

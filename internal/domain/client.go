@@ -16,32 +16,40 @@ import (
 )
 
 var (
-	ContactWays = []string{"email", "whatsapp"}
+	// ContactWays is a slice that contains the ways to contact a client
+	ContactWays = []string{"email", "phone", "whatsapp"}
 )
 
 // Client represents the client entity
 type Client struct {
-	ID          string    `gorm:"type:varchar(25); primaryKey"`
-	CreatedAt   time.Time `gorm:"type:datetime; not null"`
-	Name        string    `gorm:"type:varchar(100); not null"`
-	Responsible string    `gorm:"type:varchar(100)"`
-	Email       string    `gorm:"type:varchar(100); not null"`
-	Phone       string    `gorm:"type:varchar(20); not null"`
-	Contact     string    `gorm:"type:varchar(20); not null"`
-	Document    string    `gorm:"type:varchar(20)"`
+	ID       string    `gorm:"type:varchar(25); primaryKey"`
+	Name     string    `gorm:"type:varchar(100); not null"`
+	Email    string    `gorm:"type:varchar(100); not null"`
+	Phone    string    `gorm:"type:varchar(20); not null"`
+	Date     time.Time `gorm:"type:datetime; not null"`
+	Document string    `gorm:"type:varchar(20)"`
+	Contact  string    `gorm:"type:varchar(20)"`
 }
 
 // NewClient is a function that creates a new client
-func NewClient(id string, name string, responsible string, email string, phone string, contact string, document string) *Client {
+func NewClient(id string, date string, name string, email string, phone string, document string, contact string) *Client {
+	date = strings.TrimSpace(date)
+	local, _ := time.LoadLocation(port.Location)
+	fdate := time.Time{}
+	if date != "" {
+		var err error
+		if fdate, err = time.ParseInLocation(port.DateFormat, date, local); err != nil {
+			fdate = time.Time{}
+		}
+	}
 	return &Client{
-		ID:          id,
-		CreatedAt:   time.Now(),
-		Name:        name,
-		Responsible: responsible,
-		Email:       email,
-		Phone:       phone,
-		Contact:     contact,
-		Document:    document,
+		ID:       id,
+		Date:     fdate,
+		Name:     name,
+		Email:    email,
+		Phone:    phone,
+		Document: document,
+		Contact:  contact,
 	}
 }
 
@@ -50,12 +58,12 @@ func (c *Client) Format(args ...string) error {
 	filled := slices.Contains(args, "filled")
 	formatMap := []func(filled bool) error{
 		c.formatID,
+		c.formatDate,
 		c.formatName,
-		c.formatResponsible,
 		c.formatEmail,
 		c.formatPhone,
-		c.formatContact,
 		c.formatDocument,
+		c.formatContact,
 	}
 	for _, f := range formatMap {
 		if err := f(filled); err != nil {
@@ -89,6 +97,19 @@ func (c *Client) formatID(filled bool) error {
 	return nil
 }
 
+// formatDate is a method that formats the date field
+func (c *Client) formatDate(filled bool) error {
+	date := c.Date
+	if date.IsZero() {
+		if filled {
+			return nil
+		}
+		return errors.New(port.ErrInvalidDateFormat)
+	}
+	c.Date = date
+	return nil
+}
+
 // formatName is a method that formats the name field
 func (c *Client) formatName(filled bool) error {
 	name := c.formatString(c.Name)
@@ -105,22 +126,6 @@ func (c *Client) formatName(filled bool) error {
 		return errors.New(port.ErrInvalidName)
 	}
 	c.Name = cases.Title(language.Und).String(name)
-	return nil
-}
-
-// formatResponsible is a method that formats the responsible field
-func (c *Client) formatResponsible(filled bool) error {
-	responsible := c.formatString(c.Responsible)
-	if responsible == "" {
-		return nil
-	}
-	if len(responsible) > 100 {
-		return errors.New(port.ErrLongResponsible)
-	}
-	if len(strings.Split(responsible, " ")) < 2 {
-		return errors.New(port.ErrInvalidResponsible)
-	}
-	c.Responsible = cases.Title(language.Und).String(responsible)
 	return nil
 }
 
@@ -167,29 +172,11 @@ func (c *Client) formatPhone(filled bool) error {
 	return nil
 }
 
-// formatContact is a method that formats the contact field
-func (c *Client) formatContact(filled bool) error {
-	contact := c.formatString(c.Contact)
-	if contact == "" {
-		if filled {
-			return nil
-		}
-		return errors.New(port.ErrEmptyContact)
-	}
-	if len(contact) > 20 {
-		return errors.New(port.ErrLongContact)
-	}
-	if !slices.Contains(ContactWays, contact) {
-		return errors.New(port.ErrInvalidContact)
-	}
-	c.Contact = strings.ToLower(contact)
-	return nil
-}
-
 // formatDocument is a method that formats the document field
 func (c *Client) formatDocument(filled bool) error {
 	document := c.formatString(c.Document)
 	if document == "" {
+		c.Document = document
 		return nil
 	}
 	document = c.formatNumber(document)
@@ -210,6 +197,23 @@ func (c *Client) formatDocument(filled bool) error {
 		return nil
 	}
 	return errors.New(port.ErrInvalidDocument)
+}
+
+// formatContact is a method that formats the contact field
+func (c *Client) formatContact(filled bool) error {
+	contact := c.formatString(c.Contact)
+	if contact == "" {
+		c.Contact = contact
+		return nil
+	}
+	if len(contact) > 20 {
+		return errors.New(port.ErrLongContact)
+	}
+	if !slices.Contains(ContactWays, contact) {
+		return errors.New(port.ErrInvalidContact)
+	}
+	c.Contact = strings.ToLower(contact)
+	return nil
 }
 
 // formatNumber is a method that formats a number

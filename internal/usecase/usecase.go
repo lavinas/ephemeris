@@ -10,22 +10,11 @@ import (
 	"github.com/lavinas/ephemeris/pkg"
 )
 
-const (
-	ErrPrefBadRequest      = "bad request"
-	ErrPrefCommandNotFound = "command not identified"
-	ErrPrefInternal        = "internal error"
-	ErrPrefConflict        = "conflict"
-	ErrCommandNotFound     = "command not identified. Please, see the help command"
-)
-
 var (
 	dtos = map[interface{}]func(*Usecase, port.DTO) (interface{}, string, error){
-		&dto.ClientAdd{}:  (*Usecase).Add,
-		&dto.ClientAdd2{}: (*Usecase).Add,
-		&dto.ClientGet{}:  (*Usecase).Get,
-		&dto.ClientGet2{}: (*Usecase).Get,
-		&dto.ClientUp{}:   (*Usecase).Up,
-		&dto.ClientUp2{}:  (*Usecase).Up,
+		&dto.ClientAdd{}: (*Usecase).Add,
+		&dto.ClientGet{}: (*Usecase).Get,
+		&dto.ClientUp{}:  (*Usecase).Up,
 	}
 )
 
@@ -56,10 +45,10 @@ func (u *Usecase) Command(line string) string {
 	}
 	dto, err := cmd.FindOne(line, inter)
 	if err != nil {
-		return u.error(ErrPrefCommandNotFound, err.Error()).Error()
+		return u.error(port.ErrPrefCommandNotFound, err.Error()).Error()
 	}
 	if err := cmd.Unmarshal(line, dto); err != nil {
-		return u.error(ErrPrefBadRequest, err.Error()).Error()
+		return u.error(port.ErrPrefBadRequest, err.Error()).Error()
 	}
 	dtx := dto.(port.DTO)
 	_, str, _ := dtos[dto](u, dtx)

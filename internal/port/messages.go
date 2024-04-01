@@ -3,7 +3,12 @@ package port
 // Messages is a struct that contains all messages returned by the application
 const (
 	DefaultContact        = "email"
+	Location              = "America/Sao_Paulo"
 	DateFormat            = "02/01/2006"
+	ErrPrefBadRequest      = "bad request"
+	ErrPrefCommandNotFound = "command not identified"
+	ErrPrefInternal        = "internal error"
+	ErrPrefConflict        = "conflict"
 	ErrInvalidDateFormat  = "invalid date format. Use dd/mm/yyyy"
 	ErrAlreadyExists      = "register already exists with id %s"
 	ErrUnfound            = "registers unfound with the informed params"
@@ -29,4 +34,5 @@ const (
 	ErrInvalidDocument    = "invalid document"
 	ErrLongDocument       = "document should have at most 20"
 	ErrInvalidTypeOnMerge = "invalid type on merge structures"
+	ErrCommandNotFound     = "command not identified. Please, see the help command"
 )

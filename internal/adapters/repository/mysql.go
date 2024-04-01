@@ -3,6 +3,7 @@ package repository
 import (
 	"errors"
 	"reflect"
+	"time"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -99,14 +100,9 @@ func (r *MySql) Save(obj interface{}) error {
 func (r *MySql) Find(base interface{}) (interface{}, error) {
 	sob := reflect.TypeOf(base).Elem()
 	result := reflect.New(reflect.SliceOf(sob)).Interface()
-
 	filtered := false
 	for i := 0; i < sob.NumField(); i++ {
-		name := sob.Field(i).Name
-		if name == "CreatedAt" || name == "UpdatedAt" || name == "Date" {
-			continue
-		}
-		if reflect.ValueOf(base).Elem().Field(i).Interface() == "" {
+		if r.IsEmpty(reflect.ValueOf(base).Elem().Field(i)) {
 			continue
 		}
 		filtered = true
@@ -117,4 +113,20 @@ func (r *MySql) Find(base interface{}) (interface{}, error) {
 	}
 	tx := r.Db.Find(result)
 	return result, tx.Error
+}
+
+// isEmpty is a method that returns true if the value is empty
+func (r *MySql) IsEmpty(value reflect.Value) bool {
+	typ := value.Type()
+	val := value.Interface()
+	if typ == reflect.TypeOf(time.Time{}) && val.(time.Time).IsZero() {
+		return true
+	}
+	if typ == reflect.TypeOf("") && val == "" {
+		return true
+	}
+	if typ == reflect.TypeOf(0) && val == 0 {
+		return true
+	}
+	return false
 }
