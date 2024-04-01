@@ -20,9 +20,12 @@ const (
 
 var (
 	dtos = map[interface{}]func(*Usecase, port.DTO) (interface{}, string, error){
-		&dto.ClientAdd{}: (*Usecase).Add,
-		&dto.ClientGet{}: (*Usecase).Get,
-		&dto.ClientUp{}:  (*Usecase).Up,
+		&dto.ClientAdd{}:  (*Usecase).Add,
+		&dto.ClientAdd2{}: (*Usecase).Add,
+		&dto.ClientGet{}:  (*Usecase).Get,
+		&dto.ClientGet2{}: (*Usecase).Get,
+		&dto.ClientUp{}:   (*Usecase).Up,
+		&dto.ClientUp2{}:  (*Usecase).Up,
 	}
 )
 

@@ -2,6 +2,9 @@ package port
 
 // Messages is a struct that contains all messages returned by the application
 const (
+	DefaultContact        = "email"
+	DateFormat            = "02/01/2006"
+	ErrInvalidDateFormat  = "invalid date format. Use dd/mm/yyyy"
 	ErrAlreadyExists      = "register already exists with id %s"
 	ErrUnfound            = "registers unfound with the informed params"
 	ErrParamsNotInformed  = "no params is informed"

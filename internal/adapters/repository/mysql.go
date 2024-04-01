@@ -103,7 +103,7 @@ func (r *MySql) Find(base interface{}) (interface{}, error) {
 	filtered := false
 	for i := 0; i < sob.NumField(); i++ {
 		name := sob.Field(i).Name
-		if name == "CreatedAt" || name == "UpdatedAt" {
+		if name == "CreatedAt" || name == "UpdatedAt" || name == "Date" {
 			continue
 		}
 		if reflect.ValueOf(base).Elem().Field(i).Interface() == "" {

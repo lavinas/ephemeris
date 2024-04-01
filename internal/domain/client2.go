@@ -27,13 +27,22 @@ type Client2 struct {
 }
 
 // NewClient2 is a function that creates a new client
-func NewClient2(id string, name string, email string, phone string, date time.Time, document string, contact string) *Client2 {
+func NewClient2(id string,  date string, name string, email string, phone string, document string, contact string) *Client2 {
+	date = strings.TrimSpace(date)
+	time.Local, _ = time.LoadLocation("America/Sao_Paulo")
+	fdate := time.Time{}
+	if date != "" {
+		var err error
+		if fdate, err = time.Parse(port.DateFormat, date); err != nil {
+			fdate = time.Time{}
+		}
+	}
 	return &Client2{
 		ID:       id,
+		Date:     fdate,
 		Name:     name,
 		Email:    email,
 		Phone:    phone,
-		Date:     date,
 		Document: document,
 		Contact:  contact,
 	}
@@ -44,10 +53,10 @@ func (c *Client2) Format(args ...string) error {
 	filled := slices.Contains(args, "filled")
 	formatMap := []func(filled bool) error{
 		c.formatID,
+		c.formatDate,
 		c.formatName,
 		c.formatEmail,
 		c.formatPhone,
-		c.formatDate,
 		c.formatDocument,
 		c.formatContact,
 	}
@@ -80,6 +89,19 @@ func (c *Client2) formatID(filled bool) error {
 		return errors.New(port.ErrInvalidID)
 	}
 	c.ID = strings.ToLower(id)
+	return nil
+}
+
+// formatDate is a method that formats the date field
+func (c *Client2) formatDate(filled bool) error {
+	date := c.Date
+	if date.IsZero() {
+		if filled {
+			return nil
+		}
+		return errors.New(port.ErrInvalidDateFormat)
+	}
+	c.Date = date
 	return nil
 }
 
@@ -145,23 +167,11 @@ func (c *Client2) formatPhone(filled bool) error {
 	return nil
 }
 
-// formatDate is a method that formats the date field
-func (c *Client2) formatDate(filled bool) error {
-	date := c.Date
-	if date.IsZero() {
-		if filled {
-			return nil
-		}
-		date = time.Now()
-	}
-	c.Date = date
-	return nil
-}
-
 // formatDocument is a method that formats the document field
 func (c *Client2) formatDocument(filled bool) error {
 	document := c.formatString(c.Document)
 	if document == "" {
+		c.Document = document
 		return nil
 	}
 	document = c.formatNumber(document)
@@ -188,10 +198,8 @@ func (c *Client2) formatDocument(filled bool) error {
 func (c *Client2) formatContact(filled bool) error {
 	contact := c.formatString(c.Contact)
 	if contact == "" {
-		if filled {
-			return nil
-		}
-		contact = "email"
+		c.Contact = contact
+		return nil
 	}
 	if len(contact) > 20 {
 		return errors.New(port.ErrLongContact)
