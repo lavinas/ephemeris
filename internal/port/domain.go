@@ -4,4 +4,5 @@ package port
 type Domain interface {
 	Format(args ...string) error
 	GetID() string
+	Get() Domain
 }

@@ -7,7 +7,7 @@ import (
 )
 
 // Up is a method that updates a dto in the repository
-func (u *Usecase) Up(in port.DTO) (interface{}, string, error) {
+func (u *Usecase) Up(in port.DTOIn) ([]port.DTOOut, string, error) {
 	if err := in.Validate(); err != nil {
 		err := u.error(port.ErrPrefBadRequest, err.Error())
 		return nil, err.Error(), err
@@ -33,7 +33,7 @@ func (u *Usecase) Up(in port.DTO) (interface{}, string, error) {
 		err := u.error(port.ErrPrefInternal, err.Error())
 		return nil, err.Error(), err
 	}
-	out, strout := in.GetDto(target)
+	out, strout := in.GetOut(target)
 	if out == nil {
 		err := u.error(port.ErrPrefBadRequest, port.ErrUnfound)
 		return nil, err.Error(), err

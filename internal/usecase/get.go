@@ -5,7 +5,7 @@ import (
 )
 
 // Get is a method that gets a dto from the repository
-func (u *Usecase) Get(in port.DTO) (interface{}, string, error) {
+func (u *Usecase) Get(in port.DTOIn) ([]port.DTOOut, string, error) {
 	if err := in.Validate(); err != nil {
 		err := u.error(port.ErrPrefBadRequest, err.Error())
 		return nil, err.Error(), err
@@ -20,7 +20,7 @@ func (u *Usecase) Get(in port.DTO) (interface{}, string, error) {
 		err := u.error(port.ErrPrefInternal, err.Error())
 		return nil, err.Error(), err
 	}
-	out, strout := in.GetDto(found)
+	out, strout := in.GetOut(found)
 	if out == nil {
 		err := u.error(port.ErrPrefBadRequest, port.ErrUnfound)
 		return nil, err.Error(), err

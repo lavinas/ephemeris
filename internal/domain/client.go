@@ -78,6 +78,11 @@ func (c *Client) GetID() string {
 	return c.ID
 }
 
+// Get is a method that returns the client
+func (c *Client) Get() port.Domain {
+	return c
+}
+
 // formatID is a method that formats the id field
 func (c *Client) formatID(filled bool) error {
 	id := c.formatString(c.ID)

@@ -1,7 +1,10 @@
 package port
 
-type DTO interface {
-	GetDomain() Domain
-	GetDto(interface{}) (interface{}, string)
+type DTOIn interface {
 	Validate() error
+	GetDomain() Domain
+	GetOut(in interface {}) ([]DTOOut, string) 
+}
+
+type DTOOut interface {
 }

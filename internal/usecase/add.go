@@ -6,7 +6,7 @@ import (
 )
 
 // Add is a method that add a dto to the repository
-func (u *Usecase) Add(in port.DTO) (interface{}, string, error) {
+func (u *Usecase) Add(in port.DTOIn) ([]port.DTOOut, string, error) {
 	if err := in.Validate(); err != nil {
 		err := u.error(port.ErrPrefBadRequest, err.Error())
 		return nil, err.Error(), err
@@ -27,6 +27,7 @@ func (u *Usecase) Add(in port.DTO) (interface{}, string, error) {
 		err := u.error(port.ErrPrefInternal, err.Error())
 		return nil, err.Error(), err
 	}
-	out, strout := in.GetDto(domain)
+	
+	out, strout := in.GetOut(domain)
 	return out, strout, nil
 }

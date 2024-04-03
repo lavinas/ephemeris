@@ -8,7 +8,7 @@ import (
 	"github.com/lavinas/ephemeris/pkg"
 )
 
-type ClientUp struct {
+type ClientUpIn struct {
 	Object   string `json:"-" command:"name:client;key"`
 	Action   string `json:"-" command:"name:up;key"`
 	ID       string `json:"id" command:"name:id"`
@@ -19,15 +19,25 @@ type ClientUp struct {
 	Document string `json:"document" command:"name:document"`
 }
 
+// ClientUpOut represents the output dto for updating a client usecase
+type ClientUpOut struct {
+	ID       string `json:"id" command:"name:id"`
+	Date     string `json:"date" command:"name:date"`
+	Name     string `json:"name" command:"name:name"`
+	Email    string `json:"email" command:"name:email"`
+	Phone    string `json:"phone" command:"name:phone"`
+	Document string `json:"document" command:"name:document"`
+}
+
 // GetDomain is a method that returns a domain representation of the client dto
-func (c *ClientUp) GetDomain() port.Domain {
+func (c *ClientUpIn) GetDomain() port.Domain {
 	return domain.NewClient(c.ID, c.Date, c.Name, c.Email, c.Phone, c.Document, "")
 }
 
-// GetDto is a method that returns a DTO representation of the client domain
-func (c *ClientUp) GetDto(in interface{}) (interface{}, string) {
+// GetOut is a method that returns a DTO representation of the client domain
+func (c *ClientUpIn) GetOut(in interface{}) ([]port.DTOOut, string) {
 	d := in.(*domain.Client)
-	ret := &ClientUp{
+	ret := &ClientGetOut{
 		ID:       d.ID,
 		Date:     d.Date.Format(port.DateFormat),
 		Name:     d.Name,
@@ -35,11 +45,12 @@ func (c *ClientUp) GetDto(in interface{}) (interface{}, string) {
 		Phone:    d.Phone,
 		Document: d.Document,
 	}
-	return ret, pkg.NewCommands().Marshal(ret, "nokeys")
+	return []port.DTOOut{ret}, pkg.NewCommands().Marshal(ret, "nokeys")
 }
 
+
 // Validate is a method that validates the dto
-func (c *ClientUp) Validate() error {
+func (c *ClientUpIn) Validate() error {
 	if c.IsEmpty() {
 		return errors.New(port.ErrParamsNotInformed)
 	}
@@ -56,7 +67,7 @@ func (c *ClientUp) Validate() error {
 }
 
 // IsEmpty is a method that returns true if the dto is empty
-func (c *ClientUp) IsEmpty() bool {
+func (c *ClientUpIn) IsEmpty() bool {
 	if c.ID == "" && c.Date == "" && c.Name == "" && c.Email == "" &&
 		c.Phone == "" && c.Document == "" {
 		return true

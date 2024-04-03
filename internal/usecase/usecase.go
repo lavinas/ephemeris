@@ -11,10 +11,10 @@ import (
 )
 
 var (
-	dtos = map[interface{}]func(*Usecase, port.DTO) (interface{}, string, error){
-		&dto.ClientAdd{}: (*Usecase).Add,
-		&dto.ClientGet{}: (*Usecase).Get,
-		&dto.ClientUp{}:  (*Usecase).Up,
+	dtos = map[interface{}]func(*Usecase, port.DTOIn) ([]port.DTOOut, string, error){
+		&dto.ClientAddIn{}: (*Usecase).Add,
+		&dto.ClientGetIn{}: (*Usecase).Get,
+		&dto.ClientUpIn{}:  (*Usecase).Up,
 	}
 )
 
@@ -50,7 +50,7 @@ func (u *Usecase) Command(line string) string {
 	if err := cmd.Unmarshal(line, dto); err != nil {
 		return u.error(port.ErrPrefBadRequest, err.Error()).Error()
 	}
-	dtx := dto.(port.DTO)
+	dtx := dto.(port.DTOIn)
 	_, str, _ := dtos[dto](u, dtx)
 	return str
 }
