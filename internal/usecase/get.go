@@ -12,7 +12,7 @@ import (
 type Get struct {
 	Repo port.Repository
 	Log  port.Logger
-	Out  []port.DTOOut
+	Out  interface{}
 }
 
 // NewGet is a function that returns a new Get struct
@@ -22,6 +22,16 @@ func NewGet(repo port.Repository, log port.Logger) *Get {
 		Log:  log,
 		Out:  nil,
 	}
+}
+
+// SetRepo is a method that sets the repository
+func (u *Get) SetRepo(repo port.Repository) {
+	u.Repo = repo
+}
+
+// SetLog is a method that sets the logger
+func (u *Get) SetLog(log port.Logger) {
+	u.Log = log
 }
 
 // Get is a method that gets a dto from the repository
@@ -42,13 +52,8 @@ func (u *Get) Run(dtoIn interface{}) error {
 		return err
 	}
 	out := dto.ClientGetOut{}
-	u.Out = out.GetDTO(found.([]port.Domain)).([]port.DTOOut)
+	u.Out = out.GetDTO(found)
 	return nil
-}
-
-// Dto is a method that returns the output dto
-func (u *Get) Dto() []port.DTOOut {
-	return u.Out
 }
 
 // String is a method that returns the output dto as a string

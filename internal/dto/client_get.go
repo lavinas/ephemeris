@@ -47,8 +47,8 @@ func (c *ClientGetIn) GetDomain() port.Domain {
 // GetDTO is a method that returns the dto
 func (c *ClientGetOut) GetDTO(domainIn interface{}) interface{} {
 	ret := []ClientGetOut{}
-	for _, d := range domainIn.([]port.Domain) {
-		d := d.(*domain.Client)
+	din := domainIn.(*[]domain.Client)
+	for _, d := range *din {
 		dto := ClientGetOut{
 			ID:       d.ID,
 			Date:     d.Date.Format(port.DateFormat),

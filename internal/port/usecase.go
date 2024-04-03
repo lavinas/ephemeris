@@ -2,6 +2,8 @@ package port
 
 // UseCase is an interface that defines the methods for the use case
 type UseCase interface {
+	SetRepo(repo Repository)
+	SetLog(log Logger)
 	Run(dtoIn interface{}) error
 	Interface() interface{}
 	String() string

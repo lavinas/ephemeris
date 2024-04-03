@@ -25,6 +25,17 @@ func NewAdd(repo port.Repository, log port.Logger) *Add {
 	}
 }
 
+// SetRepo is a method that sets the repository
+func (u *Add) SetRepo(repo port.Repository) {
+	u.Repo = repo
+}
+
+// SetLog is a method that sets the logger
+func (u *Add) SetLog(log port.Logger) {
+	u.Log = log
+}
+
+
 // Add is a method that add a dto to the repository
 func (u *Add) Run(dtoIn interface{}) error {
 	in := dtoIn.(port.DTOIn)
@@ -51,11 +62,6 @@ func (u *Add) Run(dtoIn interface{}) error {
 	out := dto.ClientAddOut{}
 	u.Out = out.GetDTO(domain).(port.DTOOut)
 	return nil
-}
-
-// Dto is a method that returns the output dto
-func (u *Add) Dto() port.DTOOut {
-	return u.Out
 }
 
 // Interface is a method that returns the output dto as an interface

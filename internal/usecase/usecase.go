@@ -38,10 +38,7 @@ func (u *CommandUsecase) Run(line string) string {
 	u.Log.Println("Command: " + line)
 	line = strings.ToLower(line)
 	cmd := pkg.Commands{}
-	inter := []interface{}{}
-	for k := range dtos {
-		inter = append(inter, k)
-	}
+	inter := u.init()
 	dtoIn, err := cmd.FindOne(line, inter)
 	if err != nil {
 		return u.error(port.ErrPrefCommandNotFound, err.Error()).Error()
@@ -55,6 +52,18 @@ func (u *CommandUsecase) Run(line string) string {
 	}
 	return dtoOut.String()
 }
+
+// init is a method that initializes the usecases and returns a slice of interfaces
+func (u *CommandUsecase) init() ([]interface{}) {
+	ret := []interface{}{}
+	for k, v := range dtos {
+		ret = append(ret, k)
+		v.SetRepo(u.Repo)
+		v.SetLog(u.Log)
+	}
+	return ret
+}
+
 
 // error is a function that logs an error and returns it
 func (u *CommandUsecase) error(prefix string, err string) error {
