@@ -12,11 +12,11 @@ const (
 )
 
 type CommandLineHandler struct {
-	Usecase port.UseCase
+	Usecase port.CommandUseCase
 }
 
 // NewCommandHandler creates a new CommandHandler
-func NewCommandHandler(usecase port.UseCase) *CommandLineHandler {
+func NewCommandHandler(usecase port.CommandUseCase) *CommandLineHandler {
 	return &CommandLineHandler{
 		Usecase: usecase,
 	}
@@ -33,5 +33,5 @@ func (h *CommandLineHandler) Run() {
 	for _, arg := range args {
 		command += arg + " "
 	}
-	fmt.Println(h.Usecase.Command(command[:len(command)-1]))
+	fmt.Println(h.Usecase.Run(command[:len(command)-1]))
 }

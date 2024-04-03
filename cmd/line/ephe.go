@@ -25,7 +25,7 @@ func main() {
 	}
 	defer devnull.Close()
 	logger := log.New(devnull, "ephemeris: ", log.LstdFlags)
-	usecase := usecase.NewUsecase(repo, logger)
+	usecase := usecase.NewCommandUsecase(repo, logger)
 	handler := handler.NewCommandHandler(usecase)
 	handler.Run()
 }

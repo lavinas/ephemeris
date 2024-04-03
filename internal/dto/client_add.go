@@ -6,7 +6,6 @@ import (
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"
-	"github.com/lavinas/ephemeris/pkg"
 )
 
 // ClientAdd represents the input dto for adding a client usecase
@@ -55,20 +54,17 @@ func (c *ClientAddIn) GetDomain() port.Domain {
 	return domain.NewClient(c.ID, c.Date, c.Name, c.Email, c.Phone, c.Document, port.DefaultContact)
 }
 
-// GetDto is a method that returns a DTO representation of the client domain
-func (c *ClientAddIn) GetOut(in interface {}) ([]port.DTOOut, string) {
-	domainIn := in.(*domain.Client)
-	ret := []port.DTOOut{
-		&ClientAddOut{
-			ID:       domainIn.ID,
-			Date:     domainIn.Date.Format(port.DateFormat),
-			Name:     domainIn.Name,
-			Email:    domainIn.Email,
-			Phone:    domainIn.Phone,
-			Document: domainIn.Document,
-		},
-	}
-	return ret, pkg.NewCommands().Marshal(ret, "nokeys")	 
+// SetDomain is a method that sets the dto with the domain
+func (c *ClientAddOut) GetDTO(domainIn interface{}) interface{} {
+	dto := &ClientAddOut{}
+	domain := domainIn.(*domain.Client)
+	dto.ID = domain.ID
+	dto.Date = domain.Date.Format(port.DateFormat)
+	dto.Name = domain.Name
+	dto.Email = domain.Email
+	dto.Phone = domain.Phone
+	dto.Document = domain.Document
+	return dto
 }
 
 // IsEmpty is a method that returns true if the dto is empty

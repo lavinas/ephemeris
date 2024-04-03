@@ -5,7 +5,6 @@ import (
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"
-	"github.com/lavinas/ephemeris/pkg"
 )
 
 type ClientUpIn struct {
@@ -34,20 +33,18 @@ func (c *ClientUpIn) GetDomain() port.Domain {
 	return domain.NewClient(c.ID, c.Date, c.Name, c.Email, c.Phone, c.Document, "")
 }
 
-// GetOut is a method that returns a DTO representation of the client domain
-func (c *ClientUpIn) GetOut(in interface{}) ([]port.DTOOut, string) {
-	d := in.(*domain.Client)
-	ret := &ClientGetOut{
-		ID:       d.ID,
-		Date:     d.Date.Format(port.DateFormat),
-		Name:     d.Name,
-		Email:    d.Email,
-		Phone:    d.Phone,
-		Document: d.Document,
-	}
-	return []port.DTOOut{ret}, pkg.NewCommands().Marshal(ret, "nokeys")
+// SetDomain is a method that sets the dto with the domain
+func (c *ClientUpOut) GetDTO(domainIn interface{}) interface{} {
+	dto := &ClientUpOut{}
+	domain := domainIn.(*domain.Client)
+	dto.ID = domain.ID
+	dto.Date = domain.Date.Format(port.DateFormat)
+	dto.Name = domain.Name
+	dto.Email = domain.Email
+	dto.Phone = domain.Phone
+	dto.Document = domain.Document
+	return dto
 }
-
 
 // Validate is a method that validates the dto
 func (c *ClientUpIn) Validate() error {

@@ -11,31 +11,30 @@ import (
 )
 
 var (
-	dtos = map[interface{}]func(*Usecase, port.DTOIn) ([]port.DTOOut, string, error){
-		&dto.ClientAddIn{}: (*Usecase).Add,
-		&dto.ClientGetIn{}: (*Usecase).Get,
-		&dto.ClientUpIn{}:  (*Usecase).Up,
+	dtos = map[interface{}]port.UseCase{
+		&dto.ClientAddIn{}: &Add{},
+		&dto.ClientGetIn{}: &Get{},
+		&dto.ClientUpIn{}:  &Up{},
 	}
 )
 
 // Usecase is a struct that groups all usecases of the application
-type Usecase struct {
+type CommandUsecase struct {
 	Repo port.Repository
 	Log  port.Logger
-	Cfg  port.Config
 }
 
 // UseCase is a function that returns a new UseCase struct
-func NewUsecase(repo port.Repository, log port.Logger) *Usecase {
+func NewCommandUsecase(repo port.Repository, log port.Logger) *CommandUsecase {
 	repo.Migrate(domain.GetDomain())
-	return &Usecase{
+	return &CommandUsecase{
 		Repo: repo,
 		Log:  log,
 	}
 }
 
-// GetDTO is a function that converts a string command to a DTO
-func (u *Usecase) Command(line string) string {
+// Run is a method that runs a command
+func (u *CommandUsecase) Run(line string) string {
 	u.Log.Println("Command: " + line)
 	line = strings.ToLower(line)
 	cmd := pkg.Commands{}
@@ -43,20 +42,22 @@ func (u *Usecase) Command(line string) string {
 	for k := range dtos {
 		inter = append(inter, k)
 	}
-	dto, err := cmd.FindOne(line, inter)
+	dtoIn, err := cmd.FindOne(line, inter)
 	if err != nil {
 		return u.error(port.ErrPrefCommandNotFound, err.Error()).Error()
 	}
-	if err := cmd.Unmarshal(line, dto); err != nil {
+	if err := cmd.Unmarshal(line, dtoIn); err != nil {
 		return u.error(port.ErrPrefBadRequest, err.Error()).Error()
 	}
-	dtx := dto.(port.DTOIn)
-	_, str, _ := dtos[dto](u, dtx)
-	return str
+	dtoOut := dtos[dtoIn]
+	if err := dtoOut.Run(dtoIn); err != nil {
+		return err.Error()
+	}
+	return dtoOut.String()
 }
 
 // error is a function that logs an error and returns it
-func (u *Usecase) error(prefix string, err string) error {
+func (u *CommandUsecase) error(prefix string, err string) error {
 	err = prefix + ": " + err
 	u.Log.Println(err)
 	return errors.New(err)

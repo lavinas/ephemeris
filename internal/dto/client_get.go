@@ -2,11 +2,9 @@ package dto
 
 import (
 	"errors"
-	"time"
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"
-	"github.com/lavinas/ephemeris/pkg"
 )
 
 // ClientGet represents the dto for getting a client
@@ -46,26 +44,23 @@ func (c *ClientGetIn) GetDomain() port.Domain {
 	return domain.NewClient(c.ID, c.Date, c.Name, c.Email, c.Phone, c.Document, c.Contact)
 }
 
-// GetDto is a method that returns a DTO representation of the client domain
-func (c *ClientGetIn) GetOut(in interface{}) ([]port.DTOOut, string) {
-	d := in.(*[]domain.Client)
-	time.Local, _ = time.LoadLocation("America/Sao_Paulo")
-	ret := []port.DTOOut{}
-	for _, v := range *d {
-		ret = append(ret, ClientGetIn{
-			ID:       v.ID,
-			Name:     v.Name,
-			Date:     v.Date.Format(port.DateFormat),
-			Email:    v.Email,
-			Phone:    v.Phone,
-			Document: v.Document,
-			Contact:  v.Contact,
-		})
+// GetDTO is a method that returns the dto
+func (c *ClientGetOut) GetDTO(domainIn interface{}) interface{} {
+	ret := []ClientGetOut{}
+	for _, d := range domainIn.([]port.Domain) {
+		d := d.(*domain.Client)
+		dto := ClientGetOut{
+			ID:       d.ID,
+			Date:     d.Date.Format(port.DateFormat),
+			Name:     d.Name,
+			Email:    d.Email,
+			Phone:    d.Phone,
+			Document: d.Document,
+			Contact:  d.Contact,
+		}
+		ret = append(ret, dto)
 	}
-	if len(ret) == 0 {
-		return nil, ""
-	}
-	return ret, pkg.NewCommands().Marshal(ret, "nokeys")
+	return ret
 }
 
 // IsEmpty is a method that returns true if the dto is empty
