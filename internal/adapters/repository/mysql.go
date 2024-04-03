@@ -112,6 +112,9 @@ func (r *MySql) Find(base interface{}) (interface{}, error) {
 		return nil, errors.New(ErrNoFilter)
 	}
 	tx := r.Db.Find(result)
+	if reflect.ValueOf(result).Elem().Len() == 0 {
+		return nil, nil
+	}
 	return result, tx.Error
 }
 

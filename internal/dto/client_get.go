@@ -41,7 +41,7 @@ func (c *ClientGetIn) Validate() error {
 
 // GetDomain is a method that returns a string representation of the client
 func (c *ClientGetIn) GetDomain() port.Domain {
-	return domain.NewClient(c.ID, c.Date, c.Name, c.Email, c.Phone, c.Document, c.Contact)
+	return domain.NewClient(c.ID, c.Date, c.Name, c.Email, c.Phone, c.Document, c.Contact, "client", "")
 }
 
 // GetDTO is a method that returns the dto
@@ -59,6 +59,9 @@ func (c *ClientGetOut) GetDTO(domainIn interface{}) interface{} {
 			Contact:  d.Contact,
 		}
 		ret = append(ret, dto)
+	}
+	if len(ret) == 0 {
+		return nil
 	}
 	return ret
 }

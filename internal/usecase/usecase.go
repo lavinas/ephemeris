@@ -54,7 +54,7 @@ func (u *CommandUsecase) Run(line string) string {
 }
 
 // init is a method that initializes the usecases and returns a slice of interfaces
-func (u *CommandUsecase) init() ([]interface{}) {
+func (u *CommandUsecase) init() []interface{} {
 	ret := []interface{}{}
 	for k, v := range dtos {
 		ret = append(ret, k)
@@ -63,7 +63,6 @@ func (u *CommandUsecase) init() ([]interface{}) {
 	}
 	return ret
 }
-
 
 // error is a function that logs an error and returns it
 func (u *CommandUsecase) error(prefix string, err string) error {

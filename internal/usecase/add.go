@@ -35,7 +35,6 @@ func (u *Add) SetLog(log port.Logger) {
 	u.Log = log
 }
 
-
 // Add is a method that add a dto to the repository
 func (u *Add) Run(dtoIn interface{}) error {
 	in := dtoIn.(port.DTOIn)

@@ -18,21 +18,24 @@ import (
 var (
 	// ContactWays is a slice that contains the ways to contact a client
 	ContactWays = []string{"email", "whatsapp", "all"}
+	Roles       = []string{"client", "responsable", "payer"}
 )
 
 // Client represents the client entity
 type Client struct {
 	ID       string    `gorm:"type:varchar(25); primaryKey"`
-	Name     string    `gorm:"type:varchar(100); not null"`
-	Email    string    `gorm:"type:varchar(100); not null"`
-	Phone    string    `gorm:"type:varchar(20); not null"`
-	Date     time.Time `gorm:"type:datetime; not null"`
+	Date     time.Time `gorm:"type:datetime"`
+	Name     string    `gorm:"type:varchar(100)"`
+	Email    string    `gorm:"type:varchar(100)"`
+	Phone    string    `gorm:"type:varchar(20)"`
 	Document string    `gorm:"type:varchar(20)"`
 	Contact  string    `gorm:"type:varchar(20)"`
+	Role     string    `gorm:"type:varchar(20)"`
+	RefID    string    `gorm:"type:varchar(25);"`
 }
 
 // NewClient is a function that creates a new client
-func NewClient(id string, date string, name string, email string, phone string, document string, contact string) *Client {
+func NewClient(id string, date string, name string, email string, phone string, document string, contact string, role string, refId string) *Client {
 	date = strings.TrimSpace(date)
 	local, _ := time.LoadLocation(port.Location)
 	fdate := time.Time{}
@@ -50,6 +53,8 @@ func NewClient(id string, date string, name string, email string, phone string, 
 		Phone:    phone,
 		Document: document,
 		Contact:  contact,
+		Role:     role,
+		RefID:    refId,
 	}
 }
 

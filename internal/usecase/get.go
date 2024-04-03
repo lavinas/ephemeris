@@ -51,6 +51,10 @@ func (u *Get) Run(dtoIn interface{}) error {
 		err := u.error(port.ErrPrefInternal, err.Error())
 		return err
 	}
+	if found == nil {
+		err := u.error(port.ErrPrefBadRequest, port.ErrUnfound)
+		return err
+	}
 	out := dto.ClientGetOut{}
 	u.Out = out.GetDTO(found)
 	return nil
