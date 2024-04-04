@@ -40,29 +40,33 @@ func (u *Up) Run(dtoIn interface{}) error {
 		err := u.error(port.ErrPrefBadRequest, err.Error())
 		return err
 	}
-	source := in.GetDomain()
-	target := in.GetDomain()
-	if err := source.Format("filled"); err != nil {
-		err := u.error(port.ErrPrefBadRequest, err.Error())
-		return err
-	}
-	if f, err := u.Repo.Get(target, source.GetID()); err != nil {
-		err := u.error(port.ErrPrefInternal, err.Error())
-		return err
-	} else if !f {
-		err := u.error(port.ErrPrefBadRequest, port.ErrUnfound)
-		return err
-	}
-	if err := u.merge(source, target); err != nil {
-		err := u.error(port.ErrPrefInternal, err.Error())
-		return err
-	}
-	if err := u.Repo.Save(target); err != nil {
-		err := u.error(port.ErrPrefInternal, err.Error())
-		return err
+	domains := in.GetDomain()
+	result := []interface{}{}
+	for _, source := range domains {
+		if err := source.Format("filled"); err != nil {
+			err := u.error(port.ErrPrefBadRequest, err.Error())
+			return err
+		}
+		target := source.GetEmpty()
+		if f, err := u.Repo.Get(target, source.GetID()); err != nil {
+			err := u.error(port.ErrPrefInternal, err.Error())
+			return err
+		} else if !f {
+			err := u.error(port.ErrPrefBadRequest, port.ErrUnfound)
+			return err
+		}
+		if err := u.merge(source, target); err != nil {
+			err := u.error(port.ErrPrefInternal, err.Error())
+			return err
+		}
+		if err := u.Repo.Save(target); err != nil {
+			err := u.error(port.ErrPrefInternal, err.Error())
+			return err
+		}
+		result = append(result, target)
 	}
 	out := dto.ClientAddOut{}
-	u.Out = out.GetDTO(target).(port.DTOOut)
+	u.Out = out.GetDTO(result).(port.DTOOut)
 	return nil
 }
 

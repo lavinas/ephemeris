@@ -83,6 +83,11 @@ func (c *Client) Get() port.Domain {
 	return c
 }
 
+// GetEmpty is a method that returns an empty client with just id
+func (c *Client) GetEmpty() port.Domain {
+	return &Client{ID: c.ID}
+}
+
 // TableName returns the table name for database
 func (b *Client) TableName() string {
 	return "client"

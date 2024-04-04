@@ -41,22 +41,26 @@ func (u *Get) Run(dtoIn interface{}) error {
 		err := u.error(port.ErrPrefBadRequest, err.Error())
 		return err
 	}
-	domain := in.GetDomain()
-	if err := domain.Format("filled"); err != nil {
-		err := u.error(port.ErrPrefBadRequest, err.Error())
-		return err
-	}
-	found, err := u.Repo.Find(domain)
-	if err != nil {
-		err := u.error(port.ErrPrefInternal, err.Error())
-		return err
-	}
-	if found == nil {
-		err := u.error(port.ErrPrefBadRequest, port.ErrUnfound)
-		return err
+	domains := in.GetDomain()
+	result := []interface{}{}
+	for _, domain := range domains {
+		if err := domain.Format("filled"); err != nil {
+			err := u.error(port.ErrPrefBadRequest, err.Error())
+			return err
+		}
+		found, err := u.Repo.Find(domain)
+		if err != nil {
+			err := u.error(port.ErrPrefInternal, err.Error())
+			return err
+		}
+		if found == nil {
+			err := u.error(port.ErrPrefBadRequest, port.ErrUnfound)
+			return err
+		}
+		result = append(result, found)
 	}
 	out := dto.ClientGetOut{}
-	u.Out = out.GetDTO(found)
+	u.Out = out.GetDTO(result)
 	return nil
 }
 

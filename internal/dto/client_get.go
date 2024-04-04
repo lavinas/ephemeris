@@ -40,23 +40,24 @@ func (c *ClientGetIn) Validate() error {
 }
 
 // GetDomain is a method that returns a string representation of the client
-func (c *ClientGetIn) GetDomain() port.Domain {
-	return domain.NewClient(c.ID, c.Date, c.Name, c.Email, c.Phone, c.Document, c.Contact)
+func (c *ClientGetIn) GetDomain() []port.Domain {
+	return []port.Domain{domain.NewClient(c.ID, c.Date, c.Name, c.Email, c.Phone, c.Document, c.Contact)}
 }
 
 // GetDTO is a method that returns the dto
 func (c *ClientGetOut) GetDTO(domainIn interface{}) interface{} {
 	ret := []ClientGetOut{}
-	din := domainIn.(*[]domain.Client)
-	for _, d := range *din {
+	slices := domainIn.([]interface{})
+	clients := slices[0].(*[]domain.Client)
+	for _, client := range *clients {
 		dto := ClientGetOut{
-			ID:       d.ID,
-			Date:     d.Date.Format(port.DateFormat),
-			Name:     d.Name,
-			Email:    d.Email,
-			Phone:    d.Phone,
-			Document: d.Document,
-			Contact:  d.Contact,
+			ID:       client.ID,
+			Date:     client.Date.Format(port.DateFormat),
+			Name:     client.Name,
+			Email:    client.Email,
+			Phone:    client.Phone,
+			Document: client.Document,
+			Contact:  client.Contact,
 		}
 		ret = append(ret, dto)
 	}

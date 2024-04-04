@@ -1,9 +1,9 @@
 package domain
 
 import (
-	"time"
 	"errors"
 	"slices"
+	"time"
 
 	"github.com/lavinas/ephemeris/internal/port"
 )
