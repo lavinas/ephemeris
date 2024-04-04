@@ -35,4 +35,9 @@ const (
 	ErrLongDocument        = "document should have at most 20"
 	ErrInvalidTypeOnMerge  = "invalid type on merge structures"
 	ErrCommandNotFound     = "command not identified. Please, see the help command"
+	ErrClientIDNotProvided = "client id not provided"
+	ErrRoleNotProvided     = "role not provided"
+	ErrRefIDNotProvided    = "ref id not provided"
+	ErrInvalidRole         = "invalid role"
+	ErrInvalidReference    = "reference should be different from client"
 )

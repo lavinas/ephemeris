@@ -51,7 +51,7 @@ func (c *ClientAddIn) GetDomain() port.Domain {
 		time.Local, _ = time.LoadLocation(port.Location)
 		c.Date = time.Now().Format(port.DateFormat)
 	}
-	return domain.NewClient(c.ID, c.Date, c.Name, c.Email, c.Phone, c.Document, port.DefaultContact, "client", "")
+	return domain.NewClient(c.ID, c.Date, c.Name, c.Email, c.Phone, c.Document, port.DefaultContact)
 }
 
 // SetDomain is a method that sets the dto with the domain
