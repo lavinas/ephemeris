@@ -94,7 +94,7 @@ func (c *ClientRole) Get() port.Domain {
 
 // GetEmpty is a method that returns an empty client with just id
 func (c *ClientRole) GetEmpty() port.Domain {
-	return &Client{ID: c.ClientID}
+	return &ClientRole{ID: c.ID}
 }
 
 

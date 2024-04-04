@@ -10,4 +10,6 @@ type Domain interface {
 	Get() Domain
 	// GetEmpty is a method that returns an empty domain entity with just id
 	GetEmpty() Domain
+	// TableName is a method that returns the table name of the domain entity
+	TableName() string
 }

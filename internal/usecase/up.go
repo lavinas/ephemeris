@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 
 	"github.com/lavinas/ephemeris/internal/dto"
@@ -82,6 +83,7 @@ func (u *Up) Interface() interface{} {
 
 // merge is a method that merges two structs
 func (u *Up) merge(source interface{}, target interface{}) error {
+	fmt.Println(1, reflect.TypeOf(source), reflect.TypeOf(target))
 	if reflect.TypeOf(source) != reflect.TypeOf(target) {
 		return u.error(port.ErrPrefInternal, port.ErrInvalidTypeOnMerge)
 	}
