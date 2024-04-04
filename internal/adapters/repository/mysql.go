@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 	"time"
 
@@ -99,6 +100,7 @@ func (r *MySql) Save(obj interface{}) error {
 // Find gets all objects from the database matching the object
 func (r *MySql) Find(base interface{}) (interface{}, error) {
 	sob := reflect.TypeOf(base).Elem()
+	fmt.Println(0, sob)
 	result := reflect.New(reflect.SliceOf(sob)).Interface()
 	filtered := false
 	for i := 0; i < sob.NumField(); i++ {
@@ -106,12 +108,14 @@ func (r *MySql) Find(base interface{}) (interface{}, error) {
 			continue
 		}
 		filtered = true
+		fmt.Println(1, sob.Field(i).Name, "|" + reflect.ValueOf(base).Elem().Field(i).Interface().(string) + "|")
 		r.Db = r.Db.Where(sob.Field(i).Name+" = ?", reflect.ValueOf(base).Elem().Field(i).Interface())
 	}
 	if !filtered {
 		return nil, errors.New(ErrNoFilter)
 	}
 	tx := r.Db.Find(result)
+	fmt.Println(2, result)
 	if reflect.ValueOf(result).Elem().Len() == 0 {
 		return nil, nil
 	}
@@ -122,6 +126,9 @@ func (r *MySql) Find(base interface{}) (interface{}, error) {
 func (r *MySql) IsEmpty(value reflect.Value) bool {
 	typ := value.Type()
 	val := value.Interface()
+	if value.Kind() == reflect.Ptr && value.IsNil() {
+		return true
+	}
 	if typ == reflect.TypeOf(time.Time{}) && val.(time.Time).IsZero() {
 		return true
 	}

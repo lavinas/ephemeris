@@ -2,6 +2,7 @@ package dto
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/lavinas/ephemeris/internal/domain"
@@ -53,7 +54,11 @@ func (c *ClientAddIn) GetDomain() []port.Domain {
 		time.Local, _ = time.LoadLocation(port.Location)
 		c.Date = time.Now().Format(port.DateFormat)
 	}
-	return []port.Domain{domain.NewClient(c.ID, c.Date, c.Name, c.Email, c.Phone, c.Document, port.DefaultContact)}
+	roleId := fmt.Sprintf("%s_%s_%s", c.ID, port.RoleClient, c.ID)
+	return []port.Domain{
+		domain.NewClient(c.ID, c.Date, c.Name, c.Email, c.Phone, c.Document, port.DefaultContact),
+		domain.NewClientRole(roleId, c.Date, c.ID, port.RoleClient, c.ID),
+	}
 }
 
 // SetDomain is a method that sets the dto with the domain

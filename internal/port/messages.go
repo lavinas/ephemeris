@@ -2,6 +2,9 @@ package port
 
 // Messages is a struct that contains all messages returned by the application
 const (
+	RoleClient             = "client"
+	RoleResponsable        = "responsable"
+	RolePayer              = "payer"
 	DefaultContact         = "email"
 	Location               = "America/Sao_Paulo"
 	DateFormat             = "02/01/2006"

@@ -4,27 +4,41 @@ import (
 	"errors"
 	"slices"
 	"time"
+	"strings"
+	"regexp"
 
 	"github.com/lavinas/ephemeris/internal/port"
 )
 
 var (
 	// Roles is a slice that contains the roles for a client
-	Roles = []string{"client", "responsable", "payer"}
+	Roles = []string{port.RoleClient, port.RoleResponsable, port.RolePayer}
 )
 
 type ClientRole struct {
-	ClientID string    `gorm:"type:varchar(25); primaryKey"`
+	ID       string    `gorm:"type:varchar(100); primaryKey"`
+	Date     time.Time `gorm:"type:datetime; not null"`
+	ClientID string    `gorm:"type:varchar(25); not null"`
 	Client   *Client   `gorm:"foreignKey:ClientID;associationForeignKey:ID"`
-	Role     string    `gorm:"type:varchar(25); primaryKey"`
+	Role     string    `gorm:"type:varchar(25); not"`
 	RefID    string    `gorm:"type:varchar(25); null"`
 	Ref      *Client   `gorm:"foreignKey:RefID;associationForeignKey:ID"`
-	Date     time.Time `gorm:"type:datetime; not null"`
 }
 
 // NewClientRole is a function that creates a new client role
-func NewClientRole(clientID string, role string, refID string, date time.Time) *ClientRole {
+func NewClientRole(ID string, date string, clientID string, role string, refID string) *ClientRole {
+	date = strings.TrimSpace(date)
+	local, _ := time.LoadLocation(port.Location)
+	fdate := time.Time{}
+	if date != "" {
+		var err error
+		if fdate, err = time.ParseInLocation(port.DateFormat, date, local); err != nil {
+			fdate = time.Time{}
+		}
+	}
 	return &ClientRole{
+		ID:       ID,
+		Date:     fdate,
 		ClientID: clientID,
 		Role:     role,
 		RefID:    refID,
@@ -32,35 +46,67 @@ func NewClientRole(clientID string, role string, refID string, date time.Time) *
 }
 
 // Format is a method that formats the client role
-func (c *ClientRole) Format() error {
+func (c *ClientRole) Format(args ...string) error {
 	if c.Client != nil {
 		c.ClientID = c.Client.ID
 	}
 	if c.Ref != nil {
 		c.RefID = c.Ref.ID
 	}
-	if c.Date == (time.Time{}) {
-		c.Date = time.Now()
+	filled := slices.Contains(args, "filled")
+	c.ID = c.formatString(c.ID)
+	c.ClientID = c.formatString(c.ClientID)
+	c.Role = c.formatString(c.Role)
+	c.RefID = c.formatString(c.RefID)
+	if c.ID == "" && !filled {
+		return errors.New(port.ErrIdUninformed)
 	}
-	if c.ClientID == "" {
+	if c.Date == (time.Time{}) && !filled {
+		return errors.New(port.ErrInvalidDateFormat)
+	}
+	if c.ClientID == "" && !filled {
 		return errors.New(port.ErrClientIDNotProvided)
 	}
-	if c.Role == "" {
+	if c.Role == "" && !filled {
 		return errors.New(port.ErrRoleNotProvided)
 	}
-	if !slices.Contains(Roles, c.Role) {
+	if c.Role != "" && !slices.Contains(Roles, c.Role) {
 		return errors.New(port.ErrInvalidRole)
 	}
-	if c.RefID == "" {
+	if c.RefID == "" && !filled {
 		return errors.New(port.ErrRefIDNotProvided)
 	}
-	if c.Role != "client" && c.RefID == c.ClientID {
+	if c.Role != "" && c.Role != "client" && c.RefID == c.ClientID {
 		return errors.New(port.ErrInvalidReference)
 	}
 	return nil
 }
 
+// GetID is a method that returns the id of the client
+func (c *ClientRole) GetID() string {
+	return c.ClientID
+}
+
+// Get is a method that returns the client
+func (c *ClientRole) Get() port.Domain {
+	return c
+}
+
+// GetEmpty is a method that returns an empty client with just id
+func (c *ClientRole) GetEmpty() port.Domain {
+	return &Client{ID: c.ClientID}
+}
+
+
 // TableName returns the table name for database
 func (b *ClientRole) TableName() string {
 	return "client_role"
+}
+
+// formatString is a method that formats a string
+func (c *ClientRole) formatString(str string) string {
+	str = strings.TrimSpace(str)
+	space := regexp.MustCompile(`\s+`)
+	str = space.ReplaceAllString(str, " ")
+	return str
 }

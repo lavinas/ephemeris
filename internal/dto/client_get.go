@@ -2,6 +2,7 @@ package dto
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"
@@ -41,7 +42,11 @@ func (c *ClientGetIn) Validate() error {
 
 // GetDomain is a method that returns a string representation of the client
 func (c *ClientGetIn) GetDomain() []port.Domain {
-	return []port.Domain{domain.NewClient(c.ID, c.Date, c.Name, c.Email, c.Phone, c.Document, c.Contact)}
+	roleId := fmt.Sprintf("%s_%s_%s", c.ID, port.RoleClient, c.ID)
+	return []port.Domain{
+		domain.NewClient(c.ID, c.Date, c.Name, c.Email, c.Phone, c.Document, c.Contact),
+		domain.NewClientRole(roleId, "", "", port.RoleClient, ""),
+	}
 }
 
 // GetDTO is a method that returns the dto

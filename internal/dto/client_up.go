@@ -35,14 +35,15 @@ func (c *ClientUpIn) GetDomain() []port.Domain {
 
 // SetDomain is a method that sets the dto with the domain
 func (c *ClientUpOut) GetDTO(domainIn interface{}) interface{} {
+	slices := domainIn.([]interface{})
+	client := slices[0].(*domain.Client)
 	dto := &ClientUpOut{}
-	domain := domainIn.(*domain.Client)
-	dto.ID = domain.ID
-	dto.Date = domain.Date.Format(port.DateFormat)
-	dto.Name = domain.Name
-	dto.Email = domain.Email
-	dto.Phone = domain.Phone
-	dto.Document = domain.Document
+	dto.ID = client.ID
+	dto.Date = client.Date.Format(port.DateFormat)
+	dto.Name = client.Name
+	dto.Email = client.Email
+	dto.Phone = client.Phone
+	dto.Document = client.Document
 	return dto
 }
 
