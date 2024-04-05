@@ -5,10 +5,13 @@ import (
 	"reflect"
 	"time"
 	"unicode"
+	"fmt"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+
+	"github.com/lavinas/ephemeris/internal/port"
 )
 
 const (
@@ -19,6 +22,7 @@ const (
 // RepoMySql is the repository handler for the application
 type MySql struct {
 	Db *gorm.DB
+	tx *gorm.DB
 }
 
 // NewRepository creates a new repository handler
@@ -28,6 +32,35 @@ func NewRepository(dns string) (*MySql, error) {
 		return nil, err
 	}
 	return &MySql{Db: db}, nil
+}
+
+// Begin starts a transaction
+func (r *MySql) Begin() error {
+	if r.tx != nil {
+		return errors.New("transaction already started")
+	}
+	r.tx = r.Db.Begin()
+	return nil
+}
+
+// Commit commits the transaction
+func (r *MySql) Commit() error {
+	if r.tx.Error == nil {
+		return errors.New("no transaction to commit")
+	}
+	r.tx.Commit()
+	r.tx = nil
+	return nil
+}
+
+// Rollback rolls back the transaction
+func (r *MySql) Rollback() error {
+	if r.tx.Error != nil {
+		return errors.New("no transaction to rollback")
+	}
+	r.tx.Rollback()
+	r.tx = nil
+	return nil
 }
 
 // Close closes the database connection
@@ -51,51 +84,45 @@ func (r *MySql) Migrate(domain []interface{}) error {
 
 // Add adds a object to the database
 func (r *MySql) Add(obj interface{}) error {
-	tx := r.Db.Begin()
-	tx = tx.Create(obj)
-	if tx.Error != nil {
-		tx.Rollback()
-		return tx.Error
+	fmt.Println(0, obj)
+	r.tx = r.tx.Create(obj)
+	if r.tx.Error != nil {
+		fmt.Println(1000, r.tx.Error)
+		return r.tx.Error
 	}
-	tx.Commit()
 	return nil
 }
 
 // Delete deletes a object from the database by id
 func (r *MySql) Delete(obj interface{}, id string) error {
-	tx := r.Db.Begin()
-	tx = tx.Delete(obj, "ID = ?", id)
-	if tx.Error != nil {
-		tx.Rollback()
-		return tx.Error
+	r.tx = r.tx.Delete(obj, "ID = ?", id)
+	if r.tx.Error != nil {
+		return r.tx.Error
 	}
-	tx.Commit()
 	return nil
 }
 
 // Get gets a object from the database by id
 func (r *MySql) Get(obj interface{}, id string) (bool, error) {
-	tx := r.Db.Begin()
-	defer tx.Rollback()
-	tx = tx.First(obj, "ID = ?", id)
-	if tx.Error == nil {
+	d := obj.(port.Domain)
+	name := d.TableName()
+	r.tx = r.tx.Table(name).First(obj, "ID = ?", id)
+	if r.tx.Error == nil {
 		return true, nil
 	}
-	if errors.Is(tx.Error, gorm.ErrRecordNotFound) {
+	if errors.Is(r.tx.Error, gorm.ErrRecordNotFound) {
 		return false, nil
 	}
-	return false, tx.Error
+	fmt.Println(2, r.tx.Error)
+	return false, r.tx.Error
 }
 
 // Save saves a object to the database
 func (r *MySql) Save(obj interface{}) error {
-	tx := r.Db.Begin()
-	tx = tx.Save(obj)
-	if tx.Error != nil {
-		tx.Rollback()
-		return tx.Error
+	r.tx = r.tx.Save(obj)
+	if r.tx.Error != nil {
+		return r.tx.Error
 	}
-	tx.Commit()
 	return nil
 }
 
@@ -103,7 +130,7 @@ func (r *MySql) Save(obj interface{}) error {
 func (r *MySql) Find(base interface{}) (interface{}, error) {
 	sob := reflect.TypeOf(base).Elem()
 	result := reflect.New(reflect.SliceOf(sob)).Interface()
-	tx := r.Db.Begin()
+	tx := r.tx.Begin()
 	defer tx.Rollback()
 	tx, err := r.where(tx, sob, base)
 	if err != nil {

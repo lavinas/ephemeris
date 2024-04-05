@@ -15,6 +15,7 @@ var (
 	Roles = []string{port.RoleClient, port.RoleResponsable, port.RolePayer}
 )
 
+// ClientRole is a struct that represents the roles of a client
 type ClientRole struct {
 	ID       string    `gorm:"type:varchar(100); primaryKey"`
 	Date     time.Time `gorm:"type:datetime; not null"`

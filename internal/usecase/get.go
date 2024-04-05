@@ -43,6 +43,11 @@ func (u *Get) Run(dtoIn interface{}) error {
 	}
 	domains := in.GetDomain()
 	result := []interface{}{}
+	if err := u.Repo.Begin(); err != nil {
+		err := u.error(port.ErrPrefInternal, err.Error())
+		return err
+	}
+	defer u.Repo.Rollback()
 	for _, domain := range domains {
 		if err := domain.Format("filled"); err != nil {
 			err := u.error(port.ErrPrefBadRequest, err.Error())

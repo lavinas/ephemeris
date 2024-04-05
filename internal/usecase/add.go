@@ -39,28 +39,30 @@ func (u *Add) SetLog(log port.Logger) {
 func (u *Add) Run(dtoIn interface{}) error {
 	in := dtoIn.(port.DTOIn)
 	if err := in.Validate(); err != nil {
-		err := u.error(port.ErrPrefBadRequest, err.Error())
-		return err
+		return u.error(port.ErrPrefBadRequest, err.Error())
 	}
+	if err := u.Repo.Begin(); err != nil {
+		return u.error(port.ErrPrefInternal, err.Error())
+	}
+	defer u.Repo.Rollback()
 	domains := in.GetDomain()
 	result := []interface{}{}
 	for _, domain := range domains {
 		if err := domain.Format(); err != nil {
-			err := u.error(port.ErrPrefBadRequest, err.Error())
-			return err
+			return u.error(port.ErrPrefBadRequest, err.Error())
 		}
 		if f, err := u.Repo.Get(domain, domain.GetID()); err != nil {
-			err := u.error(port.ErrPrefInternal, err.Error())
-			return err
+			return u.error(port.ErrPrefInternal, err.Error())
 		} else if f {
-			err := u.error(port.ErrPrefConflict, fmt.Sprintf(port.ErrAlreadyExists, domain.GetID()))
-			return err
+			return u.error(port.ErrPrefConflict, fmt.Sprintf(port.ErrAlreadyExists, domain.GetID()))
 		}
 		if err := u.Repo.Add(domain); err != nil {
-			err := u.error(port.ErrPrefInternal, err.Error())
-			return err
+			return u.error(port.ErrPrefInternal, err.Error())
 		}
 		result = append(result, domain)
+	}
+	if err := u.Repo.Commit(); err != nil {
+		return u.error(port.ErrPrefInternal, err.Error())
 	}
 	out := dto.ClientAddOut{}
 	u.Out = out.GetDTO(result).(port.DTOOut)

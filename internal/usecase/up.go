@@ -43,6 +43,11 @@ func (u *Up) Run(dtoIn interface{}) error {
 	}
 	domains := in.GetDomain()
 	result := []interface{}{}
+	if err := u.Repo.Begin(); err != nil {
+		err := u.error(port.ErrPrefInternal, err.Error())
+		return err
+	}
+	defer u.Repo.Rollback()		
 	for _, source := range domains {
 		if err := source.Format("filled"); err != nil {
 			err := u.error(port.ErrPrefBadRequest, err.Error())
@@ -65,6 +70,10 @@ func (u *Up) Run(dtoIn interface{}) error {
 			return err
 		}
 		result = append(result, target)
+	}
+	if err := u.Repo.Commit(); err != nil {
+		err := u.error(port.ErrPrefInternal, err.Error())
+		return err
 	}
 	out := dto.ClientAddOut{}
 	u.Out = out.GetDTO(result).(port.DTOOut)
