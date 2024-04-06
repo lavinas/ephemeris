@@ -207,7 +207,7 @@ func (c *ClientRole) formatRefID(repo port.Repository, filled bool) error {
 
 // validateDuplicity is a method that validates the duplicity of the client role
 func (c *ClientRole) validateDuplicity(repo port.Repository, noduplicity bool) error {
-	if noduplicity || c.Role == port.RoleClient{
+	if noduplicity || c.Role == port.RoleClient {
 		return nil
 	}
 	ok, err := repo.Get(&ClientRole{}, c.ID)

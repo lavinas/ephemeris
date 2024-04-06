@@ -2,9 +2,9 @@ package dto
 
 import (
 	// "errors"
+	"errors"
 	"fmt"
 	"time"
-	"errors"
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"
@@ -12,14 +12,16 @@ import (
 
 // ClientAdd represents the input dto for adding a client usecase
 type ClientAddIn struct {
-	Object   string `json:"-" command:"name:client;key"`
-	Action   string `json:"-" command:"name:add;key"`
-	ID       string `json:"id" command:"name:id"`
-	Date     string `json:"date" command:"name:date"`
-	Name     string `json:"name" command:"name:name"`
-	Email    string `json:"email" command:"name:email"`
-	Phone    string `json:"phone" command:"name:phone"`
-	Document string `json:"document" command:"name:document"`
+	Object    string `json:"-" command:"name:client;key"`
+	Action    string `json:"-" command:"name:add;key"`
+	ID        string `json:"id" command:"name:id"`
+	Date      string `json:"date" command:"name:date"`
+	Name      string `json:"name" command:"name:name"`
+	Email     string `json:"email" command:"name:email"`
+	Phone     string `json:"phone" command:"name:phone"`
+	Document  string `json:"document" command:"name:document"`
+	Type      string `json:"type" command:"name:type"`
+	Reference string `json:"reference" command:"name:reference"`
 }
 
 // ClientAddOut represents the output dto for adding a client usecase
