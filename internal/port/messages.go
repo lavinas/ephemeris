@@ -40,7 +40,7 @@ const (
 	ErrCommandNotFound     = "command not identified. Please, see the help command"
 	ErrClientIDNotProvided = "client id not provided"
 	ErrRoleNotProvided     = "role not provided"
-	ErrRefIDNotProvided    = "ref id not provided"
+	ErrRefIDNotProvided    = "cliente referece id not provided"
 	ErrInvalidRole         = "invalid role"
 	ErrInvalidReference    = "reference should be different from client"
 	ErrLongClientID        = "client id should have at most 25"

@@ -56,7 +56,7 @@ func (c *LiableAddIn) GetDomain() []port.Domain {
 	roleId := fmt.Sprintf("%s_%s_%s", c.ID, port.RoleLiable, c.ID)
 	return []port.Domain{
 		domain.NewClient(c.ID, c.Date, c.Name, c.Email, c.Phone, c.Document, port.DefaultContact),
-		domain.NewClientRole(roleId, c.Date, c.ID, port.RoleLiable, c.ID),
+		domain.NewClientRole(roleId, c.Date, c.ID, port.RoleLiable, c.ClientId),
 	}
 }
 
