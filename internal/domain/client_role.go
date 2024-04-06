@@ -19,10 +19,10 @@ var (
 type ClientRole struct {
 	ID       string    `gorm:"type:varchar(100); primaryKey"`
 	Date     time.Time `gorm:"type:datetime; not null"`
-	ClientID string    `gorm:"type:varchar(25); not null"`
+	ClientID string    `gorm:"type:varchar(25); not null; index"`
 	Client   *Client   `gorm:"foreignKey:ClientID;associationForeignKey:ID"`
-	Role     string    `gorm:"type:varchar(25); not"`
-	RefID    string    `gorm:"type:varchar(25); null"`
+	Role     string    `gorm:"type:varchar(25); not null; index"`
+	RefID    string    `gorm:"type:varchar(25); null; index"`
 	Ref      *Client   `gorm:"foreignKey:RefID;associationForeignKey:ID"`
 }
 
@@ -85,7 +85,7 @@ func (c *ClientRole) Format(args ...string) error {
 
 // GetID is a method that returns the id of the client
 func (c *ClientRole) GetID() string {
-	return c.ClientID
+	return c.ID
 }
 
 // Get is a method that returns the client
@@ -95,7 +95,7 @@ func (c *ClientRole) Get() port.Domain {
 
 // GetEmpty is a method that returns an empty client with just id
 func (c *ClientRole) GetEmpty() port.Domain {
-	return &ClientRole{ID: c.ID}
+	return &ClientRole{}
 }
 
 // TableName returns the table name for database

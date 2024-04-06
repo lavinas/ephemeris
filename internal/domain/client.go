@@ -23,12 +23,12 @@ var (
 // Client represents the client entity
 type Client struct {
 	ID       string    `gorm:"type:varchar(25); primaryKey"`
-	Date     time.Time `gorm:"type:datetime; not null"`
-	Name     string    `gorm:"type:varchar(100); not null"`
-	Email    string    `gorm:"type:varchar(100);  not null"`
-	Phone    string    `gorm:"type:varchar(20); not null"`
-	Contact  string    `gorm:"type:varchar(20); not null"`
-	Document string    `gorm:"type:varchar(20); null"`
+	Date     time.Time `gorm:"type:datetime; not null; index"`
+	Name     string    `gorm:"type:varchar(100); not null; index"`
+	Email    string    `gorm:"type:varchar(100);  not null; index"`
+	Phone    string    `gorm:"type:varchar(20); not null; index"`
+	Contact  string    `gorm:"type:varchar(20); not null; index"`
+	Document string    `gorm:"type:varchar(20); null; index"`
 }
 
 // NewClient is a function that creates a new client
@@ -85,7 +85,7 @@ func (c *Client) Get() port.Domain {
 
 // GetEmpty is a method that returns an empty client with just id
 func (c *Client) GetEmpty() port.Domain {
-	return &Client{ID: c.ID}
+	return &Client{}
 }
 
 // TableName returns the table name for database

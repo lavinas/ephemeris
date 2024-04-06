@@ -37,42 +37,34 @@ func (u *Up) SetLog(log port.Logger) {
 func (u *Up) Run(dtoIn interface{}) error {
 	in := dtoIn.(port.DTOIn)
 	if err := in.Validate(); err != nil {
-		err := u.error(port.ErrPrefBadRequest, err.Error())
-		return err
+		return u.error(port.ErrPrefBadRequest, err.Error())
 	}
 	domains := in.GetDomain()
 	result := []interface{}{}
 	if err := u.Repo.Begin(); err != nil {
-		err := u.error(port.ErrPrefInternal, err.Error())
-		return err
+		return u.error(port.ErrPrefInternal, err.Error())
 	}
-	defer u.Repo.Rollback()
+	defer u.Repo.Rollback()		
 	for _, source := range domains {
 		if err := source.Format("filled"); err != nil {
-			err := u.error(port.ErrPrefBadRequest, err.Error())
-			return err
+			return u.error(port.ErrPrefBadRequest, err.Error())
 		}
 		target := source.GetEmpty()
 		if f, err := u.Repo.Get(target, source.GetID()); err != nil {
-			err := u.error(port.ErrPrefInternal, err.Error())
-			return err
+			return u.error(port.ErrPrefInternal, err.Error())
 		} else if !f {
-			err := u.error(port.ErrPrefBadRequest, port.ErrUnfound)
-			return err
+			return u.error(port.ErrPrefBadRequest, port.ErrUnfound)
 		}
 		if err := u.merge(source, target); err != nil {
-			err := u.error(port.ErrPrefInternal, err.Error())
-			return err
+			return u.error(port.ErrPrefInternal, err.Error())
 		}
 		if err := u.Repo.Save(target); err != nil {
-			err := u.error(port.ErrPrefInternal, err.Error())
-			return err
+			return u.error(port.ErrPrefInternal, err.Error())
 		}
 		result = append(result, target)
 	}
 	if err := u.Repo.Commit(); err != nil {
-		err := u.error(port.ErrPrefInternal, err.Error())
-		return err
+		return u.error(port.ErrPrefInternal, err.Error())
 	}
 	out := dto.ClientAddOut{}
 	u.Out = out.GetDTO(result).(port.DTOOut)
