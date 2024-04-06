@@ -5,7 +5,6 @@ import (
 	"reflect"
 	"time"
 	"unicode"
-	"fmt"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -22,7 +21,6 @@ const (
 // RepoMySql is the repository handler for the application
 type MySql struct {
 	Db *gorm.DB
-	tx *gorm.DB
 }
 
 // NewRepository creates a new repository handler
@@ -36,30 +34,28 @@ func NewRepository(dns string) (*MySql, error) {
 
 // Begin starts a transaction
 func (r *MySql) Begin() error {
-	if r.tx != nil {
-		return errors.New("transaction already started")
+	r.Db = r.Db.Begin()
+	if r.Db.Error != nil {
+		return r.Db.Error
 	}
-	r.tx = r.Db.Begin()
 	return nil
 }
 
 // Commit commits the transaction
 func (r *MySql) Commit() error {
-	if r.tx.Error == nil {
-		return errors.New("no transaction to commit")
+	r.Db = r.Db.Commit()
+	if r.Db.Error != nil {
+		return r.Db.Error
 	}
-	r.tx.Commit()
-	r.tx = nil
 	return nil
 }
 
 // Rollback rolls back the transaction
 func (r *MySql) Rollback() error {
-	if r.tx.Error != nil {
-		return errors.New("no transaction to rollback")
+	r.Db = r.Db.Rollback()
+	if r.Db.Error != nil {
+		return r.Db.Error
 	}
-	r.tx.Rollback()
-	r.tx = nil
 	return nil
 }
 
@@ -84,20 +80,20 @@ func (r *MySql) Migrate(domain []interface{}) error {
 
 // Add adds a object to the database
 func (r *MySql) Add(obj interface{}) error {
-	fmt.Println(0, obj)
-	r.tx = r.tx.Create(obj)
-	if r.tx.Error != nil {
-		fmt.Println(1000, r.tx.Error)
-		return r.tx.Error
+	tx := r.Db.Session(&gorm.Session{})
+	tx.Create(obj)
+	if tx.Error != nil {
+		return tx.Error
 	}
 	return nil
 }
 
 // Delete deletes a object from the database by id
 func (r *MySql) Delete(obj interface{}, id string) error {
-	r.tx = r.tx.Delete(obj, "ID = ?", id)
-	if r.tx.Error != nil {
-		return r.tx.Error
+	tx := r.Db.Session(&gorm.Session{})
+	tx = tx.Delete(obj, "ID = ?", id)
+	if tx.Error != nil {
+		return tx.Error
 	}
 	return nil
 }
@@ -106,22 +102,23 @@ func (r *MySql) Delete(obj interface{}, id string) error {
 func (r *MySql) Get(obj interface{}, id string) (bool, error) {
 	d := obj.(port.Domain)
 	name := d.TableName()
-	r.tx = r.tx.Table(name).First(obj, "ID = ?", id)
-	if r.tx.Error == nil {
+	tx := r.Db.Session(&gorm.Session{})
+	tx = tx.Table(name).First(obj, "ID = ?", id)
+	if tx.Error == nil {
 		return true, nil
 	}
-	if errors.Is(r.tx.Error, gorm.ErrRecordNotFound) {
+	if errors.Is(tx.Error, gorm.ErrRecordNotFound) {
 		return false, nil
 	}
-	fmt.Println(2, r.tx.Error)
-	return false, r.tx.Error
+	return false, tx.Error
 }
 
 // Save saves a object to the database
 func (r *MySql) Save(obj interface{}) error {
-	r.tx = r.tx.Save(obj)
-	if r.tx.Error != nil {
-		return r.tx.Error
+	tx := r.Db.Session(&gorm.Session{})
+	tx = tx.Save(obj)
+	if tx.Error != nil {
+		return tx.Error
 	}
 	return nil
 }
@@ -130,9 +127,9 @@ func (r *MySql) Save(obj interface{}) error {
 func (r *MySql) Find(base interface{}) (interface{}, error) {
 	sob := reflect.TypeOf(base).Elem()
 	result := reflect.New(reflect.SliceOf(sob)).Interface()
-	tx := r.tx.Begin()
-	defer tx.Rollback()
-	tx, err := r.where(tx, sob, base)
+	tx := r.Db.Session(&gorm.Session{})
+	var err error
+	tx, err = r.where(tx, sob, base)
 	if err != nil {
 		return nil, err
 	}
@@ -155,13 +152,15 @@ func (r *MySql) where(tx *gorm.DB, sob reflect.Type, base interface{}) (*gorm.DB
 		filtered = true
 		fName := r.fieldName(sob.Field(i).Name)
 		tx = tx.Where(fName+" = ?", reflect.ValueOf(base).Elem().Field(i).Interface())
+		if i == 0 {
+			tx = tx.Session(&gorm.Session{})
+		}
 	}
 	if !filtered {
 		return nil, errors.New(ErrNoFilter)
 	}
 	return tx, nil
 }
-
 
 // isEmpty is a method that returns true if the value is empty
 func (r *MySql) isEmpty(value reflect.Value) bool {
@@ -183,9 +182,9 @@ func (r *MySql) isEmpty(value reflect.Value) bool {
 }
 
 // fieldName is a method that returns the field name
-func (r *MySql) fieldName (field string) string {
+func (r *MySql) fieldName(field string) string {
 	ret := ""
-	isLower := false 
+	isLower := false
 	for _, ch := range field {
 		if unicode.IsUpper(ch) && isLower {
 			ret += "_"

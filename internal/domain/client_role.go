@@ -2,10 +2,10 @@ package domain
 
 import (
 	"errors"
-	"slices"
-	"time"
-	"strings"
 	"regexp"
+	"slices"
+	"strings"
+	"time"
 
 	"github.com/lavinas/ephemeris/internal/port"
 )
@@ -97,7 +97,6 @@ func (c *ClientRole) Get() port.Domain {
 func (c *ClientRole) GetEmpty() port.Domain {
 	return &ClientRole{ID: c.ID}
 }
-
 
 // TableName returns the table name for database
 func (b *ClientRole) TableName() string {

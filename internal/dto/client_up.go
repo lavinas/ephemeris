@@ -30,6 +30,7 @@ type ClientUpOut struct {
 
 // GetDomain is a method that returns a domain representation of the client dto
 func (c *ClientUpIn) GetDomain() []port.Domain {
+
 	return []port.Domain{
 		domain.NewClient(c.ID, c.Date, c.Name, c.Email, c.Phone, c.Document, ""),
 		domain.NewClientRole("", "", c.ID, port.RoleClient, ""),

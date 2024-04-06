@@ -2,7 +2,7 @@ package dto
 
 import (
 	"errors"
-	
+
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"
 )

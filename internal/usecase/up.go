@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"errors"
-	"fmt"
 	"reflect"
 
 	"github.com/lavinas/ephemeris/internal/dto"
@@ -47,7 +46,7 @@ func (u *Up) Run(dtoIn interface{}) error {
 		err := u.error(port.ErrPrefInternal, err.Error())
 		return err
 	}
-	defer u.Repo.Rollback()		
+	defer u.Repo.Rollback()
 	for _, source := range domains {
 		if err := source.Format("filled"); err != nil {
 			err := u.error(port.ErrPrefBadRequest, err.Error())
@@ -92,7 +91,6 @@ func (u *Up) Interface() interface{} {
 
 // merge is a method that merges two structs
 func (u *Up) merge(source interface{}, target interface{}) error {
-	fmt.Println(1, reflect.TypeOf(source), reflect.TypeOf(target))
 	if reflect.TypeOf(source) != reflect.TypeOf(target) {
 		return u.error(port.ErrPrefInternal, port.ErrInvalidTypeOnMerge)
 	}
