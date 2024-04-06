@@ -2,6 +2,7 @@ package domain
 
 import (
 	"errors"
+	"fmt"
 	"net/mail"
 	"regexp"
 	"slices"
@@ -54,8 +55,9 @@ func NewClient(id string, date string, name string, email string, phone string, 
 }
 
 // Format is a method that formats the client
-func (c *Client) Format(args ...string) error {
+func (c *Client) Format(repo port.Repository, args ...string) error {
 	filled := slices.Contains(args, "filled")
+	noduplicity := slices.Contains(args, "noduplicity")
 	formatMap := []func(filled bool) error{
 		c.formatID,
 		c.formatDate,
@@ -69,8 +71,10 @@ func (c *Client) Format(args ...string) error {
 	for _, f := range formatMap {
 		if err := f(filled); err != nil {
 			message += err.Error() + " | "
-
 		}
+	}
+	if err := c.validateDuplicity(repo, noduplicity); err != nil {
+		message += err.Error() + " | "
 	}
 	if message != "" {
 		return errors.New(message[:len(message)-3])
@@ -252,4 +256,19 @@ func (c *Client) formatString(str string) string {
 	space := regexp.MustCompile(`\s+`)
 	str = space.ReplaceAllString(str, " ")
 	return str
+}
+
+// validateDuplicity is a method that validates the duplicity of a client
+func (c *Client) validateDuplicity(repo port.Repository, noduplicity bool) error {
+	if noduplicity {
+		return nil
+	}
+	ok, err := repo.Get(&Client{}, c.ID)
+	if err != nil {
+		return err
+	}
+	if ok {
+		return fmt.Errorf(port.ErrAlreadyExists, c.ID)
+	}
+	return nil
 }

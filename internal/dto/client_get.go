@@ -32,7 +32,7 @@ type ClientGetOut struct {
 }
 
 // Validate is a method that validates the dto
-func (c *ClientGetIn) Validate() error {
+func (c *ClientGetIn) Validate(repo port.Repository) error {
 	if c.isEmpty() {
 		return errors.New(port.ErrParamsNotInformed)
 	}

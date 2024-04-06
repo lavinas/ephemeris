@@ -1,9 +1,10 @@
 package dto
 
 import (
-	"errors"
+	// "errors"
 	"fmt"
 	"time"
+	"errors"
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"
@@ -32,18 +33,9 @@ type ClientAddOut struct {
 }
 
 // Validate is a method that validates the dto
-func (c *ClientAddIn) Validate() error {
+func (c *ClientAddIn) Validate(repo port.Repository) error {
 	if c.isEmpty() {
 		return errors.New(port.ErrParamsNotInformed)
-	}
-	msg := ""
-	for _, i := range c.GetDomain() {
-		if err := i.Format(); err != nil {
-			msg += err.Error() + " | "
-		}
-	}
-	if msg != "" {
-		return errors.New(msg[:len(msg)-3])
 	}
 	return nil
 }
@@ -75,7 +67,7 @@ func (c *ClientAddOut) GetDTO(domainIn interface{}) interface{} {
 	return dto
 }
 
-// IsEmpty is a method that returns true if the dto is empty
+// isEmpty is a method that returns true if the dto is empty
 func (c *ClientAddIn) isEmpty() bool {
 	if c.ID == "" && c.Date == "" && c.Name == "" && c.Email == "" &&
 		c.Phone == "" && c.Document == "" {

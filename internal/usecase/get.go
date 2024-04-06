@@ -37,7 +37,7 @@ func (u *Get) SetLog(log port.Logger) {
 // Get is a method that gets a dto from the repository
 func (u *Get) Run(dtoIn interface{}) error {
 	in := dtoIn.(port.DTOIn)
-	if err := in.Validate(); err != nil {
+	if err := in.Validate(u.Repo); err != nil {
 		err := u.error(port.ErrPrefBadRequest, err.Error())
 		return err
 	}
@@ -49,7 +49,7 @@ func (u *Get) Run(dtoIn interface{}) error {
 	}
 	defer u.Repo.Rollback()
 	for _, domain := range domains {
-		if err := domain.Format("filled"); err != nil {
+		if err := domain.Format(u.Repo, "filled", "noduplicity"); err != nil {
 			err := u.error(port.ErrPrefBadRequest, err.Error())
 			return err
 		}

@@ -36,7 +36,7 @@ func (u *Up) SetLog(log port.Logger) {
 // Up is a method that updates a dto in the repository
 func (u *Up) Run(dtoIn interface{}) error {
 	in := dtoIn.(port.DTOIn)
-	if err := in.Validate(); err != nil {
+	if err := in.Validate(u.Repo); err != nil {
 		return u.error(port.ErrPrefBadRequest, err.Error())
 	}
 	domains := in.GetDomain()
@@ -44,9 +44,9 @@ func (u *Up) Run(dtoIn interface{}) error {
 	if err := u.Repo.Begin(); err != nil {
 		return u.error(port.ErrPrefInternal, err.Error())
 	}
-	defer u.Repo.Rollback()		
+	defer u.Repo.Rollback()
 	for _, source := range domains {
-		if err := source.Format("filled"); err != nil {
+		if err := source.Format(u.Repo, "filled", "noduplicity"); err != nil {
 			return u.error(port.ErrPrefBadRequest, err.Error())
 		}
 		target := source.GetEmpty()

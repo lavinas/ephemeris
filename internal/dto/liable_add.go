@@ -19,7 +19,6 @@ type LiableAddIn struct {
 	Phone    string `json:"phone" command:"name:phone"`
 	Document string `json:"document" command:"name:document"`
 	ClientId string `json:"client_id" command:"name:client"`
-
 }
 
 type LiableAddOut struct {
@@ -32,13 +31,13 @@ type LiableAddOut struct {
 }
 
 // Validate is a method that validates the dto
-func (c *LiableAddIn) Validate() error {
+func (c *LiableAddIn) Validate(repo port.Repository) error {
 	if c.isEmpty() {
 		return errors.New(port.ErrParamsNotInformed)
 	}
 	msg := ""
 	for _, i := range c.GetDomain() {
-		if err := i.Format(); err != nil {
+		if err := i.Format(repo); err != nil {
 			msg += err.Error() + " | "
 		}
 	}

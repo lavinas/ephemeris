@@ -53,7 +53,7 @@ func (c *ClientUpOut) GetDTO(domainIn interface{}) interface{} {
 }
 
 // Validate is a method that validates the dto
-func (c *ClientUpIn) Validate() error {
+func (c *ClientUpIn) Validate(repo port.Repository) error {
 	if c.IsEmpty() {
 		return errors.New(port.ErrParamsNotInformed)
 	}

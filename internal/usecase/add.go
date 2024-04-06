@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/lavinas/ephemeris/internal/dto"
 	"github.com/lavinas/ephemeris/internal/port"
@@ -38,7 +37,7 @@ func (u *Add) SetLog(log port.Logger) {
 // Add is a method that add a dto to the repository
 func (u *Add) Run(dtoIn interface{}) error {
 	in := dtoIn.(port.DTOIn)
-	if err := in.Validate(); err != nil {
+	if err := in.Validate(u.Repo); err != nil {
 		return u.error(port.ErrPrefBadRequest, err.Error())
 	}
 	if err := u.Repo.Begin(); err != nil {
@@ -48,13 +47,8 @@ func (u *Add) Run(dtoIn interface{}) error {
 	domains := in.GetDomain()
 	result := []interface{}{}
 	for _, domain := range domains {
-		if err := domain.Format(); err != nil {
+		if err := domain.Format(u.Repo); err != nil {
 			return u.error(port.ErrPrefBadRequest, err.Error())
-		}
-		if f, err := u.Repo.Get(domain, domain.GetID()); err != nil {
-			return u.error(port.ErrPrefInternal, err.Error())
-		} else if f {
-			return u.error(port.ErrPrefConflict, fmt.Sprintf(port.ErrAlreadyExists, domain.GetID()))
 		}
 		if err := u.Repo.Add(domain); err != nil {
 			return u.error(port.ErrPrefInternal, err.Error())

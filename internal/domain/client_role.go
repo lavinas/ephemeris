@@ -47,38 +47,29 @@ func NewClientRole(ID string, date string, clientID string, role string, refID s
 }
 
 // Format is a method that formats the client role
-func (c *ClientRole) Format(args ...string) error {
-	if c.Client != nil {
-		c.ClientID = c.Client.ID
-	}
-	if c.Ref != nil {
-		c.RefID = c.Ref.ID
-	}
+func (c *ClientRole) Format(repo port.Repository, args ...string) error {
 	filled := slices.Contains(args, "filled")
-	c.ID = c.formatString(c.ID)
-	c.ClientID = c.formatString(c.ClientID)
-	c.Role = c.formatString(c.Role)
-	c.RefID = c.formatString(c.RefID)
-	if c.ID == "" && !filled {
-		return errors.New(port.ErrIdUninformed)
+	msg := ""
+	if err := c.formatID(filled); err != nil {
+		msg += err.Error() + " | "
 	}
-	if c.Date == (time.Time{}) && !filled {
-		return errors.New(port.ErrInvalidDateFormat)
+	if err := c.formatDate(filled); err != nil {
+		msg += err.Error() + " | "
 	}
-	if c.ClientID == "" && !filled {
-		return errors.New(port.ErrClientIDNotProvided)
+	if err := c.formatClientID(filled); err != nil {
+		msg += err.Error() + " | "
 	}
-	if c.Role == "" && !filled {
-		return errors.New(port.ErrRoleNotProvided)
+	if err := c.formatRole(filled); err != nil {
+		msg += err.Error() + " | "
 	}
-	if c.Role != "" && !slices.Contains(Roles, c.Role) {
-		return errors.New(port.ErrInvalidRole)
+	if err := c.formatRefID(repo, filled); err != nil {
+		msg += err.Error() + " | "
 	}
-	if c.RefID == "" && !filled {
-		return errors.New(port.ErrRefIDNotProvided)
+	if err := c.validateDuplicity(repo, slices.Contains(args, "noduplicity")); err != nil {
+		msg += err.Error() + " | "
 	}
-	if c.Role != "" && c.Role != "client" && c.RefID == c.ClientID {
-		return errors.New(port.ErrInvalidReference)
+	if msg != "" {
+		return errors.New(msg[:len(msg)-3])
 	}
 	return nil
 }
@@ -109,4 +100,122 @@ func (c *ClientRole) formatString(str string) string {
 	space := regexp.MustCompile(`\s+`)
 	str = space.ReplaceAllString(str, " ")
 	return str
+}
+
+// formatID is a method that formats the id field
+func (c *ClientRole) formatID(filled bool) error {
+	id := c.formatString(c.ID)
+	if id == "" {
+		if filled {
+			return nil
+		}
+		return errors.New(port.ErrEmptyID)
+	}
+	if len(id) > 25 {
+		return errors.New(port.ErrLongID)
+	}
+	if len(strings.Split(id, " ")) > 1 {
+		return errors.New(port.ErrInvalidID)
+	}
+	c.ID = strings.ToLower(id)
+	return nil
+}
+
+// FormatDate is a method that formats the date field
+func (c *ClientRole) formatDate(filled bool) error {
+	date := c.Date
+	if date.IsZero() {
+		if filled {
+			return nil
+		}
+		return errors.New(port.ErrInvalidDateFormat)
+	}
+	c.Date = date
+	return nil
+}
+
+// formatClientID is a method that formats the client id field
+func (c *ClientRole) formatClientID(filled bool) error {
+	if c.Client != nil {
+		c.ClientID = c.Client.ID
+	}
+	clientID := c.formatString(c.ClientID)
+	if clientID == "" {
+		if filled {
+			return nil
+		}
+		return errors.New(port.ErrClientIDNotProvided)
+	}
+	if len(clientID) > 25 {
+		return errors.New(port.ErrLongClientID)
+	}
+	if len(strings.Split(clientID, " ")) > 1 {
+		return errors.New(port.ErrInvalidClientID)
+	}
+	c.ClientID = strings.ToLower(clientID)
+	return nil
+}
+
+// formatRole is a method that formats the role field
+func (c *ClientRole) formatRole(filled bool) error {
+	role := c.formatString(c.Role)
+	if role == "" {
+		if filled {
+			return nil
+		}
+		return errors.New(port.ErrRoleNotProvided)
+	}
+	if !slices.Contains(Roles, role) {
+		return errors.New(port.ErrInvalidRole)
+	}
+	c.Role = strings.ToLower(role)
+	return nil
+}
+
+// formatRefID is a method that formats the ref id field
+func (c *ClientRole) formatRefID(repo port.Repository, filled bool) error {
+	if c.Ref != nil {
+		c.RefID = c.Ref.ID
+	}
+	refID := c.formatString(c.RefID)
+	if refID == "" {
+		if filled {
+			return nil
+		}
+		return errors.New(port.ErrRefIDNotProvided)
+	}
+	if len(refID) > 25 {
+		return errors.New(port.ErrLongRefID)
+	}
+	if len(strings.Split(refID, " ")) > 1 {
+		return errors.New(port.ErrInvalidRefID)
+	}
+	c.RefID = strings.ToLower(refID)
+	if c.Role == port.RoleClient {
+		return nil
+	}
+	if c.ClientID == c.RefID {
+		return errors.New(port.ErrSameClient)
+	}
+	if b, err := repo.Get(&Client{}, c.RefID); err != nil {
+		return err
+	} else if !b {
+		return errors.New(port.ErrRefNotFound)
+	}
+	return nil
+}
+
+// validateDuplicity is a method that validates the duplicity of the client role
+func (c *ClientRole) validateDuplicity(repo port.Repository, noduplicity bool) error {
+	if noduplicity || c.Role == port.RoleClient{
+		return nil
+	}
+	ok, err := repo.Get(&ClientRole{}, c.ID)
+	if err != nil {
+		return err
+	}
+	if ok {
+		return errors.New(port.ErrDuplicatedRole)
+	}
+	return nil
 }

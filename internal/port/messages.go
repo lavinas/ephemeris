@@ -43,4 +43,11 @@ const (
 	ErrRefIDNotProvided    = "ref id not provided"
 	ErrInvalidRole         = "invalid role"
 	ErrInvalidReference    = "reference should be different from client"
+	ErrLongClientID        = "client id should have at most 25"
+	ErrInvalidClientID     = "invalid client id"
+	ErrLongRefID           = "ref id should have at most 25"
+	ErrInvalidRefID        = "invalid ref id"
+	ErrDuplicatedRole      = "this connection between clients already exists"
+	ErrSameClient          = "client and reference should be different"
+	ErrRefNotFound         = "client reference not found"
 )
