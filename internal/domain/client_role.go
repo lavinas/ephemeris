@@ -12,7 +12,7 @@ import (
 
 var (
 	// Roles is a slice that contains the roles for a client
-	Roles = []string{port.RoleClient, port.RoleResponsable, port.RolePayer}
+	Roles = []string{port.RoleClient, port.RoleLiable, port.RolePayer}
 )
 
 // ClientRole is a struct that represents the roles of a client

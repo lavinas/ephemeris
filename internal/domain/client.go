@@ -65,10 +65,15 @@ func (c *Client) Format(args ...string) error {
 		c.formatDocument,
 		c.formatContact,
 	}
+	message := ""
 	for _, f := range formatMap {
 		if err := f(filled); err != nil {
-			return err
+			message += err.Error() + " | "
+
 		}
+	}
+	if message != "" {
+		return errors.New(message[:len(message)-3])
 	}
 	return nil
 }

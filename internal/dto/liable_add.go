@@ -9,9 +9,8 @@ import (
 	"github.com/lavinas/ephemeris/internal/port"
 )
 
-// ClientAdd represents the input dto for adding a client usecase
-type ClientAddIn struct {
-	Object   string `json:"-" command:"name:client;key"`
+type LiableAddIn struct {
+	Object   string `json:"-" command:"name:liable;key"`
 	Action   string `json:"-" command:"name:add;key"`
 	ID       string `json:"id" command:"name:id"`
 	Date     string `json:"date" command:"name:date"`
@@ -19,10 +18,11 @@ type ClientAddIn struct {
 	Email    string `json:"email" command:"name:email"`
 	Phone    string `json:"phone" command:"name:phone"`
 	Document string `json:"document" command:"name:document"`
+	ClientId string `json:"client_id" command:"name:client"`
+
 }
 
-// ClientAddOut represents the output dto for adding a client usecase
-type ClientAddOut struct {
+type LiableAddOut struct {
 	ID       string `json:"id" command:"name:id"`
 	Date     string `json:"date" command:"name:date"`
 	Name     string `json:"name" command:"name:name"`
@@ -32,7 +32,7 @@ type ClientAddOut struct {
 }
 
 // Validate is a method that validates the dto
-func (c *ClientAddIn) Validate() error {
+func (c *LiableAddIn) Validate() error {
 	if c.isEmpty() {
 		return errors.New(port.ErrParamsNotInformed)
 	}
@@ -49,20 +49,20 @@ func (c *ClientAddIn) Validate() error {
 }
 
 // GetDomain is a method that returns a domain representation of the client dto
-func (c *ClientAddIn) GetDomain() []port.Domain {
+func (c *LiableAddIn) GetDomain() []port.Domain {
 	if c.Date == "" {
 		time.Local, _ = time.LoadLocation(port.Location)
 		c.Date = time.Now().Format(port.DateFormat)
 	}
-	roleId := fmt.Sprintf("%s_%s_%s", c.ID, port.RoleClient, c.ID)
+	roleId := fmt.Sprintf("%s_%s_%s", c.ID, port.RoleLiable, c.ID)
 	return []port.Domain{
 		domain.NewClient(c.ID, c.Date, c.Name, c.Email, c.Phone, c.Document, port.DefaultContact),
-		domain.NewClientRole(roleId, c.Date, c.ID, port.RoleClient, c.ID),
+		domain.NewClientRole(roleId, c.Date, c.ID, port.RoleLiable, c.ID),
 	}
 }
 
 // SetDomain is a method that sets the dto with the domain
-func (c *ClientAddOut) GetDTO(domainIn interface{}) interface{} {
+func (c *LiableAddOut) GetDTO(domainIn interface{}) interface{} {
 	slices := domainIn.([]interface{})
 	client := slices[0].(*domain.Client)
 	dto := &ClientAddOut{}
@@ -76,7 +76,7 @@ func (c *ClientAddOut) GetDTO(domainIn interface{}) interface{} {
 }
 
 // IsEmpty is a method that returns true if the dto is empty
-func (c *ClientAddIn) isEmpty() bool {
+func (c *LiableAddIn) isEmpty() bool {
 	if c.ID == "" && c.Date == "" && c.Name == "" && c.Email == "" &&
 		c.Phone == "" && c.Document == "" {
 		return true
