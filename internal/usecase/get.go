@@ -38,29 +38,24 @@ func (u *Get) SetLog(log port.Logger) {
 func (u *Get) Run(dtoIn interface{}) error {
 	in := dtoIn.(port.DTOIn)
 	if err := in.Validate(u.Repo); err != nil {
-		err := u.error(port.ErrPrefBadRequest, err.Error())
-		return err
+		return u.error(port.ErrPrefBadRequest, err.Error())
 	}
-	domains := in.GetDomain()
-	result := []interface{}{}
 	if err := u.Repo.Begin(); err != nil {
-		err := u.error(port.ErrPrefInternal, err.Error())
-		return err
+		return u.error(port.ErrPrefInternal, err.Error())
 	}
 	defer u.Repo.Rollback()
+	domains := in.GetDomain()
+	result := []interface{}{}
 	for _, domain := range domains {
 		if err := domain.Format(u.Repo, "filled", "noduplicity"); err != nil {
-			err := u.error(port.ErrPrefBadRequest, err.Error())
-			return err
+			return u.error(port.ErrPrefBadRequest, err.Error())
 		}
 		found, err := u.Repo.Find(domain)
 		if err != nil {
-			err := u.error(port.ErrPrefInternal, err.Error())
-			return err
+			return u.error(port.ErrPrefInternal, err.Error())
 		}
 		if found == nil {
-			err := u.error(port.ErrPrefBadRequest, port.ErrUnfound)
-			return err
+			return u.error(port.ErrPrefBadRequest, port.ErrUnfound)
 		}
 		result = append(result, found)
 	}
