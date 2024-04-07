@@ -3,7 +3,6 @@ package usecase
 import (
 	"errors"
 
-	"github.com/lavinas/ephemeris/internal/dto"
 	"github.com/lavinas/ephemeris/internal/port"
 	"github.com/lavinas/ephemeris/pkg"
 )
@@ -58,7 +57,7 @@ func (u *Add) Run(dtoIn interface{}) error {
 	if err := u.Repo.Commit(); err != nil {
 		return u.error(port.ErrPrefInternal, err.Error())
 	}
-	out := dto.ClientAddOut{}
+	out := in.GetOut()
 	u.Out = out.GetDTO(result).(port.DTOOut)
 	return nil
 }

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"reflect"
 
-	"github.com/lavinas/ephemeris/internal/dto"
 	"github.com/lavinas/ephemeris/internal/port"
 	"github.com/lavinas/ephemeris/pkg"
 )
@@ -66,14 +65,14 @@ func (u *Up) Run(dtoIn interface{}) error {
 	if err := u.Repo.Commit(); err != nil {
 		return u.error(port.ErrPrefInternal, err.Error())
 	}
-	out := dto.ClientAddOut{}
+	out := in.GetOut()
 	u.Out = out.GetDTO(result).(port.DTOOut)
 	return nil
 }
 
 // String is a method that returns the output dto as a string
 func (u *Up) String() string {
-	return pkg.NewCommands().Marshal(u.Out)
+	return pkg.NewCommands().Marshal(u.Out, "trim")
 }
 
 // Interface is a method that returns the output dto as an interface

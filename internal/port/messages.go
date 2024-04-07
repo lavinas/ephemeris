@@ -41,7 +41,7 @@ const (
 	ErrClientIDNotProvided = "client id not provided"
 	ErrRoleNotProvided     = "role not provided"
 	ErrRefIDNotProvided    = "cliente referece id not provided"
-	ErrInvalidRole         = "invalid role"
+	ErrInvalidRole         = "invalid role. Should be client, liable or payer"
 	ErrInvalidReference    = "reference should be different from client"
 	ErrLongClientID        = "client id should have at most 25"
 	ErrInvalidClientID     = "invalid client id"
@@ -49,5 +49,5 @@ const (
 	ErrInvalidRefID        = "invalid ref id"
 	ErrDuplicatedRole      = "this connection between clients already exists"
 	ErrSameClient          = "client and reference should be different"
-	ErrRefNotFound         = "client reference not found"
+	ErrRefNotFound         = "reference not found or reference is not a client"
 )

@@ -2,7 +2,6 @@ package dto
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"
@@ -29,29 +28,6 @@ type ClientUpOut struct {
 	Document string `json:"document" command:"name:document"`
 }
 
-// GetDomain is a method that returns a domain representation of the client dto
-func (c *ClientUpIn) GetDomain() []port.Domain {
-	roleId := fmt.Sprintf("%s_%s_%s", c.ID, port.RoleClient, c.ID)
-	return []port.Domain{
-		domain.NewClient(c.ID, c.Date, c.Name, c.Email, c.Phone, c.Document, ""),
-		domain.NewClientRole(roleId, "", "", "", ""),
-	}
-}
-
-// SetDomain is a method that sets the dto with the domain
-func (c *ClientUpOut) GetDTO(domainIn interface{}) interface{} {
-	slices := domainIn.([]interface{})
-	client := slices[0].(*domain.Client)
-	dto := &ClientUpOut{}
-	dto.ID = client.ID
-	dto.Date = client.Date.Format(port.DateFormat)
-	dto.Name = client.Name
-	dto.Email = client.Email
-	dto.Phone = client.Phone
-	dto.Document = client.Document
-	return dto
-}
-
 // Validate is a method that validates the dto
 func (c *ClientUpIn) Validate(repo port.Repository) error {
 	if c.IsEmpty() {
@@ -67,6 +43,32 @@ func (c *ClientUpIn) Validate(repo port.Repository) error {
 	}
 	c.ID = id
 	return nil
+}
+
+// GetDomain is a method that returns a domain representation of the client dto
+func (c *ClientUpIn) GetDomain() []port.Domain {
+	return []port.Domain{
+		domain.NewClient(c.ID, c.Date, c.Name, c.Email, c.Phone, c.Document, ""),
+	}
+}
+
+// GetOut is a method that returns the output dto
+func (c *ClientUpIn) GetOut() port.DTOOut {
+	return &ClientUpOut{}
+}
+
+// SetDomain is a method that sets the dto with the domain
+func (c *ClientUpOut) GetDTO(domainIn interface{}) interface{} {
+	slices := domainIn.([]interface{})
+	client := slices[0].(*domain.Client)
+	dto := &ClientUpOut{}
+	dto.ID = client.ID
+	dto.Date = client.Date.Format(port.DateFormat)
+	dto.Name = client.Name
+	dto.Email = client.Email
+	dto.Phone = client.Phone
+	dto.Document = client.Document
+	return dto
 }
 
 // IsEmpty is a method that returns true if the dto is empty

@@ -51,9 +51,6 @@ func NewClientRole(ID string, date string, clientID string, role string, refID s
 func (c *ClientRole) Format(repo port.Repository, args ...string) error {
 	filled := slices.Contains(args, "filled")
 	msg := ""
-	if err := c.formatID(filled); err != nil {
-		msg += err.Error() + " | "
-	}
 	if err := c.formatDate(filled); err != nil {
 		msg += err.Error() + " | "
 	}
@@ -67,6 +64,9 @@ func (c *ClientRole) Format(repo port.Repository, args ...string) error {
 		msg += err.Error() + " | "
 	}
 	if err := c.validateDuplicity(repo, slices.Contains(args, "noduplicity")); err != nil {
+		msg += err.Error() + " | "
+	}
+	if err := c.formatID(filled); err != nil {
 		msg += err.Error() + " | "
 	}
 	if msg != "" {
@@ -110,7 +110,8 @@ func (c *ClientRole) formatID(filled bool) error {
 		if filled {
 			return nil
 		}
-		return errors.New(port.ErrEmptyID)
+		c.ID = c.mountID(c.ClientID, c.Role, c.RefID)
+		return nil
 	}
 	if len(id) > 25 {
 		return errors.New(port.ErrLongID)
@@ -120,6 +121,11 @@ func (c *ClientRole) formatID(filled bool) error {
 	}
 	c.ID = strings.ToLower(id)
 	return nil
+}
+
+// mountID is a method that mounts the id field
+func (c *ClientRole) mountID(client_id string, role string, ref_id string) string {
+	return strings.ToLower(client_id + "-" + role + "-" + ref_id)
 }
 
 // FormatDate is a method that formats the date field
@@ -200,10 +206,8 @@ func (c *ClientRole) formatRefID(repo port.Repository, filled bool) error {
 	if c.Role == port.RoleClient {
 		return nil
 	}
-	if c.ClientID == c.RefID {
-		return errors.New(port.ErrSameClient)
-	}
-	if b, err := repo.Get(&Client{}, c.RefID); err != nil {
+	clientRoleId := c.mountID(c.RefID, port.RoleClient, c.RefID) 
+	if b, err := repo.Get(&ClientRole{}, clientRoleId); err != nil {
 		return err
 	} else if !b {
 		return errors.New(port.ErrRefNotFound)

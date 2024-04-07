@@ -3,7 +3,6 @@ package usecase
 import (
 	"errors"
 
-	"github.com/lavinas/ephemeris/internal/dto"
 	"github.com/lavinas/ephemeris/internal/port"
 	"github.com/lavinas/ephemeris/pkg"
 )
@@ -59,7 +58,7 @@ func (u *Get) Run(dtoIn interface{}) error {
 		}
 		result = append(result, found)
 	}
-	out := dto.ClientGetOut{}
+	out := in.GetOut()
 	u.Out = out.GetDTO(result)
 	return nil
 }
@@ -69,7 +68,7 @@ func (u *Get) String() string {
 	if u.Out == nil {
 		return ""
 	}
-	return pkg.NewCommands().Marshal(u.Out)
+	return pkg.NewCommands().Marshal(u.Out, "trim")
 }
 
 // Interface is a method that returns the output dto as an interface

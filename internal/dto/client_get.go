@@ -43,8 +43,12 @@ func (c *ClientGetIn) Validate(repo port.Repository) error {
 func (c *ClientGetIn) GetDomain() []port.Domain {
 	return []port.Domain{
 		domain.NewClient(c.ID, c.Date, c.Name, c.Email, c.Phone, c.Document, c.Contact),
-		domain.NewClientRole("", "", "", port.RoleClient, c.ID),
 	}
+}
+
+// GetOut is a method that returns the output dto
+func (c *ClientGetIn) GetOut() port.DTOOut {
+	return &ClientGetOut{}
 }
 
 // GetDTO is a method that returns the dto
