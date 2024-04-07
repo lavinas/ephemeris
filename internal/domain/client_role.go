@@ -185,6 +185,7 @@ func (c *ClientRole) formatRefID(repo port.Repository, filled bool) error {
 			return nil
 		}
 		if c.Role == port.RoleClient {
+			c.RefID = c.ClientID
 			return nil
 		}
 		return errors.New(port.ErrRefIDNotProvided)

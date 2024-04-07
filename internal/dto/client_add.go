@@ -50,7 +50,7 @@ func (c *ClientAddIn) GetDomain() []port.Domain {
 		time.Local, _ = time.LoadLocation(port.Location)
 		c.Date = time.Now().Format(port.DateFormat)
 	}
-	roleId := fmt.Sprintf("%s_%s_%s", c.ID, port.RoleClient, c.ID)
+	roleId := fmt.Sprintf("%s_%s_%s", c.ID, port.RoleClient, c.ID)	
 	return []port.Domain{
 		domain.NewClient(c.ID, c.Date, c.Name, c.Email, c.Phone, c.Document, port.DefaultContact),
 		domain.NewClientRole(roleId, c.Date, c.ID, c.Role, c.Ref),
