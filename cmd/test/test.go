@@ -44,7 +44,7 @@ func trim(table [][]string) [][]string {
 }
 
 func MountTable(table [][]string) string {
-	if len(table) == 0 || len(table[0]) == 0{
+	if len(table) == 0 || len(table[0]) == 0 {
 		return ""
 	}
 	ret := ""
@@ -79,9 +79,7 @@ func MountTable(table [][]string) string {
 	return ret
 }
 
-
-
-func main () {
+func main() {
 	table := [][]string{
 		{"a", "b", "c"},
 		{"1", "1", "1"},

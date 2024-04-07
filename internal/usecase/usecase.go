@@ -12,9 +12,10 @@ import (
 
 var (
 	dtos = map[interface{}]port.UseCase{
-		&dto.ClientAddIn{}: &Add{},
-		&dto.ClientGetIn{}: &Get{},
-		&dto.ClientUpIn{}:  &Up{},
+		&dto.ClientAddIn{}:  &Add{},
+		&dto.ClientGetIn{}:  &Get{},
+		&dto.ClientUpIn{}:   &Up{},
+		&dto.ClientLinkIn{}: &Add{},
 	}
 )
 

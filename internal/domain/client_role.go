@@ -12,7 +12,7 @@ import (
 
 var (
 	// Roles is a slice that contains the roles for a client
-	Roles = []string{port.RoleClient, port.RoleLiable, port.RolePayer}
+	Roles       = []string{port.RoleClient, port.RoleLiable, port.RolePayer}
 	DefaultRole = "client"
 )
 
@@ -63,10 +63,10 @@ func (c *ClientRole) Format(repo port.Repository, args ...string) error {
 	if err := c.formatRefID(repo, filled); err != nil {
 		msg += err.Error() + " | "
 	}
-	if err := c.validateDuplicity(repo, slices.Contains(args, "noduplicity")); err != nil {
+	if err := c.formatID(filled); err != nil {
 		msg += err.Error() + " | "
 	}
-	if err := c.formatID(filled); err != nil {
+	if err := c.validateDuplicity(repo, slices.Contains(args, "noduplicity")); err != nil {
 		msg += err.Error() + " | "
 	}
 	if msg != "" {
@@ -206,7 +206,7 @@ func (c *ClientRole) formatRefID(repo port.Repository, filled bool) error {
 	if c.Role == port.RoleClient {
 		return nil
 	}
-	clientRoleId := c.mountID(c.RefID, port.RoleClient, c.RefID) 
+	clientRoleId := c.mountID(c.RefID, port.RoleClient, c.RefID)
 	if b, err := repo.Get(&ClientRole{}, clientRoleId); err != nil {
 		return err
 	} else if !b {

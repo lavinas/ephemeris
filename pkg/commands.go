@@ -306,7 +306,6 @@ func (c *Commands) trimTable(table [][]string) [][]string {
 	return ret
 }
 
-
 // mountTable is a function that mounts a table
 func (c *Commands) mountTable(table [][]string) string {
 	ret := ""
