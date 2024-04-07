@@ -227,6 +227,9 @@ func (c *Client) formatDocument(filled bool) error {
 func (c *Client) formatContact(filled bool) error {
 	contact := c.formatString(c.Contact)
 	if contact == "" {
+		if filled {
+			return nil
+		}
 		c.Contact = contact
 		return nil
 	}

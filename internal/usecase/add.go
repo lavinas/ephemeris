@@ -73,7 +73,7 @@ func (y *Add) String() string {
 	if y.Out == nil {
 		return ""
 	}
-	return pkg.NewCommands().Marshal(y.Out)
+	return pkg.NewCommands().Marshal(y.Out, "trim")
 }
 
 // error is a function that logs an error and returns it

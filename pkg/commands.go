@@ -34,6 +34,9 @@ func (c *Commands) Marshal(v interface{}, args ...string) string {
 		return ""
 	}
 	ret := c.getValuesSlice(rvl, slices.Contains(args, "nokeys"))
+	if slices.Contains(args, "trim") {
+		ret = c.trimTable(ret)
+	}
 	return c.mountTable(ret)
 }
 
@@ -263,6 +266,46 @@ func (c *Commands) setFields(v interface{}, tags map[string]*Command) {
 		field.SetString(i.value)
 	}
 }
+
+// trimTable is a function that trims a table
+func (c *Commands) trimTable(table [][]string) [][]string {
+	fillCols := map[int]bool{}
+	fillLines := map[int]bool{}
+	for i := 1; i < len(table); i++ {
+		for j := 0; j < len(table[i]); j++ {
+			if table[i][j] != "" {
+				fillCols[j] = true
+				fillLines[i] = true
+			}
+		}
+	}
+	ret := make([][]string, 0)
+	line := []string{}
+	for i := 0; i < len(table[0]); i++ {
+		if fillCols[i] {
+			line = append(line, table[0][i])
+		}
+	}
+	if len(line) > 0 {
+		ret = append(ret, line)
+	}
+	for i := 1; i < len(table); i++ {
+		if !fillLines[i] {
+			continue
+		}
+		line := []string{}
+		for j := 0; j < len(table[i]); j++ {
+			if fillCols[j] {
+				line = append(line, table[i][j])
+			}
+		}
+		if len(line) > 0 {
+			ret = append(ret, line)
+		}
+	}
+	return ret
+}
+
 
 // mountTable is a function that mounts a table
 func (c *Commands) mountTable(table [][]string) string {

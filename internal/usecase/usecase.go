@@ -15,7 +15,6 @@ var (
 		&dto.ClientAddIn{}: &Add{},
 		&dto.ClientGetIn{}: &Get{},
 		&dto.ClientUpIn{}:  &Up{},
-		&dto.LiableAddIn{}: &Add{},
 	}
 )
 

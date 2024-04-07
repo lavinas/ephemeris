@@ -20,8 +20,8 @@ type ClientAddIn struct {
 	Email     string `json:"email" command:"name:email"`
 	Phone     string `json:"phone" command:"name:phone"`
 	Document  string `json:"document" command:"name:document"`
-	Type      string `json:"type" command:"name:type"`
-	Reference string `json:"reference" command:"name:reference"`
+	Role      string `json:"type" command:"name:role"`
+	Ref       string `json:"reference" command:"name:ref"`
 }
 
 // ClientAddOut represents the output dto for adding a client usecase
@@ -32,6 +32,8 @@ type ClientAddOut struct {
 	Email    string `json:"email" command:"name:email"`
 	Phone    string `json:"phone" command:"name:phone"`
 	Document string `json:"document" command:"name:document"`
+	Role     string `json:"type" command:"name:role"`
+	Ref      string `json:"reference" command:"name:ref"`
 }
 
 // Validate is a method that validates the dto
@@ -51,7 +53,7 @@ func (c *ClientAddIn) GetDomain() []port.Domain {
 	roleId := fmt.Sprintf("%s_%s_%s", c.ID, port.RoleClient, c.ID)
 	return []port.Domain{
 		domain.NewClient(c.ID, c.Date, c.Name, c.Email, c.Phone, c.Document, port.DefaultContact),
-		domain.NewClientRole(roleId, c.Date, c.ID, port.RoleClient, c.ID),
+		domain.NewClientRole(roleId, c.Date, c.ID, c.Role, c.Ref),
 	}
 }
 
@@ -66,6 +68,9 @@ func (c *ClientAddOut) GetDTO(domainIn interface{}) interface{} {
 	dto.Email = client.Email
 	dto.Phone = client.Phone
 	dto.Document = client.Document
+	clientRole := slices[1].(*domain.ClientRole)
+	dto.Role = clientRole.Role
+	dto.Ref = clientRole.RefID
 	return dto
 }
 

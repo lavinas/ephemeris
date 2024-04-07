@@ -13,6 +13,7 @@ import (
 var (
 	// Roles is a slice that contains the roles for a client
 	Roles = []string{port.RoleClient, port.RoleLiable, port.RolePayer}
+	DefaultRole = "client"
 )
 
 // ClientRole is a struct that represents the roles of a client
@@ -163,7 +164,8 @@ func (c *ClientRole) formatRole(filled bool) error {
 		if filled {
 			return nil
 		}
-		return errors.New(port.ErrRoleNotProvided)
+		c.Role = DefaultRole
+		return nil
 	}
 	if !slices.Contains(Roles, role) {
 		return errors.New(port.ErrInvalidRole)
@@ -180,6 +182,9 @@ func (c *ClientRole) formatRefID(repo port.Repository, filled bool) error {
 	refID := c.formatString(c.RefID)
 	if refID == "" {
 		if filled {
+			return nil
+		}
+		if c.Role == port.RoleClient {
 			return nil
 		}
 		return errors.New(port.ErrRefIDNotProvided)
