@@ -17,6 +17,8 @@ var (
 		&dto.ClientUpIn{}:   &Up{},
 		&dto.ClientLinkIn{}: &Add{},
 		&dto.ServiceAddIn{}: &Add{},
+		&dto.ServiceGetIn{}: &Get{},
+		&dto.ServiceUpIn{}:  &Up{},
 	}
 )
 

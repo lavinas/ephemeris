@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 	"time"
+	"fmt"
 
 	"github.com/lavinas/ephemeris/internal/port"
 )
@@ -13,8 +14,8 @@ import (
 // Service represents the service entity
 type Service struct {
 	ID   string    `gorm:"type:varchar(25); primaryKey"`
-	Date time.Time `gorm:"type:datetime; not null"`
-	Name string    `gorm:"type:varchar(100), not null"`
+	Date time.Time `gorm:"type:datetime; not null; index"`
+	Name string    `gorm:"type:varchar(100); not null; index"`
 }
 
 // NewService is a function that creates a new service
@@ -38,6 +39,7 @@ func NewService(id string, date string, name string) *Service {
 // Format is a method that formats the service
 func (s *Service) Format(repo port.Repository, args ...string) error {
 	filled := slices.Contains(args, "filled")
+	noduplicity := slices.Contains(args, "noduplicity")
 	msg := ""
 	if err := s.formatID(filled); err != nil {
 		msg += err.Error() + " | "
@@ -48,8 +50,11 @@ func (s *Service) Format(repo port.Repository, args ...string) error {
 	if err := s.formatName(filled); err != nil {
 		msg += err.Error() + " | "
 	}
+	if err := s.validateDuplicity(repo, noduplicity); err != nil {
+		msg += err.Error() + " | "
+	}
 	if msg != "" {
-		return errors.New(msg)
+		return errors.New(msg[:len(msg)-3])
 	}
 	return nil
 }
@@ -78,7 +83,7 @@ func (b *Service) TableName() string {
 func (s *Service) formatID(filled bool) error {
 	s.ID = s.formatString(s.ID)
 	if s.ID == "" {
-		if !filled {
+		if filled {
 			return nil
 		}
 		return errors.New("service id is required")
@@ -94,7 +99,7 @@ func (s *Service) formatID(filled bool) error {
 
 // formatDate is a method that formats the service date
 func (s *Service) formatDate(filled bool) error {
-	if !filled {
+	if filled {
 		return nil
 	}
 	if s.Date.IsZero() {
@@ -106,7 +111,7 @@ func (s *Service) formatDate(filled bool) error {
 // formatName is a method that formats the service name
 func (s *Service) formatName(filled bool) error {
 	s.Name = s.formatString(s.Name)
-	if !filled {
+	if filled {
 		return nil
 	}
 	if s.Name == "" {
@@ -121,4 +126,19 @@ func (s *Service) formatString(str string) string {
 	space := regexp.MustCompile(`\s+`)
 	str = space.ReplaceAllString(str, " ")
 	return str
+}
+
+// validateDuplicity is a method that validates the duplicity of a client
+func (c *Service) validateDuplicity(repo port.Repository, noduplicity bool) error {
+	if noduplicity {
+		return nil
+	}
+	ok, err := repo.Get(&Service{}, c.ID)
+	if err != nil {
+		return err
+	}
+	if ok {
+		return fmt.Errorf(port.ErrAlreadyExists, c.ID)
+	}
+	return nil
 }
