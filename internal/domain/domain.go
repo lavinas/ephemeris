@@ -5,5 +5,6 @@ func GetDomain() []interface{} {
 	return []interface{}{
 		&Client{},
 		&ClientRole{},
+		&Service{},
 	}
 }
