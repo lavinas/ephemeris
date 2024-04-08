@@ -2,27 +2,33 @@ package domain
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
-	"fmt"
 
 	"github.com/lavinas/ephemeris/internal/port"
 )
 
 // Service represents the service entity
 type Service struct {
-	ID   string    `gorm:"type:varchar(25); primaryKey"`
-	Date time.Time `gorm:"type:datetime; not null; index"`
-	Name string    `gorm:"type:varchar(100); not null; index"`
+	ID      string    `gorm:"type:varchar(25); primaryKey"`
+	Date    time.Time `gorm:"type:datetime; not null; index"`
+	Name    string    `gorm:"type:varchar(100); not null; index"`
+	Minutes int64     `gorm:"type:int; not null; index"`
 }
 
 // NewService is a function that creates a new service
-func NewService(id string, date string, name string) *Service {
+func NewService(id string, date string, name string, minutes string) *Service {
 	date = strings.TrimSpace(date)
 	local, _ := time.LoadLocation(port.Location)
 	fdate := time.Time{}
+	min, err := strconv.ParseInt(minutes, 10, 64)
+	if err != nil {
+		min = -1
+	}
 	if date != "" {
 		var err error
 		if fdate, err = time.ParseInLocation(port.DateFormat, date, local); err != nil {
@@ -30,9 +36,10 @@ func NewService(id string, date string, name string) *Service {
 		}
 	}
 	return &Service{
-		ID:   id,
-		Date: fdate,
-		Name: name,
+		ID:      id,
+		Date:    fdate,
+		Name:    name,
+		Minutes: min,
 	}
 }
 
@@ -48,6 +55,9 @@ func (s *Service) Format(repo port.Repository, args ...string) error {
 		msg += err.Error() + " | "
 	}
 	if err := s.formatName(filled); err != nil {
+		msg += err.Error() + " | "
+	}
+	if err := s.formatMinutes(filled); err != nil {
 		msg += err.Error() + " | "
 	}
 	if err := s.validateDuplicity(repo, noduplicity); err != nil {
@@ -116,6 +126,17 @@ func (s *Service) formatName(filled bool) error {
 	}
 	if s.Name == "" {
 		return errors.New("service name is required")
+	}
+	return nil
+}
+
+// formatMinutes is a method that formats the service minutes
+func (s *Service) formatMinutes(filled bool) error {
+	if filled {
+		return nil
+	}
+	if s.Minutes < 0 {
+		return errors.New("service minutes is required")
 	}
 	return nil
 }
