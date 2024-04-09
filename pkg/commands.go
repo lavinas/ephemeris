@@ -53,7 +53,7 @@ func (c *Commands) FindOne(data string, v []interface{}) (interface{}, error) {
 		}
 		ss := strings.Split(data, " ")
 		if err := c.checkDuplicatedComms(ss, tags); err != nil {
-			continue
+			return nil, err
 		}
 		c.mapValues(tags, ss)
 		if err := c.checkValues(tags); err != nil {
