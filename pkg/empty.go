@@ -35,7 +35,7 @@ func IsEmpty(i interface{}) bool {
 	t := reflect.TypeOf(i)
 	v := reflect.ValueOf(i)
 	if t.Kind() == reflect.Ptr {
-		if v.IsNil() { 
+		if v.IsNil() {
 			return true
 		}
 		t = t.Elem()

@@ -175,4 +175,3 @@ func (r *MySql) fieldName(field string) string {
 	}
 	return ret
 }
-

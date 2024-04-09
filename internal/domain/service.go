@@ -96,10 +96,10 @@ func (s *Service) formatID(filled bool) error {
 		if filled {
 			return nil
 		}
-		return errors.New("service id is required")
+		return errors.New(port.ErrEmptyID)
 	}
 	if len(s.ID) > 25 {
-		return errors.New("service id must have at most 25 characters")
+		return errors.New(port.ErrLongID)
 	}
 	if len(strings.Split(s.ID, " ")) > 1 {
 		return errors.New(port.ErrInvalidID)
@@ -113,7 +113,7 @@ func (s *Service) formatDate(filled bool) error {
 		return nil
 	}
 	if s.Date.IsZero() {
-		return errors.New("service date is required")
+		return errors.New(port.ErrInvalidDateFormat)
 	}
 	return nil
 }
@@ -125,7 +125,7 @@ func (s *Service) formatName(filled bool) error {
 		return nil
 	}
 	if s.Name == "" {
-		return errors.New("service name is required")
+		return errors.New(port.ErrEmptyName)
 	}
 	return nil
 }
@@ -136,7 +136,7 @@ func (s *Service) formatMinutes(filled bool) error {
 		return nil
 	}
 	if s.Minutes < 0 {
-		return errors.New("service minutes is required")
+		return errors.New(port.ErrInvalidMinutes)
 	}
 	return nil
 }

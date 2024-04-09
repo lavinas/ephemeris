@@ -50,4 +50,13 @@ const (
 	ErrDuplicatedRole      = "this connection between clients already exists"
 	ErrSameClient          = "client and reference should be different"
 	ErrRefNotFound         = "reference not found or reference is not a client"
+	ErrClientNotFound      = "client not found"
+	ErrInvalidMinutes      = "minutes should be greater than or equal to zero"
+	ErrEmptyCycle          = "empty cycle. Shoud be %s"
+	ErrInvalidCycle        = "invalid cycle. Shoud be %s"
+	ErrInvalidAmount       = "quantity should be greater than zero or equal zero"
+	ErrInvalidLimit        = "limit should be greater than zero or equal zero"
+	ErrEmptyAmount         = "if cycle is not once, quantity should be greater than zero"
+	ErrZeroAmount          = "if cycle is once, quantity should be zero"
+	ErrZeroLimit           = "if cycle is once, limit should be zero"
 )

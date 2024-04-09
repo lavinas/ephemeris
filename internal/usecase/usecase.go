@@ -12,13 +12,14 @@ import (
 
 var (
 	dtos = map[interface{}]port.UseCase{
-		&dto.ClientAddIn{}:  &Add{},
-		&dto.ClientGetIn{}:  &Get{},
-		&dto.ClientUpIn{}:   &Up{},
-		&dto.ClientLinkIn{}: &Add{},
-		&dto.ServiceAddIn{}: &Add{},
-		&dto.ServiceGetIn{}: &Get{},
-		&dto.ServiceUpIn{}:  &Up{},
+		&dto.ClientAddIn{}:     &Add{},
+		&dto.ClientGetIn{}:     &Get{},
+		&dto.ClientUpIn{}:      &Up{},
+		&dto.ClientLinkIn{}:    &Add{},
+		&dto.ServiceAddIn{}:    &Add{},
+		&dto.ServiceGetIn{}:    &Get{},
+		&dto.ServiceUpIn{}:     &Up{},
+		&dto.RecurrenceAddIn{}: &Add{},
 	}
 )
 
