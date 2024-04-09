@@ -59,4 +59,5 @@ const (
 	ErrEmptyAmount         = "if cycle is not once, quantity should be greater than zero"
 	ErrZeroAmount          = "if cycle is once, quantity should be zero"
 	ErrZeroLimit           = "if cycle is once, limit should be zero"
+	ErrLongCycle           = "cycle should have at most 20"
 )

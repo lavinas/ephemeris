@@ -27,10 +27,10 @@ var (
 type Recurrence struct {
 	ID     string    `gorm:"type:varchar(25); primaryKey"`
 	Date   time.Time `gorm:"type:datetime; not null"`
-	Name   string    `gorm:"type:varchar(100), not null"`
-	Cycle  string    `gorm:"foreignKey:ID, not null"`
-	Amount int64     `gorm:"type:numeric(20), not null"`
-	Limit  int64     `gorm:"type:numeric(20), not null"`
+	Name   string    `gorm:"type:varchar(100); not null"`
+	Cycle  string    `gorm:"type:varchar(20); not null"`
+	Amount int64     `gorm:"type:numeric(10); not null"`
+	Limit  int64     `gorm:"type:numeric(10); not null"`
 }
 
 // NewRecurrence is a function that creates a new recurrence
@@ -170,6 +170,9 @@ func (r *Recurrence) formatCycle(filled bool) error {
 			cycles += k + ", "
 		}
 		return fmt.Errorf(port.ErrEmptyCycle, cycles[:len(cycles)-2])
+	}
+	if len(r.Cycle) > 20 {
+		return fmt.Errorf(port.ErrLongCycle)
 	}
 	if _, ok := Cycles[r.Cycle]; !ok {
 		cycles := ""

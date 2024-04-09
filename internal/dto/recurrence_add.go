@@ -80,5 +80,5 @@ func (r *RecurrenceAddOut) GetDTO(domainIn interface{}) interface{} {
 
 // isEmpty is a method that checks if the dto is empty
 func (r *RecurrenceAddIn) isEmpty() bool {
-	return r.ID == "" || r.Date == "" || r.Name == "" || r.Cycle == "" || r.Amount == "" || r.Limit == ""
+	return r.ID == "" && r.Date == "" && r.Name == "" && r.Cycle == "" && r.Amount == "" && r.Limit == ""
 }
