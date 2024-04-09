@@ -3,7 +3,6 @@ package repository
 import (
 	"errors"
 	"reflect"
-	"time"
 	"unicode"
 
 	"gorm.io/driver/mysql"
@@ -11,6 +10,7 @@ import (
 	"gorm.io/gorm/logger"
 
 	"github.com/lavinas/ephemeris/internal/port"
+	"github.com/lavinas/ephemeris/pkg"
 )
 
 const (
@@ -146,7 +146,7 @@ func (r *MySql) Find(base interface{}) (interface{}, error) {
 func (r *MySql) where(tx *gorm.DB, sob reflect.Type, base interface{}) (*gorm.DB, error) {
 	filtered := false
 	for i := 0; i < sob.NumField(); i++ {
-		if r.isEmpty(reflect.ValueOf(base).Elem().Field(i)) {
+		if pkg.IsEmpty(reflect.ValueOf(base).Elem().Field(i).Interface()) {
 			continue
 		}
 		filtered = true
@@ -162,25 +162,6 @@ func (r *MySql) where(tx *gorm.DB, sob reflect.Type, base interface{}) (*gorm.DB
 	return tx, nil
 }
 
-// isEmpty is a method that returns true if the value is empty
-func (r *MySql) isEmpty(value reflect.Value) bool {
-	typ := value.Type()
-	val := value.Interface()
-	if value.Kind() == reflect.Ptr && value.IsNil() {
-		return true
-	}
-	if typ == reflect.TypeOf(time.Time{}) && val.(time.Time).IsZero() {
-		return true
-	}
-	if typ == reflect.TypeOf("") && val == "" {
-		return true
-	}
-	if typ == reflect.TypeOf(0) && val == 0 {
-		return true
-	}
-	return false
-}
-
 // fieldName is a method that returns the field name
 func (r *MySql) fieldName(field string) string {
 	ret := ""
@@ -194,3 +175,4 @@ func (r *MySql) fieldName(field string) string {
 	}
 	return ret
 }
+

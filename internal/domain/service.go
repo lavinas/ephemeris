@@ -27,7 +27,7 @@ func NewService(id string, date string, name string, minutes string) *Service {
 	fdate := time.Time{}
 	min, err := strconv.ParseInt(minutes, 10, 64)
 	if err != nil {
-		min = -1
+		min = 0
 	}
 	if date != "" {
 		var err error
