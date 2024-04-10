@@ -56,8 +56,8 @@ const (
 	ErrInvalidCycle        = "invalid cycle. Shoud be %s"
 	ErrInvalidAmount       = "quantity should be greater than zero or equal zero"
 	ErrInvalidLimit        = "limit should be greater than zero or equal zero"
-	ErrEmptyAmount         = "if cycle is not once, quantity should be greater than zero"
-	ErrZeroAmount          = "if cycle is once, quantity should be zero"
-	ErrZeroLimit           = "if cycle is once, limit should be zero"
+	ErrEmptyLen            = "if cycle is not once, len should be numeric and greater than zero"
+	ErrZeroLen             = "if cycle is once, len should be zero or not be informed"
+	ErrZeroLimit           = "if cycle is once, limit should be zero or not be informed"
 	ErrLongCycle           = "cycle should have at most 20"
 )

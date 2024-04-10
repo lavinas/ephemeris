@@ -29,36 +29,36 @@ type Recurrence struct {
 	Date   time.Time `gorm:"type:datetime; not null"`
 	Name   string    `gorm:"type:varchar(100); not null"`
 	Cycle  string    `gorm:"type:varchar(20); not null"`
-	Amount int64     `gorm:"type:numeric(10); not null"`
-	Limit  int64     `gorm:"type:numeric(10); not null"`
+	Length *int64    `gorm:"type:numeric(10); null"`
+	Limits *int64    `gorm:"type:numeric(10); null"`
 }
 
 // NewRecurrence is a function that creates a new recurrence
-func NewRecurrence(id string, date string, name string, cycle string, amount string, limit string) *Recurrence {
+func NewRecurrence(id string, date string, name string, cycle string, length string, limit string) *Recurrence {
 	date = strings.TrimSpace(date)
 	local, _ := time.LoadLocation(port.Location)
 	fdate := time.Time{}
-	quant, err := strconv.ParseInt(amount, 10, 64)
-	if err != nil {
-		quant = 0
-	}
-	lim, err := strconv.ParseInt(limit, 10, 64)
-	if err != nil {
-		lim = 0
-	}
 	if date != "" {
 		var err error
 		if fdate, err = time.ParseInLocation(port.DateFormat, date, local); err != nil {
 			fdate = time.Time{}
 		}
 	}
+	var flen *int64 = nil
+	if len, _ := strconv.ParseInt(length, 10, 64); len > 0 {
+		flen = &len
+	}
+	var flim *int64 = nil
+	if lim, _ := strconv.ParseInt(limit, 10, 64); lim > 0 {
+		flim = &lim
+	}
 	return &Recurrence{
 		ID:     id,
 		Date:   fdate,
 		Name:   name,
 		Cycle:  cycle,
-		Amount: quant,
-		Limit:  lim,
+		Length: flen,
+		Limits: flim,
 	}
 }
 
@@ -79,17 +79,17 @@ func (r *Recurrence) Format(repo port.Repository, args ...string) error {
 	if err := r.formatCycle(filled); err != nil {
 		msg += err.Error() + " | "
 	}
-	if err := r.formatAmount(); err != nil {
+	if err := r.formatLength(filled); err != nil {
 		msg += err.Error() + " | "
 	}
-	if err := r.formatLimit(); err != nil {
+	if err := r.formatLimit(filled); err != nil {
 		msg += err.Error() + " | "
 	}
 	if err := r.validateDuplicity(repo, noduplicity); err != nil {
 		msg += err.Error() + " | "
 	}
 	if msg != "" {
-		return fmt.Errorf(msg)
+		return fmt.Errorf(msg[:len(msg)-3])
 	}
 	return nil
 }
@@ -185,25 +185,25 @@ func (r *Recurrence) formatCycle(filled bool) error {
 }
 
 // formatQuantity is a method that formats the recurrence quantity
-func (r *Recurrence) formatAmount() error {
-	if r.Amount < 0 {
-		return fmt.Errorf(port.ErrInvalidAmount)
+func (r *Recurrence) formatLength(filled bool) error {
+	if filled && r.Length == nil {
+		return nil
 	}
-	if r.Cycle != "once" && r.Amount == 0 {
-		return fmt.Errorf(port.ErrEmptyAmount)
+	if r.Cycle == "once" && r.Length != nil {
+		return fmt.Errorf(port.ErrZeroLen)
 	}
-	if r.Cycle == "once" && r.Amount != 0 {
-		return fmt.Errorf(port.ErrZeroAmount)
+	if r.Cycle != "once" && r.Length == nil {
+		return fmt.Errorf(port.ErrEmptyLen)
 	}
 	return nil
 }
 
 // formatLimit is a method that formats the recurrence limit
-func (r *Recurrence) formatLimit() error {
-	if r.Limit < 0 {
-		return fmt.Errorf(port.ErrInvalidLimit)
+func (r *Recurrence) formatLimit(filled bool) error {
+	if filled && r.Limits == nil {
+		return nil
 	}
-	if r.Cycle == "once" && r.Limit != 0 {
+	if r.Cycle == "once" && r.Limits != nil {
 		return fmt.Errorf(port.ErrZeroLimit)
 	}
 	return nil

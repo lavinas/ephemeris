@@ -17,18 +17,18 @@ type RecurrenceAddIn struct {
 	Date   string `json:"date" command:"name:date"`
 	Name   string `json:"name" command:"name:name"`
 	Cycle  string `json:"cycle" command:"name:cycle"`
-	Amount string `json:"quantity" command:"name:amount"`
+	Length string `json:"quantity" command:"name:len"`
 	Limit  string `json:"limit" command:"name:limit"`
 }
 
 // RecurrenceAddOut is a struct that represents the recurrence add output data transfer object
 type RecurrenceAddOut struct {
-	ID    string `json:"id" command:"name:id"`
-	Date  string `json:"date" command:"name:date"`
-	Name  string `json:"name" command:"name:name"`
-	Cycle string `json:"cycle" command:"name:cycle"`
-	Size  string `json:"quantity" command:"name:amount"`
-	Limit string `json:"limit" command:"name:limit"`
+	ID     string `json:"id" command:"name:id"`
+	Date   string `json:"date" command:"name:date"`
+	Name   string `json:"name" command:"name:name"`
+	Cycle  string `json:"cycle" command:"name:cycle"`
+	Length string `json:"quantity" command:"name:len"`
+	Limit  string `json:"limit" command:"name:limit"`
 }
 
 // Validate is a method that validates the dto
@@ -45,14 +45,14 @@ func (r *RecurrenceAddIn) GetDomain() []port.Domain {
 		time.Local, _ = time.LoadLocation(port.Location)
 		r.Date = time.Now().Format(port.DateFormat)
 	}
-	if r.Amount == "" {
-		r.Amount = "0"
+	if r.Length == "" {
+		r.Length = "0"
 	}
 	if r.Limit == "" {
 		r.Limit = "0"
 	}
 	return []port.Domain{
-		domain.NewRecurrence(r.ID, r.Date, r.Name, r.Cycle, r.Amount, r.Limit),
+		domain.NewRecurrence(r.ID, r.Date, r.Name, r.Cycle, r.Length, r.Limit),
 	}
 }
 
@@ -68,17 +68,25 @@ func (r *RecurrenceAddOut) GetDTO(domainIn interface{}) interface{} {
 	if !ok {
 		return nil
 	}
+	len := ""
+	if recurrence.Length != nil {
+		len = strconv.FormatInt(*recurrence.Length, 10)
+	}
+	lim := ""
+	if recurrence.Limits != nil {
+		lim = strconv.FormatInt(*recurrence.Limits, 10)
+	}
 	return &RecurrenceAddOut{
-		ID:    recurrence.ID,
-		Date:  recurrence.Date.Format(port.DateFormat),
-		Name:  recurrence.Name,
-		Cycle: recurrence.Cycle,
-		Size:  strconv.FormatInt(recurrence.Amount, 10),
-		Limit: strconv.FormatInt(recurrence.Limit, 10),
+		ID:     recurrence.ID,
+		Date:   recurrence.Date.Format(port.DateFormat),
+		Name:   recurrence.Name,
+		Cycle:  recurrence.Cycle,
+		Length: len,
+		Limit:  lim,
 	}
 }
 
 // isEmpty is a method that checks if the dto is empty
 func (r *RecurrenceAddIn) isEmpty() bool {
-	return r.ID == "" && r.Date == "" && r.Name == "" && r.Cycle == "" && r.Amount == "" && r.Limit == ""
+	return r.ID == "" && r.Date == "" && r.Name == "" && r.Cycle == "" && r.Length == "" && r.Limit == ""
 }
