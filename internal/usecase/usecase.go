@@ -21,6 +21,7 @@ var (
 		&dto.ServiceUpIn{}:     &Up{},
 		&dto.RecurrenceAddIn{}: &Add{},
 		&dto.RecurrenceGetIn{}: &Get{},
+		&dto.RecurrenceUpIn{}:  &Up{},
 	}
 )
 

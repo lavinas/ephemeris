@@ -16,7 +16,7 @@ type RecurrenceGetIn struct {
 	Date   string `json:"date" command:"name:date"`
 	Name   string `json:"name" command:"name:name"`
 	Cycle  string `json:"cycle" command:"name:cycle"`
-	Length string `json:"quantity" command:"name:len"`
+	Length string `json:"quantity" command:"name:length"`
 	Limit  string `json:"limit" command:"name:limit"`
 }
 
@@ -26,7 +26,7 @@ type RecurrenceGetOut struct {
 	Date   string `json:"date" command:"name:date"`
 	Name   string `json:"name" command:"name:name"`
 	Cycle  string `json:"cycle" command:"name:cycle"`
-	Length string `json:"quantity" command:"name:len"`
+	Length string `json:"quantity" command:"name:length"`
 	Limit  string `json:"limit" command:"name:limit"`
 }
 
