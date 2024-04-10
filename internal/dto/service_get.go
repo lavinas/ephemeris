@@ -52,11 +52,15 @@ func (c *ServiceGetOut) GetDTO(domainIn interface{}) interface{} {
 	slices := domainIn.([]interface{})
 	services := slices[0].(*[]domain.Service)
 	for _, service := range *services {
+		min := ""
+		if service.Minutes != nil {
+			min = strconv.FormatInt(*service.Minutes, 10)
+		}
 		dto := ServiceGetOut{
 			ID:      service.ID,
 			Date:    service.Date.Format(port.DateFormat),
 			Name:    service.Name,
-			Minutes: strconv.FormatInt(service.Minutes, 10),
+			Minutes: min,
 		}
 		ret = append(ret, dto)
 	}

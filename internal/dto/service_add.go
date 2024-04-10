@@ -41,6 +41,9 @@ func (c *ServiceAddIn) GetDomain() []port.Domain {
 		time.Local, _ = time.LoadLocation(port.Location)
 		c.Date = time.Now().Format(port.DateFormat)
 	}
+	if c.Minutes == "" {
+		c.Minutes = "0"
+	}
 	return []port.Domain{
 		domain.NewService(c.ID, c.Date, c.Name, c.Minutes),
 	}
@@ -58,11 +61,15 @@ func (c *ServiceAddOut) GetDTO(domainIn interface{}) interface{} {
 	if !ok {
 		return nil
 	}
+	min := ""
+	if service.Minutes != nil {
+		min = strconv.FormatInt(*service.Minutes, 10)
+	}
 	return &ServiceAddOut{
 		ID:      service.ID,
 		Date:    service.Date.Format(port.DateFormat),
 		Name:    service.Name,
-		Minutes: strconv.FormatInt(service.Minutes, 10),
+		Minutes: min,
 	}
 }
 

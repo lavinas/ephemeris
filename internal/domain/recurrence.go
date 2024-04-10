@@ -26,11 +26,11 @@ var (
 // Recurrence represents the recurrence entity
 type Recurrence struct {
 	ID     string    `gorm:"type:varchar(25); primaryKey"`
-	Date   time.Time `gorm:"type:datetime; not null"`
-	Name   string    `gorm:"type:varchar(100); not null"`
-	Cycle  string    `gorm:"type:varchar(20); not null"`
-	Length *int64    `gorm:"type:numeric(10); null"`
-	Limits *int64    `gorm:"type:numeric(10); null"`
+	Date   time.Time `gorm:"type:datetime; not null; index"`
+	Name   string    `gorm:"type:varchar(100); not null; index"`
+	Cycle  string    `gorm:"type:varchar(20); not null; index"`
+	Length *int64    `gorm:"type:numeric(10); null; index"`
+	Limits *int64    `gorm:"type:numeric(10); null; index"`
 }
 
 // NewRecurrence is a function that creates a new recurrence

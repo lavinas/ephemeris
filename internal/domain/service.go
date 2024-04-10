@@ -17,7 +17,7 @@ type Service struct {
 	ID      string    `gorm:"type:varchar(25); primaryKey"`
 	Date    time.Time `gorm:"type:datetime; not null; index"`
 	Name    string    `gorm:"type:varchar(100); not null; index"`
-	Minutes int64     `gorm:"type:int; not null; index"`
+	Minutes *int64     `gorm:"type:int;  null; index"`
 }
 
 // NewService is a function that creates a new service
@@ -25,9 +25,9 @@ func NewService(id string, date string, name string, minutes string) *Service {
 	date = strings.TrimSpace(date)
 	local, _ := time.LoadLocation(port.Location)
 	fdate := time.Time{}
-	min, err := strconv.ParseInt(minutes, 10, 64)
-	if err != nil {
-		min = 0
+	var min *int64 = nil
+	if m, _ := strconv.ParseInt(minutes, 10, 64); m > 0 {
+		min = &m
 	}
 	if date != "" {
 		var err error
@@ -55,9 +55,6 @@ func (s *Service) Format(repo port.Repository, args ...string) error {
 		msg += err.Error() + " | "
 	}
 	if err := s.formatName(filled); err != nil {
-		msg += err.Error() + " | "
-	}
-	if err := s.formatMinutes(filled); err != nil {
 		msg += err.Error() + " | "
 	}
 	if err := s.validateDuplicity(repo, noduplicity); err != nil {
@@ -126,17 +123,6 @@ func (s *Service) formatName(filled bool) error {
 	}
 	if s.Name == "" {
 		return errors.New(port.ErrEmptyName)
-	}
-	return nil
-}
-
-// formatMinutes is a method that formats the service minutes
-func (s *Service) formatMinutes(filled bool) error {
-	if filled {
-		return nil
-	}
-	if s.Minutes < 0 {
-		return errors.New(port.ErrInvalidMinutes)
 	}
 	return nil
 }

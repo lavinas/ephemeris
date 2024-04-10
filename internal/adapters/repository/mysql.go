@@ -2,7 +2,6 @@ package repository
 
 import (
 	"errors"
-	"fmt"
 	"reflect"
 	"unicode"
 
@@ -152,7 +151,6 @@ func (r *MySql) where(tx *gorm.DB, sob reflect.Type, base interface{}) (*gorm.DB
 		}
 		filtered = true
 		fName := r.fieldName(sob.Field(i).Name)
-		fmt.Println(1, fName, reflect.ValueOf(base).Elem().Field(i).Interface())
 		tx = tx.Where(fName+" = ?", reflect.ValueOf(base).Elem().Field(i).Interface())
 		if i == 0 {
 			tx = tx.Session(&gorm.Session{})

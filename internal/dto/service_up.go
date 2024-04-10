@@ -31,6 +31,15 @@ func (c *ServiceUpIn) Validate(repo port.Repository) error {
 	if c.isEmpty() {
 		return errors.New(port.ErrParamsNotInformed)
 	}
+	if c.ID == "" {
+		return errors.New(port.ErrIdUninformed)
+	}
+	id := c.ID
+	c.ID = ""
+	if c.isEmpty() {
+		return errors.New(port.ErrParamsNotInformed)
+	}
+	c.ID = id
 	return nil
 }
 
@@ -53,15 +62,19 @@ func (c *ServiceUpOut) GetDTO(domainIn interface{}) interface{} {
 	if !ok {
 		return nil
 	}
+	min := ""
+	if service.Minutes != nil {
+		min = strconv.FormatInt(*service.Minutes, 10)
+	}
 	return &ServiceUpOut{
 		ID:      service.ID,
 		Date:    service.Date.Format(port.DateFormat),
 		Name:    service.Name,
-		Minutes: strconv.FormatInt(service.Minutes, 10),
+		Minutes: min,
 	}
 }
 
 // GetDomain is a method that returns the domain of the dto
 func (c *ServiceUpIn) isEmpty() bool {
-	return c.ID == "" && c.Date == "" && c.Name == ""
+	return c.ID == "" && c.Date == "" && c.Name == "" && c.Minutes == ""
 }
