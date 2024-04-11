@@ -76,6 +76,11 @@ func (p *Price) Format(repo port.Repository, args ...string) error {
 	return nil
 }
 
+// Exists is a method that checks if the price exists
+func (p *Price) Exists(repo port.Repository) (bool, error) {
+	return repo.Get(&Price{}, p.ID)
+}
+
 // GetID is a method that returns the id of the price
 func (p *Price) GetID() string {
 	return p.ID

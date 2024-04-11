@@ -67,6 +67,11 @@ func (s *Service) Format(repo port.Repository, args ...string) error {
 	return nil
 }
 
+// Exists is a method that checks if a service exists
+func (s *Service) Exists(repo port.Repository) (bool, error) {
+	return repo.Get(&Service{}, s.ID)
+}
+
 // GetID is a method that returns the id of the client
 func (s *Service) GetID() string {
 	return s.ID

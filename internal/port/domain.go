@@ -4,6 +4,8 @@ package port
 type Domain interface {
 	// Format is a method that formats the domain entity
 	Format(repo Repository, args ...string) error
+	// Exists is a method that checks if the domain entity exists
+	Exists(repo Repository) (bool, error)
 	// GetID is a method that returns the id of the domain entity
 	GetID() string
 	// Get is a method that returns the domain entity

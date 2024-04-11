@@ -78,5 +78,3 @@ func (p *PriceGetOut) GetDTO(domainIn interface{}) interface{} {
 func (p *PriceGetIn) isEmpty() bool {
 	return p.ID == "" && p.Date == "" && p.Name == "" && p.Unit == "" && p.Pack == ""
 }
-
-

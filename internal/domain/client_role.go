@@ -75,6 +75,11 @@ func (c *ClientRole) Format(repo port.Repository, args ...string) error {
 	return nil
 }
 
+// Exists is a method that checks if the client role exists
+func (c *ClientRole) Exists(repo port.Repository) (bool, error) {
+	return repo.Get(c, c.ID)
+}
+
 // GetID is a method that returns the id of the client
 func (c *ClientRole) GetID() string {
 	return c.ID

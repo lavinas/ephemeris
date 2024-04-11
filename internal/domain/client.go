@@ -88,6 +88,11 @@ func (c *Client) Format(repo port.Repository, args ...string) error {
 	return nil
 }
 
+// Exists is a function that checks if a client exists
+func (c *Client) Exists(repo port.Repository) (bool, error) {
+	return repo.Get(&Client{}, c.ID)
+}
+
 // GetID is a method that returns the id of the client
 func (c *Client) GetID() string {
 	return c.ID
@@ -129,13 +134,10 @@ func (c *Client) formatID(filled bool) error {
 
 // formatDate is a method that formats the date field
 func (c *Client) formatDate(filled bool) error {
-	if filled {
+	if filled && c.Date.IsZero() {
 		return nil
 	}
 	if c.Date.IsZero() {
-		if filled {
-			return nil
-		}
 		return errors.New(pkg.ErrInvalidDateFormat)
 	}
 	return nil
