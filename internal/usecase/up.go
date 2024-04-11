@@ -57,6 +57,9 @@ func (u *Up) Run(dtoIn interface{}) error {
 		if err := u.merge(source, target); err != nil {
 			return u.error(pkg.ErrPrefInternal, err.Error())
 		}
+		if err := target.Format(u.Repo, "noduplicity"); err != nil {
+			return u.error(pkg.ErrPrefInternal, err.Error())
+		}
 		if err := u.Repo.Save(target); err != nil {
 			return u.error(pkg.ErrPrefInternal, err.Error())
 		}
