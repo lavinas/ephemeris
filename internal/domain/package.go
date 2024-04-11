@@ -20,7 +20,7 @@ type Package struct {
 	ServiceID    string    `gorm:"type:varchar(25); not null; index"`
 	RecurrenceID string    `gorm:"type:varchar(25); not null; index"`
 	PriceID      string    `gorm:"type:varchar(25); not null; index"`
-	BillingType  string    `gorm:"type:varchar(20), not null; index"`
+	BillingType  string    `gorm:"type:varchar(20); not null; index"`
 }
 
 var (
@@ -104,7 +104,7 @@ func (p *Package) GetEmpty() port.Domain {
 
 // TableName is a method that returns the table name of the contract
 func (p *Package) TableName() string {
-	return "contracts"
+	return "package"
 }
 
 // formatID is a method that formats the id of the package
