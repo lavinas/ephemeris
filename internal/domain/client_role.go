@@ -22,7 +22,6 @@ type ClientRole struct {
 	ID       string    `gorm:"type:varchar(100); primaryKey"`
 	Date     time.Time `gorm:"type:datetime; not null"`
 	ClientID string    `gorm:"type:varchar(25); not null; index"`
-	Client   *Client   `gorm:"foreignKey:ClientID;associationForeignKey:ID"`
 	Role     string    `gorm:"type:varchar(25); not null; index"`
 	RefID    string    `gorm:"type:varchar(25); null; index"`
 	Ref      *Client   `gorm:"foreignKey:RefID;associationForeignKey:ID"`
@@ -144,9 +143,6 @@ func (c *ClientRole) formatDate(filled bool) error {
 
 // formatClientID is a method that formats the client id field
 func (c *ClientRole) formatClientID(filled bool) error {
-	if c.Client != nil {
-		c.ClientID = c.Client.ID
-	}
 	clientID := c.formatString(c.ClientID)
 	if clientID == "" {
 		if filled {

@@ -45,7 +45,7 @@ const (
 	ErrInvalidPhone         = "invalid phone"
 	ErrEmptyContact         = "empty contact"
 	ErrLongContact          = "contact should have at most 20"
-	ErrInvalidContact       = "invalid contact"
+	ErrInvalidContact       = "invalid contact. Shoul be %s"
 	ErrInvalidDocument      = "invalid document"
 	ErrLongDocument         = "document should have at most 20"
 	ErrInvalidTypeOnMerge   = "invalid type on merge structures"

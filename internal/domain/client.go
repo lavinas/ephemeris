@@ -20,7 +20,7 @@ import (
 
 var (
 	// ContactWays is a slice that contains the ways to contact a client
-	ContactWays = []string{"email", "whatsapp", "all"}
+	ContactWays = []string{"e-mail", "whatsapp", "all"}
 )
 
 // Client represents the client entity
@@ -238,7 +238,11 @@ func (c *Client) formatContact(filled bool) error {
 		return errors.New(pkg.ErrLongContact)
 	}
 	if !slices.Contains(ContactWays, contact) {
-		return errors.New(pkg.ErrInvalidContact)
+		cont := ""
+		for _, c := range ContactWays {
+			cont += c + ", "
+		}
+		return fmt.Errorf(pkg.ErrInvalidContact, cont[:len(cont)-2])
 	}
 	c.Contact = strings.ToLower(contact)
 	return nil
