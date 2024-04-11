@@ -22,6 +22,9 @@ var (
 		&dto.RecurrenceAddIn{}: &Add{},
 		&dto.RecurrenceGetIn{}: &Get{},
 		&dto.RecurrenceUpIn{}:  &Up{},
+		&dto.PriceAddIn{}:      &Add{},
+		&dto.PriceGetIn{}:      &Get{},
+		&dto.PriceUpIn{}:       &Up{},
 	}
 )
 

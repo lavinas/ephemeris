@@ -16,13 +16,14 @@ import (
 // Price represents the price entity
 type Price struct {
 	ID   string    `gorm:"type:varchar(25); primaryKey"`
-	Date time.Time `gorm:"type:datetime; not null"`
-	Unit *float64  `gorm:"type:numeric(20,2); null"`
-	Pack *float64  `gorm:"type:numeric(20,2); null"`
+	Date time.Time `gorm:"type:datetime; not null; index"`
+	Name string    `gorm:"type:varchar(100); not null; index"`
+	Unit *float64  `gorm:"type:numeric(20,2); null; index"`
+	Pack *float64  `gorm:"type:numeric(20,2); null; index"`
 }
 
 // NewPrice is a function that creates a new price
-func NewPrice(id string, date string, unit string, pack string) *Price {
+func NewPrice(id string, date string, name string, unit string, pack string) *Price {
 	date = strings.TrimSpace(date)
 	local, _ := time.LoadLocation(pkg.Location)
 	fdate := time.Time{}
@@ -43,6 +44,7 @@ func NewPrice(id string, date string, unit string, pack string) *Price {
 	return &Price{
 		ID:   id,
 		Date: fdate,
+		Name: name,
 		Unit: funit,
 		Pack: fpack,
 	}
@@ -59,6 +61,9 @@ func (p *Price) Format(repo port.Repository, args ...string) error {
 	if err := p.formatDate(filled); err != nil {
 		msg += err.Error() + " | "
 	}
+	if err := p.formatName(filled); err != nil {
+		msg += err.Error() + " | "
+	}
 	if err := p.formatUnitAndPack(filled); err != nil {
 		msg += err.Error() + " | "
 	}
@@ -66,7 +71,7 @@ func (p *Price) Format(repo port.Repository, args ...string) error {
 		msg += err.Error() + " | "
 	}
 	if msg != "" {
-		return errors.New(msg)
+		return errors.New(msg[:len(msg)-3])
 	}
 	return nil
 }
@@ -117,6 +122,18 @@ func (p *Price) formatDate(filled bool) error {
 	return nil
 }
 
+// formatName is a method that formats the price name
+func (p *Price) formatName(filled bool) error {
+	p.Name = p.formatString(p.Name)
+	if p.Name == "" {
+		if filled {
+			return nil
+		}
+		return errors.New(pkg.ErrEmptyName)
+	}
+	return nil
+}
+
 // formatUnit is a method that formats the price unit
 func (p *Price) formatUnitAndPack(filled bool) error {
 	if p.Pack == nil && p.Unit == nil {
@@ -144,7 +161,7 @@ func (p *Price) validateDuplicity(repo port.Repository, noduplicity bool) error 
 	if noduplicity {
 		return nil
 	}
-	ok, err := repo.Get(&Client{}, p.ID)
+	ok, err := repo.Get(&Price{}, p.ID)
 	if err != nil {
 		return err
 	}
