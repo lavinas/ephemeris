@@ -67,7 +67,10 @@ func (c *ClientUpOut) GetDTO(domainIn interface{}) interface{} {
 	dto.Name = client.Name
 	dto.Email = client.Email
 	dto.Phone = client.Phone
-	dto.Document = client.Document
+	dto.Document = ""
+	if client.Document != nil {
+		dto.Document = *client.Document
+	}
 	return dto
 }
 

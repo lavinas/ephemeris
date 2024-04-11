@@ -17,7 +17,7 @@ type Service struct {
 	ID      string    `gorm:"type:varchar(25); primaryKey"`
 	Date    time.Time `gorm:"type:datetime; not null; index"`
 	Name    string    `gorm:"type:varchar(100); not null; index"`
-	Minutes *int64     `gorm:"type:int;  null; index"`
+	Minutes *int64    `gorm:"type:int;  null; index"`
 }
 
 // NewService is a function that creates a new service
@@ -25,15 +25,15 @@ func NewService(id string, date string, name string, minutes string) *Service {
 	date = strings.TrimSpace(date)
 	local, _ := time.LoadLocation(port.Location)
 	fdate := time.Time{}
-	var min *int64 = nil
-	if m, _ := strconv.ParseInt(minutes, 10, 64); m > 0 {
-		min = &m
-	}
 	if date != "" {
 		var err error
 		if fdate, err = time.ParseInLocation(port.DateFormat, date, local); err != nil {
 			fdate = time.Time{}
 		}
+	}
+	var min *int64 = nil
+	if m, _ := strconv.ParseInt(minutes, 10, 64); m > 0 {
+		min = &m
 	}
 	return &Service{
 		ID:      id,

@@ -29,7 +29,7 @@ type Client struct {
 	Email    string    `gorm:"type:varchar(100);  not null; index"`
 	Phone    string    `gorm:"type:varchar(20); not null; index"`
 	Contact  string    `gorm:"type:varchar(20); not null; index"`
-	Document string    `gorm:"type:varchar(20); null; index"`
+	Document *string    `gorm:"type:varchar(20); null; index"`
 }
 
 // NewClient is a function that creates a new client
@@ -43,13 +43,17 @@ func NewClient(id string, date string, name string, email string, phone string, 
 			fdate = time.Time{}
 		}
 	}
+	var doc *string = nil
+	if document != "" {
+		doc = &document
+	}
 	return &Client{
 		ID:       id,
 		Date:     fdate,
 		Name:     name,
 		Email:    email,
 		Phone:    phone,
-		Document: document,
+		Document: doc,
 		Contact:  contact,
 	}
 }
@@ -199,26 +203,20 @@ func (c *Client) formatPhone(filled bool) error {
 
 // formatDocument is a method that formats the document field
 func (c *Client) formatDocument(filled bool) error {
-	document := c.formatString(c.Document)
-	if document == "" {
-		c.Document = document
+	if c.Document == nil {
 		return nil
 	}
-	document = c.formatNumber(document)
-	if document == "" {
-		return errors.New(port.ErrInvalidDocument)
+	if *c.Document = c.formatNumber(*c.Document); *c.Document == "" {
+		return nil
 	}
-	if len(document) > 20 {
-		return errors.New(port.ErrLongDocument)
-	}
-	cpf := cpfcnpj.NewCPF(document)
+	cpf := cpfcnpj.NewCPF(*c.Document)
 	if cpf.IsValid() {
-		c.Document = cpf.String()
+		*c.Document = cpf.String()
 		return nil
 	}
-	cnpj := cpfcnpj.NewCNPJ(document)
+	cnpj := cpfcnpj.NewCNPJ(*c.Document)
 	if cnpj.IsValid() {
-		c.Document = cnpj.String()
+		*c.Document = cnpj.String()
 		return nil
 	}
 	return errors.New(port.ErrInvalidDocument)

@@ -57,13 +57,17 @@ func (c *ClientGetOut) GetDTO(domainIn interface{}) interface{} {
 	slices := domainIn.([]interface{})
 	clients := slices[0].(*[]domain.Client)
 	for _, client := range *clients {
+		doc := ""
+		if client.Document != nil {
+			doc = *client.Document
+		}
 		dto := ClientGetOut{
 			ID:       client.ID,
 			Date:     client.Date.Format(port.DateFormat),
 			Name:     client.Name,
 			Email:    client.Email,
 			Phone:    client.Phone,
-			Document: client.Document,
+			Document: doc,
 			Contact:  client.Contact,
 		}
 		ret = append(ret, dto)

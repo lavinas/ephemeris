@@ -82,7 +82,7 @@ func (r *Recurrence) Format(repo port.Repository, args ...string) error {
 	if err := r.formatLength(filled); err != nil {
 		msg += err.Error() + " | "
 	}
-	if err := r.formatLimit(filled); err != nil {
+	if err := r.formatLimit(); err != nil {
 		msg += err.Error() + " | "
 	}
 	if err := r.validateDuplicity(repo, noduplicity); err != nil {
@@ -199,8 +199,8 @@ func (r *Recurrence) formatLength(filled bool) error {
 }
 
 // formatLimit is a method that formats the recurrence limit
-func (r *Recurrence) formatLimit(filled bool) error {
-	if filled && r.Limits == nil {
+func (r *Recurrence) formatLimit() error {
+	if r.Limits == nil {
 		return nil
 	}
 	if r.Cycle == "once" && r.Limits != nil {

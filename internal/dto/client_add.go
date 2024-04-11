@@ -70,7 +70,10 @@ func (c *ClientAddOut) GetDTO(domainIn interface{}) interface{} {
 	dto.Name = client.Name
 	dto.Email = client.Email
 	dto.Phone = client.Phone
-	dto.Document = client.Document
+	dto.Document = ""
+	if client.Document != nil {
+		dto.Document = *client.Document
+	} 
 	clientRole := slices[1].(*domain.ClientRole)
 	if clientRole.RefID != client.ID {
 		dto.Role = clientRole.Role
