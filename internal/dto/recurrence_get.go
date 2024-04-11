@@ -6,6 +6,7 @@ import (
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"
+	"github.com/lavinas/ephemeris/pkg"
 )
 
 // RecurrenceGetIn is a struct that represents the recurrence get data transfer object
@@ -33,7 +34,7 @@ type RecurrenceGetOut struct {
 // Validate is a method that validates the dto
 func (r *RecurrenceGetIn) Validate(repo port.Repository) error {
 	if r.isEmpty() {
-		return errors.New(port.ErrParamsNotInformed)
+		return errors.New(pkg.ErrParamsNotInformed)
 	}
 	return nil
 }
@@ -66,7 +67,7 @@ func (r *RecurrenceGetOut) GetDTO(domainIn interface{}) interface{} {
 		}
 		ret = append(ret, RecurrenceGetOut{
 			ID:     domain.ID,
-			Date:   domain.Date.Format(port.DateFormat),
+			Date:   domain.Date.Format(pkg.DateFormat),
 			Name:   domain.Name,
 			Cycle:  domain.Cycle,
 			Length: len,
@@ -78,6 +79,6 @@ func (r *RecurrenceGetOut) GetDTO(domainIn interface{}) interface{} {
 
 // isEmpty is a method that checks if the dto is empty
 func (r *RecurrenceGetIn) isEmpty() bool {
-	return r.ID == "" && r.Name == "" && r.Cycle == "" && 
-	       r.Length == "" && r.Limit == "" && r.Date == ""
+	return r.ID == "" && r.Name == "" && r.Cycle == "" &&
+		r.Length == "" && r.Limit == "" && r.Date == ""
 }

@@ -6,6 +6,7 @@ import (
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"
+	"github.com/lavinas/ephemeris/pkg"
 )
 
 // ServiceGetIn represents the dto for getting a service
@@ -29,7 +30,7 @@ type ServiceGetOut struct {
 // Validate is a method that validates the dto
 func (c *ServiceGetIn) Validate(repo port.Repository) error {
 	if c.isEmpty() {
-		return errors.New(port.ErrParamsNotInformed)
+		return errors.New(pkg.ErrParamsNotInformed)
 	}
 	return nil
 }
@@ -58,7 +59,7 @@ func (c *ServiceGetOut) GetDTO(domainIn interface{}) interface{} {
 		}
 		dto := ServiceGetOut{
 			ID:      service.ID,
-			Date:    service.Date.Format(port.DateFormat),
+			Date:    service.Date.Format(pkg.DateFormat),
 			Name:    service.Name,
 			Minutes: min,
 		}

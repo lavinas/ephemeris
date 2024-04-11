@@ -7,6 +7,7 @@ import (
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"
+	"github.com/lavinas/ephemeris/pkg"
 )
 
 // ClientAdd represents the input dto for adding a client usecase
@@ -38,7 +39,7 @@ type ClientAddOut struct {
 // Validate is a method that validates the dto
 func (c *ClientAddIn) Validate(repo port.Repository) error {
 	if c.isEmpty() {
-		return errors.New(port.ErrParamsNotInformed)
+		return errors.New(pkg.ErrParamsNotInformed)
 	}
 	return nil
 }
@@ -46,11 +47,11 @@ func (c *ClientAddIn) Validate(repo port.Repository) error {
 // GetDomain is a method that returns a domain representation of the client dto
 func (c *ClientAddIn) GetDomain() []port.Domain {
 	if c.Date == "" {
-		time.Local, _ = time.LoadLocation(port.Location)
-		c.Date = time.Now().Format(port.DateFormat)
+		time.Local, _ = time.LoadLocation(pkg.Location)
+		c.Date = time.Now().Format(pkg.DateFormat)
 	}
 	return []port.Domain{
-		domain.NewClient(c.ID, c.Date, c.Name, c.Email, c.Phone, c.Document, port.DefaultContact),
+		domain.NewClient(c.ID, c.Date, c.Name, c.Email, c.Phone, c.Document, pkg.DefaultContact),
 		domain.NewClientRole("", c.Date, c.ID, c.Role, c.Ref),
 	}
 }
@@ -66,14 +67,14 @@ func (c *ClientAddOut) GetDTO(domainIn interface{}) interface{} {
 	client := slices[0].(*domain.Client)
 	dto := &ClientAddOut{}
 	dto.ID = client.ID
-	dto.Date = client.Date.Format(port.DateFormat)
+	dto.Date = client.Date.Format(pkg.DateFormat)
 	dto.Name = client.Name
 	dto.Email = client.Email
 	dto.Phone = client.Phone
 	dto.Document = ""
 	if client.Document != nil {
 		dto.Document = *client.Document
-	} 
+	}
 	clientRole := slices[1].(*domain.ClientRole)
 	if clientRole.RefID != client.ID {
 		dto.Role = clientRole.Role

@@ -6,6 +6,7 @@ import (
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"
+	"github.com/lavinas/ephemeris/pkg"
 )
 
 // ServiceUpIn is a struct that represents the service up data transfer object
@@ -29,15 +30,15 @@ type ServiceUpOut struct {
 // Validate is a method that validates the dto
 func (c *ServiceUpIn) Validate(repo port.Repository) error {
 	if c.isEmpty() {
-		return errors.New(port.ErrParamsNotInformed)
+		return errors.New(pkg.ErrParamsNotInformed)
 	}
 	if c.ID == "" {
-		return errors.New(port.ErrIdUninformed)
+		return errors.New(pkg.ErrIdUninformed)
 	}
 	id := c.ID
 	c.ID = ""
 	if c.isEmpty() {
-		return errors.New(port.ErrParamsNotInformed)
+		return errors.New(pkg.ErrParamsNotInformed)
 	}
 	c.ID = id
 	return nil
@@ -68,7 +69,7 @@ func (c *ServiceUpOut) GetDTO(domainIn interface{}) interface{} {
 	}
 	return &ServiceUpOut{
 		ID:      service.ID,
-		Date:    service.Date.Format(port.DateFormat),
+		Date:    service.Date.Format(pkg.DateFormat),
 		Name:    service.Name,
 		Minutes: min,
 	}

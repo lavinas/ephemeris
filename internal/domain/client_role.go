@@ -8,11 +8,12 @@ import (
 	"time"
 
 	"github.com/lavinas/ephemeris/internal/port"
+	"github.com/lavinas/ephemeris/pkg"
 )
 
 var (
 	// Roles is a slice that contains the roles for a client
-	Roles       = []string{port.RoleClient, port.RoleLiable, port.RolePayer}
+	Roles       = []string{pkg.RoleClient, pkg.RoleLiable, pkg.RolePayer}
 	DefaultRole = "client"
 )
 
@@ -30,11 +31,11 @@ type ClientRole struct {
 // NewClientRole is a function that creates a new client role
 func NewClientRole(ID string, date string, clientID string, role string, refID string) *ClientRole {
 	date = strings.TrimSpace(date)
-	local, _ := time.LoadLocation(port.Location)
+	local, _ := time.LoadLocation(pkg.Location)
 	fdate := time.Time{}
 	if date != "" {
 		var err error
-		if fdate, err = time.ParseInLocation(port.DateFormat, date, local); err != nil {
+		if fdate, err = time.ParseInLocation(pkg.DateFormat, date, local); err != nil {
 			fdate = time.Time{}
 		}
 	}
@@ -114,10 +115,10 @@ func (c *ClientRole) formatID(filled bool) error {
 		return nil
 	}
 	if len(id) > 25 {
-		return errors.New(port.ErrLongID)
+		return errors.New(pkg.ErrLongID)
 	}
 	if len(strings.Split(id, " ")) > 1 {
-		return errors.New(port.ErrInvalidID)
+		return errors.New(pkg.ErrInvalidID)
 	}
 	c.ID = strings.ToLower(id)
 	return nil
@@ -135,7 +136,7 @@ func (c *ClientRole) formatDate(filled bool) error {
 		if filled {
 			return nil
 		}
-		return errors.New(port.ErrInvalidDateFormat)
+		return errors.New(pkg.ErrInvalidDateFormat)
 	}
 	c.Date = date
 	return nil
@@ -151,13 +152,13 @@ func (c *ClientRole) formatClientID(filled bool) error {
 		if filled {
 			return nil
 		}
-		return errors.New(port.ErrClientIDNotProvided)
+		return errors.New(pkg.ErrClientIDNotProvided)
 	}
 	if len(clientID) > 25 {
-		return errors.New(port.ErrLongClientID)
+		return errors.New(pkg.ErrLongClientID)
 	}
 	if len(strings.Split(clientID, " ")) > 1 {
-		return errors.New(port.ErrInvalidClientID)
+		return errors.New(pkg.ErrInvalidClientID)
 	}
 	c.ClientID = strings.ToLower(clientID)
 	return nil
@@ -174,7 +175,7 @@ func (c *ClientRole) formatRole(filled bool) error {
 		return nil
 	}
 	if !slices.Contains(Roles, role) {
-		return errors.New(port.ErrInvalidRole)
+		return errors.New(pkg.ErrInvalidRole)
 	}
 	c.Role = strings.ToLower(role)
 	return nil
@@ -190,34 +191,34 @@ func (c *ClientRole) formatRefID(repo port.Repository, filled bool) error {
 		if filled {
 			return nil
 		}
-		if c.Role == port.RoleClient {
+		if c.Role == pkg.RoleClient {
 			c.RefID = c.ClientID
 			return nil
 		}
-		return errors.New(port.ErrRefIDNotProvided)
+		return errors.New(pkg.ErrRefIDNotProvided)
 	}
 	if len(refID) > 25 {
-		return errors.New(port.ErrLongRefID)
+		return errors.New(pkg.ErrLongRefID)
 	}
 	if len(strings.Split(refID, " ")) > 1 {
-		return errors.New(port.ErrInvalidRefID)
+		return errors.New(pkg.ErrInvalidRefID)
 	}
 	c.RefID = strings.ToLower(refID)
-	if c.Role == port.RoleClient {
+	if c.Role == pkg.RoleClient {
 		return nil
 	}
-	clientRoleId := c.mountID(c.RefID, port.RoleClient, c.RefID)
+	clientRoleId := c.mountID(c.RefID, pkg.RoleClient, c.RefID)
 	if b, err := repo.Get(&ClientRole{}, clientRoleId); err != nil {
 		return err
 	} else if !b {
-		return errors.New(port.ErrRefNotFound)
+		return errors.New(pkg.ErrRefNotFound)
 	}
 	return nil
 }
 
 // validateDuplicity is a method that validates the duplicity of the client role
 func (c *ClientRole) validateDuplicity(repo port.Repository, noduplicity bool) error {
-	if noduplicity || c.Role == port.RoleClient {
+	if noduplicity || c.Role == pkg.RoleClient {
 		return nil
 	}
 	ok, err := repo.Get(&ClientRole{}, c.ID)
@@ -225,7 +226,7 @@ func (c *ClientRole) validateDuplicity(repo port.Repository, noduplicity bool) e
 		return err
 	}
 	if ok {
-		return errors.New(port.ErrDuplicatedRole)
+		return errors.New(pkg.ErrDuplicatedRole)
 	}
 	return nil
 }

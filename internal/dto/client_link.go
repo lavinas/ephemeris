@@ -6,6 +6,7 @@ import (
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"
+	"github.com/lavinas/ephemeris/pkg"
 )
 
 // ClientLinkIn represents the dto for linking a client
@@ -29,7 +30,7 @@ type ClientLinkOut struct {
 // Validate is a method that validates the dto
 func (c *ClientLinkIn) Validate(repo port.Repository) error {
 	if c.isEmpty() {
-		return errors.New(port.ErrParamsNotInformed)
+		return errors.New(pkg.ErrParamsNotInformed)
 	}
 	return nil
 }
@@ -37,8 +38,8 @@ func (c *ClientLinkIn) Validate(repo port.Repository) error {
 // GetDomain is a method that returns the domain of the dto
 func (c *ClientLinkIn) GetDomain() []port.Domain {
 	if c.Date == "" {
-		time.Local, _ = time.LoadLocation(port.Location)
-		c.Date = time.Now().Format(port.DateFormat)
+		time.Local, _ = time.LoadLocation(pkg.Location)
+		c.Date = time.Now().Format(pkg.DateFormat)
 	}
 	return []port.Domain{
 		domain.NewClientRole("", c.Date, c.ID, c.Role, c.Ref),
@@ -61,7 +62,7 @@ func (c *ClientLinkOut) GetDTO(domainIn interface{}) interface{} {
 		Actor: clientRole.ClientID,
 		Ref:   clientRole.RefID,
 		Role:  clientRole.Role,
-		Date:  clientRole.Date.Format(port.DateFormat),
+		Date:  clientRole.Date.Format(pkg.DateFormat),
 	}
 }
 

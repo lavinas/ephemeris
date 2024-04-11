@@ -14,6 +14,8 @@ import (
 	"github.com/nyaruka/phonenumbers"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
+
+	"github.com/lavinas/ephemeris/pkg"
 )
 
 var (
@@ -29,17 +31,17 @@ type Client struct {
 	Email    string    `gorm:"type:varchar(100);  not null; index"`
 	Phone    string    `gorm:"type:varchar(20); not null; index"`
 	Contact  string    `gorm:"type:varchar(20); not null; index"`
-	Document *string    `gorm:"type:varchar(20); null; index"`
+	Document *string   `gorm:"type:varchar(20); null; index"`
 }
 
 // NewClient is a function that creates a new client
 func NewClient(id string, date string, name string, email string, phone string, document string, contact string) *Client {
 	date = strings.TrimSpace(date)
-	local, _ := time.LoadLocation(port.Location)
+	local, _ := time.LoadLocation(pkg.Location)
 	fdate := time.Time{}
 	if date != "" {
 		var err error
-		if fdate, err = time.ParseInLocation(port.DateFormat, date, local); err != nil {
+		if fdate, err = time.ParseInLocation(pkg.DateFormat, date, local); err != nil {
 			fdate = time.Time{}
 		}
 	}
@@ -113,13 +115,13 @@ func (c *Client) formatID(filled bool) error {
 		if filled {
 			return nil
 		}
-		return errors.New(port.ErrEmptyID)
+		return errors.New(pkg.ErrEmptyID)
 	}
 	if len(id) > 25 {
-		return errors.New(port.ErrLongID)
+		return errors.New(pkg.ErrLongID)
 	}
 	if len(strings.Split(id, " ")) > 1 {
-		return errors.New(port.ErrInvalidID)
+		return errors.New(pkg.ErrInvalidID)
 	}
 	c.ID = strings.ToLower(id)
 	return nil
@@ -134,7 +136,7 @@ func (c *Client) formatDate(filled bool) error {
 		if filled {
 			return nil
 		}
-		return errors.New(port.ErrInvalidDateFormat)
+		return errors.New(pkg.ErrInvalidDateFormat)
 	}
 	return nil
 }
@@ -146,13 +148,13 @@ func (c *Client) formatName(filled bool) error {
 		if filled {
 			return nil
 		}
-		return errors.New(port.ErrEmptyName)
+		return errors.New(pkg.ErrEmptyName)
 	}
 	if len(name) > 100 {
-		return errors.New(port.ErrLongName)
+		return errors.New(pkg.ErrLongName)
 	}
 	if len(strings.Split(name, " ")) < 2 {
-		return errors.New(port.ErrInvalidName)
+		return errors.New(pkg.ErrInvalidName)
 	}
 	c.Name = cases.Title(language.Und).String(name)
 	return nil
@@ -165,15 +167,15 @@ func (c *Client) formatEmail(filled bool) error {
 		if filled {
 			return nil
 		}
-		return errors.New(port.ErrEmptyEmail)
+		return errors.New(pkg.ErrEmptyEmail)
 	}
 	a, err := mail.ParseAddress(email)
 	if err != nil {
-		return errors.New(port.ErrInvalidEmail)
+		return errors.New(pkg.ErrInvalidEmail)
 	}
 	email = a.Address
 	if len(email) > 100 {
-		return errors.New(port.ErrLongEmail)
+		return errors.New(pkg.ErrLongEmail)
 	}
 	c.Email = email
 	return nil
@@ -186,16 +188,16 @@ func (c *Client) formatPhone(filled bool) error {
 		if filled {
 			return nil
 		}
-		return errors.New(port.ErrEmptyPhone)
+		return errors.New(pkg.ErrEmptyPhone)
 	}
 	phone = c.formatNumber(phone)
 	p, err := phonenumbers.Parse(phone, "BR")
 	if err != nil {
-		return errors.New(port.ErrInvalidPhone)
+		return errors.New(pkg.ErrInvalidPhone)
 	}
 	phone = phonenumbers.Format(p, phonenumbers.E164)
 	if len(phone) > 20 {
-		return errors.New(port.ErrLongPhone)
+		return errors.New(pkg.ErrLongPhone)
 	}
 	c.Phone = phone
 	return nil
@@ -219,7 +221,7 @@ func (c *Client) formatDocument(filled bool) error {
 		*c.Document = cnpj.String()
 		return nil
 	}
-	return errors.New(port.ErrInvalidDocument)
+	return errors.New(pkg.ErrInvalidDocument)
 }
 
 // formatContact is a method that formats the contact field
@@ -233,10 +235,10 @@ func (c *Client) formatContact(filled bool) error {
 		return nil
 	}
 	if len(contact) > 20 {
-		return errors.New(port.ErrLongContact)
+		return errors.New(pkg.ErrLongContact)
 	}
 	if !slices.Contains(ContactWays, contact) {
-		return errors.New(port.ErrInvalidContact)
+		return errors.New(pkg.ErrInvalidContact)
 	}
 	c.Contact = strings.ToLower(contact)
 	return nil
@@ -270,7 +272,7 @@ func (c *Client) validateDuplicity(repo port.Repository, noduplicity bool) error
 		return err
 	}
 	if ok {
-		return fmt.Errorf(port.ErrAlreadyExists, c.ID)
+		return fmt.Errorf(pkg.ErrAlreadyExists, c.ID)
 	}
 	return nil
 }

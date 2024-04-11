@@ -36,34 +36,34 @@ func (u *Up) SetLog(log port.Logger) {
 func (u *Up) Run(dtoIn interface{}) error {
 	in := dtoIn.(port.DTOIn)
 	if err := in.Validate(u.Repo); err != nil {
-		return u.error(port.ErrPrefBadRequest, err.Error())
+		return u.error(pkg.ErrPrefBadRequest, err.Error())
 	}
 	domains := in.GetDomain()
 	result := []interface{}{}
 	if err := u.Repo.Begin(); err != nil {
-		return u.error(port.ErrPrefInternal, err.Error())
+		return u.error(pkg.ErrPrefInternal, err.Error())
 	}
 	defer u.Repo.Rollback()
 	for _, source := range domains {
 		if err := source.Format(u.Repo, "filled", "noduplicity"); err != nil {
-			return u.error(port.ErrPrefBadRequest, err.Error())
+			return u.error(pkg.ErrPrefBadRequest, err.Error())
 		}
 		target := source.GetEmpty()
 		if f, err := u.Repo.Get(target, source.GetID()); err != nil {
-			return u.error(port.ErrPrefInternal, err.Error())
+			return u.error(pkg.ErrPrefInternal, err.Error())
 		} else if !f {
-			return u.error(port.ErrPrefBadRequest, port.ErrUnfound)
+			return u.error(pkg.ErrPrefBadRequest, pkg.ErrUnfound)
 		}
 		if err := u.merge(source, target); err != nil {
-			return u.error(port.ErrPrefInternal, err.Error())
+			return u.error(pkg.ErrPrefInternal, err.Error())
 		}
 		if err := u.Repo.Save(target); err != nil {
-			return u.error(port.ErrPrefInternal, err.Error())
+			return u.error(pkg.ErrPrefInternal, err.Error())
 		}
 		result = append(result, target)
 	}
 	if err := u.Repo.Commit(); err != nil {
-		return u.error(port.ErrPrefInternal, err.Error())
+		return u.error(pkg.ErrPrefInternal, err.Error())
 	}
 	out := in.GetOut()
 	u.Out = out.GetDTO(result).(port.DTOOut)
@@ -83,7 +83,7 @@ func (u *Up) Interface() interface{} {
 // merge is a method that merges two structs
 func (u *Up) merge(source interface{}, target interface{}) error {
 	if reflect.TypeOf(source) != reflect.TypeOf(target) {
-		return u.error(port.ErrPrefInternal, port.ErrInvalidTypeOnMerge)
+		return u.error(pkg.ErrPrefInternal, pkg.ErrInvalidTypeOnMerge)
 	}
 	s := reflect.ValueOf(source).Elem()
 	t := reflect.ValueOf(target).Elem()

@@ -5,6 +5,7 @@ import (
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"
+	"github.com/lavinas/ephemeris/pkg"
 )
 
 // ClientGet represents the dto for getting a client
@@ -34,7 +35,7 @@ type ClientGetOut struct {
 // Validate is a method that validates the dto
 func (c *ClientGetIn) Validate(repo port.Repository) error {
 	if c.isEmpty() {
-		return errors.New(port.ErrParamsNotInformed)
+		return errors.New(pkg.ErrParamsNotInformed)
 	}
 	return nil
 }
@@ -63,7 +64,7 @@ func (c *ClientGetOut) GetDTO(domainIn interface{}) interface{} {
 		}
 		dto := ClientGetOut{
 			ID:       client.ID,
-			Date:     client.Date.Format(port.DateFormat),
+			Date:     client.Date.Format(pkg.DateFormat),
 			Name:     client.Name,
 			Email:    client.Email,
 			Phone:    client.Phone,

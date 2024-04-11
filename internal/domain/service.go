@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/lavinas/ephemeris/internal/port"
+	"github.com/lavinas/ephemeris/pkg"
 )
 
 // Service represents the service entity
@@ -23,11 +24,11 @@ type Service struct {
 // NewService is a function that creates a new service
 func NewService(id string, date string, name string, minutes string) *Service {
 	date = strings.TrimSpace(date)
-	local, _ := time.LoadLocation(port.Location)
+	local, _ := time.LoadLocation(pkg.Location)
 	fdate := time.Time{}
 	if date != "" {
 		var err error
-		if fdate, err = time.ParseInLocation(port.DateFormat, date, local); err != nil {
+		if fdate, err = time.ParseInLocation(pkg.DateFormat, date, local); err != nil {
 			fdate = time.Time{}
 		}
 	}
@@ -93,13 +94,13 @@ func (s *Service) formatID(filled bool) error {
 		if filled {
 			return nil
 		}
-		return errors.New(port.ErrEmptyID)
+		return errors.New(pkg.ErrEmptyID)
 	}
 	if len(s.ID) > 25 {
-		return errors.New(port.ErrLongID)
+		return errors.New(pkg.ErrLongID)
 	}
 	if len(strings.Split(s.ID, " ")) > 1 {
-		return errors.New(port.ErrInvalidID)
+		return errors.New(pkg.ErrInvalidID)
 	}
 	return nil
 }
@@ -110,7 +111,7 @@ func (s *Service) formatDate(filled bool) error {
 		return nil
 	}
 	if s.Date.IsZero() {
-		return errors.New(port.ErrInvalidDateFormat)
+		return errors.New(pkg.ErrInvalidDateFormat)
 	}
 	return nil
 }
@@ -122,7 +123,7 @@ func (s *Service) formatName(filled bool) error {
 		return nil
 	}
 	if s.Name == "" {
-		return errors.New(port.ErrEmptyName)
+		return errors.New(pkg.ErrEmptyName)
 	}
 	return nil
 }
@@ -145,7 +146,7 @@ func (c *Service) validateDuplicity(repo port.Repository, noduplicity bool) erro
 		return err
 	}
 	if ok {
-		return fmt.Errorf(port.ErrAlreadyExists, c.ID)
+		return fmt.Errorf(pkg.ErrAlreadyExists, c.ID)
 	}
 	return nil
 }

@@ -7,6 +7,7 @@ import (
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"
+	"github.com/lavinas/ephemeris/pkg"
 )
 
 // ServiceAdd is a struct that represents the service add data transfer object
@@ -30,7 +31,7 @@ type ServiceAddOut struct {
 // Validate is a method that validates the dto
 func (c *ServiceAddIn) Validate(repo port.Repository) error {
 	if c.isEmpty() {
-		return errors.New(port.ErrParamsNotInformed)
+		return errors.New(pkg.ErrParamsNotInformed)
 	}
 	return nil
 }
@@ -38,8 +39,8 @@ func (c *ServiceAddIn) Validate(repo port.Repository) error {
 // GetDomain is a method that returns the domain of the dto
 func (c *ServiceAddIn) GetDomain() []port.Domain {
 	if c.Date == "" {
-		time.Local, _ = time.LoadLocation(port.Location)
-		c.Date = time.Now().Format(port.DateFormat)
+		time.Local, _ = time.LoadLocation(pkg.Location)
+		c.Date = time.Now().Format(pkg.DateFormat)
 	}
 	if c.Minutes == "" {
 		c.Minutes = "0"
@@ -67,7 +68,7 @@ func (c *ServiceAddOut) GetDTO(domainIn interface{}) interface{} {
 	}
 	return &ServiceAddOut{
 		ID:      service.ID,
-		Date:    service.Date.Format(port.DateFormat),
+		Date:    service.Date.Format(pkg.DateFormat),
 		Name:    service.Name,
 		Minutes: min,
 	}

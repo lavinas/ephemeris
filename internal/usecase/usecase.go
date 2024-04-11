@@ -48,10 +48,10 @@ func (u *CommandUsecase) Run(line string) string {
 	inter := u.init()
 	dtoIn, err := cmd.FindOne(line, inter)
 	if err != nil {
-		return u.error(port.ErrPrefCommandNotFound, err.Error()).Error()
+		return u.error(pkg.ErrPrefCommandNotFound, err.Error()).Error()
 	}
 	if err := cmd.Unmarshal(line, dtoIn); err != nil {
-		return u.error(port.ErrPrefBadRequest, err.Error()).Error()
+		return u.error(pkg.ErrPrefBadRequest, err.Error()).Error()
 	}
 	dtoOut := dtos[dtoIn]
 	if err := dtoOut.Run(dtoIn); err != nil {

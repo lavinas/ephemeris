@@ -37,25 +37,25 @@ func (u *Add) SetLog(log port.Logger) {
 func (u *Add) Run(dtoIn interface{}) error {
 	in := dtoIn.(port.DTOIn)
 	if err := in.Validate(u.Repo); err != nil {
-		return u.error(port.ErrPrefBadRequest, err.Error())
+		return u.error(pkg.ErrPrefBadRequest, err.Error())
 	}
 	if err := u.Repo.Begin(); err != nil {
-		return u.error(port.ErrPrefInternal, err.Error())
+		return u.error(pkg.ErrPrefInternal, err.Error())
 	}
 	defer u.Repo.Rollback()
 	domains := in.GetDomain()
 	result := []interface{}{}
 	for _, domain := range domains {
 		if err := domain.Format(u.Repo); err != nil {
-			return u.error(port.ErrPrefBadRequest, err.Error())
+			return u.error(pkg.ErrPrefBadRequest, err.Error())
 		}
 		if err := u.Repo.Add(domain); err != nil {
-			return u.error(port.ErrPrefInternal, err.Error())
+			return u.error(pkg.ErrPrefInternal, err.Error())
 		}
 		result = append(result, domain)
 	}
 	if err := u.Repo.Commit(); err != nil {
-		return u.error(port.ErrPrefInternal, err.Error())
+		return u.error(pkg.ErrPrefInternal, err.Error())
 	}
 	out := in.GetOut()
 	u.Out = out.GetDTO(result).(port.DTOOut)

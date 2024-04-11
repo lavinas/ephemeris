@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/lavinas/ephemeris/internal/port"
+	"github.com/lavinas/ephemeris/pkg"
 )
 
 // Cycle represents the cycle entity
@@ -36,11 +37,11 @@ type Recurrence struct {
 // NewRecurrence is a function that creates a new recurrence
 func NewRecurrence(id string, date string, name string, cycle string, length string, limit string) *Recurrence {
 	date = strings.TrimSpace(date)
-	local, _ := time.LoadLocation(port.Location)
+	local, _ := time.LoadLocation(pkg.Location)
 	fdate := time.Time{}
 	if date != "" {
 		var err error
-		if fdate, err = time.ParseInLocation(port.DateFormat, date, local); err != nil {
+		if fdate, err = time.ParseInLocation(pkg.DateFormat, date, local); err != nil {
 			fdate = time.Time{}
 		}
 	}
@@ -121,13 +122,13 @@ func (r *Recurrence) formatID(filled bool) error {
 		if filled {
 			return nil
 		}
-		return fmt.Errorf(port.ErrEmptyID)
+		return fmt.Errorf(pkg.ErrEmptyID)
 	}
 	if len(r.ID) > 25 {
-		return fmt.Errorf(port.ErrLongID)
+		return fmt.Errorf(pkg.ErrLongID)
 	}
 	if len(strings.Split(r.ID, " ")) > 1 {
-		return fmt.Errorf(port.ErrInvalidID)
+		return fmt.Errorf(pkg.ErrInvalidID)
 	}
 	return nil
 }
@@ -138,7 +139,7 @@ func (r *Recurrence) formatDate(filled bool) error {
 		if filled {
 			return nil
 		}
-		return fmt.Errorf(port.ErrInvalidDateFormat)
+		return fmt.Errorf(pkg.ErrInvalidDateFormat)
 	}
 	return nil
 }
@@ -150,10 +151,10 @@ func (r *Recurrence) formatName(filled bool) error {
 		if filled {
 			return nil
 		}
-		return fmt.Errorf(port.ErrEmptyName)
+		return fmt.Errorf(pkg.ErrEmptyName)
 	}
 	if len(r.Name) > 100 {
-		return fmt.Errorf(port.ErrLongName)
+		return fmt.Errorf(pkg.ErrLongName)
 	}
 	return nil
 }
@@ -169,17 +170,17 @@ func (r *Recurrence) formatCycle(filled bool) error {
 		for k := range Cycles {
 			cycles += k + ", "
 		}
-		return fmt.Errorf(port.ErrEmptyCycle, cycles[:len(cycles)-2])
+		return fmt.Errorf(pkg.ErrEmptyCycle, cycles[:len(cycles)-2])
 	}
 	if len(r.Cycle) > 20 {
-		return fmt.Errorf(port.ErrLongCycle)
+		return fmt.Errorf(pkg.ErrLongCycle)
 	}
 	if _, ok := Cycles[r.Cycle]; !ok {
 		cycles := ""
 		for k := range Cycles {
 			cycles += k + ", "
 		}
-		return fmt.Errorf(port.ErrInvalidCycle, cycles[:len(cycles)-2])
+		return fmt.Errorf(pkg.ErrInvalidCycle, cycles[:len(cycles)-2])
 	}
 	return nil
 }
@@ -190,10 +191,10 @@ func (r *Recurrence) formatLength(filled bool) error {
 		return nil
 	}
 	if r.Cycle == "once" && r.Length != nil {
-		return fmt.Errorf(port.ErrZeroLen)
+		return fmt.Errorf(pkg.ErrZeroLen)
 	}
 	if r.Cycle != "once" && r.Length == nil {
-		return fmt.Errorf(port.ErrEmptyLen)
+		return fmt.Errorf(pkg.ErrEmptyLen)
 	}
 	return nil
 }
@@ -204,7 +205,7 @@ func (r *Recurrence) formatLimit() error {
 		return nil
 	}
 	if r.Cycle == "once" && r.Limits != nil {
-		return fmt.Errorf(port.ErrZeroLimit)
+		return fmt.Errorf(pkg.ErrZeroLimit)
 	}
 	return nil
 }
@@ -227,7 +228,7 @@ func (r *Recurrence) validateDuplicity(repo port.Repository, noduplicity bool) e
 		return err
 	}
 	if ok {
-		return fmt.Errorf(port.ErrAlreadyExists, r.ID)
+		return fmt.Errorf(pkg.ErrAlreadyExists, r.ID)
 	}
 	return nil
 }
