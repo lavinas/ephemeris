@@ -82,8 +82,8 @@ const (
 	ErrPriceNotFound           = "price not found"
 	ErrEmptyBillingType        = "empty billing type"
 	ErrInvalidBillingType      = "invalid billing type. Should be %s"
-	ErrInvalidDueDay		   = "due day should be until 31 or zero"
+	ErrInvalidDueDay           = "due day should be until 31 or zero"
 	ErrInvalidStartDate        = "invalid start date. Should have %s format"
-	ErrInvalidEndDate 		   = "invalid end date. Should have %s format"
-	ErrBondNotFound			   = "bond contract not found"
+	ErrInvalidEndDate          = "invalid end date. Should have %s format"
+	ErrBondNotFound            = "bond contract not found"
 )

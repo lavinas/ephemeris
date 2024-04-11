@@ -2,12 +2,12 @@ package domain
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 	"slices"
 	"strconv"
 	"strings"
 	"time"
-	"fmt"
 
 	"github.com/lavinas/ephemeris/internal/port"
 	"github.com/lavinas/ephemeris/pkg"
@@ -17,9 +17,9 @@ var (
 	// BillingTypes is a map that contains all billing types
 	BillingTypes = map[string]string{
 		// pre-paid represents that client paid before the service
-		"pre-paid":    "pre-paid",
+		"pre-paid": "pre-paid",
 		// pos-paid represents that client paid after the service
-		"pos-paid":    "pos-paid",
+		"pos-paid": "pos-paid",
 		// pos-session represents that client paid after the service if the session is done
 		"pos-session": "pos-session",
 	}
@@ -42,7 +42,7 @@ type Contract struct {
 
 // NewContract creates a new contract
 func NewContract(id string, date string, clientID string, serviceID string, recurrenceID string, priceID string,
-	billingType string, dueDay string, start string, bond string) *Contract {
+	billingType string, dueDay string, start string, end string, bond string) *Contract {
 	date = strings.TrimSpace(date)
 	local, _ := time.LoadLocation(pkg.Location)
 	fdate := time.Time{}
@@ -57,6 +57,14 @@ func NewContract(id string, date string, clientID string, serviceID string, recu
 		var err error
 		if fstart, err = time.ParseInLocation(pkg.DateFormat, start, local); err != nil {
 			fstart = time.Time{}
+		}
+	}
+	var fend *time.Time = nil
+	if end != "" {
+		fend = new(time.Time)
+		var err error
+		if *fend, err = time.ParseInLocation(pkg.DateFormat, end, local); err != nil {
+			fend = nil
 		}
 	}
 	var fdueDay int64
@@ -79,7 +87,7 @@ func NewContract(id string, date string, clientID string, serviceID string, recu
 		BillingType:  billingType,
 		DueDay:       fdueDay,
 		Start:        fstart,
-		End:          nil,
+		End:          fend,
 		Bond:         fbond,
 	}
 }
@@ -139,12 +147,12 @@ func (c *Contract) GetID() string {
 }
 
 // Get is a method that returns the contract
-func (c *Contract) Get() *Contract {
+func (c *Contract) Get() port.Domain {
 	return c
 }
 
 // GetEmpty is a method that returns an empty contract
-func GetEmpty() *Contract {
+func (c *Contract) GetEmpty() port.Domain {
 	return &Contract{}
 }
 
