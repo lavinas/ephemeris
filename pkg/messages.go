@@ -14,6 +14,7 @@ const (
 	Tagname                    = "name:"
 	Tagnotnull                 = "not null"
 	Tagkey                     = "key"
+	TagPos                     = "pos"
 	RoleClient                 = "client"
 	RoleLiable                 = "liable"
 	RolePayer                  = "payer"

@@ -3,6 +3,7 @@ package dto
 import (
 	"errors"
 	"time"
+	"fmt"
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"
@@ -11,15 +12,14 @@ import (
 
 // PackageAddIn represents the input dto for adding a package usecase
 type PackageAddIn struct {
-	Object       string `json:"-" command:"name:package;key"`
-	Action       string `json:"-" command:"name:add;key"`
+	Object       string `json:"-" command:"name:package;key;pos:1,2"`
+	Action       string `json:"-" command:"name:add;key:pos:1,2"`
 	ID           string `json:"id" command:"name:id"`
 	Date         string `json:"date" command:"name:date"`
 	Name         string `json:"name" command:"name:name"`
 	ServiceID    string `json:"service" command:"name:service"`
 	RecurrenceID string `json:"recurrence" command:"name:recurrence"`
 	PriceID      string `json:"price" command:"name:price"`
-	BillingType  string `json:"billing" command:"name:billing"`
 }
 
 // PackageAddOut represents the output dto for adding a package usecase
@@ -30,7 +30,6 @@ type PackageAddOut struct {
 	ServiceID    string `json:"service" command:"name:service"`
 	RecurrenceID string `json:"recurrence" command:"name:recurrence"`
 	PriceID      string `json:"price" command:"name:price"`
-	BillingType  string `json:"billing" command:"name:billing"`
 }
 
 // Validate is a method that validates the dto
@@ -47,8 +46,9 @@ func (p *PackageAddIn) GetDomain() []port.Domain {
 		time.Local, _ = time.LoadLocation(pkg.Location)
 		p.Date = time.Now().Format(pkg.DateFormat)
 	}
+	fmt.Println(1, p.ID, p.Date, p.Name, p.ServiceID, p.RecurrenceID, p.PriceID)
 	return []port.Domain{
-		domain.NewPackage(p.ID, p.Date, p.Name, p.ServiceID, p.RecurrenceID, p.PriceID, p.BillingType),
+		domain.NewPackage(p.ID, p.Date, p.Name, p.ServiceID, p.RecurrenceID, p.PriceID),
 	}
 }
 
@@ -61,7 +61,7 @@ func (p *PackageAddIn) GetOut() port.DTOOut {
 func (p *PackageAddOut) GetDTO(domainIn interface{}) interface{} {
 	{
 		slices := domainIn.([]interface{})
-	    pg := slices[0].(*domain.Package)
+		pg := slices[0].(*domain.Package)
 		return &PackageAddOut{
 			ID:           pg.ID,
 			Date:         pg.Date.Format(pkg.DateFormat),
@@ -69,13 +69,12 @@ func (p *PackageAddOut) GetDTO(domainIn interface{}) interface{} {
 			ServiceID:    pg.ServiceID,
 			RecurrenceID: pg.RecurrenceID,
 			PriceID:      pg.PriceID,
-			BillingType:  pg.BillingType,
 		}
 	}
 }
 
 // isEmpty is a method that checks if the dto is empty
 func (p *PackageAddIn) isEmpty() bool {
-	return p.ID == "" && p.Date == "" && p.Name == "" && p.ServiceID == "" && 
-	       p.RecurrenceID == "" && p.PriceID == "" && p.BillingType == ""
+	return p.ID == "" && p.Date == "" && p.Name == "" && p.ServiceID == "" &&
+		p.RecurrenceID == "" && p.PriceID == ""
 }

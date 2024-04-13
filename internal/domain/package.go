@@ -2,7 +2,6 @@ package domain
 
 import (
 	"errors"
-	"fmt"
 	"regexp"
 	"slices"
 	"strings"
@@ -20,23 +19,10 @@ type Package struct {
 	ServiceID    string    `gorm:"type:varchar(25); not null; index"`
 	RecurrenceID string    `gorm:"type:varchar(25); not null; index"`
 	PriceID      string    `gorm:"type:varchar(25); not null; index"`
-	BillingType  string    `gorm:"type:varchar(20); not null; index"`
 }
 
-var (
-	// BillingTypes is a map that contains all billing types
-	BillingTypes = map[string]string{
-		// pre-paid represents that client paid before the service
-		"pre-paid": "pre-paid",
-		// pos-paid represents that client paid after the service
-		"pos-paid": "pos-paid",
-		// pos-session represents that client paid after the service if the session is done
-		"pos-session": "pos-session",
-	}
-)
-
 // NewPackage creates a new package
-func NewPackage(id string, date string, name string, serviceID string, recurrenceID string, priceID string, billingType string) *Package {
+func NewPackage(id string, date string, name string, serviceID string, recurrenceID string, priceID string) *Package {
 	date = strings.TrimSpace(date)
 	local, _ := time.LoadLocation(pkg.Location)
 	fdate := time.Time{}
@@ -53,7 +39,6 @@ func NewPackage(id string, date string, name string, serviceID string, recurrenc
 		ServiceID:    serviceID,
 		RecurrenceID: recurrenceID,
 		PriceID:      priceID,
-		BillingType:  billingType,
 	}
 }
 
@@ -76,8 +61,8 @@ func (p *Package) Format(repo port.Repository, args ...string) error {
 	if err := p.formatPriceID(repo, filled); err != nil {
 		msg += err.Error() + " | "
 	}
-	if err := p.formatBillingType(filled); err != nil {
-		msg += err.Error() + " | "
+	if msg != "" {
+		return errors.New(msg[:len(msg)-3])
 	}
 	return nil
 }
@@ -190,26 +175,6 @@ func (p *Package) formatPriceID(repo port.Repository, filled bool) error {
 		return err
 	} else if !exists {
 		return errors.New(pkg.ErrPriceNotFound)
-	}
-	return nil
-}
-
-// formatBillingType is a method that formats the billing type of the contract
-func (p *Package) formatBillingType(filled bool) error {
-	p.BillingType = p.formatString(p.BillingType)
-	if p.BillingType == "" {
-		if filled {
-			return nil
-		}
-		return errors.New(pkg.ErrEmptyBillingType)
-	}
-	p.BillingType = strings.ToLower(p.BillingType)
-	if _, ok := BillingTypes[p.BillingType]; !ok {
-		bt := ""
-		for k := range BillingTypes {
-			bt += k + ", "
-		}
-		return fmt.Errorf(pkg.ErrInvalidBillingType, bt[:len(bt)-2])
 	}
 	return nil
 }

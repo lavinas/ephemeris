@@ -13,20 +13,34 @@ import (
 	"github.com/lavinas/ephemeris/pkg"
 )
 
+var (
+	// BillingTypes is a map that contains all billing types
+	BillingTypes = map[string]string{
+		// pre-paid represents that client paid before the service
+		"pre-paid": "pre-paid",
+		// pos-paid represents that client paid after the service
+		"pos-paid": "pos-paid",
+		// pos-session represents that client paid after the service if the session is done
+		"pos-session": "pos-session",
+	}
+)
+
 // Contract represents the contract entity
 type Contract struct {
-	ID        string     `gorm:"type:varchar(25); primaryKey"`
-	Date      time.Time  `gorm:"type:datetime; not null; index"`
-	ClientID  string     `gorm:"type:varchar(25); not null; index"`
-	PackageID string     `gorm:"type:varchar(25); not null; index"`
-	DueDay    int64      `gorm:"type:numeric(20), not null; index"`
-	Start     time.Time  `gorm:"type:datetime; not null; index"`
-	End       *time.Time `gorm:"type:datetime; null; index"`
-	Bond      *string    `gorm:"type:varchar(25); null; index"`
+	ID          string     `gorm:"type:varchar(25); primaryKey"`
+	Date        time.Time  `gorm:"type:datetime; not null; index"`
+	ClientID    string     `gorm:"type:varchar(25); not null; index"`
+	PackageID   string     `gorm:"type:varchar(25); not null; index"`
+	BillingType string     `gorm:"type:varchar(25); not null; index"`
+	DueDay      int64      `gorm:"type:numeric(20), not null; index"`
+	Start       time.Time  `gorm:"type:datetime; not null; index"`
+	End         *time.Time `gorm:"type:datetime; null; index"`
+	Bond        *string    `gorm:"type:varchar(25); null; index"`
 }
 
 // NewContract creates a new contract
-func NewContract(id string, date string, clientID string, packageID string, dueDay string, start string, end string, bond string) *Contract {
+func NewContract(id string, date string, clientID string, packageID string, billingType string, dueDay string,
+	start string, end string, bond string) *Contract {
 	date = strings.TrimSpace(date)
 	local, _ := time.LoadLocation(pkg.Location)
 	fdate := time.Time{}
@@ -62,14 +76,15 @@ func NewContract(id string, date string, clientID string, packageID string, dueD
 		fbond = &bond
 	}
 	return &Contract{
-		ID:        id,
-		Date:      fdate,
-		ClientID:  clientID,
-		PackageID: packageID,
-		DueDay:    fdueDay,
-		Start:     fstart,
-		End:       fend,
-		Bond:      fbond,
+		ID:          id,
+		Date:        fdate,
+		ClientID:    clientID,
+		PackageID:   packageID,
+		BillingType: billingType,
+		DueDay:      fdueDay,
+		Start:       fstart,
+		End:         fend,
+		Bond:        fbond,
 	}
 }
 
@@ -88,6 +103,9 @@ func (c *Contract) Format(repo port.Repository, args ...string) error {
 		msg += err.Error() + " | "
 	}
 	if err := c.formatPackageID(repo, filled); err != nil {
+		msg += err.Error() + " | "
+	}
+	if err := c.formatBillingType(filled); err != nil {
 		msg += err.Error() + " | "
 	}
 	if err := c.formatDueDay(filled); err != nil {
@@ -197,6 +215,26 @@ func (c *Contract) formatPackageID(repo port.Repository, filled bool) error {
 		return err
 	} else if !exists {
 		return errors.New(pkg.ErrServiceNotFound)
+	}
+	return nil
+}
+
+// formatBillingType is a method that formats the billing type of the contract
+func (c *Contract) formatBillingType(filled bool) error {
+	c.BillingType = c.formatString(c.BillingType)
+	if c.BillingType == "" {
+		if filled {
+			return nil
+		}
+		return errors.New(pkg.ErrEmptyBillingType)
+	}
+	c.BillingType = strings.ToLower(c.BillingType)
+	if _, ok := BillingTypes[c.BillingType]; !ok {
+		bt := ""
+		for k := range BillingTypes {
+			bt += k + ", "
+		}
+		return fmt.Errorf(pkg.ErrInvalidBillingType, bt[:len(bt)-2])
 	}
 	return nil
 }

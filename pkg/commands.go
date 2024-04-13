@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -13,6 +14,7 @@ type Command struct {
 	name    string
 	field   string
 	iskey   bool
+	pos     []int64
 	notnull bool
 	isfound string
 	value   string
@@ -42,6 +44,7 @@ func (c *Commands) Marshal(v interface{}, args ...string) string {
 
 // UnmarshalOne is a function that converts a string to a struct
 func (c *Commands) FindOne(data string, v []interface{}) (interface{}, error) {
+	ret := []interface{}{}
 	for _, i := range v {
 		st := reflect.TypeOf(i).Elem()
 		if err := c.checkFields(st); err != nil {
@@ -59,9 +62,15 @@ func (c *Commands) FindOne(data string, v []interface{}) (interface{}, error) {
 		if err := c.checkValues(tags); err != nil {
 			continue
 		}
-		return i, nil
+		ret = append(ret, i)
 	}
-	return nil, errors.New(ErrorCommandNotFound)
+	if len(ret) == 0 {
+		return nil, errors.New(ErrorCommandNotFound)
+	}
+	if len(ret) > 1 {
+		return nil, errors.New(ErrorCommandDuplicated)
+	}
+	return ret[0], nil
 }
 
 // ToStruc is a function that converts a string to a struct
@@ -185,19 +194,20 @@ func (c *Commands) getTag(field reflect.StructField, tagname string) *Command {
 	if tag == "" {
 		return nil
 	}
-	name, notnull, iskey := c.splitValues(tag)
+	name, notnull, iskey, pos := c.splitValues(tag)
 	if name != "" {
-		return &Command{name: name, field: field.Name, iskey: iskey, notnull: notnull}
+		return &Command{name: name, field: field.Name, iskey: iskey, notnull: notnull, pos: pos}
 	}
 	return nil
 }
 
 // splitValues is a function that splits the values of a tag into name, notnull and iskey
-func (c *Commands) splitValues(tag string) (string, bool, bool) {
+func (c *Commands) splitValues(tag string) (string, bool, bool, []int64) {
 	fields := strings.Split(tag, ";")
 	name := ""
 	notnull := false
 	iskey := false
+	positions := []int64{}
 	for _, fd := range fields {
 		if strings.Contains(fd, Tagname) {
 			name = strings.Split(fd, ":")[1]
@@ -208,8 +218,20 @@ func (c *Commands) splitValues(tag string) (string, bool, bool) {
 		if strings.Contains(fd, Tagkey) {
 			iskey = true
 		}
+		if strings.Contains(fd, TagPos) {
+			pos := strings.Split(fd, ":")
+			if len(pos) <= 1 {
+				continue
+			}
+			plist := strings.Split(pos[1], ",")
+			for _, p := range plist {		 
+				if pos, err := strconv.ParseInt(p, 10, 64); err == nil && pos > 0 {
+					positions = append(positions, pos)
+				}
+			}
+		}
 	}
-	return name, notnull, iskey
+	return name, notnull, iskey, positions
 }
 
 // mapValues is a function that maps values to a struct
