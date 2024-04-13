@@ -11,14 +11,14 @@ import (
 
 // RecurrenceUpIn is a struct that represents the recurrence up data transfer object
 type RecurrenceUpIn struct {
-	Object string `json:"-" command:"name:recurrence;key"`
-	Action string `json:"-" command:"name:up;key"`
-	ID     string `json:"id" command:"name:id"`
-	Date   string `json:"date" command:"name:date"`
-	Name   string `json:"name" command:"name:name"`
-	Cycle  string `json:"cycle" command:"name:cycle"`
-	Length string `json:"quantity" command:"name:length"`
-	Limit  string `json:"limit" command:"name:limit"`
+	Object string `json:"-" command:"name:recurrence;key;pos:2-"`
+	Action string `json:"-" command:"name:up;key;pos:2-"`
+	ID     string `json:"id" command:"name:id;pos:3+"`
+	Date   string `json:"date" command:"name:date;pos:3+"`
+	Name   string `json:"name" command:"name:name;pos:3+"`
+	Cycle  string `json:"cycle" command:"name:cycle;pos:3+"`
+	Length string `json:"quantity" command:"name:length;pos:3+"`
+	Limit  string `json:"limit" command:"name:limit;pos:3+"`
 }
 
 // RecurrenceUpOut is a struct that represents the recurrence up output data transfer object

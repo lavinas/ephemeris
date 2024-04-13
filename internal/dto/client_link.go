@@ -11,12 +11,12 @@ import (
 
 // ClientLinkIn represents the dto for linking a client
 type ClientLinkIn struct {
-	Object string `json:"-" command:"name:client;key"`
-	Action string `json:"-" command:"name:link;key"`
-	ID     string `json:"referrer" command:"name:id"`
-	Ref    string `json:"ref_id" command:"name:ref"`
-	Role   string `json:"role" command:"name:role"`
-	Date   string `json:"date" command:"name:date"`
+	Object string `json:"-" command:"name:client;key;pos:2-"`
+	Action string `json:"-" command:"name:link;key;pos:2-"`
+	ID     string `json:"referrer" command:"name:id;pos:3+"`
+	Ref    string `json:"ref_id" command:"name:ref;pos:3+"`
+	Role   string `json:"role" command:"name:role;pos:3+"`
+	Date   string `json:"date" command:"name:date;pos:3+"`
 }
 
 // ClientLinkOut represents the dto for linking a client

@@ -12,14 +12,14 @@ import (
 
 // PackageAddIn represents the input dto for adding a package usecase
 type PackageAddIn struct {
-	Object       string `json:"-" command:"name:package;key;pos:1,2"`
-	Action       string `json:"-" command:"name:add;key:pos:1,2"`
-	ID           string `json:"id" command:"name:id"`
-	Date         string `json:"date" command:"name:date"`
-	Name         string `json:"name" command:"name:name"`
-	ServiceID    string `json:"service" command:"name:service"`
-	RecurrenceID string `json:"recurrence" command:"name:recurrence"`
-	PriceID      string `json:"price" command:"name:price"`
+	Object       string `json:"-" command:"name:package;key;pos:2-"`
+	Action       string `json:"-" command:"name:add;key;pos:2-"`
+	ID           string `json:"id" command:"name:id;pos:3+"`
+	Date         string `json:"date" command:"name:date;pos:3+"`
+	Name         string `json:"name" command:"name:name;pos:3+"`
+	ServiceID    string `json:"service" command:"name:service;pos:3+"`
+	RecurrenceID string `json:"recurrence" command:"name:recurrence;pos:3+"`
+	PriceID      string `json:"price" command:"name:price;pos:3+"`
 }
 
 // PackageAddOut represents the output dto for adding a package usecase

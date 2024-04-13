@@ -12,13 +12,13 @@ import (
 
 // PriceAddIn is a struct that represents the price add data transfer object
 type PriceAddIn struct {
-	Object string `json:"-" command:"name:price;key"`
-	Action string `json:"-" command:"name:add;key"`
-	ID     string `json:"id" command:"name:id"`
-	Date   string `json:"date" command:"name:date"`
-	Name   string `json:"name" command:"name:name"`
-	Unit   string `json:"unit" command:"name:unit"`
-	Pack   string `json:"pack" command:"name:pack"`
+	Object string `json:"-" command:"name:price;key;pos:2-"`
+	Action string `json:"-" command:"name:add;key;pos:2-"`
+	ID     string `json:"id" command:"name:id;pos:3+"`
+	Date   string `json:"date" command:"name:date;pos:3+"`
+	Name   string `json:"name" command:"name:name;pos:3+"`
+	Unit   string `json:"unit" command:"name:unit;pos:3+"`
+	Pack   string `json:"pack" command:"name:pack;pos:3+"`
 }
 
 // PriceAddOut is a struct that represents the price add output data transfer object

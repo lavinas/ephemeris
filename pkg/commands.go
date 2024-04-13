@@ -14,7 +14,7 @@ type Command struct {
 	name    string
 	field   string
 	iskey   bool
-	pos     []int64
+	pos     string
 	notnull bool
 	isfound string
 	value   string
@@ -58,6 +58,12 @@ func (c *Commands) FindOne(data string, v []interface{}) (interface{}, error) {
 		if err := c.checkDuplicatedComms(ss, tags); err != nil {
 			return nil, err
 		}
+		for k, v := range tags {
+			fmt.Println(2, k, v)
+		}
+		for k, v := range tags {
+			fmt.Println(2, k, v)
+		}
 		c.mapValues(tags, ss)
 		if err := c.checkValues(tags); err != nil {
 			continue
@@ -68,6 +74,9 @@ func (c *Commands) FindOne(data string, v []interface{}) (interface{}, error) {
 		return nil, errors.New(ErrorCommandNotFound)
 	}
 	if len(ret) > 1 {
+		for _, i := range ret {
+			fmt.Println(100, reflect.TypeOf(i))
+		}	
 		return nil, errors.New(ErrorCommandDuplicated)
 	}
 	return ret[0], nil
@@ -202,15 +211,18 @@ func (c *Commands) getTag(field reflect.StructField, tagname string) *Command {
 }
 
 // splitValues is a function that splits the values of a tag into name, notnull and iskey
-func (c *Commands) splitValues(tag string) (string, bool, bool, []int64) {
+func (c *Commands) splitValues(tag string) (string, bool, bool, string) {
 	fields := strings.Split(tag, ";")
 	name := ""
 	notnull := false
 	iskey := false
-	positions := []int64{}
+	position := ""
 	for _, fd := range fields {
 		if strings.Contains(fd, Tagname) {
-			name = strings.Split(fd, ":")[1]
+			s := strings.Split(fd, ":")
+			if len(s) == 2 && s[0] == Tagname || s[1] != "" {
+				name = strings.TrimSpace(s[1])
+			}
 		}
 		if strings.Contains(fd, Tagnotnull) {
 			notnull = true
@@ -219,39 +231,56 @@ func (c *Commands) splitValues(tag string) (string, bool, bool, []int64) {
 			iskey = true
 		}
 		if strings.Contains(fd, TagPos) {
-			pos := strings.Split(fd, ":")
-			if len(pos) <= 1 {
-				continue
-			}
-			plist := strings.Split(pos[1], ",")
-			for _, p := range plist {		 
-				if pos, err := strconv.ParseInt(p, 10, 64); err == nil && pos > 0 {
-					positions = append(positions, pos)
-				}
+			s := strings.Split(fd, ":")
+			if len(s) == 2 && s[0] == TagPos || s[1] != "" {
+				position = strings.TrimSpace(s[1])
 			}
 		}
 	}
-	return name, notnull, iskey, positions
+	return name, notnull, iskey, position
 }
 
 // mapValues is a function that maps values to a struct
 func (c *Commands) mapValues(tags map[string]*Command, ss []string) {
 	for tag, field := range tags {
-		if !slices.Contains(ss, tag) {
+		vals := c.posValues(field.pos, ss)
+		pos := slices.Index(ss, tag)
+		if pos == -1 {
 			field.isfound = "false"
 			continue
-		} else {
-			field.isfound = "true"
 		}
-		param := c.getValue(tag, tags, ss)
+		field.isfound = "true"
+		param := c.getValue(pos + 1, tags, vals)
 		field.value = strings.TrimSpace(param)
 	}
 }
 
+// posValues is a function that returns the values based on the position places on a tag
+func (c *Commands) posValues(posTag string, ss []string) []string {
+	if posTag == "" {
+		return ss
+	}
+	posType := posTag[len(posTag)-1]
+	posVal, err := strconv.ParseInt(posTag[:len(posTag)-1], 10, 64)
+	if err != nil {
+		return ss
+	}
+	if posType == '+' {
+		return ss[posVal:]
+	}
+	if posType == '-' {
+		return ss[:posVal]
+	}
+	if posType == '.' {
+		return []string{ss[posVal]}
+	}
+	return ss
+}
+
 // getValue is a function that returns the value of a tag
-func (c *Commands) getValue(tag string, tags map[string]*Command, ss []string) string {
+func (c *Commands) getValue(pos int, tags map[string]*Command, ss []string) string {
 	value := ""
-	for j := slices.Index(ss, tag) + 1; j < len(ss); j++ {
+	for j := pos; j < len(ss); j++ {
 		if _, ok := tags[ss[j]]; ok {
 			break
 		}

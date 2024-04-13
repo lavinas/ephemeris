@@ -11,16 +11,16 @@ import (
 
 // ClientAdd represents the input dto for adding a client usecase
 type ClientAddIn struct {
-	Object   string `json:"-" command:"name:client;key"`
-	Action   string `json:"-" command:"name:add;key"`
-	ID       string `json:"id" command:"name:id"`
-	Date     string `json:"date" command:"name:date"`
-	Name     string `json:"name" command:"name:name"`
-	Email    string `json:"email" command:"name:email"`
-	Phone    string `json:"phone" command:"name:phone"`
-	Document string `json:"document" command:"name:document"`
-	Role     string `json:"type" command:"name:role"`
-	Ref      string `json:"reference" command:"name:ref"`
+	Object   string `json:"-" command:"name:client;key;pos:2-"`
+	Action   string `json:"-" command:"name:add;key;pos:2-"`
+	ID       string `json:"id" command:"name:id;pos:3+"`
+	Date     string `json:"date" command:"name:date;pos:3+"`
+	Name     string `json:"name" command:"name:name;pos:3+"`
+	Email    string `json:"email" command:"name:email;pos:3+"`
+	Phone    string `json:"phone" command:"name:phone;pos:3+"`
+	Document string `json:"document" command:"name:document;pos:3+"`
+	Role     string `json:"type" command:"name:role;pos:3+"`
+	Ref      string `json:"reference" command:"name:ref;pos:3+"`
 }
 
 // ClientAddOut represents the output dto for adding a client usecase

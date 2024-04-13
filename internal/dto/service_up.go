@@ -11,12 +11,12 @@ import (
 
 // ServiceUpIn is a struct that represents the service up data transfer object
 type ServiceUpIn struct {
-	Object  string `json:"-" command:"name:service;key"`
-	Action  string `json:"-" command:"name:up;key"`
-	ID      string `json:"id" command:"name:id"`
-	Date    string `json:"date" command:"name:date"`
-	Name    string `json:"name" command:"name:name"`
-	Minutes string `json:"minutes" command:"name:minutes"`
+	Object  string `json:"-" command:"name:service;key;pos:2-"`
+	Action  string `json:"-" command:"name:up;key;pos:2-"`
+	ID      string `json:"id" command:"name:id;pos:3+"`
+	Date    string `json:"date" command:"name:date;pos:3+"`
+	Name    string `json:"name" command:"name:name;pos:3+"`
+	Minutes string `json:"minutes" command:"name:minutes;pos:3+"`
 }
 
 // ServiceUpOut is a struct that represents the service up output data transfer object
