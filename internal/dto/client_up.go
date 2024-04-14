@@ -61,7 +61,7 @@ func (c *ClientUpIn) GetOut() port.DTOOut {
 }
 
 // SetDomain is a method that sets the dto with the domain
-func (c *ClientUpOut) GetDTO(domainIn interface{}) interface{} {
+func (c *ClientUpOut) GetDTO(domainIn interface{}) []port.DTOOut {
 	slices := domainIn.([]interface{})
 	client := slices[0].(*domain.Client)
 	dto := &ClientUpOut{}
@@ -75,7 +75,7 @@ func (c *ClientUpOut) GetDTO(domainIn interface{}) interface{} {
 		dto.Document = *client.Document
 	}
 	dto.Contact = client.Contact
-	return dto
+	return []port.DTOOut{dto}
 }
 
 // IsEmpty is a method that returns true if the dto is empty

@@ -11,7 +11,7 @@ import (
 type Get struct {
 	Repo port.Repository
 	Log  port.Logger
-	Out  interface{}
+	Out  []port.DTOOut
 }
 
 // NewGet is a function that returns a new Get struct

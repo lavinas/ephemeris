@@ -52,18 +52,18 @@ func (c *ClientLinkIn) GetOut() port.DTOOut {
 }
 
 // GetDTO is a method that returns the dto
-func (c *ClientLinkOut) GetDTO(domainIn interface{}) interface{} {
+func (c *ClientLinkOut) GetDTO(domainIn interface{}) []port.DTOOut {
 	slices := domainIn.([]interface{})
 	clientRole, ok := slices[0].(*domain.ClientRole)
 	if !ok {
 		return nil
 	}
-	return &ClientLinkOut{
+	return []port.DTOOut{&ClientLinkOut{
 		Actor: clientRole.ClientID,
 		Ref:   clientRole.RefID,
 		Role:  clientRole.Role,
 		Date:  clientRole.Date.Format(pkg.DateFormat),
-	}
+	}}
 }
 
 // isEmpty is a method that checks if the dto is empty

@@ -54,17 +54,17 @@ func (p *PackageAddIn) GetOut() port.DTOOut {
 }
 
 // GetDTO is a method that returns the dto
-func (p *PackageAddOut) GetDTO(domainIn interface{}) interface{} {
+func (p *PackageAddOut) GetDTO(domainIn interface{}) []port.DTOOut {
 	{
 		slices := domainIn.([]interface{})
 		pg := slices[0].(*domain.Package)
-		return &PackageAddOut{
+		return []port.DTOOut{&PackageAddOut{
 			ID:           pg.ID,
 			Date:         pg.Date.Format(pkg.DateFormat),
 			ServiceID:    pg.ServiceID,
 			RecurrenceID: pg.RecurrenceID,
 			PriceID:      pg.PriceID,
-		}
+		}}
 	}
 }
 

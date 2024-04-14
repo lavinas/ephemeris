@@ -49,12 +49,12 @@ func (p *PackageGetIn) GetOut() port.DTOOut {
 }
 
 // GetDTO is a method that returns the dto
-func (p *PackageGetOut) GetDTO(domainIn interface{}) interface{} {
-	ret := []PackageGetOut{}
+func (p *PackageGetOut) GetDTO(domainIn interface{}) []port.DTOOut {
+	ret := []port.DTOOut{}
 	slices := domainIn.([]interface{})
 	packages := slices[0].(*[]domain.Package)
 	for _, p := range *packages {
-		ret = append(ret, PackageGetOut{
+		ret = append(ret, &PackageGetOut{
 			ID:           p.ID,
 			Date:         p.Date.Format(pkg.DateFormat),
 			ServiceID:    p.ServiceID,

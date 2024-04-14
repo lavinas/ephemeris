@@ -98,15 +98,23 @@ func (c *Commands) Unmarshal(data string, v interface{}) error {
 // getInputSlice is a function that returns a slice of reflect.Values
 func (c *Commands) getInputSlice(v interface{}) []reflect.Value {
 	vl := reflect.ValueOf(v)
-	if vl.Kind() == reflect.Ptr {
+	for vl.Kind() == reflect.Ptr || vl.Kind() == reflect.Interface {
 		vl = vl.Elem()
 	}
 	rvl := []reflect.Value{}
 	if vl.Kind() != reflect.Slice {
+		for vl.Kind() == reflect.Ptr || vl.Kind() == reflect.Interface {
+			vl = vl.Elem()
+		}
 		rvl = append(rvl, vl)
 	} else {
 		for i := 0; i < vl.Len(); i++ {
-			rvl = append(rvl, vl.Index(i))
+			obj := vl.Index(i)
+			for obj.Kind() == reflect.Ptr || obj.Kind() == reflect.Interface {
+				obj = obj.Elem()
+			}
+			fmt.Println(1, obj.Kind())
+			rvl = append(rvl, obj)
 		}
 	}
 	return rvl

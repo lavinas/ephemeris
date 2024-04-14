@@ -11,7 +11,7 @@ import (
 type Add struct {
 	Repo port.Repository
 	Log  port.Logger
-	Out  port.DTOOut
+	Out  []port.DTOOut
 }
 
 // NewAdd is a function that returns a new Add struct
@@ -58,7 +58,7 @@ func (u *Add) Run(dtoIn interface{}) error {
 		return u.error(pkg.ErrPrefInternal, err.Error())
 	}
 	out := in.GetOut()
-	u.Out = out.GetDTO(result).(port.DTOOut)
+	u.Out = out.GetDTO(result)
 	return nil
 }
 

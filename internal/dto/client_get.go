@@ -53,8 +53,8 @@ func (c *ClientGetIn) GetOut() port.DTOOut {
 }
 
 // GetDTO is a method that returns the dto
-func (c *ClientGetOut) GetDTO(domainIn interface{}) interface{} {
-	ret := []ClientGetOut{}
+func (c *ClientGetOut) GetDTO(domainIn interface{}) []port.DTOOut {
+	ret := []port.DTOOut{}
 	slices := domainIn.([]interface{})
 	clients := slices[0].(*[]domain.Client)
 	for _, client := range *clients {
@@ -71,7 +71,7 @@ func (c *ClientGetOut) GetDTO(domainIn interface{}) interface{} {
 			Document: doc,
 			Contact:  client.Contact,
 		}
-		ret = append(ret, dto)
+		ret = append(ret, &dto)
 	}
 	if len(ret) == 0 {
 		return nil

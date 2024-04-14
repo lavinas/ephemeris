@@ -52,8 +52,8 @@ func (r *RecurrenceGetIn) GetOut() port.DTOOut {
 }
 
 // GetDTO is a method that returns the dto
-func (r *RecurrenceGetOut) GetDTO(domainIn interface{}) interface{} {
-	ret := []RecurrenceGetOut{}
+func (r *RecurrenceGetOut) GetDTO(domainIn interface{}) []port.DTOOut {
+	ret := []port.DTOOut{}
 	slices := domainIn.([]interface{})
 	recurrences := slices[0].(*[]domain.Recurrence)
 	for _, domain := range *recurrences {
@@ -65,7 +65,7 @@ func (r *RecurrenceGetOut) GetDTO(domainIn interface{}) interface{} {
 		if domain.Limits != nil {
 			lim = strconv.FormatInt(*domain.Limits, 10)
 		}
-		ret = append(ret, RecurrenceGetOut{
+		ret = append(ret, &RecurrenceGetOut{
 			ID:     domain.ID,
 			Date:   domain.Date.Format(pkg.DateFormat),
 			Name:   domain.Name,

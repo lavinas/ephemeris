@@ -11,5 +11,5 @@ type DTOIn interface {
 
 type DTOOut interface {
 	// GetDTO is a method that returns the DTOOut
-	GetDTO(domainIn interface{}) interface{}
+	GetDTO(domainIn interface{}) []DTOOut
 }

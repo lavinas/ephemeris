@@ -48,8 +48,8 @@ func (c *ServiceGetIn) GetOut() port.DTOOut {
 }
 
 // GetDTO is a method that returns the dto
-func (c *ServiceGetOut) GetDTO(domainIn interface{}) interface{} {
-	ret := []ServiceGetOut{}
+func (c *ServiceGetOut) GetDTO(domainIn interface{}) []port.DTOOut {
+	ret := []port.DTOOut{}
 	slices := domainIn.([]interface{})
 	services := slices[0].(*[]domain.Service)
 	for _, service := range *services {
@@ -63,7 +63,7 @@ func (c *ServiceGetOut) GetDTO(domainIn interface{}) interface{} {
 			Name:    service.Name,
 			Minutes: min,
 		}
-		ret = append(ret, dto)
+		ret = append(ret, &dto)
 	}
 	return ret
 }

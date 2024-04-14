@@ -49,16 +49,16 @@ func (p *PackageUpIn) GetOut() port.DTOOut {
 }
 
 // GetDTO is a method that returns the dto
-func (p *PackageUpOut) GetDTO(domainIn interface{}) interface{} {
+func (p *PackageUpOut) GetDTO(domainIn interface{}) []port.DTOOut {
 	slices := domainIn.([]interface{})
 	pg := slices[0].(*domain.Package)
-	return &PackageUpOut{
+	return []port.DTOOut{&PackageUpOut{
 		ID:           pg.ID,
 		Date:         pg.Date.Format(pkg.DateFormat),
 		ServiceID:    pg.ServiceID,
 		RecurrenceID: pg.RecurrenceID,
 		PriceID:      pg.PriceID,
-	}
+	}}
 }
 
 // isEmpty is a method that checks if the dto is empty

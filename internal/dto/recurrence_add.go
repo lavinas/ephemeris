@@ -63,7 +63,7 @@ func (r *RecurrenceAddIn) GetOut() port.DTOOut {
 }
 
 // GetDTO is a method that returns the dto
-func (r *RecurrenceAddOut) GetDTO(domainIn interface{}) interface{} {
+func (r *RecurrenceAddOut) GetDTO(domainIn interface{}) []port.DTOOut {
 	slices := domainIn.([]interface{})
 	recurrence, ok := slices[0].(*domain.Recurrence)
 	if !ok {
@@ -77,14 +77,14 @@ func (r *RecurrenceAddOut) GetDTO(domainIn interface{}) interface{} {
 	if recurrence.Limits != nil {
 		lim = strconv.FormatInt(*recurrence.Limits, 10)
 	}
-	return &RecurrenceAddOut{
+	return []port.DTOOut{&RecurrenceAddOut{
 		ID:     recurrence.ID,
 		Date:   recurrence.Date.Format(pkg.DateFormat),
 		Name:   recurrence.Name,
 		Cycle:  recurrence.Cycle,
 		Length: len,
 		Limit:  lim,
-	}
+	}}
 }
 
 // isEmpty is a method that checks if the dto is empty

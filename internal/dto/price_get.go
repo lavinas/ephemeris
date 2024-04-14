@@ -50,8 +50,8 @@ func (p *PriceGetIn) GetOut() port.DTOOut {
 }
 
 // GetDTO is a method that returns the dto
-func (p *PriceGetOut) GetDTO(domainIn interface{}) interface{} {
-	ret := []PriceGetOut{}
+func (p *PriceGetOut) GetDTO(domainIn interface{}) []port.DTOOut {
+	ret := []port.DTOOut{}
 	slices := domainIn.([]interface{})
 	prices := slices[0].(*[]domain.Price)
 	for _, domain := range *prices {
@@ -63,7 +63,7 @@ func (p *PriceGetOut) GetDTO(domainIn interface{}) interface{} {
 		if domain.Pack != nil {
 			pack = fmt.Sprintf("%.2f", *domain.Pack)
 		}
-		ret = append(ret, PriceGetOut{
+		ret = append(ret, &PriceGetOut{
 			ID:   domain.ID,
 			Date: domain.Date.Format(pkg.DateFormat),
 			Name: domain.Name,

@@ -55,7 +55,7 @@ func (p *PriceAddIn) GetOut() port.DTOOut {
 }
 
 // GetDTO is a method that returns the dto
-func (p *PriceAddOut) GetDTO(domainIn interface{}) interface{} {
+func (p *PriceAddOut) GetDTO(domainIn interface{}) []port.DTOOut {
 	slices := domainIn.([]interface{})
 	price := slices[0].(*domain.Price)
 	unit := ""
@@ -66,13 +66,13 @@ func (p *PriceAddOut) GetDTO(domainIn interface{}) interface{} {
 	if price.Pack != nil {
 		pack = fmt.Sprintf("%.2f", *price.Pack)
 	}
-	return &PriceAddOut{
+	return []port.DTOOut{&PriceAddOut{
 		ID:   price.ID,
 		Date: price.Date.Format(pkg.DateFormat),
 		Name: price.Name,
 		Unit: unit,
 		Pack: pack,
-	}
+	}}
 }
 
 // isEmpty is a method that checks if the dto is empty

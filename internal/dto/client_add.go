@@ -61,7 +61,7 @@ func (c *ClientAddIn) GetOut() port.DTOOut {
 }
 
 // SetDomain is a method that sets the dto with the domain
-func (c *ClientAddOut) GetDTO(domainIn interface{}) interface{} {
+func (c *ClientAddOut) GetDTO(domainIn interface{}) []port.DTOOut {
 	slices := domainIn.([]interface{})
 	client := slices[0].(*domain.Client)
 	dto := &ClientAddOut{}
@@ -79,7 +79,7 @@ func (c *ClientAddOut) GetDTO(domainIn interface{}) interface{} {
 		dto.Role = clientRole.Role
 		dto.Ref = clientRole.RefID
 	}
-	return dto
+	return []port.DTOOut{dto}
 }
 
 // isEmpty is a method that returns true if the dto is empty

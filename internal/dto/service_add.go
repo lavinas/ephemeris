@@ -56,7 +56,7 @@ func (c *ServiceAddIn) GetOut() port.DTOOut {
 }
 
 // GetDTO is a method that returns the dto
-func (c *ServiceAddOut) GetDTO(domainIn interface{}) interface{} {
+func (c *ServiceAddOut) GetDTO(domainIn interface{}) []port.DTOOut {
 	slices := domainIn.([]interface{})
 	service, ok := slices[0].(*domain.Service)
 	if !ok {
@@ -66,12 +66,12 @@ func (c *ServiceAddOut) GetDTO(domainIn interface{}) interface{} {
 	if service.Minutes != nil {
 		min = strconv.FormatInt(*service.Minutes, 10)
 	}
-	return &ServiceAddOut{
+	return []port.DTOOut{&ServiceAddOut{
 		ID:      service.ID,
 		Date:    service.Date.Format(pkg.DateFormat),
 		Name:    service.Name,
 		Minutes: min,
-	}
+	}}
 }
 
 // GetDomain is a method that returns the domain of the dto
