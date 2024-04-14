@@ -249,7 +249,7 @@ func (c *Commands) mapValues(tags map[string]*Command, ss []string) {
 			continue
 		}
 		field.isfound = "true"
-		param := c.getValue(pos + 1, tags, vals)
+		param := c.getValue(pos+1, tags, vals)
 		field.value = strings.TrimSpace(param)
 	}
 }

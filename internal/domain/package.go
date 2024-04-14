@@ -2,11 +2,11 @@ package domain
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 	"slices"
 	"strings"
 	"time"
-	"fmt"
 
 	"github.com/lavinas/ephemeris/internal/port"
 	"github.com/lavinas/ephemeris/pkg"

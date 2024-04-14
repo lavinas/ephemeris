@@ -10,9 +10,9 @@ import (
 
 // PackageGetIn represents the input dto for getting a package usecase
 type PackageGetIn struct {
-	Object string `json:"-" command:"name:package;key;pos:2-"`
-	Action string `json:"-" command:"name:get;key;pos:2-"`
-	ID     string `json:"id" command:"name:id;pos:3+"`
+	Object       string `json:"-" command:"name:package;key;pos:2-"`
+	Action       string `json:"-" command:"name:get;key;pos:2-"`
+	ID           string `json:"id" command:"name:id;pos:3+"`
 	Date         string `json:"date" command:"name:date;pos:3+"`
 	ServiceID    string `json:"service" command:"name:service;pos:3+"`
 	RecurrenceID string `json:"recurrence" command:"name:recurrence;pos:3+"`

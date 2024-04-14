@@ -65,4 +65,3 @@ func (p *PackageUpOut) GetDTO(domainIn interface{}) []port.DTOOut {
 func (p *PackageUpIn) isEmpty() bool {
 	return p.ID == "" && p.Date == "" && p.ServiceID == "" && p.RecurrenceID == "" && p.PriceID == ""
 }
-
