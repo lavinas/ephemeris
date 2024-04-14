@@ -26,6 +26,8 @@ var (
 		&dto.PriceGetIn{}:      &Get{},
 		&dto.PriceUpIn{}:       &Up{},
 		&dto.PackageAddIn{}:    &Add{},
+		&dto.PackageGetIn{}:    &Get{},
+		&dto.PackageUpIn{}:     &Up{},
 	}
 )
 
