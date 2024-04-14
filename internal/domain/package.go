@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 	"time"
+	"fmt"
 
 	"github.com/lavinas/ephemeris/internal/port"
 	"github.com/lavinas/ephemeris/pkg"
@@ -15,14 +16,13 @@ import (
 type Package struct {
 	ID           string    `gorm:"type:varchar(25); primaryKey"`
 	Date         time.Time `gorm:"type:datetime; not null; index"`
-	Name         string    `gorm:"type:varchar(100); not null; index"`
 	ServiceID    string    `gorm:"type:varchar(25); not null; index"`
 	RecurrenceID string    `gorm:"type:varchar(25); not null; index"`
 	PriceID      string    `gorm:"type:varchar(25); not null; index"`
 }
 
 // NewPackage creates a new package
-func NewPackage(id string, date string, name string, serviceID string, recurrenceID string, priceID string) *Package {
+func NewPackage(id string, date string, serviceID string, recurrenceID string, priceID string) *Package {
 	date = strings.TrimSpace(date)
 	local, _ := time.LoadLocation(pkg.Location)
 	fdate := time.Time{}
@@ -35,7 +35,6 @@ func NewPackage(id string, date string, name string, serviceID string, recurrenc
 	return &Package{
 		ID:           id,
 		Date:         fdate,
-		Name:         name,
 		ServiceID:    serviceID,
 		RecurrenceID: recurrenceID,
 		PriceID:      priceID,
@@ -59,6 +58,9 @@ func (p *Package) Format(repo port.Repository, args ...string) error {
 		msg += err.Error() + " | "
 	}
 	if err := p.formatPriceID(repo, filled); err != nil {
+		msg += err.Error() + " | "
+	}
+	if err := p.validateDuplicity(repo, slices.Contains(args, "noduplicity")); err != nil {
 		msg += err.Error() + " | "
 	}
 	if msg != "" {
@@ -185,4 +187,19 @@ func (c *Package) formatString(str string) string {
 	space := regexp.MustCompile(`\s+`)
 	str = space.ReplaceAllString(str, " ")
 	return str
+}
+
+// validateDuplicity is a method that validates the duplicity of a client
+func (c *Package) validateDuplicity(repo port.Repository, noduplicity bool) error {
+	if noduplicity {
+		return nil
+	}
+	ok, err := repo.Get(&Package{}, c.ID)
+	if err != nil {
+		return err
+	}
+	if ok {
+		return fmt.Errorf(pkg.ErrAlreadyExists, c.ID)
+	}
+	return nil
 }

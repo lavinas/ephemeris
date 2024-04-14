@@ -2,7 +2,6 @@ package dto
 
 import (
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/lavinas/ephemeris/internal/domain"
@@ -16,7 +15,6 @@ type PackageAddIn struct {
 	Action       string `json:"-" command:"name:add;key;pos:2-"`
 	ID           string `json:"id" command:"name:id;pos:3+"`
 	Date         string `json:"date" command:"name:date;pos:3+"`
-	Name         string `json:"name" command:"name:name;pos:3+"`
 	ServiceID    string `json:"service" command:"name:service;pos:3+"`
 	RecurrenceID string `json:"recurrence" command:"name:recurrence;pos:3+"`
 	PriceID      string `json:"price" command:"name:price;pos:3+"`
@@ -26,7 +24,6 @@ type PackageAddIn struct {
 type PackageAddOut struct {
 	ID           string `json:"id" command:"name:id"`
 	Date         string `json:"date" command:"name:date"`
-	Name         string `json:"name" command:"name:name"`
 	ServiceID    string `json:"service" command:"name:service"`
 	RecurrenceID string `json:"recurrence" command:"name:recurrence"`
 	PriceID      string `json:"price" command:"name:price"`
@@ -46,9 +43,8 @@ func (p *PackageAddIn) GetDomain() []port.Domain {
 		time.Local, _ = time.LoadLocation(pkg.Location)
 		p.Date = time.Now().Format(pkg.DateFormat)
 	}
-	fmt.Println(1, p.ID, p.Date, p.Name, p.ServiceID, p.RecurrenceID, p.PriceID)
 	return []port.Domain{
-		domain.NewPackage(p.ID, p.Date, p.Name, p.ServiceID, p.RecurrenceID, p.PriceID),
+		domain.NewPackage(p.ID, p.Date, p.ServiceID, p.RecurrenceID, p.PriceID),
 	}
 }
 
@@ -65,7 +61,6 @@ func (p *PackageAddOut) GetDTO(domainIn interface{}) interface{} {
 		return &PackageAddOut{
 			ID:           pg.ID,
 			Date:         pg.Date.Format(pkg.DateFormat),
-			Name:         pg.Name,
 			ServiceID:    pg.ServiceID,
 			RecurrenceID: pg.RecurrenceID,
 			PriceID:      pg.PriceID,
@@ -75,6 +70,6 @@ func (p *PackageAddOut) GetDTO(domainIn interface{}) interface{} {
 
 // isEmpty is a method that checks if the dto is empty
 func (p *PackageAddIn) isEmpty() bool {
-	return p.ID == "" && p.Date == "" && p.Name == "" && p.ServiceID == "" &&
+	return p.ID == "" && p.Date == "" && p.ServiceID == "" &&
 		p.RecurrenceID == "" && p.PriceID == ""
 }
