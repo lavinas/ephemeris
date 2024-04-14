@@ -8,6 +8,7 @@ const (
 	ErrorWordDuplicated        = "command word(s) %s are duplicated. Try use . in front of the parameter words if parameter has command words"
 	ErrorTagNameNotFound       = "tag name not found"
 	ErrorNotStringField        = "not all fields are strings"
+	ErrorFieldDuplicated	   = "field %s is duplicated in the struct"
 	ErrorKeyNotFound           = "tag %s not found"
 	ErrorNotNullField          = "tag %s is null"
 	Fieldtag                   = "command"
