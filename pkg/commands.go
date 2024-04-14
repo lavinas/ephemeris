@@ -58,12 +58,6 @@ func (c *Commands) FindOne(data string, v []interface{}) (interface{}, error) {
 		if err := c.checkDuplicatedComms(ss, tags); err != nil {
 			return nil, err
 		}
-		for k, v := range tags {
-			fmt.Println(2, k, v)
-		}
-		for k, v := range tags {
-			fmt.Println(2, k, v)
-		}
 		c.mapValues(tags, ss)
 		if err := c.checkValues(tags); err != nil {
 			continue
@@ -74,9 +68,6 @@ func (c *Commands) FindOne(data string, v []interface{}) (interface{}, error) {
 		return nil, errors.New(ErrorCommandNotFound)
 	}
 	if len(ret) > 1 {
-		for _, i := range ret {
-			fmt.Println(100, reflect.TypeOf(i))
-		}	
 		return nil, errors.New(ErrorCommandDuplicated)
 	}
 	return ret[0], nil
@@ -244,7 +235,7 @@ func (c *Commands) splitValues(tag string) (string, bool, bool, string) {
 func (c *Commands) mapValues(tags map[string]*Command, ss []string) {
 	for tag, field := range tags {
 		vals := c.posValues(field.pos, ss)
-		pos := slices.Index(ss, tag)
+		pos := slices.Index(vals, tag)
 		if pos == -1 {
 			field.isfound = "false"
 			continue
@@ -266,7 +257,7 @@ func (c *Commands) posValues(posTag string, ss []string) []string {
 		return ss
 	}
 	if posType == '+' {
-		return ss[posVal:]
+		return ss[posVal-1:]
 	}
 	if posType == '-' {
 		return ss[:posVal]

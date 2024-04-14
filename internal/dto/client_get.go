@@ -2,7 +2,6 @@ package dto
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"
@@ -82,12 +81,9 @@ func (c *ClientGetOut) GetDTO(domainIn interface{}) interface{} {
 
 // IsEmpty is a method that returns true if the dto is empty
 func (c *ClientGetIn) isEmpty() bool {
-	fmt.Println(1, c)
 	if c.ID == "" && c.Date == "" && c.Name == "" && c.Email == "" &&
 		c.Phone == "" && c.Document == "" && c.Contact == "" {
-		fmt.Println(2, c)
 		return true
 	}
-	fmt.Println(3, c)
 	return false
 }
