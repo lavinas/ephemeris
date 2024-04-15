@@ -234,6 +234,7 @@ func (c *Commands2) getPositions(data string) string {
 // mapValues is a function that maps values to a struct
 func (c *Commands2) mapValues(data string, params []*Param, names map[string]int) error {
 	values := strings.Split(data, " ")
+	message := ""
 	for _, param := range params {
 		vals := c.posValues(param.pos, values)
 		param.isfound = "false"
@@ -243,16 +244,14 @@ func (c *Commands2) mapValues(data string, params []*Param, names map[string]int
 				continue
 			}
 			if len(pos) > 1 {
-				return fmt.Errorf(ErrorWordDuplicated, name)
+				message += fmt.Sprintf(ErrorWordDuplicated, name) + " | "
+				break
 			}
 			param.value = strings.TrimSpace(c.getValue(pos[0]+1, names, vals))
 			param.name = name
 			param.isfound = "true"
 			break
 		}
-	}
-	message := ""
-	for _, param := range params {
 		if param.isfound == "false" && (param.iskey || param.notnull) {
 			message += fmt.Sprintf(ErrorKeyNotFound, param.field) + " | "
 		} else if param.notnull && param.value == "" {
