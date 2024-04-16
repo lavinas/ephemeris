@@ -19,7 +19,6 @@ type Param struct {
 	iskey   bool
 	pos     string
 	notnull bool
-	isfound string
 	value   string
 }
 
@@ -237,22 +236,20 @@ func (c *Commands2) mapValues(data string, params []*Param, names map[string]int
 	message := ""
 	for _, param := range params {
 		vals := c.posValues(param.pos, values)
-		param.isfound = "false"
+		found := false
 		for _, name := range param.names {
 			pos := c.index(vals, name)
-			if len(pos) == 0 {	
-				continue
-			}
-			if len(pos) > 1 {
-				message += fmt.Sprintf(ErrorWordDuplicated, name) + " | "
+			if len(pos) > 0 {	
+				param.value = c.getValue(pos[0]+1, names, vals)
+				param.name = name
+				found = true
+				if len(pos) > 1 {
+					message += fmt.Sprintf(ErrorWordDuplicated, name) + " | "
+				}
 				break
 			}
-			param.value = strings.TrimSpace(c.getValue(pos[0]+1, names, vals))
-			param.name = name
-			param.isfound = "true"
-			break
 		}
-		if param.isfound == "false" && (param.iskey || param.notnull) {
+		if !found && (param.iskey || param.notnull) {
 			message += fmt.Sprintf(ErrorKeyNotFound, param.field) + " | "
 		} else if param.notnull && param.value == "" {
 			message += fmt.Sprintf(ErrorNotNullField, param.field) + " | "
@@ -263,7 +260,6 @@ func (c *Commands2) mapValues(data string, params []*Param, names map[string]int
 	}
 	return nil
 }
-
 
 // index is a function that returns the indexes of a string in a slice
 func (c *Commands2) index (ss []string, s string) []int {
@@ -313,7 +309,7 @@ func (c *Commands2) getValue(pos int, names map[string]int, ss []string) string 
 			value += ss[j] + " "
 		}
 	}
-	return value
+	return strings.TrimSpace(value)
 }
 
 // setFields is a function that sets the fields of a DTO
