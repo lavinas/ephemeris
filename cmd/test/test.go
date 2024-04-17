@@ -7,16 +7,15 @@ import (
 	"github.com/lavinas/ephemeris/pkg"
 )
 
-
 func main() {
 	dto := dto.ClientAddIn{}
-	input := "client add date 01/06/2020 id paulo name Paulo Lavinas email lavinas@gmail.com phone 11999999999 document 12345678901 role client ref 12345678901"
+	input := "client add date 01/06/2020 id paulo name Paulo Lavinas email lavinas@gmail.com phone 11999999999 document 12345678901 role client ref ref1"
 
 	commands := pkg.NewCommands2()
 	if err := commands.Unmarshal(input, &dto); err != nil {
 		fmt.Println(err)
 		return
-	} 
+	}
 	fmt.Println(1, dto.Action)
 	fmt.Println(2, dto.Object)
 	fmt.Println(3, dto.ID)

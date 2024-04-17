@@ -7,18 +7,18 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-
 )
 
 // Command is a struct that represents a command
 type Param struct {
-	names    []string
-	name     string
+	names   []string
+	name    string
 	field   string
 	ftype   string
 	iskey   bool
-	pos     string
 	notnull bool
+	posInit *int
+	posEnd  *int
 	value   string
 }
 
@@ -78,7 +78,7 @@ func (c *Commands2) Unmarshal(data string, v interface{}) error {
 	if err != nil {
 		return err
 	}
-	names, err := c.validateFields(tags) 
+	names, err := c.validateFields(tags)
 	if err != nil {
 		return err
 	}
@@ -181,18 +181,19 @@ func (c *Commands2) getParam(field reflect.StructField, tagname string) *Param {
 	if tag == "" {
 		return nil
 	}
-	names, notnull, iskey, pos := c.getParamValues(tag)
-	return &Param{names: names, name: "", field: field.Name, ftype: field.Type.String(), 
-	              notnull: notnull, iskey: iskey, pos: pos}
+	names, notnull, iskey, init, end := c.getParamValues(tag)
+	return &Param{names: names, name: "", field: field.Name, ftype: field.Type.String(),
+		notnull: notnull, iskey: iskey, posInit: init, posEnd: end}
 }
 
 // splitValues is a function that splits the values of a tag into name, notnull and iskey
-func (c *Commands2) getParamValues(tag string) ([]string, bool, bool, string) {
+func (c *Commands2) getParamValues(tag string) ([]string, bool, bool, *int, *int) {
 	fields := strings.Split(tag, ";")
 	names := []string{}
 	notnull := false
 	iskey := false
-	position := ""
+	var init *int
+	var end *int
 	for _, fd := range fields {
 		if strings.Contains(fd, Tagname) {
 			names = c.getNames(fd)
@@ -201,17 +202,17 @@ func (c *Commands2) getParamValues(tag string) ([]string, bool, bool, string) {
 		} else if strings.Contains(fd, Tagkey) {
 			iskey = true
 		} else if strings.Contains(fd, TagPos) {
-			position = c.getPositions(fd)
+			init, end = c.getPositions(fd)
 		}
 	}
-	return names, notnull, iskey, position
+	return names, notnull, iskey, init, end
 }
 
 // getNames is a function that returns the names inside a tag
 func (c *Commands2) getNames(data string) []string {
 	ret := []string{}
 	s := strings.Split(data, ":")
-	if len(s) != 2 || s[0] == Tagname || s[1] == "" {
+	if len(s) != 2 || s[0] != Tagname || s[1] == "" {
 		return ret
 	}
 	ret = strings.Split(s[1], ",")
@@ -222,12 +223,27 @@ func (c *Commands2) getNames(data string) []string {
 }
 
 // getPositions is a function that returns the positions inside a tag
-func (c *Commands2) getPositions(data string) string {
+func (c *Commands2) getPositions(data string) (*int, *int) {
 	s := strings.Split(data, ":")
-	if len(s) != 2 || s[0] == TagPos || s[1] == "" {
-		return ""
+	if len(s) != 2 || s[0] != TagPos || s[1] == "" {
+		return nil, nil
 	}
-	return strings.TrimSpace(s[1])
+	pos := strings.TrimSpace(s[1])
+	signal := pos[len(pos)-1]
+	val, err := strconv.Atoi(pos[:len(pos)-1])
+	if err != nil {
+		return nil, nil
+	}
+	switch signal {
+	case '+':
+		return &val, nil
+	case '-':
+		return nil, &val
+	case '.':
+		return &val, &val
+	default:
+		return nil, nil
+	}
 }
 
 // mapValues is a function that maps values to a struct
@@ -235,11 +251,11 @@ func (c *Commands2) mapValues(data string, params []*Param, names map[string]int
 	values := strings.Split(data, " ")
 	message := ""
 	for _, param := range params {
-		vals := c.posValues(param.pos, values)
+		vals := c.posValues(param.posInit, param.posEnd, values)
 		found := false
 		for _, name := range param.names {
 			pos := c.index(vals, name)
-			if len(pos) > 0 {	
+			if len(pos) > 0 {
 				param.value = c.getValue(pos[0]+1, names, vals)
 				param.name = name
 				found = true
@@ -262,7 +278,7 @@ func (c *Commands2) mapValues(data string, params []*Param, names map[string]int
 }
 
 // index is a function that returns the indexes of a string in a slice
-func (c *Commands2) index (ss []string, s string) []int {
+func (c *Commands2) index(ss []string, s string) []int {
 	ret := []int{}
 	i := slices.Index(ss, s)
 	for i != -1 {
@@ -274,23 +290,12 @@ func (c *Commands2) index (ss []string, s string) []int {
 }
 
 // posValues is a function that returns the values based on the position places on a tag
-func (c *Commands2) posValues(posTag string, values []string) []string {
-	if posTag == "" {
-		return values
+func (c *Commands2) posValues(init *int, end *int, values []string) []string {
+	if init != nil {
+		values = values[*init-1:]
 	}
-	posType := posTag[len(posTag)-1]
-	posVal, err := strconv.ParseInt(posTag[:len(posTag)-1], 10, 64)
-	if err != nil {
-		return values
-	}
-	if posType == '+' {
-		return values[posVal-1:]
-	}
-	if posType == '-' {
-		return values[:posVal]
-	}
-	if posType == '.' {
-		return []string{values[posVal]}
+	if end != nil {
+		values = values[:*end]
 	}
 	return values
 }
