@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"math"
 )
 
 // Command is a struct that represents a command
@@ -19,6 +20,7 @@ type Param struct {
 	notnull bool
 	posInit *int
 	posEnd  *int
+	corr    []string
 	value   string
 }
 
@@ -53,11 +55,10 @@ func (c *Commands2) FindOne(data string, v []interface{}) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
-		names, err := c.validateFields(params)
-		if err != nil {
+		if err := c.validateFields(params); err != nil {
 			return nil, err
 		}
-		if err := c.mapValues(data, params, names); err != nil {
+		if err := c.mapValues(data, params); err != nil {
 			continue
 		}
 		ret = append(ret, i)
@@ -78,11 +79,10 @@ func (c *Commands2) Unmarshal(data string, v interface{}) error {
 	if err != nil {
 		return err
 	}
-	names, err := c.validateFields(tags)
-	if err != nil {
+	if err := c.validateFields(tags);err != nil {
 		return err
 	}
-	if err := c.mapValues(data, tags, names); err != nil {
+	if err := c.mapValues(data, tags); err != nil {
 		return err
 	}
 	c.setFields(v, tags)
@@ -140,11 +140,11 @@ func (c *Commands2) getValuesSlice(values []reflect.Value, nokeys bool) [][]stri
 }
 
 // validateFields is a function that checks if all fields of a struct are strings
-func (c *Commands2) validateFields(params []*Param) (map[string]int, error) {
+func (c *Commands2) validateFields(params []*Param) error {
 	names := map[string]int{}
 	for _, i := range params {
 		if i.ftype != "string" {
-			return nil, errors.New(ErrorNotStringField)
+			return errors.New(ErrorNotStringField)
 		}
 		for _, name := range i.names {
 			names[name]++
@@ -152,10 +152,10 @@ func (c *Commands2) validateFields(params []*Param) (map[string]int, error) {
 	}
 	for k, v := range names {
 		if v > 1 {
-			return nil, fmt.Errorf(ErrorFieldDuplicated, k)
+			return fmt.Errorf(ErrorFieldDuplicated, k)
 		}
 	}
-	return names, nil
+	return nil
 }
 
 // getTags is a function that returns all tags of a struct
@@ -172,6 +172,7 @@ func (c *Commands2) getParams(st reflect.Type, tagname string, args ...string) (
 		}
 		ret = append(ret, tag)
 	}
+	c.setCorrelations(ret)
 	return ret, nil
 }
 
@@ -246,8 +247,47 @@ func (c *Commands2) getPositions(data string) (*int, *int) {
 	}
 }
 
+// setCorrelations is a function that sets the correlations of a struct
+func (c *Commands2) setCorrelations(params []*Param) {
+	for i := 0; i < len(params); i++ {
+		if params[i].posInit == nil && params[i].posEnd == nil {
+			continue
+		}
+		init1 := 0
+		if params[i].posInit != nil {
+			init1 = *params[i].posInit
+		}
+		end1 := math.MaxInt
+		if params[i].posEnd != nil {
+			end1 = *params[i].posEnd
+		}
+		params[i].corr = append(params[i].corr, params[i].names...)
+		for j := i + 1; j < len(params); j++ {
+			if params[j].posInit == nil && params[j].posEnd == nil {
+				continue
+			}
+			init2 := 0
+			if params[j].posInit != nil {
+				init2 = *params[j].posInit
+			}
+			end2 := math.MaxInt
+			if params[j].posEnd != nil {
+				end2 = *params[j].posEnd
+			}
+			if (init1 >= init2 && init1 <= end2) || 
+			   (end1 >= init2 && end1 <= end2)   ||
+			   (init2 >= init1 && init2 <= end1) ||
+			   (end2 >= init1 && end2 <= end1) {
+				params[i].corr = append(params[i].corr, params[j].names...)
+				params[j].corr = append(params[j].corr, params[i].names...)
+
+			}
+		}
+	}
+}
+
 // mapValues is a function that maps values to a struct
-func (c *Commands2) mapValues(data string, params []*Param, names map[string]int) error {
+func (c *Commands2) mapValues(data string, params []*Param) error {
 	values := strings.Split(data, " ")
 	message := ""
 	for _, param := range params {
@@ -256,7 +296,7 @@ func (c *Commands2) mapValues(data string, params []*Param, names map[string]int
 		for _, name := range param.names {
 			pos := c.index(vals, name)
 			if len(pos) > 0 {
-				param.value = c.getValue(pos[0]+1, names, vals)
+				param.value = c.getValue(pos[0]+1, param.corr, vals)
 				param.name = name
 				found = true
 				if len(pos) > 1 {
@@ -301,10 +341,10 @@ func (c *Commands2) posValues(init *int, end *int, values []string) []string {
 }
 
 // getValue is a function that returns the value of a tag
-func (c *Commands2) getValue(pos int, names map[string]int, ss []string) string {
+func (c *Commands2) getValue(pos int, names []string, ss []string) string {
 	value := ""
 	for j := pos; j < len(ss); j++ {
-		if _, ok := names[ss[j]]; ok {
+		if slices.Contains(names, ss[j]) {
 			break
 		}
 		if ss[j][0] == '.' {
