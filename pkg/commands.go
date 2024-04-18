@@ -7,16 +7,20 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"math"
 )
 
 // Command is a struct that represents a command
-type Command struct {
+type Param struct {
+	names   []string
 	name    string
 	field   string
+	ftype   string
 	iskey   bool
-	pos     string
 	notnull bool
-	isfound string
+	posInit *int
+	posEnd  *int
+	corr    []string
 	value   string
 }
 
@@ -47,19 +51,14 @@ func (c *Commands) FindOne(data string, v []interface{}) (interface{}, error) {
 	ret := []interface{}{}
 	for _, i := range v {
 		st := reflect.TypeOf(i).Elem()
-		if err := c.checkFields(st); err != nil {
-			return nil, err
-		}
-		tags, err := c.getTags(st, Fieldtag, "keys")
+		params, err := c.getParams(st, Fieldtag, "keys")
 		if err != nil {
 			return nil, err
 		}
-		ss := strings.Split(data, " ")
-		if err := c.checkDuplicatedComms(ss, tags); err != nil {
+		if err := c.validateFields(params); err != nil {
 			return nil, err
 		}
-		c.mapValues(tags, ss)
-		if err := c.checkValues(tags); err != nil {
+		if err := c.mapValues(data, params); err != nil {
 			continue
 		}
 		ret = append(ret, i)
@@ -75,20 +74,15 @@ func (c *Commands) FindOne(data string, v []interface{}) (interface{}, error) {
 
 // ToStruc is a function that converts a string to a struct
 func (c *Commands) Unmarshal(data string, v interface{}) error {
-	ss := strings.Split(data, " ")
 	st := reflect.TypeOf(v).Elem()
-	if err := c.checkFields(st); err != nil {
-		return err
-	}
-	tags, err := c.getTags(st, Fieldtag)
+	tags, err := c.getParams(st, Fieldtag)
 	if err != nil {
 		return err
 	}
-	if err := c.checkDuplicatedComms(ss, tags); err != nil {
+	if err := c.validateFields(tags);err != nil {
 		return err
 	}
-	c.mapValues(tags, ss)
-	if err := c.checkValues(tags); err != nil {
+	if err := c.mapValues(data, tags); err != nil {
 		return err
 	}
 	c.setFields(v, tags)
@@ -113,7 +107,6 @@ func (c *Commands) getInputSlice(v interface{}) []reflect.Value {
 			for obj.Kind() == reflect.Ptr || obj.Kind() == reflect.Interface {
 				obj = obj.Elem()
 			}
-			fmt.Println(1, obj.Kind())
 			rvl = append(rvl, obj)
 		}
 	}
@@ -125,7 +118,7 @@ func (c *Commands) getValuesSlice(values []reflect.Value, nokeys bool) [][]strin
 	ret := make([][]string, len(values)+1)
 	for i := 0; i < values[0].NumField(); i++ {
 		if nokeys {
-			tag := c.getTag(values[0].Type().Field(i), Fieldtag)
+			tag := c.getParam(values[0].Type().Field(i), Fieldtag)
 			if tag == nil || tag.iskey {
 				continue
 			}
@@ -135,7 +128,7 @@ func (c *Commands) getValuesSlice(values []reflect.Value, nokeys bool) [][]strin
 	for i := 0; i < len(values); i++ {
 		for j := 0; j < values[i].NumField(); j++ {
 			if nokeys {
-				tag := c.getTag(values[i].Type().Field(j), Fieldtag)
+				tag := c.getParam(values[i].Type().Field(j), Fieldtag)
 				if tag == nil || tag.iskey {
 					continue
 				}
@@ -146,141 +139,212 @@ func (c *Commands) getValuesSlice(values []reflect.Value, nokeys bool) [][]strin
 	return ret
 }
 
-// checkDuplicatedWords is a function that checks if all command words are unique
-func (c *Commands) checkDuplicatedComms(ss []string, tags map[string]*Command) error {
-	wordMap := map[string]int{}
-	for _, i := range ss {
-		if tags[i] != nil {
-			wordMap[i]++
-		}
-	}
-	errorStr := ""
-	for k, v := range wordMap {
-		if v > 1 {
-			errorStr += k + ", "
-		}
-	}
-	if errorStr != "" {
-		return fmt.Errorf(ErrorWordDuplicated, errorStr[:len(errorStr)-2])
-	}
-	return nil
-}
-
-// checkFieldsType is a function that checks if all fields of a struct are strings
-func (c *Commands) checkFields(st reflect.Type) error {
-	for i := 0; i < st.NumField(); i++ {
-		if st.Field(i).Type.String() != "string" {
+// validateFields is a function that checks if all fields of a struct are strings
+func (c *Commands) validateFields(params []*Param) error {
+	names := map[string]int{}
+	for _, i := range params {
+		if i.ftype != "string" {
 			return errors.New(ErrorNotStringField)
+		}
+		for _, name := range i.names {
+			names[name]++
+		}
+	}
+	for k, v := range names {
+		if v > 1 {
+			return fmt.Errorf(ErrorFieldDuplicated, k)
 		}
 	}
 	return nil
 }
 
 // getTags is a function that returns all tags of a struct
-func (c *Commands) getTags(st reflect.Type, tagname string, args ...string) (map[string]*Command, error) {
-	ret := map[string]*Command{}
+func (c *Commands) getParams(st reflect.Type, tagname string, args ...string) ([]*Param, error) {
+	ret := []*Param{}
 	keys := slices.Contains(args, "keys")
 	for i := 0; i < st.NumField(); i++ {
-		tag := c.getTag(st.Field(i), tagname)
+		tag := c.getParam(st.Field(i), tagname)
 		if tag == nil {
 			continue
-		}
-		if _, ok := ret[tag.name]; ok {
-			return nil, errors.New(ErrorStructDuplicated)
 		}
 		if keys && !tag.iskey {
 			continue
 		}
-		ret[tag.name] = tag
+		ret = append(ret, tag)
 	}
+	c.setCorrelations(ret)
 	return ret, nil
 }
 
 // getTag is a function that returns a tag struct of a struct
-func (c *Commands) getTag(field reflect.StructField, tagname string) *Command {
+func (c *Commands) getParam(field reflect.StructField, tagname string) *Param {
 	tag := field.Tag.Get(tagname)
 	if tag == "" {
 		return nil
 	}
-	name, notnull, iskey, pos := c.splitValues(tag)
-	if name != "" {
-		return &Command{name: name, field: field.Name, iskey: iskey, notnull: notnull, pos: pos}
+	names, notnull, iskey, init, end := c.getParamValues(tag)
+	return &Param{names: names, name: "", field: field.Name, ftype: field.Type.String(),
+		notnull: notnull, iskey: iskey, posInit: init, posEnd: end}
+}
+
+// splitValues is a function that splits the values of a tag into name, notnull and iskey
+func (c *Commands) getParamValues(tag string) ([]string, bool, bool, *int, *int) {
+	fields := strings.Split(tag, ";")
+	names := []string{}
+	notnull := false
+	iskey := false
+	var init *int
+	var end *int
+	for _, fd := range fields {
+		if strings.Contains(fd, Tagname) {
+			names = c.getNames(fd)
+		} else if strings.Contains(fd, Tagnotnull) {
+			notnull = true
+		} else if strings.Contains(fd, Tagkey) {
+			iskey = true
+		} else if strings.Contains(fd, TagPos) {
+			init, end = c.getPositions(fd)
+		}
+	}
+	return names, notnull, iskey, init, end
+}
+
+// getNames is a function that returns the names inside a tag
+func (c *Commands) getNames(data string) []string {
+	ret := []string{}
+	s := strings.Split(data, ":")
+	if len(s) != 2 || s[0] != Tagname || s[1] == "" {
+		return ret
+	}
+	ret = strings.Split(s[1], ",")
+	for i, name := range ret {
+		ret[i] = strings.TrimSpace(name)
+	}
+	return ret
+}
+
+// getPositions is a function that returns the positions inside a tag
+func (c *Commands) getPositions(data string) (*int, *int) {
+	s := strings.Split(data, ":")
+	if len(s) != 2 || s[0] != TagPos || s[1] == "" {
+		return nil, nil
+	}
+	pos := strings.TrimSpace(s[1])
+	signal := pos[len(pos)-1]
+	val, err := strconv.Atoi(pos[:len(pos)-1])
+	if err != nil {
+		return nil, nil
+	}
+	switch signal {
+	case '+':
+		return &val, nil
+	case '-':
+		return nil, &val
+	case '.':
+		return &val, &val
+	default:
+		return nil, nil
+	}
+}
+
+// setCorrelations is a function that sets the correlations of a struct
+func (c *Commands) setCorrelations(params []*Param) {
+	for i := 0; i < len(params); i++ {
+		if params[i].posInit == nil && params[i].posEnd == nil {
+			continue
+		}
+		init1 := 0
+		if params[i].posInit != nil {
+			init1 = *params[i].posInit
+		}
+		end1 := math.MaxInt
+		if params[i].posEnd != nil {
+			end1 = *params[i].posEnd
+		}
+		params[i].corr = append(params[i].corr, params[i].names...)
+		for j := i + 1; j < len(params); j++ {
+			if params[j].posInit == nil && params[j].posEnd == nil {
+				continue
+			}
+			init2 := 0
+			if params[j].posInit != nil {
+				init2 = *params[j].posInit
+			}
+			end2 := math.MaxInt
+			if params[j].posEnd != nil {
+				end2 = *params[j].posEnd
+			}
+			if (init1 >= init2 && init1 <= end2) || 
+			   (end1 >= init2 && end1 <= end2)   ||
+			   (init2 >= init1 && init2 <= end1) ||
+			   (end2 >= init1 && end2 <= end1) {
+				params[i].corr = append(params[i].corr, params[j].names...)
+				params[j].corr = append(params[j].corr, params[i].names...)
+
+			}
+		}
+	}
+}
+
+// mapValues is a function that maps values to a struct
+func (c *Commands) mapValues(data string, params []*Param) error {
+	values := strings.Split(data, " ")
+	message := ""
+	for _, param := range params {
+		vals := c.posValues(param.posInit, param.posEnd, values)
+		found := false
+		for _, name := range param.names {
+			pos := c.index(vals, name)
+			if len(pos) > 0 {
+				param.value = c.getValue(pos[0]+1, param.corr, vals)
+				param.name = name
+				found = true
+				if len(pos) > 1 {
+					message += fmt.Sprintf(ErrorWordDuplicated, name) + " | "
+				}
+				break
+			}
+		}
+		if !found && (param.iskey || param.notnull) {
+			message += fmt.Sprintf(ErrorKeyNotFound, param.field) + " | "
+		} else if param.notnull && param.value == "" {
+			message += fmt.Sprintf(ErrorNotNullField, param.field) + " | "
+		}
+	}
+	if message != "" {
+		return errors.New(message[:len(message)-3])
 	}
 	return nil
 }
 
-// splitValues is a function that splits the values of a tag into name, notnull and iskey
-func (c *Commands) splitValues(tag string) (string, bool, bool, string) {
-	fields := strings.Split(tag, ";")
-	name := ""
-	notnull := false
-	iskey := false
-	position := ""
-	for _, fd := range fields {
-		if strings.Contains(fd, Tagname) {
-			s := strings.Split(fd, ":")
-			if len(s) == 2 && s[0] == Tagname || s[1] != "" {
-				name = strings.TrimSpace(s[1])
-			}
-		}
-		if strings.Contains(fd, Tagnotnull) {
-			notnull = true
-		}
-		if strings.Contains(fd, Tagkey) {
-			iskey = true
-		}
-		if strings.Contains(fd, TagPos) {
-			s := strings.Split(fd, ":")
-			if len(s) == 2 && s[0] == TagPos || s[1] != "" {
-				position = strings.TrimSpace(s[1])
-			}
-		}
+// index is a function that returns the indexes of a string in a slice
+func (c *Commands) index(ss []string, s string) []int {
+	ret := []int{}
+	i := slices.Index(ss, s)
+	for i != -1 {
+		ret = append(ret, i)
+		ss = ss[i+1:]
+		i = slices.Index(ss, s)
 	}
-	return name, notnull, iskey, position
-}
-
-// mapValues is a function that maps values to a struct
-func (c *Commands) mapValues(tags map[string]*Command, ss []string) {
-	for tag, field := range tags {
-		vals := c.posValues(field.pos, ss)
-		pos := slices.Index(vals, tag)
-		if pos == -1 {
-			field.isfound = "false"
-			continue
-		}
-		field.isfound = "true"
-		param := c.getValue(pos+1, tags, vals)
-		field.value = strings.TrimSpace(param)
-	}
+	return ret
 }
 
 // posValues is a function that returns the values based on the position places on a tag
-func (c *Commands) posValues(posTag string, ss []string) []string {
-	if posTag == "" {
-		return ss
+func (c *Commands) posValues(init *int, end *int, values []string) []string {
+	if init != nil {
+		values = values[*init-1:]
 	}
-	posType := posTag[len(posTag)-1]
-	posVal, err := strconv.ParseInt(posTag[:len(posTag)-1], 10, 64)
-	if err != nil {
-		return ss
+	if end != nil {
+		values = values[:*end]
 	}
-	if posType == '+' {
-		return ss[posVal-1:]
-	}
-	if posType == '-' {
-		return ss[:posVal]
-	}
-	if posType == '.' {
-		return []string{ss[posVal]}
-	}
-	return ss
+	return values
 }
 
 // getValue is a function that returns the value of a tag
-func (c *Commands) getValue(pos int, tags map[string]*Command, ss []string) string {
+func (c *Commands) getValue(pos int, names []string, ss []string) string {
 	value := ""
 	for j := pos; j < len(ss); j++ {
-		if _, ok := tags[ss[j]]; ok {
+		if slices.Contains(names, ss[j]) {
 			break
 		}
 		if ss[j][0] == '.' {
@@ -290,30 +354,18 @@ func (c *Commands) getValue(pos int, tags map[string]*Command, ss []string) stri
 			value += ss[j] + " "
 		}
 	}
-	return value
-}
-
-// checkValues is a function that checks if all values are correct
-func (c *Commands) checkValues(tags map[string]*Command) error {
-	message := ""
-	for tag, field := range tags {
-		if field.isfound == "false" && (field.iskey || field.notnull) {
-			message += fmt.Sprintf(ErrorKeyNotFound, tag) + " | "
-		} else if field.notnull && field.value == "" {
-			message += fmt.Sprintf(ErrorNotNullField, tag) + " | "
-		}
-	}
-	if message != "" {
-		return errors.New(message[:len(message)-3])
-	}
-	return nil
+	return strings.TrimSpace(value)
 }
 
 // setFields is a function that sets the fields of a DTO
-func (c *Commands) setFields(v interface{}, tags map[string]*Command) {
-	for _, i := range tags {
-		field := reflect.ValueOf(v).Elem().FieldByName(i.field)
-		field.SetString(i.value)
+func (c *Commands) setFields(v interface{}, params []*Param) {
+	for _, param := range params {
+		field := reflect.ValueOf(v).Elem().FieldByName(param.field)
+		if param.iskey {
+			field.SetString(param.name)
+		} else {
+			field.SetString(param.value)
+		}
 	}
 }
 
