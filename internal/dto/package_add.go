@@ -12,7 +12,7 @@ import (
 // PackageAddIn represents the input dto for adding a package usecase
 type PackageAddIn struct {
 	Object       string `json:"-" command:"name:package;key;pos:2-"`
-	Action       string `json:"-" command:"name:add;key;pos:2-"`
+	Action       string `json:"-" command:"name:add,get,up;key;pos:2-"`
 	ID           string `json:"id" command:"name:id;pos:3+"`
 	Date         string `json:"date" command:"name:date;pos:3+"`
 	ServiceID    string `json:"service" command:"name:service;pos:3+"`
@@ -37,6 +37,11 @@ func (p *PackageAddIn) Validate(repo port.Repository) error {
 	return nil
 }
 
+// GetCommand is a method that returns the command of the dto
+func (p *PackageAddIn) GetCommand() string {
+	return p.Action
+}
+
 // GetDomain is a method that returns a domain representation of the package dto
 func (p *PackageAddIn) GetDomain() []port.Domain {
 	if p.Date == "" {
@@ -54,6 +59,7 @@ func (p *PackageAddIn) GetOut() port.DTOOut {
 }
 
 // GetDTO is a method that returns the dto
+/*
 func (p *PackageAddOut) GetDTO(domainIn interface{}) []port.DTOOut {
 	{
 		slices := domainIn.([]interface{})
@@ -66,6 +72,22 @@ func (p *PackageAddOut) GetDTO(domainIn interface{}) []port.DTOOut {
 			PriceID:      pg.PriceID,
 		}}
 	}
+}
+*/
+func (p *PackageAddOut) GetDTO(domainIn interface{}) []port.DTOOut {
+	ret := []port.DTOOut{}
+	slices := domainIn.([]interface{})
+	packages := slices[0].(*[]domain.Package)
+	for _, p := range *packages {
+		ret = append(ret, &PackageGetOut{
+			ID:           p.ID,
+			Date:         p.Date.Format(pkg.DateFormat),
+			ServiceID:    p.ServiceID,
+			RecurrenceID: p.RecurrenceID,
+			PriceID:      p.PriceID,
+		})
+	}
+	return ret
 }
 
 // isEmpty is a method that checks if the dto is empty
