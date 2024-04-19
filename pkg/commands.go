@@ -3,11 +3,11 @@ package pkg
 import (
 	"errors"
 	"fmt"
+	"math"
 	"reflect"
 	"slices"
 	"strconv"
 	"strings"
-	"math"
 )
 
 // Command is a struct that represents a command
@@ -82,7 +82,7 @@ func (c *Commands) Unmarshal(data string, v interface{}) error {
 	if err != nil {
 		return err
 	}
-	if err := c.validateFields(tags);err != nil {
+	if err := c.validateFields(tags); err != nil {
 		return err
 	}
 	if err := c.mapValues(data, tags); err != nil {
@@ -277,10 +277,10 @@ func (c *Commands) setCorrelations(params []*Param) {
 			if params[j].posEnd != nil {
 				end2 = *params[j].posEnd
 			}
-			if (init1 >= init2 && init1 <= end2) || 
-			   (end1 >= init2 && end1 <= end2)   ||
-			   (init2 >= init1 && init2 <= end1) ||
-			   (end2 >= init1 && end2 <= end1) {
+			if (init1 >= init2 && init1 <= end2) ||
+				(end1 >= init2 && end1 <= end2) ||
+				(init2 >= init1 && init2 <= end1) ||
+				(end2 >= init1 && end2 <= end1) {
 				params[i].corr = append(params[i].corr, params[j].names...)
 				params[j].corr = append(params[j].corr, params[i].names...)
 

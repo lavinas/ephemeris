@@ -38,10 +38,14 @@ func (c *Crud) SetLog(log port.Logger) {
 func (c *Crud) Run(dto interface{}) error {
 	in := dto.(port.DTOIn)
 	switch in.GetCommand() {
-	case "add": return c.Add(in)
-	case "get": return c.Get(in)
-	case "up": return c.Up(in)
-	default: return c.error(pkg.ErrPrefCommandNotFound, pkg.ErrCommandNotFound)
+	case "add":
+		return c.Add(in)
+	case "get":
+		return c.Get(in)
+	case "up":
+		return c.Up(in)
+	default:
+		return c.error(pkg.ErrPrefCommandNotFound, pkg.ErrCommandNotFound)
 	}
 }
 
@@ -165,7 +169,6 @@ func (c *Crud) sliceOf(in interface{}) interface{} {
 	val.Set(reflect.Append(val, reflect.ValueOf(in).Elem()))
 	return ret.Interface()
 }
-
 
 // merge is a method that merges two structs
 func (c *Crud) merge(source interface{}, target interface{}) error {

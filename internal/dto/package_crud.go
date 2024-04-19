@@ -20,7 +20,6 @@ type PackageCrud struct {
 	PriceID      string `json:"price" command:"name:price;pos:3+"`
 }
 
-
 // Validate is a method that validates the dto
 func (p *PackageCrud) Validate(repo port.Repository) error {
 	if p.isEmpty() {

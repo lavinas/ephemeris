@@ -12,16 +12,12 @@ import (
 
 var (
 	dtos = map[interface{}]port.UseCase{
-		&dto.ClientCrud{}:      &Crud{},
-		&dto.ClientLinkIn{}:    &Add{},
-		&dto.ServiceAddIn{}:    &Add{},
-		&dto.ServiceGetIn{}:    &Get{},
-		&dto.ServiceUpIn{}:     &Up{},
-		&dto.RecurrenceAddIn{}: &Add{},
-		&dto.RecurrenceGetIn{}: &Get{},
-		&dto.RecurrenceUpIn{}:  &Up{},
-		&dto.PriceCrud{}:       &Crud{},
-		&dto.PackageCrud{}:     &Crud{},
+		&dto.ClientCrud{}:     &Crud{},
+		&dto.RecurrenceCrud{}: &Crud{},
+		&dto.ServiceCrud{}:    &Crud{},
+		&dto.ClientLinkIn{}:   &Add{},
+		&dto.PriceCrud{}:      &Crud{},
+		&dto.PackageCrud{}:    &Crud{},
 	}
 )
 

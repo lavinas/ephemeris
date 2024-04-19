@@ -35,6 +35,12 @@ func (c *ClientLinkIn) Validate(repo port.Repository) error {
 	return nil
 }
 
+// GetCommand is a method that returns the command of the dto
+func (p *ClientLinkIn) GetCommand() string {
+	return p.Action
+}
+
+
 // GetDomain is a method that returns the domain of the dto
 func (c *ClientLinkIn) GetDomain() []port.Domain {
 	if c.Date == "" {

@@ -3,14 +3,15 @@ package dto
 import (
 	"errors"
 	"strconv"
+	"time"
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"
 	"github.com/lavinas/ephemeris/pkg"
 )
 
-// ServiceGetIn represents the dto for getting a service
-type ServiceGetIn struct {
+// ServiceCrud represents the dto for getting a service
+type ServiceCrud struct {
 	Object  string `json:"-" command:"name:service;key;pos:2-"`
 	Action  string `json:"-" command:"name:get;key;pos:2-"`
 	ID      string `json:"id" command:"name:id;pos:3+"`
@@ -19,36 +20,42 @@ type ServiceGetIn struct {
 	Minutes string `json:"minutes" command:"name:minutes;pos:3+"`
 }
 
-// ServiceGetOut represents the output dto for getting a service
-type ServiceGetOut struct {
-	ID      string `json:"id" command:"name:id"`
-	Date    string `json:"date" command:"name:date"`
-	Name    string `json:"name" command:"name:name"`
-	Minutes string `json:"minutes" command:"name:minutes"`
-}
-
 // Validate is a method that validates the dto
-func (c *ServiceGetIn) Validate(repo port.Repository) error {
+func (c *ServiceCrud) Validate(repo port.Repository) error {
 	if c.isEmpty() {
 		return errors.New(pkg.ErrParamsNotInformed)
 	}
 	return nil
 }
 
+// GetCommand is a method that returns the command of the dto
+func (p *ServiceCrud) GetCommand() string {
+	return p.Action
+}
+
+
 // GetDomain is a method that returns a string representation of the service
-func (c *ServiceGetIn) GetDomain() []port.Domain {
+func (c *ServiceCrud) GetDomain() []port.Domain {
+	if c.Action == "add" && c.Date == "" {
+		time.Local, _ = time.LoadLocation(pkg.Location)
+		c.Date = time.Now().Format(pkg.DateFormat)
+	}
+	if c.Action == "add" && c.Minutes == "" {
+		c.Minutes = "0"
+	}
+
 	return []port.Domain{
 		domain.NewService(c.ID, c.Date, c.Name, c.Minutes),
 	}
 }
 
 // GetOut is a method that returns the output dto
-func (c *ServiceGetIn) GetOut() port.DTOOut {
-	return &ServiceGetOut{}
+func (c *ServiceCrud) GetOut() port.DTOOut {
+	return &ServiceCrud{}
 }
 
 // GetDTO is a method that returns the dto
-func (c *ServiceGetOut) GetDTO(domainIn interface{}) []port.DTOOut {
+func (c *ServiceCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 	ret := []port.DTOOut{}
 	slices := domainIn.([]interface{})
 	services := slices[0].(*[]domain.Service)
@@ -57,7 +64,7 @@ func (c *ServiceGetOut) GetDTO(domainIn interface{}) []port.DTOOut {
 		if service.Minutes != nil {
 			min = strconv.FormatInt(*service.Minutes, 10)
 		}
-		dto := ServiceGetOut{
+		dto := ServiceCrud{
 			ID:      service.ID,
 			Date:    service.Date.Format(pkg.DateFormat),
 			Name:    service.Name,
@@ -69,6 +76,6 @@ func (c *ServiceGetOut) GetDTO(domainIn interface{}) []port.DTOOut {
 }
 
 // isEmpty is a method that checks if the dto is empty
-func (c *ServiceGetIn) isEmpty() bool {
+func (c *ServiceCrud) isEmpty() bool {
 	return c.ID == "" && c.Date == "" && c.Name == ""
 }

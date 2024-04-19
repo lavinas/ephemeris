@@ -3,14 +3,15 @@ package dto
 import (
 	"errors"
 	"strconv"
+	"time"
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"
 	"github.com/lavinas/ephemeris/pkg"
 )
 
-// RecurrenceGetIn is a struct that represents the recurrence get data transfer object
-type RecurrenceGetIn struct {
+// RecurrenceCrud is a struct that represents the recurrence get data transfer object
+type RecurrenceCrud struct {
 	Object string `json:"-" command:"name:recurrence;key;pos:2-"`
 	Action string `json:"-" command:"name:get;key;pos:2-"`
 	ID     string `json:"id" command:"name:id;pos:3+"`
@@ -21,38 +22,43 @@ type RecurrenceGetIn struct {
 	Limit  string `json:"limit" command:"name:limit;pos:3+"`
 }
 
-// RecurrenceGetOut is a struct that represents the recurrence get output data transfer object
-type RecurrenceGetOut struct {
-	ID     string `json:"id" command:"name:id"`
-	Date   string `json:"date" command:"name:date"`
-	Name   string `json:"name" command:"name:name"`
-	Cycle  string `json:"cycle" command:"name:cycle"`
-	Length string `json:"quantity" command:"name:length"`
-	Limit  string `json:"limit" command:"name:limit"`
-}
-
 // Validate is a method that validates the dto
-func (r *RecurrenceGetIn) Validate(repo port.Repository) error {
+func (r *RecurrenceCrud) Validate(repo port.Repository) error {
 	if r.isEmpty() {
 		return errors.New(pkg.ErrParamsNotInformed)
 	}
 	return nil
 }
 
+// GetCommand is a method that returns the command of the dto
+func (p *RecurrenceCrud) GetCommand() string {
+	return p.Action
+}
+
 // GetDomain is a method that returns the domain of the dto
-func (r *RecurrenceGetIn) GetDomain() []port.Domain {
+func (r *RecurrenceCrud) GetDomain() []port.Domain {
+	if r.Action == "add" && r.Date == "" {
+		time.Local, _ = time.LoadLocation(pkg.Location)
+		r.Date = time.Now().Format(pkg.DateFormat)
+	}
+	if r.Action == "add" && r.Length == "" {
+		r.Length = "0"
+	}
+	if r.Action == "add" && r.Limit == "" {
+		r.Limit = "0"
+	}
 	return []port.Domain{
 		domain.NewRecurrence(r.ID, r.Date, r.Name, r.Cycle, r.Length, r.Limit),
 	}
 }
 
 // GetOut is a method that returns the dto out
-func (r *RecurrenceGetIn) GetOut() port.DTOOut {
-	return &RecurrenceGetOut{}
+func (r *RecurrenceCrud) GetOut() port.DTOOut {
+	return &RecurrenceCrud{}
 }
 
 // GetDTO is a method that returns the dto
-func (r *RecurrenceGetOut) GetDTO(domainIn interface{}) []port.DTOOut {
+func (r *RecurrenceCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 	ret := []port.DTOOut{}
 	slices := domainIn.([]interface{})
 	recurrences := slices[0].(*[]domain.Recurrence)
@@ -65,7 +71,7 @@ func (r *RecurrenceGetOut) GetDTO(domainIn interface{}) []port.DTOOut {
 		if domain.Limits != nil {
 			lim = strconv.FormatInt(*domain.Limits, 10)
 		}
-		ret = append(ret, &RecurrenceGetOut{
+		ret = append(ret, &RecurrenceCrud{
 			ID:     domain.ID,
 			Date:   domain.Date.Format(pkg.DateFormat),
 			Name:   domain.Name,
@@ -78,7 +84,7 @@ func (r *RecurrenceGetOut) GetDTO(domainIn interface{}) []port.DTOOut {
 }
 
 // isEmpty is a method that checks if the dto is empty
-func (r *RecurrenceGetIn) isEmpty() bool {
+func (r *RecurrenceCrud) isEmpty() bool {
 	return r.ID == "" && r.Name == "" && r.Cycle == "" &&
 		r.Length == "" && r.Limit == "" && r.Date == ""
 }
