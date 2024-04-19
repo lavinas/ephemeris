@@ -21,8 +21,10 @@ const (
 	RolePayer                  = "payer"
 	DefaultContact             = "e-mail"
 	DefaultDueDay              = "10"
+	DefaultBillingType         = "pre-paid"
 	Location                   = "America/Sao_Paulo"
 	DateFormat                 = "02/01/2006"
+	MonthFormat                = "01/2006"
 	ErrPrefBadRequest          = "bad request"
 	ErrPrefCommandNotFound     = "command not identified"
 	ErrPrefInternal            = "internal error"
@@ -91,4 +93,5 @@ const (
 	ErrBondNotFound            = "bond contract not found"
 	ErrDueDayNotProvided       = "due day not provided"
 	ErrSponsorNotFound         = "sponsor not found"
+	ErrPackageNotFound         = "package not found"
 )

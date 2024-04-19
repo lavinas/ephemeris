@@ -51,6 +51,9 @@ func (c *ContractCrud) GetDomain() []port.Domain {
 	if c.Action == "add" && c.DueDay == "" {
 		c.DueDay = pkg.DefaultDueDay
 	}
+	if c.Action == "add" && c.BillingType == "" {
+		c.BillingType = pkg.DefaultBillingType
+	}
 	return []port.Domain{
 		domain.NewContract(c.ID, c.Date, c.ClientID, c.SponsorID, c.PackageID, c.BillingType, c.DueDay, c.Start, c.End, c.Bond),
 	}

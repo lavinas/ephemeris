@@ -23,7 +23,7 @@ type Price struct {
 }
 
 // NewPrice is a function that creates a new price
-func NewPrice(id string, date string, name string, unit string, pack string) *Price {
+func NewPrice(id, date, name, unit, pack string) *Price {
 	date = strings.TrimSpace(date)
 	local, _ := time.LoadLocation(pkg.Location)
 	fdate := time.Time{}

@@ -35,7 +35,7 @@ type Client struct {
 }
 
 // NewClient is a function that creates a new client
-func NewClient(id string, date string, name string, email string, phone string, document string, contact string) *Client {
+func NewClient(id, date, name, email, phone, document, contact string) *Client {
 	date = strings.TrimSpace(date)
 	local, _ := time.LoadLocation(pkg.Location)
 	fdate := time.Time{}

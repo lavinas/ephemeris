@@ -22,7 +22,7 @@ type Package struct {
 }
 
 // NewPackage creates a new package
-func NewPackage(id string, date string, serviceID string, recurrenceID string, priceID string) *Package {
+func NewPackage(id, date, serviceID, recurrenceID, priceID string) *Package {
 	date = strings.TrimSpace(date)
 	local, _ := time.LoadLocation(pkg.Location)
 	fdate := time.Time{}

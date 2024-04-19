@@ -35,7 +35,7 @@ type Recurrence struct {
 }
 
 // NewRecurrence is a function that creates a new recurrence
-func NewRecurrence(id string, date string, name string, cycle string, length string, limit string) *Recurrence {
+func NewRecurrence(id, date, name, cycle, length, limit string) *Recurrence {
 	date = strings.TrimSpace(date)
 	local, _ := time.LoadLocation(pkg.Location)
 	fdate := time.Time{}

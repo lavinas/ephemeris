@@ -35,15 +35,14 @@ type Contract struct {
 	SponsorID   *string    `gorm:"type:varchar(25); null; index"`
 	PackageID   string     `gorm:"type:varchar(25); not null; index"`
 	BillingType string     `gorm:"type:varchar(25); not null; index"`
-	DueDay      *int64     `gorm:"type:numeric(20), null; index"`
+	DueDay      *int64     `gorm:"type:numeric(20); null; index"`
 	Start       time.Time  `gorm:"type:datetime; not null; index"`
 	End         *time.Time `gorm:"type:datetime; null; index"`
 	Bond        *string    `gorm:"type:varchar(25); null; index"`
 }
 
 // NewContract creates a new contract
-func NewContract(id string, date string, clientID string, SponsorID string, packageID string,
-	billingType string, dueDay string, start string, end string, bond string) *Contract {
+func NewContract(id, date, clientID, SponsorID, packageID, billingType, dueDay, start, end, bond string) *Contract {
 	var err error
 	contract := &Contract{}
 	contract.ID = id
@@ -81,7 +80,7 @@ func NewContract(id string, date string, clientID string, SponsorID string, pack
 // Format is a method that formats the contract
 func (c *Contract) Format(repo port.Repository, args ...string) error {
 	filled := slices.Contains(args, "filled")
-	// noduplicity := slices.Contains(args, "noduplicity")
+	noduplicity := slices.Contains(args, "noduplicity")
 	msg := ""
 	if err := c.formatID(filled); err != nil {
 		msg += err.Error() + " | "
@@ -113,7 +112,7 @@ func (c *Contract) Format(repo port.Repository, args ...string) error {
 	if err := c.formatBond(repo); err != nil {
 		msg += err.Error() + " | "
 	}
-	if err := c.validateDuplicity(repo, false); err != nil {
+	if err := c.validateDuplicity(repo, noduplicity); err != nil {
 		msg += err.Error() + " | "
 	}
 	if msg != "" {
@@ -225,7 +224,7 @@ func (c *Contract) formatPackageID(repo port.Repository, filled bool) error {
 	if exists, err := pack.Exists(repo); err != nil {
 		return err
 	} else if !exists {
-		return errors.New(pkg.ErrServiceNotFound)
+		return errors.New(pkg.ErrPackageNotFound)
 	}
 	return nil
 }

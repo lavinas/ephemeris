@@ -22,7 +22,7 @@ type Service struct {
 }
 
 // NewService is a function that creates a new service
-func NewService(id string, date string, name string, minutes string) *Service {
+func NewService(id, date, name, minutes string) *Service {
 	date = strings.TrimSpace(date)
 	local, _ := time.LoadLocation(pkg.Location)
 	fdate := time.Time{}
