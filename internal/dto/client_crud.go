@@ -2,6 +2,7 @@ package dto
 
 import (
 	"errors"
+	"time"
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"
@@ -9,9 +10,9 @@ import (
 )
 
 // ClientGet represents the dto for getting a client
-type ClientGetIn struct {
+type ClientCrud struct {
 	Object   string `json:"-" command:"name:client;key;pos:2-"`
-	Action   string `json:"-" command:"name:get;key;pos:2-"`
+	Action   string `json:"-" command:"name:add,get,up;key;pos:2-"`
 	ID       string `json:"id" command:"name:id;;pos:3+"`
 	Date     string `json:"date" command:"name:date;pos:3+"`
 	Name     string `json:"name" command:"name:name;pos:3+"`
@@ -19,41 +20,48 @@ type ClientGetIn struct {
 	Phone    string `json:"phone" command:"name:phone;pos:3+"`
 	Document string `json:"document" command:"name:document;pos:3+"`
 	Contact  string `json:"contact" command:"name:contact;pos:3+"`
-}
-
-// ClientGetOut represents the output dto for getting a client
-type ClientGetOut struct {
-	ID       string `json:"id" command:"name:id"`
-	Date     string `json:"date" command:"name:date"`
-	Name     string `json:"name" command:"name:name"`
-	Email    string `json:"email" command:"name:email"`
-	Phone    string `json:"phone" command:"name:phone"`
-	Document string `json:"document" command:"name:document"`
-	Contact  string `json:"contact" command:"name:contact"`
+	Role     string `json:"type" command:"name:role;pos:3+"`
+	Ref      string `json:"reference" command:"name:ref;pos:3+"`
 }
 
 // Validate is a method that validates the dto
-func (c *ClientGetIn) Validate(repo port.Repository) error {
+func (c *ClientCrud) Validate(repo port.Repository) error {
 	if c.isEmpty() {
 		return errors.New(pkg.ErrParamsNotInformed)
 	}
 	return nil
 }
 
+// GetCommand is a method that returns the command of the dto
+func (p *ClientCrud) GetCommand() string {
+	return p.Action
+}
+
 // GetDomain is a method that returns a string representation of the client
-func (c *ClientGetIn) GetDomain() []port.Domain {
-	return []port.Domain{
+func (c *ClientCrud) GetDomain() []port.Domain {
+	if c.Action == "add" && c.Date == "" {
+		time.Local, _ = time.LoadLocation(pkg.Location)
+		c.Date = time.Now().Format(pkg.DateFormat)
+	}
+	if c.Action == "add" && c.Contact == "" {
+		c.Contact = pkg.DefaultContact
+	}
+	ret := []port.Domain{
 		domain.NewClient(c.ID, c.Date, c.Name, c.Email, c.Phone, c.Document, c.Contact),
 	}
+	if c.Action == "add" {
+		ret = append(ret, domain.NewClientRole("", c.Date, c.ID, c.Role, c.Ref))
+	}
+	return ret
 }
 
 // GetOut is a method that returns the output dto
-func (c *ClientGetIn) GetOut() port.DTOOut {
-	return &ClientGetOut{}
+func (c *ClientCrud) GetOut() port.DTOOut {
+	return &ClientCrud{}
 }
 
 // GetDTO is a method that returns the dto
-func (c *ClientGetOut) GetDTO(domainIn interface{}) []port.DTOOut {
+func (c *ClientCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 	ret := []port.DTOOut{}
 	slices := domainIn.([]interface{})
 	clients := slices[0].(*[]domain.Client)
@@ -62,7 +70,7 @@ func (c *ClientGetOut) GetDTO(domainIn interface{}) []port.DTOOut {
 		if client.Document != nil {
 			doc = *client.Document
 		}
-		dto := ClientGetOut{
+		dto := ClientCrud{
 			ID:       client.ID,
 			Date:     client.Date.Format(pkg.DateFormat),
 			Name:     client.Name,
@@ -80,7 +88,7 @@ func (c *ClientGetOut) GetDTO(domainIn interface{}) []port.DTOOut {
 }
 
 // IsEmpty is a method that returns true if the dto is empty
-func (c *ClientGetIn) isEmpty() bool {
+func (c *ClientCrud) isEmpty() bool {
 	if c.ID == "" && c.Date == "" && c.Name == "" && c.Email == "" &&
 		c.Phone == "" && c.Document == "" && c.Contact == "" {
 		return true

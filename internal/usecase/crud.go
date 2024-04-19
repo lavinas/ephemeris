@@ -55,7 +55,7 @@ func (c *Crud) String() string {
 	if c.Out == nil {
 		return ""
 	}
-	return pkg.NewCommands().Marshal(c.Out, "trim")
+	return pkg.NewCommands().Marshal(c.Out, "trim", "nokeys")
 }
 
 // Add is a method that add a dto to the repository

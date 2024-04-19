@@ -12,9 +12,7 @@ import (
 
 var (
 	dtos = map[interface{}]port.UseCase{
-		&dto.ClientAddIn{}:     &Add{},
-		&dto.ClientGetIn{}:     &Get{},
-		&dto.ClientUpIn{}:      &Up{},
+		&dto.ClientCrud{}:      &Crud{},
 		&dto.ClientLinkIn{}:    &Add{},
 		&dto.ServiceAddIn{}:    &Add{},
 		&dto.ServiceGetIn{}:    &Get{},
@@ -22,10 +20,8 @@ var (
 		&dto.RecurrenceAddIn{}: &Add{},
 		&dto.RecurrenceGetIn{}: &Get{},
 		&dto.RecurrenceUpIn{}:  &Up{},
-		&dto.PriceAddIn{}:      &Add{},
-		&dto.PriceGetIn{}:      &Get{},
-		&dto.PriceUpIn{}:       &Up{},
-		&dto.PackageAddIn{}:    &Crud{},
+		&dto.PriceCrud{}:       &Crud{},
+		&dto.PackageCrud{}:     &Crud{},
 	}
 )
 
