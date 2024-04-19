@@ -13,7 +13,7 @@ import (
 // ServiceCrud represents the dto for getting a service
 type ServiceCrud struct {
 	Object  string `json:"-" command:"name:service;key;pos:2-"`
-	Action  string `json:"-" command:"name:get;key;pos:2-"`
+	Action  string `json:"-" command:"name:add,get,up;key;pos:2-"`
 	ID      string `json:"id" command:"name:id;pos:3+"`
 	Date    string `json:"date" command:"name:date;pos:3+"`
 	Name    string `json:"name" command:"name:name;pos:3+"`
