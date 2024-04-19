@@ -33,7 +33,6 @@ func (p *ServiceCrud) GetCommand() string {
 	return p.Action
 }
 
-
 // GetDomain is a method that returns a string representation of the service
 func (c *ServiceCrud) GetDomain() []port.Domain {
 	if c.Action == "add" && c.Date == "" {

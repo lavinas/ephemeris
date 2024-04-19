@@ -16,8 +16,8 @@ type Crud struct {
 }
 
 // NewAdd is a function that returns a new Add struct
-func NewCrud(repo port.Repository, log port.Logger) *Add {
-	return &Add{
+func NewCrud(repo port.Repository, log port.Logger) *Crud {
+	return &Crud{
 		Repo: repo,
 		Log:  log,
 		Out:  nil,

@@ -15,7 +15,6 @@ var (
 		&dto.ClientCrud{}:     &Crud{},
 		&dto.RecurrenceCrud{}: &Crud{},
 		&dto.ServiceCrud{}:    &Crud{},
-		&dto.ClientLinkIn{}:   &Add{},
 		&dto.PriceCrud{}:      &Crud{},
 		&dto.PackageCrud{}:    &Crud{},
 	}

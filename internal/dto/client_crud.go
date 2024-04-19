@@ -20,8 +20,6 @@ type ClientCrud struct {
 	Phone    string `json:"phone" command:"name:phone;pos:3+"`
 	Document string `json:"document" command:"name:document;pos:3+"`
 	Contact  string `json:"contact" command:"name:contact;pos:3+"`
-	Role     string `json:"type" command:"name:role;pos:3+"`
-	Ref      string `json:"reference" command:"name:ref;pos:3+"`
 }
 
 // Validate is a method that validates the dto
@@ -46,13 +44,9 @@ func (c *ClientCrud) GetDomain() []port.Domain {
 	if c.Action == "add" && c.Contact == "" {
 		c.Contact = pkg.DefaultContact
 	}
-	ret := []port.Domain{
+	return []port.Domain{
 		domain.NewClient(c.ID, c.Date, c.Name, c.Email, c.Phone, c.Document, c.Contact),
 	}
-	if c.Action == "add" {
-		ret = append(ret, domain.NewClientRole("", c.Date, c.ID, c.Role, c.Ref))
-	}
-	return ret
 }
 
 // GetOut is a method that returns the output dto
