@@ -20,6 +20,7 @@ const (
 	RoleLiable                 = "liable"
 	RolePayer                  = "payer"
 	DefaultContact             = "e-mail"
+	DefaultDueDay              = "10"
 	Location                   = "America/Sao_Paulo"
 	DateFormat                 = "02/01/2006"
 	ErrPrefBadRequest          = "bad request"
@@ -88,4 +89,6 @@ const (
 	ErrInvalidStartDate        = "invalid start date. Should have %s format"
 	ErrInvalidEndDate          = "invalid end date. Should have %s format"
 	ErrBondNotFound            = "bond contract not found"
+	ErrDueDayNotProvided       = "due day not provided"
+	ErrSponsorNotFound         = "sponsor not found"
 )

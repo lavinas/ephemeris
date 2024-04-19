@@ -17,6 +17,7 @@ var (
 		&dto.ServiceCrud{}:    &Crud{},
 		&dto.PriceCrud{}:      &Crud{},
 		&dto.PackageCrud{}:    &Crud{},
+		&dto.ContractCrud{}:   &Crud{},
 	}
 )
 

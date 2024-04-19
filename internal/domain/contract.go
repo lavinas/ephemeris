@@ -22,6 +22,8 @@ var (
 		"pos-paid": "pos-paid",
 		// pos-session represents that client paid after the service if the session is done
 		"pos-session": "pos-session",
+		// per-session represents that client paid for each session
+		"per-session": "per-session",
 	}
 )
 
@@ -30,62 +32,50 @@ type Contract struct {
 	ID          string     `gorm:"type:varchar(25); primaryKey"`
 	Date        time.Time  `gorm:"type:datetime; not null; index"`
 	ClientID    string     `gorm:"type:varchar(25); not null; index"`
+	SponsorID   *string    `gorm:"type:varchar(25); null; index"`
 	PackageID   string     `gorm:"type:varchar(25); not null; index"`
 	BillingType string     `gorm:"type:varchar(25); not null; index"`
-	DueDay      int64      `gorm:"type:numeric(20), not null; index"`
+	DueDay      *int64     `gorm:"type:numeric(20), null; index"`
 	Start       time.Time  `gorm:"type:datetime; not null; index"`
 	End         *time.Time `gorm:"type:datetime; null; index"`
 	Bond        *string    `gorm:"type:varchar(25); null; index"`
 }
 
 // NewContract creates a new contract
-func NewContract(id string, date string, clientID string, packageID string, billingType string, dueDay string,
-	start string, end string, bond string) *Contract {
+func NewContract(id string, date string, clientID string, SponsorID string, packageID string,
+	billingType string, dueDay string, start string, end string, bond string) *Contract {
+	var err error
+	contract := &Contract{}
+	contract.ID = id
 	date = strings.TrimSpace(date)
 	local, _ := time.LoadLocation(pkg.Location)
-	fdate := time.Time{}
-	if date != "" {
-		var err error
-		if fdate, err = time.ParseInLocation(pkg.DateFormat, date, local); err != nil {
-			fdate = time.Time{}
-		}
+	contract.Date, err = time.ParseInLocation(pkg.DateFormat, date, local)
+	if err != nil {
+		contract.Date = time.Time{}
 	}
-	var fstart time.Time
-	if start != "" {
-		var err error
-		if fstart, err = time.ParseInLocation(pkg.DateFormat, start, local); err != nil {
-			fstart = time.Time{}
-		}
+	contract.ClientID = clientID
+	if SponsorID != "" {
+		contract.SponsorID = &SponsorID
 	}
-	var fend *time.Time = nil
+	contract.PackageID = packageID
+	contract.BillingType = billingType
+	if d, err := strconv.ParseInt(dueDay, 10, 64); err == nil && d >= 0 {
+		contract.DueDay = &d
+	}
+	contract.Start, err = time.ParseInLocation(pkg.DateFormat, start, local)
+	if err != nil {
+		contract.Start = time.Time{}
+	}
 	if end != "" {
-		fend = new(time.Time)
-		var err error
-		if *fend, err = time.ParseInLocation(pkg.DateFormat, end, local); err != nil {
-			fend = nil
+		*contract.End, err = time.ParseInLocation(pkg.DateFormat, end, local)
+		if err != nil {
+			contract.End = nil
 		}
 	}
-	var fdueDay int64
-	if dueDay != "" {
-		if d, err := strconv.ParseInt(dueDay, 10, 64); d >= 0 && err == nil {
-			fdueDay = d
-		}
-	}
-	var fbond *string = nil
 	if bond != "" {
-		fbond = &bond
+		contract.Bond = &bond
 	}
-	return &Contract{
-		ID:          id,
-		Date:        fdate,
-		ClientID:    clientID,
-		PackageID:   packageID,
-		BillingType: billingType,
-		DueDay:      fdueDay,
-		Start:       fstart,
-		End:         fend,
-		Bond:        fbond,
-	}
+	return contract
 }
 
 // Format is a method that formats the contract
@@ -100,6 +90,9 @@ func (c *Contract) Format(repo port.Repository, args ...string) error {
 		msg += err.Error() + " | "
 	}
 	if err := c.formatClientID(repo, filled); err != nil {
+		msg += err.Error() + " | "
+	}
+	if err := c.formatSponsorID(repo); err != nil {
 		msg += err.Error() + " | "
 	}
 	if err := c.formatPackageID(repo, filled); err != nil {
@@ -118,6 +111,9 @@ func (c *Contract) Format(repo port.Repository, args ...string) error {
 		msg += err.Error() + " | "
 	}
 	if err := c.formatBond(repo); err != nil {
+		msg += err.Error() + " | "
+	}
+	if err := c.validateDuplicity(repo, false); err != nil {
 		msg += err.Error() + " | "
 	}
 	if msg != "" {
@@ -148,7 +144,7 @@ func (c *Contract) GetEmpty() port.Domain {
 
 // TableName is a method that returns the table name of the contract
 func (c *Contract) TableName() string {
-	return "contracts"
+	return "contract"
 }
 
 // formatID is a method that formats the id of the contract
@@ -200,6 +196,21 @@ func (c *Contract) formatClientID(repo port.Repository, filled bool) error {
 	return nil
 }
 
+// formatSponsorID is a method that formats the sponsor id of the contract
+func (c *Contract) formatSponsorID(repo port.Repository) error {
+	if c.SponsorID == nil {
+		return nil
+	}
+	client := &Client{ID: c.formatString(*c.SponsorID)}
+	client.Format(repo, "filled")
+	if exists, err := client.Exists(repo); err != nil {
+		return err
+	} else if !exists {
+		return errors.New(pkg.ErrSponsorNotFound)
+	}
+	return nil
+}
+
 // formatServiceID is a method that formats the service id of the contract
 func (c *Contract) formatPackageID(repo port.Repository, filled bool) error {
 	packageID := c.formatString(c.PackageID)
@@ -241,10 +252,16 @@ func (c *Contract) formatBillingType(filled bool) error {
 
 // formatDueDay is a method that formats the due day of the contract
 func (c *Contract) formatDueDay(filled bool) error {
-	if filled && c.DueDay == 0 {
-		return nil
+	if c.DueDay == nil {
+		if filled {
+			return nil
+		}
+		if c.BillingType == BillingTypes["per-session"] {
+			return nil
+		}
+		return errors.New(pkg.ErrDueDayNotProvided)
 	}
-	if c.DueDay < 0 || c.DueDay > 31 {
+	if *c.DueDay <= 0 || *c.DueDay > 31 {
 		return errors.New(pkg.ErrInvalidDueDay)
 	}
 	return nil
@@ -252,10 +269,10 @@ func (c *Contract) formatDueDay(filled bool) error {
 
 // formatStart is a method that formats the start of the contract
 func (c *Contract) formatStart(filled bool) error {
-	if filled && c.Start.IsZero() {
-		return nil
-	}
 	if c.Start.IsZero() {
+		if filled {
+			return nil
+		}
 		return fmt.Errorf(pkg.ErrInvalidStartDate, pkg.DateFormat)
 	}
 	return nil
@@ -293,4 +310,19 @@ func (c *Contract) formatString(str string) string {
 	space := regexp.MustCompile(`\s+`)
 	str = space.ReplaceAllString(str, " ")
 	return str
+}
+
+// validateDuplicity is a method that validates the duplicity of a client
+func (c *Contract) validateDuplicity(repo port.Repository, noduplicity bool) error {
+	if noduplicity {
+		return nil
+	}
+	ok, err := repo.Get(&Contract{}, c.ID)
+	if err != nil {
+		return err
+	}
+	if ok {
+		return fmt.Errorf(pkg.ErrAlreadyExists, c.ID)
+	}
+	return nil
 }

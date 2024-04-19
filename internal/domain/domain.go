@@ -8,5 +8,6 @@ func GetDomain() []interface{} {
 		&Recurrence{},
 		&Price{},
 		&Package{},
+		&Contract{},
 	}
 }
