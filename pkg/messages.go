@@ -96,4 +96,5 @@ const (
 	ErrPackageNotFound         = "package not found"
 	ErrEmptyContractID         = "empty contract id"
 	ErrContractNotFound        = "contract not found"
+	ErrInvalidEnd              = "end date should be after start date"
 )

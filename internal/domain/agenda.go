@@ -17,7 +17,7 @@ type Agenda struct {
 	Date         time.Time  `gorm:"type:datetime; not null"`
 	ContractID   string     `gorm:"type:varchar(25); not null; index"`
 	Start        time.Time  `gorm:"type:datetime; not null"`
-	End          time.Time  `gorm:"type:datetime; not null"`
+	End          *time.Time  `gorm:"type:datetime; not null"`
 	Kind         string     `gorm:"type:varchar(25); not null; index"`
 	Status       string     `gorm:"type:varchar(25); not null; index"`
 	Bond         *Agenda    `gorm:"foreignKey:ID"`
@@ -32,16 +32,23 @@ func NewAgenda(id, date, contractID, start, end, kind, status, bond, billing str
 	agenda.Date, _ = time.ParseInLocation(pkg.DateFormat, strings.TrimSpace(date), local)
 	agenda.ContractID = contractID
 	agenda.Start, _ = time.ParseInLocation(pkg.DateFormat, strings.TrimSpace(start), local)
-	agenda.End, _ = time.ParseInLocation(pkg.DateFormat, strings.TrimSpace(end), local)
+	e, err := time.ParseInLocation(pkg.DateFormat, strings.TrimSpace(end), local)
+	if err == nil && !e.IsZero() {
+		agenda.End = &e
+	}
 	agenda.Kind = kind
 	agenda.Status = status
 	if bond != "" {
 		agenda.Bond = &Agenda{ID: bond}
 	}
-	if mont, err := time.ParseInLocation(pkg.MonthFormat, billing, local); err == nil {
+	mont, err := time.ParseInLocation(pkg.MonthFormat, billing, local)
+	if err == nil &&  !mont.IsZero(){
 		agenda.BillingMonth = &mont
-	} else if mont, err = time.ParseInLocation(pkg.DateFormat, billing, local); err == nil {
-		agenda.BillingMonth = &mont
+	} else {
+		mont, err = time.ParseInLocation(pkg.DateFormat, billing, local)
+		if err == nil &&  !mont.IsZero(){
+			agenda.BillingMonth = &mont
+		}
 	}
 	return agenda
 }
@@ -58,6 +65,12 @@ func (a *Agenda) Format(repo port.Repository, args ...string) error {
 		msg += err.Error() + " | "
 	}
 	if err := a.formatContractID(repo, filled); err != nil {
+		msg += err.Error() + " | "
+	}
+	if err := a.formatStart(filled); err != nil {
+		msg += err.Error() + " | "
+	}
+	if err := a.formatEnd(); err != nil {
 		msg += err.Error() + " | "
 	}
 	if msg == "" {
@@ -87,7 +100,7 @@ func (c *Agenda) formatID(filled bool) error {
 
 // formatDate is a method that formats the date of the contract
 func (c *Agenda) formatDate(filled bool) error {
-	if filled && c.Date.IsZero() {
+	if filled {
 		return nil
 	}
 	if c.Date.IsZero() {
@@ -113,6 +126,32 @@ func (c *Agenda) formatContractID(repo port.Repository, filled bool) error {
 	}
 	return nil
 }
+
+// formatStart is a method that formats the start date of the agenda
+func (c *Agenda) formatStart(filled bool) error {
+	if filled {
+		return nil
+	}
+	if c.Start.IsZero() {
+		return errors.New(pkg.ErrInvalidDateFormat)
+	}
+	return nil
+}
+
+// formatEnd is a method that formats the end date of the agenda
+func (c *Agenda) formatEnd() error {
+	if c.End == nil {
+		return nil
+	}
+	if c.End.IsZero() {
+		return errors.New(pkg.ErrInvalidDateFormat)
+	}
+	if c.Start.Before(*c.End) {
+		return errors.New(pkg.ErrInvalidEnd)
+	}
+	return nil
+}
+
 
 // formatString is a method that formats a string
 func (c *Agenda) formatString(str string) string {
