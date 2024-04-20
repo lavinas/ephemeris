@@ -43,33 +43,23 @@ type Contract struct {
 
 // NewContract creates a new contract
 func NewContract(id, date, clientID, SponsorID, packageID, billingType, dueDay, start, end, bond string) *Contract {
-	var err error
 	contract := &Contract{}
 	contract.ID = id
 	date = strings.TrimSpace(date)
 	local, _ := time.LoadLocation(pkg.Location)
-	contract.Date, err = time.ParseInLocation(pkg.DateFormat, date, local)
-	if err != nil {
-		contract.Date = time.Time{}
-	}
+	contract.Date, _ = time.ParseInLocation(pkg.DateFormat, date, local)
 	contract.ClientID = clientID
 	if SponsorID != "" {
 		contract.SponsorID = &SponsorID
 	}
 	contract.PackageID = packageID
 	contract.BillingType = billingType
-	if d, err := strconv.ParseInt(dueDay, 10, 64); err == nil && d >= 0 {
+	if d, err := strconv.ParseInt(dueDay, 10, 64); err == nil {
 		contract.DueDay = &d
 	}
-	contract.Start, err = time.ParseInLocation(pkg.DateFormat, start, local)
-	if err != nil {
-		contract.Start = time.Time{}
-	}
-	if end != "" {
-		*contract.End, err = time.ParseInLocation(pkg.DateFormat, end, local)
-		if err != nil {
-			contract.End = nil
-		}
+	contract.Start, _ = time.ParseInLocation(pkg.DateFormat, start, local)
+	if d, err := time.ParseInLocation(pkg.DateFormat, end, local); err == nil {
+		contract.End = &d
 	}
 	if bond != "" {
 		contract.Bond = &bond

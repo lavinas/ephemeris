@@ -94,4 +94,6 @@ const (
 	ErrDueDayNotProvided       = "due day not provided"
 	ErrSponsorNotFound         = "sponsor not found"
 	ErrPackageNotFound         = "package not found"
+	ErrEmptyContractID         = "empty contract id"
+	ErrContractNotFound        = "contract not found"
 )
