@@ -102,6 +102,27 @@ func (a *Agenda) Exists(repo port.Repository) (bool, error) {
 	return repo.Get(&Agenda{}, a.ID)
 }
 
+// GetID is a method that returns the id of the client
+func (a *Agenda) GetID() string {
+	return a.ID
+}
+
+// Get is a method that returns the client
+func (a *Agenda) Get() port.Domain {
+	return a
+}
+
+// GetEmpty is a method that returns an empty client with just id
+func (a *Agenda) GetEmpty() port.Domain {
+	return &Agenda{}
+}
+
+// TableName returns the table name for database
+func (a *Agenda) TableName() string {
+	return "agenda"
+}
+
+
 // formatID is a method that formats the id of the contract
 func (c *Agenda) formatID(filled bool) error {
 	id := c.formatString(c.ID)
