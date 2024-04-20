@@ -47,6 +47,9 @@ func (r *RecurrenceCrud) GetDomain() []port.Domain {
 	if r.Action == "add" && r.Limit == "" {
 		r.Limit = "0"
 	}
+	if r.Action == "add" && r.Cycle == "" {
+		r.Cycle = pkg.DefaultRecurrenceCycle
+	}
 	return []port.Domain{
 		domain.NewRecurrence(r.ID, r.Date, r.Name, r.Cycle, r.Length, r.Limit),
 	}

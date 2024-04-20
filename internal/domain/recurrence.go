@@ -15,12 +15,12 @@ import (
 // Cycle represents the cycle entity
 
 var (
-	Cycles = map[string]string{
-		"once":  "once",
-		"day":   "day",
-		"week":  "week",
-		"month": "month",
-		"year":  "year",
+	cycles = []string{
+		pkg.RecurrenceCycleOnce,
+		pkg.RecurrenceCycleDay,
+		pkg.RecurrenceCycleWeek,
+		pkg.RecurrenceCycleMonth,
+		pkg.RecurrenceCycleYear,
 	}
 )
 
@@ -167,25 +167,18 @@ func (r *Recurrence) formatName(filled bool) error {
 // formatCycle is a method that formats the recurrence cycle
 func (r *Recurrence) formatCycle(filled bool) error {
 	r.Cycle = r.formatString(r.Cycle)
+	msgCycle := strings.Join(cycles, ", ")[:len(strings.Join(cycles, ", "))-2]
 	if r.Cycle == "" {
 		if filled {
 			return nil
 		}
-		cycles := ""
-		for k := range Cycles {
-			cycles += k + ", "
-		}
-		return fmt.Errorf(pkg.ErrEmptyCycle, cycles[:len(cycles)-2])
+		return fmt.Errorf(pkg.ErrEmptyCycle, msgCycle)
 	}
 	if len(r.Cycle) > 20 {
 		return fmt.Errorf(pkg.ErrLongCycle)
 	}
-	if _, ok := Cycles[r.Cycle]; !ok {
-		cycles := ""
-		for k := range Cycles {
-			cycles += k + ", "
-		}
-		return fmt.Errorf(pkg.ErrInvalidCycle, cycles[:len(cycles)-2])
+	if slices.Contains(cycles, r.Cycle) {
+		return fmt.Errorf(pkg.ErrInvalidCycle, msgCycle)
 	}
 	return nil
 }

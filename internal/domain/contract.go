@@ -15,15 +15,8 @@ import (
 
 var (
 	// BillingTypes is a map that contains all billing types
-	BillingTypes = map[string]string{
-		// pre-paid represents that client paid before the service
-		"pre-paid": "pre-paid",
-		// pos-paid represents that client paid after the service
-		"pos-paid": "pos-paid",
-		// pos-session represents that client paid after the service if the session is done
-		"pos-session": "pos-session",
-		// per-session represents that client paid for each session
-		"per-session": "per-session",
+	billingTypes = []string{
+		"pre-paid", "pos-paid", "pos-session", "per-session",
 	}
 )
 
@@ -229,9 +222,9 @@ func (c *Contract) formatBillingType(filled bool) error {
 		return errors.New(pkg.ErrEmptyBillingType)
 	}
 	c.BillingType = strings.ToLower(c.BillingType)
-	if _, ok := BillingTypes[c.BillingType]; !ok {
+	if slices.Contains(billingTypes, c.BillingType) {
 		bt := ""
-		for k := range BillingTypes {
+		for _, k := range billingTypes {
 			bt += k + ", "
 		}
 		return fmt.Errorf(pkg.ErrInvalidBillingType, bt[:len(bt)-2])
@@ -245,7 +238,7 @@ func (c *Contract) formatDueDay(filled bool) error {
 		if filled {
 			return nil
 		}
-		if c.BillingType == BillingTypes["per-session"] {
+		if c.BillingType == pkg.BillingTypePerSession {
 			return nil
 		}
 		return errors.New(pkg.ErrDueDayNotProvided)

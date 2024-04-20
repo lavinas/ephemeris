@@ -2,13 +2,23 @@ package main
 
 import (
 	"fmt"
-	"time"
+	"strings"
+
+	"github.com/lavinas/ephemeris/pkg"
 )
 
+var (
+	cycles = []string{
+		pkg.RecurrenceCycleOnce,
+		pkg.RecurrenceCycleDay,
+		pkg.RecurrenceCycleWeek,
+		pkg.RecurrenceCycleMonth,
+		pkg.RecurrenceCycleYear,
+	}
+)
+
+
 func main() {
-	dt := "10/02/2026"
-	dtformat := "01/2006"
-	local, _ := time.LoadLocation("America/Sao_Paulo")
-	date, _ := time.ParseInLocation(dtformat, dt, local)
-	fmt.Println(date)
+	x := strings.Join(cycles, ", ")
+	fmt.Println(x)
 }

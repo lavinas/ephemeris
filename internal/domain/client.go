@@ -20,7 +20,7 @@ import (
 
 var (
 	// ContactWays is a slice that contains the ways to contact a client
-	ContactWays = []string{"e-mail", "whatsapp", "all"}
+	ContactWays = []string{pkg.ContactEmail, pkg.ContactWhatsapp, pkg.ContactAll}
 )
 
 // Client represents the client entity
