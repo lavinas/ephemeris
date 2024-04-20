@@ -12,10 +12,9 @@ import (
 )
 
 var (
-	kindAgenda = []string{"agenda", "bond", "billing"}
-	statusAgenda = []string{"active", "inactive"}
+	kindAgenda = []string{pkg.AgendaKindSlated, pkg.AgendaKindRescheduled, pkg.AgendaKindExtra}
+	statusAgenda = []string{pkg.AgendaStatusSlated, pkg.AgendaStatusDone, pkg.AgendaStatusCanceled, pkg.AgendaStatusOverdue}
 )
-
 
 // Agenda represents the agenda entity
 type Agenda struct {

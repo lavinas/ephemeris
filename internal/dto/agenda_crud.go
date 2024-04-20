@@ -45,10 +45,10 @@ func (a *AgendaCrud) GetDomain() []port.Domain {
 		a.Date = time.Now().Format(pkg.DateFormat)
 	}
 	if a.Action == "add" && a.Kind == "" {
-		a.Kind = pkg.DefaultKind
+		a.Kind = pkg.DefaulltAgendaKind
 	}
 	if a.Action == "add" && a.Status == "" {
-		a.Status = pkg.DefaultStatus
+		a.Status = pkg.DefaultAgendaStatus
 	}
 	return []port.Domain{
 		domain.NewAgenda(a.ID, a.Date, a.ContractID, a.Start, a.End, a.Kind, a.Status, a.Bond, a.Billing),

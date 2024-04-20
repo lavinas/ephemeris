@@ -22,6 +22,15 @@ const (
 	DefaultContact             = "e-mail"
 	DefaultDueDay              = "10"
 	DefaultBillingType         = "pre-paid"
+	AgendaKindSlated           = "slated"
+	AgendaKindRescheduled      = "rescheduled"
+	AgendaKindExtra			   = "extra"
+	DefaulltAgendaKind		   = AgendaKindSlated
+	AgendaStatusSlated         = "slated"
+	AgendaStatusDone           = "done"
+	AgendaStatusCanceled       = "canceled"
+	AgendaStatusOverdue        = "overdue"
+	DefaultAgendaStatus        = AgendaStatusSlated
 	Location                   = "America/Sao_Paulo"
 	DateFormat                 = "02/01/2006"
 	MonthFormat                = "01/2006"
