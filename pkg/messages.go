@@ -97,4 +97,8 @@ const (
 	ErrEmptyContractID         = "empty contract id"
 	ErrContractNotFound        = "contract not found"
 	ErrInvalidEnd              = "end date should be after start date"
+	ErrEmptyKind			   = "empty kind"
+	ErrInvalidKind 		       = "invalid kind"
+	ErrEmptyStatus             = "empty status"
+	ErrInvalidStatus           = "invalid status"
 )

@@ -11,6 +11,12 @@ import (
 	"github.com/lavinas/ephemeris/pkg"
 )
 
+var (
+	kindAgenda = []string{"agenda", "bond", "billing"}
+	statusAgenda = []string{"active", "inactive"}
+)
+
+
 // Agenda represents the agenda entity
 type Agenda struct {
 	ID           string     `gorm:"type:varchar(25); primaryKey"`
@@ -73,10 +79,27 @@ func (a *Agenda) Format(repo port.Repository, args ...string) error {
 	if err := a.formatEnd(); err != nil {
 		msg += err.Error() + " | "
 	}
+	if err := a.formatKind(); err != nil {
+		msg += err.Error() + " | "
+	}
+	if err := a.formatStatus(); err != nil {
+		msg += err.Error() + " | "
+	}
+	if err := a.formatBond(repo); err != nil {
+		msg += err.Error() + " | "
+	}
+	if err := a.formatBillingMonth(); err != nil {
+		msg += err.Error() + " | "
+	}
 	if msg == "" {
 		return nil
 	}
 	return errors.New(msg)
+}
+
+// Exists is a function that checks if a agenda exists
+func (a *Agenda) Exists(repo port.Repository) (bool, error) {
+	return repo.Get(&Agenda{}, a.ID)
 }
 
 // formatID is a method that formats the id of the contract
@@ -146,12 +169,62 @@ func (c *Agenda) formatEnd() error {
 	if c.End.IsZero() {
 		return errors.New(pkg.ErrInvalidDateFormat)
 	}
-	if c.Start.Before(*c.End) {
+	if c.Start.After(*c.End) {
 		return errors.New(pkg.ErrInvalidEnd)
 	}
 	return nil
 }
 
+// formatKind is a method that formats the kind of the agenda
+func (c *Agenda) formatKind() error {
+	kind := c.formatString(c.Kind)
+	if kind == "" {
+		return errors.New(pkg.ErrEmptyKind)
+	}
+	if !slices.Contains(kindAgenda, kind) {
+		return errors.New(pkg.ErrInvalidKind)
+	}
+	c.Kind = kind
+	return nil
+}
+
+// formatStatus is a method that formats the status of the agenda
+func (c *Agenda) formatStatus() error {
+	status := c.formatString(c.Status)
+	if status == "" {
+		return errors.New(pkg.ErrEmptyStatus)
+	}
+	if !slices.Contains(statusAgenda, status) {
+		return errors.New(pkg.ErrInvalidStatus)
+	}
+	c.Status = status
+	return nil
+}
+
+// formatBond is a method that formats the bond of the agenda
+func (c *Agenda) formatBond(repo port.Repository) error {
+	if c.Bond == nil {
+		return nil
+	}
+	bond := &Agenda{ID: c.Bond.ID}
+	if exists, err := bond.Exists(repo); err != nil {
+		return err
+	} else if !exists {
+		return errors.New(pkg.ErrBondNotFound)
+	}
+	return nil
+}
+
+// formatBillingMonth is a method that formats the billing month of the agenda
+func (c *Agenda) formatBillingMonth() error {
+	if c.BillingMonth == nil {
+		return nil
+	}
+	if c.BillingMonth.IsZero() {
+		return errors.New(pkg.ErrInvalidDateFormat)
+	}
+	return nil
+}
 
 // formatString is a method that formats a string
 func (c *Agenda) formatString(str string) string {
