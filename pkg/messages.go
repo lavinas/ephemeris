@@ -37,8 +37,8 @@ const (
 	DefaultBillingType         = BillingTypePrePaid
 	AgendaKindSlated           = "slated"
 	AgendaKindRescheduled      = "rescheduled"
-	AgendaKindExtra			   = "extra"
-	DefaulltAgendaKind		   = AgendaKindSlated
+	AgendaKindExtra            = "extra"
+	DefaulltAgendaKind         = AgendaKindSlated
 	AgendaStatusSlated         = "slated"
 	AgendaStatusDone           = "done"
 	AgendaStatusCanceled       = "canceled"
@@ -119,8 +119,8 @@ const (
 	ErrEmptyContractID         = "empty contract id"
 	ErrContractNotFound        = "contract not found"
 	ErrInvalidEnd              = "end date should be after start date"
-	ErrEmptyKind			   = "empty kind"
-	ErrInvalidKind 		       = "invalid kind"
+	ErrEmptyKind               = "empty kind"
+	ErrInvalidKind             = "invalid kind"
 	ErrEmptyStatus             = "empty status"
 	ErrInvalidStatus           = "invalid status"
 )

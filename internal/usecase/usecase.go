@@ -18,6 +18,7 @@ var (
 		&dto.PriceCrud{}:      &Crud{},
 		&dto.PackageCrud{}:    &Crud{},
 		&dto.ContractCrud{}:   &Crud{},
+		&dto.AgendaCrud{}:     &Crud{},
 	}
 )
 

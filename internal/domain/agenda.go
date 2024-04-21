@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	kindAgenda = []string{pkg.AgendaKindSlated, pkg.AgendaKindRescheduled, pkg.AgendaKindExtra}
+	kindAgenda   = []string{pkg.AgendaKindSlated, pkg.AgendaKindRescheduled, pkg.AgendaKindExtra}
 	statusAgenda = []string{pkg.AgendaStatusSlated, pkg.AgendaStatusDone, pkg.AgendaStatusCanceled, pkg.AgendaStatusOverdue}
 )
 
@@ -22,11 +22,11 @@ type Agenda struct {
 	Date         time.Time  `gorm:"type:datetime; not null"`
 	ContractID   string     `gorm:"type:varchar(25); not null; index"`
 	Start        time.Time  `gorm:"type:datetime; not null"`
-	End          *time.Time  `gorm:"type:datetime; not null"`
+	End          *time.Time `gorm:"type:datetime;null"`
 	Kind         string     `gorm:"type:varchar(25); not null; index"`
 	Status       string     `gorm:"type:varchar(25); not null; index"`
-	Bond         *Agenda    `gorm:"foreignKey:ID"`
-	BillingMonth *time.Time `gorm:"type:numeric(20)"`
+	Bond         *string    `gorm:"type:varchar(25);null; index"`
+	BillingMonth *time.Time `gorm:"type:numeric(20);null; index"`
 }
 
 // NewAgenda creates a new agenda domain entity
@@ -44,14 +44,14 @@ func NewAgenda(id, date, contractID, start, end, kind, status, bond, billing str
 	agenda.Kind = kind
 	agenda.Status = status
 	if bond != "" {
-		agenda.Bond = &Agenda{ID: bond}
+		agenda.Bond = &bond
 	}
 	mont, err := time.ParseInLocation(pkg.MonthFormat, billing, local)
-	if err == nil &&  !mont.IsZero(){
+	if err == nil && !mont.IsZero() {
 		agenda.BillingMonth = &mont
 	} else {
 		mont, err = time.ParseInLocation(pkg.DateFormat, billing, local)
-		if err == nil &&  !mont.IsZero(){
+		if err == nil && !mont.IsZero() {
 			agenda.BillingMonth = &mont
 		}
 	}
@@ -120,7 +120,6 @@ func (a *Agenda) GetEmpty() port.Domain {
 func (a *Agenda) TableName() string {
 	return "agenda"
 }
-
 
 // formatID is a method that formats the id of the contract
 func (c *Agenda) formatID(filled bool) error {
@@ -226,7 +225,7 @@ func (c *Agenda) formatBond(repo port.Repository) error {
 	if c.Bond == nil {
 		return nil
 	}
-	bond := &Agenda{ID: c.Bond.ID}
+	bond := &Agenda{ID: *c.Bond}
 	if exists, err := bond.Exists(repo); err != nil {
 		return err
 	} else if !exists {

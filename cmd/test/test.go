@@ -17,7 +17,6 @@ var (
 	}
 )
 
-
 func main() {
 	x := strings.Join(cycles, ", ")
 	fmt.Println(x)

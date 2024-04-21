@@ -9,20 +9,19 @@ import (
 	"github.com/lavinas/ephemeris/pkg"
 )
 
-
-//  AgendaCrud represents the dto for getting a agenda
+// AgendaCrud represents the dto for getting a agenda
 type AgendaCrud struct {
-	Object   string `json:"-" command:"name:client;key;pos:2-"`
-	Action   string `json:"-" command:"name:add,get,up;key;pos:2-"`
-	ID       string `json:"id" command:"name:id;;pos:3+"`
-	Date     string `json:"date" command:"name:date;pos:3+"`
+	Object     string `json:"-" command:"name:client;key;pos:2-"`
+	Action     string `json:"-" command:"name:add,get,up;key;pos:2-"`
+	ID         string `json:"id" command:"name:id;pos:3+"`
+	Date       string `json:"date" command:"name:date;pos:3+"`
 	ContractID string `json:"contract_id" command:"name:contract_id;pos:3+"`
-	Start    string `json:"start" command:"name:start;pos:3+"`
-	End      string `json:"end" command:"name:end;pos:3+"`
-	Kind     string `json:"kind" command:"name:kind;pos:3+"`
-	Status   string `json:"status" command:"name:status;pos:3+"`
-	Bond     string `json:"bond" command:"name:bond;pos:3+"`
-	Billing  string `json:"billing" command:"name:billing;pos:3+"`
+	Start      string `json:"start" command:"name:start;pos:3+"`
+	End        string `json:"end" command:"name:end;pos:3+"`
+	Kind       string `json:"kind" command:"name:kind;pos:3+"`
+	Status     string `json:"status" command:"name:status;pos:3+"`
+	Bond       string `json:"bond" command:"name:bond;pos:3+"`
+	Billing    string `json:"billing" command:"name:billing;pos:3+"`
 }
 
 // Validate is a method that validates the dto
@@ -59,4 +58,3 @@ func (a *AgendaCrud) GetDomain() []port.Domain {
 func (a *AgendaCrud) isEmpty() bool {
 	return a.ID == "" && a.Date == "" && a.ContractID == "" && a.Start == "" && a.End == "" && a.Kind == "" && a.Status == "" && a.Bond == "" && a.Billing == ""
 }
-
