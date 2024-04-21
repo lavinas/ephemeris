@@ -2,11 +2,11 @@ package domain
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 	"slices"
 	"strings"
 	"time"
-	"fmt"
 
 	"github.com/lavinas/ephemeris/internal/port"
 	"github.com/lavinas/ephemeris/pkg"
@@ -182,7 +182,7 @@ func (c *Agenda) formatStart(filled bool) error {
 }
 
 // formatEnd is a method that formats the end date of the agenda
-func (c *Agenda) formatEnd(filled bool) error {	
+func (c *Agenda) formatEnd(filled bool) error {
 	if c.End.IsZero() {
 		if filled {
 			return nil
