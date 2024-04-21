@@ -76,10 +76,10 @@ func (a *Agenda) Format(repo port.Repository, args ...string) error {
 	if err := a.formatEnd(filled); err != nil {
 		msg += err.Error() + " | "
 	}
-	if err := a.formatKind(); err != nil {
+	if err := a.formatKind(filled); err != nil {
 		msg += err.Error() + " | "
 	}
-	if err := a.formatStatus(); err != nil {
+	if err := a.formatStatus(filled); err != nil {
 		msg += err.Error() + " | "
 	}
 	if err := a.formatBond(repo); err != nil {
@@ -196,9 +196,12 @@ func (c *Agenda) formatEnd(filled bool) error {
 }
 
 // formatKind is a method that formats the kind of the agenda
-func (c *Agenda) formatKind() error {
+func (c *Agenda) formatKind(filled bool) error {
 	kind := c.formatString(c.Kind)
 	if kind == "" {
+		if filled {
+			return nil
+		}
 		return errors.New(pkg.ErrEmptyKind)
 	}
 	if !slices.Contains(kindAgenda, kind) {
@@ -209,9 +212,12 @@ func (c *Agenda) formatKind() error {
 }
 
 // formatStatus is a method that formats the status of the agenda
-func (c *Agenda) formatStatus() error {
+func (c *Agenda) formatStatus(filled bool) error {
 	status := c.formatString(c.Status)
 	if status == "" {
+		if filled {
+			return nil
+		}
 		return errors.New(pkg.ErrEmptyStatus)
 	}
 	if !slices.Contains(statusAgenda, status) {
