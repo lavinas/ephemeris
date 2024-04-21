@@ -144,7 +144,7 @@ func (r *Recurrence) formatDate(filled bool) error {
 		if filled {
 			return nil
 		}
-		return fmt.Errorf(pkg.ErrInvalidDateFormat)
+		return fmt.Errorf(pkg.ErrInvalidDateFormat, pkg.DateFormat)
 	}
 	return nil
 }

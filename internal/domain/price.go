@@ -115,14 +115,11 @@ func (p *Price) formatID(filled bool) error {
 
 // formatDate is a method that formats the price date
 func (p *Price) formatDate(filled bool) error {
-	if filled {
-		return nil
-	}
 	if p.Date.IsZero() {
 		if filled {
 			return nil
 		}
-		return errors.New(pkg.ErrInvalidDateFormat)
+		return fmt.Errorf(pkg.ErrInvalidDateFormat, pkg.DateFormat)
 	}
 	return nil
 }

@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 	"time"
+	"fmt"
 
 	"github.com/lavinas/ephemeris/internal/port"
 	"github.com/lavinas/ephemeris/pkg"
@@ -22,7 +23,7 @@ type Agenda struct {
 	Date         time.Time  `gorm:"type:datetime; not null"`
 	ContractID   string     `gorm:"type:varchar(25); not null; index"`
 	Start        time.Time  `gorm:"type:datetime; not null"`
-	End          *time.Time `gorm:"type:datetime;null"`
+	End          time.Time  `gorm:"type:datetime;not null"`
 	Kind         string     `gorm:"type:varchar(25); not null; index"`
 	Status       string     `gorm:"type:varchar(25); not null; index"`
 	Bond         *string    `gorm:"type:varchar(25);null; index"`
@@ -36,11 +37,8 @@ func NewAgenda(id, date, contractID, start, end, kind, status, bond, billing str
 	local, _ := time.LoadLocation(pkg.Location)
 	agenda.Date, _ = time.ParseInLocation(pkg.DateFormat, strings.TrimSpace(date), local)
 	agenda.ContractID = contractID
-	agenda.Start, _ = time.ParseInLocation(pkg.DateFormat, strings.TrimSpace(start), local)
-	e, err := time.ParseInLocation(pkg.DateFormat, strings.TrimSpace(end), local)
-	if err == nil && !e.IsZero() {
-		agenda.End = &e
-	}
+	agenda.Start, _ = time.ParseInLocation(pkg.DateTimeFormat, strings.TrimSpace(start), local)
+	agenda.End, _ = time.ParseInLocation(pkg.DateTimeFormat, strings.TrimSpace(end), local)
 	agenda.Kind = kind
 	agenda.Status = status
 	if bond != "" {
@@ -61,7 +59,7 @@ func NewAgenda(id, date, contractID, start, end, kind, status, bond, billing str
 // Format formats the agenda
 func (a *Agenda) Format(repo port.Repository, args ...string) error {
 	filled := slices.Contains(args, "filled")
-	// noduplicity := slices.Contains(args, "noduplicity")
+	noduplicity := slices.Contains(args, "noduplicity")
 	msg := ""
 	if err := a.formatID(filled); err != nil {
 		msg += err.Error() + " | "
@@ -75,7 +73,7 @@ func (a *Agenda) Format(repo port.Repository, args ...string) error {
 	if err := a.formatStart(filled); err != nil {
 		msg += err.Error() + " | "
 	}
-	if err := a.formatEnd(); err != nil {
+	if err := a.formatEnd(filled); err != nil {
 		msg += err.Error() + " | "
 	}
 	if err := a.formatKind(); err != nil {
@@ -90,10 +88,13 @@ func (a *Agenda) Format(repo port.Repository, args ...string) error {
 	if err := a.formatBillingMonth(); err != nil {
 		msg += err.Error() + " | "
 	}
+	if err := a.validateDuplicity(repo, noduplicity); err != nil {
+		msg += err.Error() + " | "
+	}
 	if msg == "" {
 		return nil
 	}
-	return errors.New(msg)
+	return errors.New(msg[:len(msg)-3])
 }
 
 // Exists is a function that checks if a agenda exists
@@ -142,11 +143,11 @@ func (c *Agenda) formatID(filled bool) error {
 
 // formatDate is a method that formats the date of the contract
 func (c *Agenda) formatDate(filled bool) error {
-	if filled {
-		return nil
-	}
 	if c.Date.IsZero() {
-		return errors.New(pkg.ErrInvalidDateFormat)
+		if filled {
+			return nil
+		}
+		return fmt.Errorf(pkg.ErrInvalidDateFormat, pkg.DateFormat)
 	}
 	return nil
 }
@@ -175,21 +176,21 @@ func (c *Agenda) formatStart(filled bool) error {
 		return nil
 	}
 	if c.Start.IsZero() {
-		return errors.New(pkg.ErrInvalidDateFormat)
+		return fmt.Errorf(pkg.ErrInvalidStartDate, pkg.DateTimeFormat)
 	}
 	return nil
 }
 
 // formatEnd is a method that formats the end date of the agenda
-func (c *Agenda) formatEnd() error {
-	if c.End == nil {
-		return nil
-	}
+func (c *Agenda) formatEnd(filled bool) error {	
 	if c.End.IsZero() {
-		return errors.New(pkg.ErrInvalidDateFormat)
+		if filled {
+			return nil
+		}
+		return fmt.Errorf(pkg.ErrInvalidEndDate, pkg.DateTimeFormat)
 	}
-	if c.Start.After(*c.End) {
-		return errors.New(pkg.ErrInvalidEnd)
+	if c.Start.After(c.End) {
+		return errors.New(pkg.ErrStartAfterEndDate)
 	}
 	return nil
 }
@@ -240,7 +241,22 @@ func (c *Agenda) formatBillingMonth() error {
 		return nil
 	}
 	if c.BillingMonth.IsZero() {
-		return errors.New(pkg.ErrInvalidDateFormat)
+		return fmt.Errorf(pkg.ErrInvalidBillingMonth, pkg.MonthFormat)
+	}
+	return nil
+}
+
+// validateDuplicity is a method that validates the duplicity of a client
+func (c *Agenda) validateDuplicity(repo port.Repository, noduplicity bool) error {
+	if noduplicity {
+		return nil
+	}
+	ok, err := repo.Get(&Agenda{}, c.ID)
+	if err != nil {
+		return err
+	}
+	if ok {
+		return fmt.Errorf(pkg.ErrAlreadyExists, c.ID)
 	}
 	return nil
 }

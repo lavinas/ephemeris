@@ -11,11 +11,11 @@ import (
 
 // AgendaCrud represents the dto for getting a agenda
 type AgendaCrud struct {
-	Object     string `json:"-" command:"name:client;key;pos:2-"`
+	Object     string `json:"-" command:"name:agenda;key;pos:2-"`
 	Action     string `json:"-" command:"name:add,get,up;key;pos:2-"`
 	ID         string `json:"id" command:"name:id;pos:3+"`
 	Date       string `json:"date" command:"name:date;pos:3+"`
-	ContractID string `json:"contract_id" command:"name:contract_id;pos:3+"`
+	ContractID string `json:"contract_id" command:"name:contract;pos:3+"`
 	Start      string `json:"start" command:"name:start;pos:3+"`
 	End        string `json:"end" command:"name:end;pos:3+"`
 	Kind       string `json:"kind" command:"name:kind;pos:3+"`
@@ -52,6 +52,40 @@ func (a *AgendaCrud) GetDomain() []port.Domain {
 	return []port.Domain{
 		domain.NewAgenda(a.ID, a.Date, a.ContractID, a.Start, a.End, a.Kind, a.Status, a.Bond, a.Billing),
 	}
+}
+
+// GetOut is a method that returns the output dto
+func (c *AgendaCrud) GetOut() port.DTOOut {
+	return &AgendaCrud{}
+}
+
+// GetDTO is a method that returns the dto
+func (c *AgendaCrud) GetDTO(domainIn interface{}) []port.DTOOut {
+	ret := []port.DTOOut{}
+	slices := domainIn.([]interface{})
+	agenda := slices[0].(*[]domain.Agenda)
+	for _, a := range *agenda {
+		bond := ""
+		if a.Bond != nil {
+			bond = c.Bond
+		}
+		billing := ""
+		if a.BillingMonth != nil {
+			billing = a.BillingMonth.Format(pkg.DateFormat)
+		}
+		ret = append(ret, &AgendaCrud{
+			ID:         a.ID,
+			Date:       a.Date.Format(pkg.DateFormat),
+			ContractID: a.ContractID,
+			Start:      a.Start.Format(pkg.DateTimeFormat),
+			End:        a.End.Format(pkg.DateTimeFormat),
+			Kind:       a.Kind,
+			Status:     a.Status,
+			Bond:       bond,
+			Billing:    billing,
+		})
+	}
+	return ret
 }
 
 // isEmpty is a method that returns if the dto is empty

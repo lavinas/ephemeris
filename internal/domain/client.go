@@ -134,11 +134,11 @@ func (c *Client) formatID(filled bool) error {
 
 // formatDate is a method that formats the date field
 func (c *Client) formatDate(filled bool) error {
-	if filled && c.Date.IsZero() {
-		return nil
-	}
 	if c.Date.IsZero() {
-		return errors.New(pkg.ErrInvalidDateFormat)
+		if filled {
+			return nil
+		}
+		return fmt.Errorf(pkg.ErrInvalidDateFormat, pkg.DateFormat)
 	}
 	return nil
 }

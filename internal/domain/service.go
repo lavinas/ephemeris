@@ -116,7 +116,7 @@ func (s *Service) formatDate(filled bool) error {
 		return nil
 	}
 	if s.Date.IsZero() {
-		return errors.New(pkg.ErrInvalidDateFormat)
+		return fmt.Errorf(pkg.ErrInvalidDateFormat, pkg.DateFormat)
 	}
 	return nil
 }
