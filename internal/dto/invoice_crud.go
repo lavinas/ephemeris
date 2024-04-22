@@ -23,7 +23,7 @@ type InvoiceCrud struct {
 }
 
 // Validate is a method that validates the dto
-func (i *InvoiceCrud) Validate() error {
+func (i *InvoiceCrud) Validate(repo port.Repository) error {
 	if i.isEmpty() {
 		return errors.New(pkg.ErrParamsNotInformed)
 	}
@@ -38,6 +38,7 @@ func (i *InvoiceCrud) GetCommand() string {
 // GetDomain is a method that returns a string representation of the invoice
 func (i *InvoiceCrud) GetDomain() []port.Domain {
 	if i.Action == "add" && i.Date == "" {
+		time.Local, _ = time.LoadLocation(pkg.Location)
 		i.Date = time.Now().Format(pkg.DateFormat)
 	}
 	if i.Action == "add" && i.Status == "" {
@@ -50,7 +51,7 @@ func (i *InvoiceCrud) GetDomain() []port.Domain {
 		i.PaymentStatus = pkg.DefaultInvoicePaymentStatus
 	}
 	return []port.Domain{
-		domain.NewInvoice(i.ID, i.Date, i.ClientID, i.Value, i.Status, i.SendStatus, i.PaymentStatus),
+		domain.NewInvoice(i.ID, i.ClientID, i.Date, i.Value, i.Status, i.SendStatus, i.PaymentStatus),
 	}
 }
 

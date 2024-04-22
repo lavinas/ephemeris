@@ -31,12 +31,12 @@ var (
 // Invoice represents the invoice entity
 type Invoice struct {
 	ID            string    `gorm:"type:varchar(25); primaryKey"`
-	Date          time.Time `gorm:"type:date; not null"`
-	ClientID      string    `gorm:"type:varchar(25); not null"`
+	Date          time.Time `gorm:"type:datetime; not null; index"`
+	ClientID      string    `gorm:"type:varchar(25); not null; index"`
 	Value         float64   `gorm:"type:numeric(20,2); not null"`
-	Status        string    `gorm:"type:varchar(25), not null"`
-	SendStatus    string    `gorm:"type:varchar(25), not null"`
-	PaymentStatus string    `gorm:"type:varchar(25), not null"`
+	Status        string    `gorm:"type:varchar(25); not null; index"`
+	SendStatus    string    `gorm:"type:varchar(25); not null; index"`
+	PaymentStatus string    `gorm:"type:varchar(25); not null; index"`
 }
 
 // NewInvoice creates a new invoice domain entity

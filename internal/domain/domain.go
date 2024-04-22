@@ -10,5 +10,7 @@ func GetDomain() []interface{} {
 		&Package{},
 		&Contract{},
 		&Agenda{},
+		&Invoice{},
+		&InvoiceItem{},
 	}
 }
