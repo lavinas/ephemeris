@@ -32,7 +32,9 @@ type CommandUsecase struct {
 
 // UseCase is a function that returns a new UseCase struct
 func NewCommandUsecase(repo port.Repository, log port.Logger) *CommandUsecase {
-	repo.Migrate(domain.GetDomain())
+	if err := repo.Migrate(domain.GetDomain()); err != nil {
+		panic(err)
+	}
 	return &CommandUsecase{
 		Repo: repo,
 		Log:  log,

@@ -23,11 +23,11 @@ type Agenda struct {
 	Date         time.Time  `gorm:"type:datetime; not null"`
 	ContractID   string     `gorm:"type:varchar(25); not null; index"`
 	Start        time.Time  `gorm:"type:datetime; not null"`
-	End          time.Time  `gorm:"type:datetime;not null"`
+	End          time.Time  `gorm:"type:datetime; not null"`
 	Kind         string     `gorm:"type:varchar(25); not null; index"`
 	Status       string     `gorm:"type:varchar(25); not null; index"`
-	Bond         *string    `gorm:"type:varchar(25);null; index"`
-	BillingMonth *time.Time `gorm:"type:numeric(20);null; index"`
+	Bond         *string    `gorm:"type:varchar(25)"`
+	BillingMonth *time.Time `gorm:"type:numeric(20)"`
 }
 
 // NewAgenda creates a new agenda domain entity
