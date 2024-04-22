@@ -56,7 +56,7 @@ func NewInvoice(id, clientID, date, value, status, sendstatus, paymentstatus str
 // Format formats the invoice
 func (i *Invoice) Format(repo port.Repository, args ...string) error {
 	filled := slices.Contains(args, "filled")
-	// noduplicity := slices.Contains(args, "noduplicity")
+	noduplicity := slices.Contains(args, "noduplicity")
 	msg := ""
 	if err := i.formatID(filled); err != nil {
 		msg += err.Error() + " | "
@@ -64,7 +64,53 @@ func (i *Invoice) Format(repo port.Repository, args ...string) error {
 	if err := i.formatDate(filled); err != nil {
 		msg += err.Error() + " | "
 	}
+	if err := i.formatClientID(repo, filled); err != nil {
+		msg += err.Error() + " | "
+	}
+	if err := i.formatValue(filled); err != nil {
+		msg += err.Error() + " | "
+	}
+	if err := i.formatStatus(filled); err != nil {
+		msg += err.Error() + " | "
+	}
+	if err := i.formatSendStatus(filled); err != nil {
+		msg += err.Error() + " | "
+	}
+	if err := i.formatPaymentStatus(filled); err != nil {
+		msg += err.Error() + " | "
+	}
+	if err := i.validateDuplicity(repo, noduplicity); err != nil {
+		msg += err.Error() + " | "
+	}
+	if msg != "" {
+		return errors.New(msg[:len(msg)-3])
+	}
 	return nil
+}
+
+// Exists is a function that checks if a client exists
+func (c *Invoice) Exists(repo port.Repository) (bool, error) {
+	return repo.Get(&Invoice{}, c.ID)
+}
+
+// GetID is a method that returns the id of the client
+func (c *Invoice) GetID() string {
+	return c.ID
+}
+
+// Get is a method that returns the client
+func (c *Invoice) Get() port.Domain {
+	return c
+}
+
+// GetEmpty is a method that returns an empty client with just id
+func (c *Invoice) GetEmpty() port.Domain {
+	return &Invoice{}
+}
+
+// TableName returns the table name for database
+func (b *Invoice) TableName() string {
+	return "invoice"
 }
 
 // formatID is a method that formats the id of the contract
@@ -97,14 +143,79 @@ func (c *Invoice) formatDate(filled bool) error {
 	return nil
 }
 
-func (c *Invoice) validateClientID() error {
+// formatClientID is a method that formats the client id of the contract
+func (c *Invoice) formatClientID(repo port.Repository, filled bool) error {
+	c.ClientID = c.formatString(c.ClientID)
+	if c.ClientID == "" {
+		if filled {
+			return nil
+		}
+		return errors.New(pkg.ErrEmptyClientID)
+	}
+	client := &Client{ID: c.ClientID}
+	if exists, err := client.Exists(repo); err != nil {
+		return err
+	} else if !exists {
+		return errors.New(pkg.ErrClientNotFound)
+	}
+	return nil
+}
+
+// formatValue is a method that formats the value of the contract
+func (c *Invoice) formatValue(filled bool) error {
+	if c.Value == 0 {
+		if filled {
+			return nil
+		}
+		return errors.New(pkg.ErrInvalidValue)
+	}
+	return nil
+}
+
+// formatStatus is a method that formats the status of the contract
+func (c *Invoice) formatStatus(filled bool) error {
+	c.Status = c.formatString(c.Status)
+	if c.Status == "" {
+		if filled {
+			return nil
+		}
+		return errors.New(pkg.ErrEmptyStatus)
+	}
 	if !slices.Contains(status, c.Status) {
 		return errors.New(pkg.ErrInvalidStatus)
 	}
 	return nil
 }
 
+// formatSendStatus is a method that formats the send status of the contract
+func (c *Invoice) formatSendStatus(filled bool) error {
+	c.SendStatus = c.formatString(c.SendStatus)
+	if c.SendStatus == "" {
+		if filled {
+			return nil
+		}
+		return errors.New(pkg.ErrEmptySendStatus)
+	}
+	if !slices.Contains(sendstatus, c.SendStatus) {
+		return errors.New(pkg.ErrInvalidSendStatus)
+	}
+	return nil
+}
 
+// formatPaymentStatus is a method that formats the payment status of the contract
+func (c *Invoice) formatPaymentStatus(filled bool) error {
+	c.PaymentStatus = c.formatString(c.PaymentStatus)
+	if c.PaymentStatus == "" {
+		if filled {
+			return nil
+		}
+		return errors.New(pkg.ErrEmptyPaymentStatus)
+	}
+	if !slices.Contains(paymentstatus, c.PaymentStatus) {
+		return errors.New(pkg.ErrInvalidPaymentStatus)
+	}
+	return nil
+}
 
 // formatString is a method that formats a string
 func (c *Invoice) formatString(str string) string {
@@ -112,4 +223,19 @@ func (c *Invoice) formatString(str string) string {
 	space := regexp.MustCompile(`\s+`)
 	str = space.ReplaceAllString(str, " ")
 	return str
+}
+
+// validateDuplicity is a method that validates the duplicity of a client
+func (c *Invoice) validateDuplicity(repo port.Repository, noduplicity bool) error {
+	if noduplicity {
+		return nil
+	}
+	ok, err := repo.Get(&Invoice{}, c.ID)
+	if err != nil {
+		return err
+	}
+	if ok {
+		return fmt.Errorf(pkg.ErrAlreadyExists, c.ID)
+	}
+	return nil
 }
