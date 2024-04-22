@@ -167,18 +167,15 @@ func (r *Recurrence) formatName(filled bool) error {
 // formatCycle is a method that formats the recurrence cycle
 func (r *Recurrence) formatCycle(filled bool) error {
 	r.Cycle = r.formatString(r.Cycle)
-	msgCycle := strings.Join(cycles, ", ")[:len(strings.Join(cycles, ", "))-2]
+	msgCycle := strings.Join(cycles, ", ")
 	if r.Cycle == "" {
 		if filled {
 			return nil
 		}
-		return fmt.Errorf(pkg.ErrEmptyCycle, msgCycle)
-	}
-	if len(r.Cycle) > 20 {
-		return fmt.Errorf(pkg.ErrLongCycle)
+		return fmt.Errorf(pkg.ErrEmptyCycle, msgCycle[:len(msgCycle)-2])
 	}
 	if slices.Contains(cycles, r.Cycle) {
-		return fmt.Errorf(pkg.ErrInvalidCycle, msgCycle)
+		return fmt.Errorf(pkg.ErrInvalidCycle, msgCycle[:len(msgCycle)-2])
 	}
 	return nil
 }

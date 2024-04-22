@@ -240,11 +240,9 @@ func (c *Client) formatContact(filled bool) error {
 		return errors.New(pkg.ErrLongContact)
 	}
 	if !slices.Contains(ContactWays, contact) {
-		cont := ""
-		for _, c := range ContactWays {
-			cont += c + ", "
-		}
-		return fmt.Errorf(pkg.ErrInvalidContact, cont[:len(cont)-2])
+		ways := strings.Join(ContactWays, ", ")
+		ways = ways[:len(ways)-2]
+		return fmt.Errorf(pkg.ErrInvalidContact, ways)
 	}
 	c.Contact = strings.ToLower(contact)
 	return nil

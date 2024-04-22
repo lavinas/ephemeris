@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	status = []string{pkg.InvoiceStatusActive, pkg.InvoiceStatusCanceled}
+	invoiceStatus = []string{pkg.InvoiceStatusActive, pkg.InvoiceStatusCanceled}
 	paymentstatus = []string{pkg.InvoicePaymentStatusOpen, 
 		                     pkg.InvoicePaymentStatusPaid,
 							 pkg.InvoicePaymentStatusLate,
@@ -181,8 +181,9 @@ func (c *Invoice) formatStatus(filled bool) error {
 		}
 		return errors.New(pkg.ErrEmptyStatus)
 	}
-	if !slices.Contains(status, c.Status) {
-		return errors.New(pkg.ErrInvalidStatus)
+	if !slices.Contains(invoiceStatus, c.Status) {
+		status := strings.Join(cycles, ", ")
+		return fmt.Errorf(pkg.ErrInvalidStatus, status[:len(status)-2])
 	}
 	return nil
 }
@@ -197,7 +198,8 @@ func (c *Invoice) formatSendStatus(filled bool) error {
 		return errors.New(pkg.ErrEmptySendStatus)
 	}
 	if !slices.Contains(sendstatus, c.SendStatus) {
-		return errors.New(pkg.ErrInvalidSendStatus)
+		status := strings.Join(cycles, ", ")
+		return fmt.Errorf(pkg.ErrInvalidSendStatus, status[:len(status)-2])
 	}
 	return nil
 }
@@ -212,7 +214,8 @@ func (c *Invoice) formatPaymentStatus(filled bool) error {
 		return errors.New(pkg.ErrEmptyPaymentStatus)
 	}
 	if !slices.Contains(paymentstatus, c.PaymentStatus) {
-		return errors.New(pkg.ErrInvalidPaymentStatus)
+		status := strings.Join(cycles, ", ")
+		return fmt.Errorf(pkg.ErrInvalidPaymentStatus, status[:len(status)-2])
 	}
 	return nil
 }
