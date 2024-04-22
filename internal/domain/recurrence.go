@@ -96,8 +96,8 @@ func (r *Recurrence) Format(repo port.Repository, args ...string) error {
 }
 
 // Exists is a method that checks if the recurrence exists
-func (r *Recurrence) Exists(repo port.Repository) (bool, error) {
-	return repo.Get(&Recurrence{}, r.ID)
+func (r *Recurrence) Load(repo port.Repository) (bool, error) {
+	return repo.Get(r, r.ID)
 }
 
 // GetID is a method that returns the id of the recurrence

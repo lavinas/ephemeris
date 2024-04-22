@@ -70,8 +70,8 @@ func (p *Package) Format(repo port.Repository, args ...string) error {
 }
 
 // Exists is a method that checks if the contract exists
-func (p *Package) Exists(repo port.Repository) (bool, error) {
-	return repo.Get(&Package{}, p.ID)
+func (p *Package) Load(repo port.Repository) (bool, error) {
+	return repo.Get(p, p.ID)
 }
 
 // GetID is a method that returns the id of the contract
@@ -135,7 +135,7 @@ func (p *Package) formatServiceID(repo port.Repository, filled bool) error {
 	}
 	service := &Service{ID: p.ServiceID}
 	service.Format(repo, "filled")
-	if exists, err := service.Exists(repo); err != nil {
+	if exists, err := service.Load(repo); err != nil {
 		return err
 	} else if !exists {
 		return errors.New(pkg.ErrServiceNotFound)
@@ -154,7 +154,7 @@ func (p *Package) formatRecurrenceID(repo port.Repository, filled bool) error {
 	}
 	recurrence := &Recurrence{ID: p.RecurrenceID}
 	recurrence.Format(repo, "filled")
-	if exists, err := recurrence.Exists(repo); err != nil {
+	if exists, err := recurrence.Load(repo); err != nil {
 		return err
 	} else if !exists {
 		return errors.New(pkg.ErrRecurrenceNotFound)
@@ -173,7 +173,7 @@ func (p *Package) formatPriceID(repo port.Repository, filled bool) error {
 	}
 	price := &Price{ID: p.PriceID}
 	price.Format(repo, "filled")
-	if exists, err := price.Exists(repo); err != nil {
+	if exists, err := price.Load(repo); err != nil {
 		return err
 	} else if !exists {
 		return errors.New(pkg.ErrPriceNotFound)

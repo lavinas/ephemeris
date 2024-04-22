@@ -89,8 +89,8 @@ func (i *Invoice) Format(repo port.Repository, args ...string) error {
 }
 
 // Exists is a function that checks if a client exists
-func (c *Invoice) Exists(repo port.Repository) (bool, error) {
-	return repo.Get(&Invoice{}, c.ID)
+func (c *Invoice) Load(repo port.Repository) (bool, error) {
+	return repo.Get(c, c.ID)
 }
 
 // GetID is a method that returns the id of the client
@@ -153,7 +153,7 @@ func (c *Invoice) formatClientID(repo port.Repository, filled bool) error {
 		return errors.New(pkg.ErrEmptyClientID)
 	}
 	client := &Client{ID: c.ClientID}
-	if exists, err := client.Exists(repo); err != nil {
+	if exists, err := client.Load(repo); err != nil {
 		return err
 	} else if !exists {
 		return errors.New(pkg.ErrClientNotFound)

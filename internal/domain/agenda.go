@@ -98,8 +98,8 @@ func (a *Agenda) Format(repo port.Repository, args ...string) error {
 }
 
 // Exists is a function that checks if a agenda exists
-func (a *Agenda) Exists(repo port.Repository) (bool, error) {
-	return repo.Get(&Agenda{}, a.ID)
+func (a *Agenda) Load(repo port.Repository) (bool, error) {
+	return repo.Get(a, a.ID)
 }
 
 // GetID is a method that returns the id of the client
@@ -162,7 +162,7 @@ func (c *Agenda) formatContractID(repo port.Repository, filled bool) error {
 		return errors.New(pkg.ErrEmptyContractID)
 	}
 	contract := &Contract{ID: contractID}
-	if exists, err := contract.Exists(repo); err != nil {
+	if exists, err := contract.Load(repo); err != nil {
 		return err
 	} else if !exists {
 		return errors.New(pkg.ErrContractNotFound)
@@ -235,7 +235,7 @@ func (c *Agenda) formatBond(repo port.Repository) error {
 		return nil
 	}
 	bond := &Agenda{ID: *c.Bond}
-	if exists, err := bond.Exists(repo); err != nil {
+	if exists, err := bond.Load(repo); err != nil {
 		return err
 	} else if !exists {
 		return errors.New(pkg.ErrBondNotFound)

@@ -16,7 +16,7 @@ import (
 type InvoiceItem struct {
 	ID          string  `gorm:"type:varchar(25); primaryKey"`
 	InvoiceID   string  `gorm:"type:varchar(25); not null"`
-	AgendaID    string  `gorm:"type:varchar(25); not null"`
+	AgendaID    *string `gorm:"type:varchar(25); null"`
 	Value       float64 `gorm:"type:numeric(20,2); not null"`
 	Description string  `gorm:"type:varchar(100); not null"`
 }
@@ -26,7 +26,10 @@ func NewInvoiceItem(id, invoiceID, agendaID, value, description string) *Invoice
 	invoiceItem := &InvoiceItem{}
 	invoiceItem.ID = id
 	invoiceItem.InvoiceID = invoiceID
-	invoiceItem.AgendaID = agendaID
+	invoiceItem.AgendaID = nil
+	if agendaID != "" {
+		invoiceItem.AgendaID = &agendaID
+	}
 	invoiceItem.Value, _ = strconv.ParseFloat(value, 64)
 	invoiceItem.Description = description
 	return invoiceItem
@@ -43,7 +46,7 @@ func (i *InvoiceItem) Format(repo port.Repository, args ...string) error {
 	if err := i.formatInvoiceID(repo, filled); err != nil {
 		msg += err.Error() + " | "
 	}
-	if err := i.formatAgendaID(repo, filled); err != nil {
+	if err := i.formatAgendaID(repo); err != nil {
 		msg += err.Error() + " | "
 	}
 	if err := i.formatValue(filled); err != nil {
@@ -62,8 +65,8 @@ func (i *InvoiceItem) Format(repo port.Repository, args ...string) error {
 }
 
 // Exists is a function that checks if a client exists
-func (c *InvoiceItem) Exists(repo port.Repository) (bool, error) {
-	return repo.Get(&InvoiceItem{}, c.ID)
+func (c *InvoiceItem) Load(repo port.Repository) (bool, error) {
+	return repo.Get(c, c.ID)
 }
 
 // GetID is a method that returns the id of the client
@@ -83,9 +86,8 @@ func (c *InvoiceItem) GetEmpty() port.Domain {
 
 // TableName returns the table name for database
 func (b *InvoiceItem) TableName() string {
-	return "invoice"
+	return "invoice_item"
 }
-
 
 // formatID is a method that formats the id of the contract
 func (c *InvoiceItem) formatID(filled bool) error {
@@ -116,7 +118,7 @@ func (c *InvoiceItem) formatInvoiceID(repo port.Repository, filled bool) error {
 		return errors.New(pkg.ErrEmptyInvoice)
 	}
 	invoice := Invoice{ID: c.InvoiceID}
-	if ok, err := invoice.Exists(repo); err != nil {
+	if ok, err := invoice.Load(repo); err != nil {
 		return err
 	} else if !ok {
 		return errors.New(pkg.ErrInvoiceNotFound)
@@ -125,16 +127,12 @@ func (c *InvoiceItem) formatInvoiceID(repo port.Repository, filled bool) error {
 }
 
 // formatAgendaID is a method that formats the agenda id
-func (c *InvoiceItem) formatAgendaID(repo port.Repository, filled bool) error {
-	c.AgendaID = c.formatString(c.AgendaID)
-	if c.AgendaID == "" {
-		if filled {
-			return nil
-		}
-		return errors.New(pkg.ErrEmptyAgenda)
+func (c *InvoiceItem) formatAgendaID(repo port.Repository) error {
+	if c.AgendaID == nil {
+		return nil
 	}
-	agenda := Agenda{ID: c.AgendaID}
-	if ok, err := agenda.Exists(repo); err != nil {
+	agenda := Agenda{ID: *c.AgendaID}
+	if ok, err := agenda.Load(repo); err != nil {
 		return err
 	} else if !ok {
 		return errors.New(pkg.ErrAgendaNotFound)

@@ -105,8 +105,8 @@ func (c *Contract) Format(repo port.Repository, args ...string) error {
 }
 
 // Exists is a method that checks if the contract exists
-func (c *Contract) Exists(repo port.Repository) (bool, error) {
-	return repo.Get(&Contract{}, c.ID)
+func (c *Contract) Load(repo port.Repository) (bool, error) {
+	return repo.Get(c, c.ID)
 }
 
 // GetID is a method that returns the id of the contract
@@ -170,7 +170,7 @@ func (c *Contract) formatClientID(repo port.Repository, filled bool) error {
 	}
 	client := &Client{ID: c.ClientID}
 	client.Format(repo, "filled")
-	if exists, err := client.Exists(repo); err != nil {
+	if exists, err := client.Load(repo); err != nil {
 		return err
 	} else if !exists {
 		return errors.New(pkg.ErrClientNotFound)
@@ -185,7 +185,7 @@ func (c *Contract) formatSponsorID(repo port.Repository) error {
 	}
 	client := &Client{ID: c.formatString(*c.SponsorID)}
 	client.Format(repo, "filled")
-	if exists, err := client.Exists(repo); err != nil {
+	if exists, err := client.Load(repo); err != nil {
 		return err
 	} else if !exists {
 		return errors.New(pkg.ErrSponsorNotFound)
@@ -204,7 +204,7 @@ func (c *Contract) formatPackageID(repo port.Repository, filled bool) error {
 	}
 	pack := &Package{ID: c.PackageID}
 	pack.Format(repo, "filled")
-	if exists, err := pack.Exists(repo); err != nil {
+	if exists, err := pack.Load(repo); err != nil {
 		return err
 	} else if !exists {
 		return errors.New(pkg.ErrPackageNotFound)
@@ -275,7 +275,7 @@ func (c *Contract) formatBond(repo port.Repository) error {
 	}
 	linkContract := &Contract{ID: *c.Bond}
 	linkContract.Format(repo, "filled")
-	if exists, err := linkContract.Exists(repo); err != nil {
+	if exists, err := linkContract.Load(repo); err != nil {
 		return err
 	} else if !exists {
 		return errors.New(pkg.ErrBondNotFound)

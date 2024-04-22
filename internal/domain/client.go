@@ -89,8 +89,8 @@ func (c *Client) Format(repo port.Repository, args ...string) error {
 }
 
 // Exists is a function that checks if a client exists
-func (c *Client) Exists(repo port.Repository) (bool, error) {
-	return repo.Get(&Client{}, c.ID)
+func (c *Client) Load(repo port.Repository) (bool, error) {
+	return repo.Get(c, c.ID)
 }
 
 // GetID is a method that returns the id of the client
