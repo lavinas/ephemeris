@@ -140,7 +140,7 @@ const (
 	ErrInvalidStatus            = "invalid status. Should be %s"
 	ErrInvalidBillingMonth      = "invalid billing month. Should have %s format"
 	ErrEmptyClientID            = "empty client"
-	ErrInvalidValue			    = "invalid value"
+	ErrInvalidValue             = "invalid value"
 	ErrEmptySendStatus          = "empty send status"
 	ErrInvalidSendStatus        = "invalid send status. Should be %s"
 	ErrEmptyPaymentStatus       = "empty payment status"

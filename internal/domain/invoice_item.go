@@ -1,18 +1,16 @@
 package domain
 
-
 import (
-	"strconv"
 	"errors"
-	"strings"
+	"fmt"
 	"regexp"
 	"slices"
-	"fmt"
+	"strconv"
+	"strings"
 
-	"github.com/lavinas/ephemeris/pkg"
 	"github.com/lavinas/ephemeris/internal/port"
+	"github.com/lavinas/ephemeris/pkg"
 )
-
 
 // InvoiceItem represents the invoice item entity
 type InvoiceItem struct {
@@ -62,6 +60,32 @@ func (i *InvoiceItem) Format(repo port.Repository, args ...string) error {
 	}
 	return nil
 }
+
+// Exists is a function that checks if a client exists
+func (c *InvoiceItem) Exists(repo port.Repository) (bool, error) {
+	return repo.Get(&InvoiceItem{}, c.ID)
+}
+
+// GetID is a method that returns the id of the client
+func (c *InvoiceItem) GetID() string {
+	return c.ID
+}
+
+// Get is a method that returns the client
+func (c *InvoiceItem) Get() port.Domain {
+	return c
+}
+
+// GetEmpty is a method that returns an empty client with just id
+func (c *InvoiceItem) GetEmpty() port.Domain {
+	return &InvoiceItem{}
+}
+
+// TableName returns the table name for database
+func (b *InvoiceItem) TableName() string {
+	return "invoice"
+}
+
 
 // formatID is a method that formats the id of the contract
 func (c *InvoiceItem) formatID(filled bool) error {
@@ -155,7 +179,6 @@ func (c *InvoiceItem) validateDuplicity(repo port.Repository, noduplicity bool) 
 	}
 	return nil
 }
-
 
 // formatString is a method that formats a string
 func (c *InvoiceItem) formatString(str string) string {

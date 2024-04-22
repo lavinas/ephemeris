@@ -1,30 +1,30 @@
 package domain
 
 import (
-	"strconv"
-	"time"
 	"errors"
 	"fmt"
-	"strings"
 	"regexp"
 	"slices"
+	"strconv"
+	"strings"
+	"time"
 
-	"github.com/lavinas/ephemeris/pkg"
 	"github.com/lavinas/ephemeris/internal/port"
+	"github.com/lavinas/ephemeris/pkg"
 )
 
 var (
 	invoiceStatus = []string{pkg.InvoiceStatusActive, pkg.InvoiceStatusCanceled}
-	paymentstatus = []string{pkg.InvoicePaymentStatusOpen, 
-		                     pkg.InvoicePaymentStatusPaid,
-							 pkg.InvoicePaymentStatusLate,
-							 pkg.InvoicePaymentStatusRefund,
-							 pkg.InvoicePaymentStatusOver,
-							 pkg.InvoicePaymentStatusUnder,
-							}
+	paymentstatus = []string{pkg.InvoicePaymentStatusOpen,
+		pkg.InvoicePaymentStatusPaid,
+		pkg.InvoicePaymentStatusLate,
+		pkg.InvoicePaymentStatusRefund,
+		pkg.InvoicePaymentStatusOver,
+		pkg.InvoicePaymentStatusUnder,
+	}
 	sendstatus = []string{pkg.InvoiceSendStatusNotSent,
-		                  pkg.InvoiceSendStatusSent,	
-						  pkg.InvoiceSendStatusViewed,
+		pkg.InvoiceSendStatusSent,
+		pkg.InvoiceSendStatusViewed,
 	}
 )
 
