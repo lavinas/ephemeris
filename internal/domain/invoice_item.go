@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"math"
 
 	"github.com/lavinas/ephemeris/internal/port"
 	"github.com/lavinas/ephemeris/pkg"
@@ -30,7 +31,10 @@ func NewInvoiceItem(id, invoiceID, agendaID, value, description string) *Invoice
 	if agendaID != "" {
 		invoiceItem.AgendaID = &agendaID
 	}
-	invoiceItem.Value, _ = strconv.ParseFloat(value, 64)
+	var err error
+	if invoiceItem.Value, err = strconv.ParseFloat(value, 64); err != nil {
+		invoiceItem.Value = math.NaN()
+	}
 	invoiceItem.Description = description
 	return invoiceItem
 }
@@ -38,7 +42,7 @@ func NewInvoiceItem(id, invoiceID, agendaID, value, description string) *Invoice
 // Format formats the invoice item
 func (i *InvoiceItem) Format(repo port.Repository, args ...string) error {
 	filled := slices.Contains(args, "filled")
-	// noduplicity := slices.Contains(args, "noduplicity")
+	noduplicity := slices.Contains(args, "noduplicity")
 	msg := ""
 	if err := i.formatID(filled); err != nil {
 		msg += err.Error() + " | "
@@ -55,7 +59,7 @@ func (i *InvoiceItem) Format(repo port.Repository, args ...string) error {
 	if err := i.formatDescription(filled); err != nil {
 		msg += err.Error() + " | "
 	}
-	if err := i.validateDuplicity(repo, false); err != nil {
+	if err := i.validateDuplicity(repo, noduplicity); err != nil {
 		msg += err.Error() + " | "
 	}
 	if msg != "" {
@@ -142,7 +146,7 @@ func (c *InvoiceItem) formatAgendaID(repo port.Repository) error {
 
 // formatValue is a method that formats the value of the contract
 func (c *InvoiceItem) formatValue(filled bool) error {
-	if c.Value == 0 {
+	if math.IsNaN(c.Value) {
 		if filled {
 			return nil
 		}

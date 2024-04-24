@@ -10,7 +10,7 @@ import (
 )
 
 type InvoiceItemCrud struct {
-	Object      string `json:"-" command:"name:invoice_item;key;pos:2-"`
+	Object      string `json:"-" command:"name:item;key;pos:2-"`
 	Action      string `json:"-" command:"name:new,add,get,up;key;pos:2-"`
 	ID          string `json:"id" command:"name:id;pos:3+"`
 	InvoiceID   string `json:"invoice_id" command:"name:invoice;pos:3+"`

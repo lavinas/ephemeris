@@ -3,6 +3,7 @@ package pkg
 import (
 	// "fmt"
 	"time"
+	"math"
 
 	"reflect"
 )
@@ -10,18 +11,12 @@ import (
 var (
 	// EmptyMap is a map with no elements
 	EmptyMap = map[interface{}]interface{}{
-		reflect.TypeOf(int64(0)):    int64(-9223372036854775808),
-		reflect.TypeOf(int32(0)):    int32(-2147483648),
-		reflect.TypeOf(int16(0)):    int16(-32768),
-		reflect.TypeOf(int8(0)):     int8(-128),
-		reflect.TypeOf(int(0)):      int(-2147483648),
-		reflect.TypeOf(uint64(0)):   uint64(0),
-		reflect.TypeOf(uint32(0)):   uint32(0),
-		reflect.TypeOf(uint16(0)):   uint16(0),
-		reflect.TypeOf(uint8(0)):    uint8(0),
-		reflect.TypeOf(uint(0)):     uint(0),
-		reflect.TypeOf(float64(0)):  float64(-1.7e+308),
-		reflect.TypeOf(float32(0)):  float32(-3.4e+38),
+		reflect.TypeOf(int64(0)):    math.MinInt64,
+		reflect.TypeOf(int32(0)):    math.MinInt32,
+		reflect.TypeOf(int16(0)):    math.MinInt16,
+		reflect.TypeOf(int8(0)):     math.MinInt8,
+		reflect.TypeOf(int(0)):      math.MinInt,
+		reflect.TypeOf(float64(0)):  "NaN",
 		reflect.TypeOf(time.Time{}): time.Time{},
 		reflect.TypeOf(""):          "",
 	}
@@ -42,6 +37,9 @@ func IsEmpty(i interface{}) bool {
 		v = v.Elem()
 	}
 	if u, ok := EmptyMap[t]; ok {
+		if EmptyMap[t] == "NaN" {
+			return math.IsNaN(v.Float())
+		}
 		if v.Interface() == u {
 			return true
 		}

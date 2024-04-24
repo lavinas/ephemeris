@@ -3,6 +3,7 @@ package domain
 import (
 	"errors"
 	"fmt"
+	"math"
 	"regexp"
 	"slices"
 	"strconv"
@@ -46,7 +47,10 @@ func NewInvoice(id, clientID, date, value, status, sendstatus, paymentstatus str
 	invoice.ClientID = clientID
 	local, _ := time.LoadLocation(pkg.Location)
 	invoice.Date, _ = time.ParseInLocation(pkg.DateFormat, date, local)
-	invoice.Value, _ = strconv.ParseFloat(value, 64)
+	var err error
+	if invoice.Value, err = strconv.ParseFloat(value, 64); err != nil {
+		invoice.Value = math.NaN()
+	}
 	invoice.Status = status
 	invoice.SendStatus = sendstatus
 	invoice.PaymentStatus = paymentstatus
@@ -163,7 +167,7 @@ func (c *Invoice) formatClientID(repo port.Repository, filled bool) error {
 
 // formatValue is a method that formats the value of the contract
 func (c *Invoice) formatValue(filled bool) error {
-	if c.Value == 0 {
+	if math.IsNaN(c.Value) {
 		if filled {
 			return nil
 		}
