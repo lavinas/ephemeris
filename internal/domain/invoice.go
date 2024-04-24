@@ -202,8 +202,7 @@ func (c *Invoice) formatSendStatus(filled bool) error {
 		return errors.New(pkg.ErrEmptySendStatus)
 	}
 	if !slices.Contains(sendstatus, c.SendStatus) {
-		status := strings.Join(cycles, ", ")
-		return fmt.Errorf(pkg.ErrInvalidSendStatus, status[:len(status)-2])
+		return fmt.Errorf(pkg.ErrInvalidSendStatus, strings.Join(cycles, ", "))
 	}
 	return nil
 }
@@ -218,8 +217,7 @@ func (c *Invoice) formatPaymentStatus(filled bool) error {
 		return errors.New(pkg.ErrEmptyPaymentStatus)
 	}
 	if !slices.Contains(paymentstatus, c.PaymentStatus) {
-		status := strings.Join(cycles, ", ")
-		return fmt.Errorf(pkg.ErrInvalidPaymentStatus, status[:len(status)-2])
+		return fmt.Errorf(pkg.ErrInvalidPaymentStatus, strings.Join(cycles, ", "))
 	}
 	return nil
 }

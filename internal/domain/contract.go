@@ -223,8 +223,7 @@ func (c *Contract) formatBillingType(filled bool) error {
 	}
 	c.BillingType = strings.ToLower(c.BillingType)
 	if slices.Contains(billingTypes, c.BillingType) {
-		types := strings.Join(billingTypes, ", ")
-		return fmt.Errorf(pkg.ErrInvalidBillingType, types[:len(types)-2])
+		return fmt.Errorf(pkg.ErrInvalidBillingType, strings.Join(billingTypes, ", "))
 	}
 	return nil
 }

@@ -205,8 +205,7 @@ func (c *Agenda) formatKind(filled bool) error {
 		return errors.New(pkg.ErrEmptyKind)
 	}
 	if !slices.Contains(kindAgenda, kind) {
-		kinds := strings.Join(kindAgenda, ", ")
-		return fmt.Errorf(pkg.ErrInvalidKind, kinds[:len(kinds)-2])
+		return fmt.Errorf(pkg.ErrInvalidKind, strings.Join(kindAgenda, ", "))
 	}
 	c.Kind = kind
 	return nil
@@ -222,8 +221,7 @@ func (c *Agenda) formatStatus(filled bool) error {
 		return errors.New(pkg.ErrEmptyStatus)
 	}
 	if !slices.Contains(statusAgenda, status) {
-		status := strings.Join(cycles, ", ")
-		return fmt.Errorf(pkg.ErrInvalidStatus, status[:len(status)-2])
+		return fmt.Errorf(pkg.ErrInvalidStatus, strings.Join(cycles, ", "))
 	}
 	c.Status = status
 	return nil

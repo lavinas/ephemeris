@@ -126,7 +126,8 @@ func (c *Commands) getValuesSlice(values []reflect.Value, nokeys bool) [][]strin
 				continue
 			}
 		}
-		ret[0] = append(ret[0], values[0].Type().Field(i).Name)
+		p, _, _, _, _ := c.getParamValues(values[0].Type().Field(i).Tag.Get(Fieldtag))
+		ret[0] = append(ret[0], strings.Join(p, ", "))
 	}
 	for i := 0; i < len(values); i++ {
 		for j := 0; j < values[i].NumField(); j++ {
