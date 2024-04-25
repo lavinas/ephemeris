@@ -150,4 +150,5 @@ const (
 	ErrEmptyAgenda              = "empty agenda"
 	ErrAgendaNotFound           = "agenda not found"
 	ErrEmptyDescription         = "empty description"
+	ResultLimit                 = 100
 )

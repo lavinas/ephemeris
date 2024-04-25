@@ -22,7 +22,7 @@ type PackageCrud struct {
 
 // Validate is a method that validates the dto
 func (p *PackageCrud) Validate(repo port.Repository) error {
-	if p.isEmpty() {
+	if p.Action != "get" && p.isEmpty() {
 		return errors.New(pkg.ErrParamsNotInformed)
 	}
 	return nil

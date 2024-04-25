@@ -22,7 +22,7 @@ type ServiceCrud struct {
 
 // Validate is a method that validates the dto
 func (c *ServiceCrud) Validate(repo port.Repository) error {
-	if c.isEmpty() {
+	if c.Action != "get" && c.isEmpty() {
 		return errors.New(pkg.ErrParamsNotInformed)
 	}
 	return nil

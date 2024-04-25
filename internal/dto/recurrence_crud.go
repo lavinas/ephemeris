@@ -24,7 +24,7 @@ type RecurrenceCrud struct {
 
 // Validate is a method that validates the dto
 func (r *RecurrenceCrud) Validate(repo port.Repository) error {
-	if r.isEmpty() {
+	if r.Action != "get" && r.isEmpty() {
 		return errors.New(pkg.ErrParamsNotInformed)
 	}
 	return nil

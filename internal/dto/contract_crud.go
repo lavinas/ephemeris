@@ -28,7 +28,7 @@ type ContractCrud struct {
 
 // Validate is a method that validates the dto
 func (c *ContractCrud) Validate(repo port.Repository) error {
-	if c.isEmpty() {
+	if c.Action != "get" && c.isEmpty() {
 		return errors.New(pkg.ErrParamsNotInformed)
 	}
 	return nil

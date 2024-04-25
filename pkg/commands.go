@@ -43,6 +43,14 @@ func (c *Commands) Marshal(v interface{}, args ...string) string {
 	if slices.Contains(args, "trim") {
 		ret = c.trimTable(ret)
 	}
+	if slices.Contains(args, "more") {
+		cols := len(ret[0])
+		more := []string{}
+		for i := 0; i < cols; i++ {
+			more = append(more, "...")
+		}
+		ret = append(ret, more)
+	}
 	return c.mountTable(ret)
 }
 

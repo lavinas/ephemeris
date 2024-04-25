@@ -24,7 +24,7 @@ type InvoiceCrud struct {
 
 // Validate is a method that validates the dto
 func (i *InvoiceCrud) Validate(repo port.Repository) error {
-	if i.isEmpty() {
+	if i.Action != "get" && i.isEmpty() {
 		return errors.New(pkg.ErrParamsNotInformed)
 	}
 	return nil

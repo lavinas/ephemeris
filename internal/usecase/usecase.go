@@ -10,28 +10,20 @@ import (
 
 // Usecase is a struct that groups the crud usecase
 type Usecase struct {
-	Repo port.Repository
-	Log  port.Logger
-	Out  []port.DTOOut
+	Repo    port.Repository
+	Log     port.Logger
+	Out     []port.DTOOut
+	Limited bool
 }
 
 // NewAdd is a function that returns a new Add struct
 func NewUsecase(repo port.Repository, log port.Logger) *Usecase {
 	return &Usecase{
-		Repo: repo,
-		Log:  log,
-		Out:  nil,
+		Repo:    repo,
+		Log:     log,
+		Out:     nil,
+		Limited: false,
 	}
-}
-
-// SetRepo is a method that sets the repository
-func (c *Usecase) SetRepo(repo port.Repository) {
-	c.Repo = repo
-}
-
-// SetLog is a method that sets the logger
-func (c *Usecase) SetLog(log port.Logger) {
-	c.Log = log
 }
 
 // Run is a method that runs the use case
@@ -50,14 +42,18 @@ func (c *Usecase) Run(dto interface{}) error {
 }
 
 // Interface is a method that returns the output dto as an interface
-func (c *Usecase) Interface() interface{} {
-	return c.Out
+//  and a boolean that indicates if the output was limited
+func (c *Usecase) Interface() (interface{}, bool) {
+	return c.Out, c.Limited
 }
 
 // String is a method that returns a string representation of the output dto
 func (c *Usecase) String() string {
 	if c.Out == nil {
 		return ""
+	}
+	if c.Limited {
+		return pkg.NewCommands().Marshal(c.Out, "trim", "nokeys", "more")
 	}
 	return pkg.NewCommands().Marshal(c.Out, "trim", "nokeys")
 }

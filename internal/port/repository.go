@@ -15,7 +15,8 @@ type Repository interface {
 	// Get is a method that gets an object by its ID
 	Get(obj interface{}, id string) (bool, error)
 	// Find is a method that finds an object by its base
-	Find(base interface{}) (interface{}, error)
+	// returns the object, a boolean that indicates if the object was limited and an error
+	Find(base interface{}, limit int) (interface{}, bool, error)
 	// Save is a method that saves an object
 	Save(obj interface{}) error
 	// Delete is a method that deletes an object by its ID

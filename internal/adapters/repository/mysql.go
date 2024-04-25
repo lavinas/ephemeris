@@ -124,40 +124,40 @@ func (r *MySql) Save(obj interface{}) error {
 }
 
 // Find gets all objects from the database matching the object
-func (r *MySql) Find(base interface{}) (interface{}, error) {
+func (r *MySql) Find(base interface{}, limit int) (interface{}, bool, error) {
 	sob := reflect.TypeOf(base).Elem()
 	result := reflect.New(reflect.SliceOf(sob)).Interface()
 	tx := r.Db.Session(&gorm.Session{})
 	var err error
 	tx, err = r.where(tx, sob, base)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
-	if tx = tx.Find(result); tx.Error != nil {
-		return nil, tx.Error
+	if tx = tx.Limit(limit + 1).Find(result); tx.Error != nil {
+		return nil, false, tx.Error
 	}
 	if reflect.ValueOf(result).Elem().Len() == 0 {
-		return nil, nil
+		return nil, false, nil
 	}
-	return result, nil
+	crossLimit := false
+	if reflect.ValueOf(result).Elem().Len() > limit {
+		reflect.ValueOf(result).Elem().SetLen(limit)
+		crossLimit = true
+	}
+	return result, crossLimit, nil
 }
 
 // where is a method that filters the query
 func (r *MySql) where(tx *gorm.DB, sob reflect.Type, base interface{}) (*gorm.DB, error) {
-	filtered := false
 	for i := 0; i < sob.NumField(); i++ {
 		if pkg.IsEmpty(reflect.ValueOf(base).Elem().Field(i).Interface()) {
 			continue
 		}
-		filtered = true
 		fName := r.fieldName(sob.Field(i).Name)
 		tx = tx.Where(fName+" = ?", reflect.ValueOf(base).Elem().Field(i).Interface())
 		if i == 0 {
 			tx = tx.Session(&gorm.Session{})
 		}
-	}
-	if !filtered {
-		return nil, errors.New(ErrNoFilter)
 	}
 	return tx, nil
 }

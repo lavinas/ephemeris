@@ -10,11 +10,10 @@ import (
 	"github.com/lavinas/ephemeris/pkg"
 )
 
-
 // Usecase is a struct that groups all usecases of the application
 type CommandUsecase struct {
-	Repo port.Repository
-	Log  port.Logger
+	Repo    port.Repository
+	Log     port.Logger
 	UseCase port.UseCase
 }
 
@@ -24,8 +23,8 @@ func NewCommandUsecase(repo port.Repository, log port.Logger) *CommandUsecase {
 		panic(err)
 	}
 	return &CommandUsecase{
-		Repo: repo,
-		Log:  log,
+		Repo:    repo,
+		Log:     log,
 		UseCase: NewUsecase(repo, log),
 	}
 }
@@ -47,7 +46,6 @@ func (u *CommandUsecase) Run(line string) string {
 	}
 	return u.UseCase.String()
 }
-
 
 // error is a function that logs an error and returns it
 func (u *CommandUsecase) error(prefix string, err string) error {

@@ -26,7 +26,7 @@ type AgendaCrud struct {
 
 // Validate is a method that validates the dto
 func (a *AgendaCrud) Validate(repo port.Repository) error {
-	if a.isEmpty() {
+	if a.isEmpty() && a.Action != "get" {
 		return errors.New(pkg.ErrParamsNotInformed)
 	}
 	return nil

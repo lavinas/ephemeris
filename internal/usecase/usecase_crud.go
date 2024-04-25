@@ -1,11 +1,9 @@
 package usecase
 
 import (
-
 	"github.com/lavinas/ephemeris/internal/port"
 	"github.com/lavinas/ephemeris/pkg"
 )
-
 
 // Add is a method that add a dto to the repository
 func (c *Usecase) Add(dtoIn interface{}) error {
@@ -48,21 +46,24 @@ func (c *Usecase) Get(dtoIn interface{}) error {
 	defer c.Repo.Rollback()
 	domains := in.GetDomain()
 	result := []interface{}{}
+	limited := false
 	for _, domain := range domains {
 		if err := domain.Format(c.Repo, "filled", "noduplicity"); err != nil {
 			return c.error(pkg.ErrPrefBadRequest, err.Error())
 		}
-		found, err := c.Repo.Find(domain)
+		base, lim, err := c.Repo.Find(domain, pkg.ResultLimit)
+		limited = lim
 		if err != nil {
 			return c.error(pkg.ErrPrefInternal, err.Error())
 		}
-		if found == nil {
+		if base == nil {
 			return c.error(pkg.ErrPrefBadRequest, pkg.ErrUnfound)
 		}
-		result = append(result, found)
+		result = append(result, base)
 	}
 	out := in.GetOut()
 	c.Out = out.GetDTO(result)
+	c.Limited = limited
 	return nil
 }
 

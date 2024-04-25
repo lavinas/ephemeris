@@ -23,7 +23,7 @@ type PriceCrud struct {
 
 // Validate is a method that validates the dto
 func (p *PriceCrud) Validate(repo port.Repository) error {
-	if p.isEmpty() {
+	if p.Action != "get" && p.isEmpty() {
 		return errors.New(pkg.ErrParamsNotInformed)
 	}
 	return nil
