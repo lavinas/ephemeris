@@ -2,6 +2,9 @@ package dto
 
 import (
 	"errors"
+	"fmt"
+	"strconv"
+	"time"
 
 	"github.com/lavinas/ephemeris/pkg"
 )
@@ -27,37 +30,34 @@ type AgendaMakeOut struct {
 
 // Validate is a method that validates the dto
 func (a *AgendaMake) Validate() error {
-	if a.isEmpty() {
-		return errors.New(pkg.ErrParamsNotInformed)
+	if a.ContractID == "" && a.ClientID == "" {
+		return errors.New(pkg.ErrClientContractEmpty)
 	}
+	if a.Month == "" {
+		return errors.New(pkg.ErrMonthEmpty)
+	}
+	if _, err := time.Parse(a.Month, pkg.MonthFormat); err != nil {
+		return fmt.Errorf(pkg.ErrMonthInvalid, pkg.MonthFormat)
+	}
+	if _, err := strconv.ParseInt(a.ClientID, 10, 64); err != nil {
+		return errors.New(pkg.ErrInvalidClientID)
+	}
+
 	return nil
 }
 
-// GetCommand is a method that returns the command of the dto
-func (a *AgendaMake) GetCommand() string {
-	return a.Action
+// GetClient returns clientid from dto
+func (a *AgendaMake) GetClientID() int {
+	return 0
 }
 
-// GetDomain is a method that returns a string representation of the agenda
-func (a *AgendaMake) GetDomain() []interface{} {
-	return []interface{}{a}
+// GetContractID return contractID from dto
+func (a *AgendaMake) GetContractID() int {
+	return 0
 }
 
-// GetOut is a method that returns the output dto
-func (a *AgendaMake) GetOut() interface{} {
-	return &AgendaMakeOut{}
+// GetMonth returns month of dto
+func (a *AgendaMake) GetMonth() time.Time {
+	return time.Now()
 }
-
-// GetDTO is a method that returns the dto
-func (a *AgendaMake) GetDTO(domainIn interface{}) []interface{} {
-	ret := []interface{}{}
-	slices := domainIn.([]interface{})
-	return append(ret, slices...)
-}
-
-// isEmpty is a method that returns true if the dto is empty
-func (a *AgendaMake) isEmpty() bool {
-	return a.ClientID == "" || a.ContractID == "" || a.Month == ""
-}
-
 	

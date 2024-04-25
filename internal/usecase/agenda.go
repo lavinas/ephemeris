@@ -1,16 +1,20 @@
 package usecase
 
 import (
-	"github.com/lavinas/ephemeris/internal/port"
+	"time"
+
+	"github.com/lavinas/ephemeris/internal/dto"
 	"github.com/lavinas/ephemeris/pkg"
 )
 
 // AgendaMake makes a preview of the agenda based on the client, contract and month
-func (u *Usecase) AgendaMake(dtoIn interface{}) error {
-	in := dtoIn.(port.DTOIn)
-	if err := in.Validate(u.Repo); err != nil {
+func (u *Usecase) AgendaMake(dtoIn dto.AgendaMake) error {
+	if err := dtoIn.Validate(); err != nil {
 		return u.error(pkg.ErrPrefBadRequest, err.Error())
 	}
+	// clientID := dtoIn.GetClientID()
+	// contractID := dtoIn.GetContractID()
+	// month := dtoIn.GetMonth()
 	// lock agenda for client and contract in the month
 	if err := u.Repo.Begin(); err != nil {
 		return u.error(pkg.ErrPrefInternal, err.Error())
@@ -23,5 +27,10 @@ func (u *Usecase) AgendaMake(dtoIn interface{}) error {
 	}
 	// Liberate the lock
 	// generate output
+	return nil
+}
+
+// deleteAgenda deletes Agenda based on client, contract and month
+func (u *Usecase) DeleteAgenda(clientID, contractID int, month time.Time) error {
 	return nil
 }
