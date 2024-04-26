@@ -15,6 +15,7 @@ import (
 
 // Service represents the service entity
 type Service struct {
+	Base
 	ID      string    `gorm:"type:varchar(25); primaryKey"`
 	Date    time.Time `gorm:"type:datetime; not null; index"`
 	Name    string    `gorm:"type:varchar(100); not null; index"`

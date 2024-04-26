@@ -153,11 +153,25 @@ func (r *MySql) Find(base interface{}, limit int) (interface{}, bool, error) {
 // where is a method that filters the query
 func (r *MySql) where(tx *gorm.DB, sob reflect.Type, base interface{}) (*gorm.DB, error) {
 	for i := 0; i < sob.NumField(); i++ {
-		if pkg.IsEmpty(reflect.ValueOf(base).Elem().Field(i).Interface()) {
+		isgorm := sob.Field(i).Tag.Get("gorm")
+		if isgorm == "-" || isgorm == ""{
+			continue
+		}
+		if sob.Field(i).Type.Kind() == reflect.Struct {
+			etype := reflect.TypeOf(base).Elem().Field(i).Type
+			eval := reflect.ValueOf(base).Elem().Field(i).Interface()
+			var err error
+			if tx, err = r.where(tx, etype, eval); err != nil {
+				return nil, err
+			}
+			continue
+		}
+		elem := reflect.ValueOf(base).Elem().Field(i).Interface()
+		if pkg.IsEmpty(elem) {
 			continue
 		}
 		fName := r.fieldName(sob.Field(i).Name)
-		tx = tx.Where(fName+" = ?", reflect.ValueOf(base).Elem().Field(i).Interface())
+		tx = tx.Where(fName+" = ?", elem)
 		if i == 0 {
 			tx = tx.Session(&gorm.Session{})
 		}
