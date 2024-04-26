@@ -124,6 +124,9 @@ func (r *MySql) Save(obj interface{}) error {
 }
 
 // Find gets all objects from the database matching the object
+// Base represents a base object to filter the query and limit is the maximum number of objects to return
+// The function returns the objects, a boolean indicating if the limit was crossed and an error
+// Use -1 to cancel the limit
 func (r *MySql) Find(base interface{}, limit int) (interface{}, bool, error) {
 	sob := reflect.TypeOf(base).Elem()
 	result := reflect.New(reflect.SliceOf(sob)).Interface()
@@ -140,7 +143,7 @@ func (r *MySql) Find(base interface{}, limit int) (interface{}, bool, error) {
 		return nil, false, nil
 	}
 	crossLimit := false
-	if reflect.ValueOf(result).Elem().Len() > limit {
+	if limit != -1 && reflect.ValueOf(result).Elem().Len() > limit {
 		reflect.ValueOf(result).Elem().SetLen(limit)
 		crossLimit = true
 	}
