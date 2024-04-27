@@ -155,4 +155,5 @@ const (
 	ErrMonthEmpty               = "month should be informed"
 	ErrMonthInvalid             = "month invalid. Should have %s format"
 	ResultLimit                 = 100
+	Locked                      = "locked"
 )
