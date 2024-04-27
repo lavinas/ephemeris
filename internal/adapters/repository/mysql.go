@@ -21,6 +21,7 @@ const (
 // RepoMySql is the repository handler for the application
 type MySql struct {
 	Db *gorm.DB
+	Tx *gorm.DB
 }
 
 // NewRepository creates a new repository handler
@@ -34,28 +35,39 @@ func NewRepository(dns string) (*MySql, error) {
 
 // Begin starts a transaction
 func (r *MySql) Begin() error {
-	r.Db = r.Db.Begin()
-	if r.Db.Error != nil {
-		return r.Db.Error
+	if r.Tx != nil {
+		return errors.New("transaction already started")
+	}
+	r.Tx = r.Db.Begin()
+	if r.Tx.Error != nil {
+		return r.Tx.Error
 	}
 	return nil
 }
 
 // Commit commits the transaction
 func (r *MySql) Commit() error {
-	r.Db = r.Db.Commit()
-	if r.Db.Error != nil {
-		return r.Db.Error
+	if r.Tx == nil {
+		return errors.New("no transaction started")
 	}
+	r.Tx = r.Tx.Commit()
+	if r.Tx.Error != nil {
+		return r.Tx.Error
+	}
+	r.Tx = nil
 	return nil
 }
 
 // Rollback rolls back the transaction
 func (r *MySql) Rollback() error {
-	r.Db = r.Db.Rollback()
-	if r.Db.Error != nil {
-		return r.Db.Error
+	if r.Tx == nil {
+		return errors.New("no transaction started")
 	}
+	r.Tx = r.Tx.Rollback()
+	if r.Tx.Error != nil {
+		return r.Tx.Error
+	}
+	r.Tx = nil
 	return nil
 }
 

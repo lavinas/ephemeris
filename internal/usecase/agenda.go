@@ -1,8 +1,6 @@
 package usecase
 
 import (
-	"errors"
-	"fmt"
 	"time"
 
 	"github.com/lavinas/ephemeris/internal/domain"
@@ -11,31 +9,24 @@ import (
 )
 
 // AgendaMake makes a preview of the agenda based on the client, contract and month
-func (u *Usecase) AgendaMake(dtoIn dto.AgendaMake) error {
-	if err := dtoIn.Validate(); err != nil {
+func (u *Usecase) AgendaMake(dtoIn interface{}) error {
+	agenda := dtoIn.(*dto.AgendaMake)
+	if err := agenda.Validate(u.Repo); err != nil {
 		return u.error(pkg.ErrPrefBadRequest, err.Error())
 	}
-	contracts, err := u.GetContracts(dtoIn.ClientID, dtoIn.ContractID)
+	contracts, err := u.getContracts(agenda.ClientID, agenda.ContractID)
 	if err != nil {
-		return u.error(pkg.ErrPrefInternal, err.Error())
+		return err
 	}
 	for _, contract := range *contracts {
-		fmt.Println(contract)
+		if err := contract.Lock(u.Repo); err != nil {
+			return u.error(pkg.ErrPrefInternal, err.Error())
+		}
+		// generate agenda
+		if err := contract.Unlock(u.Repo); err != nil {
+			return u.error(pkg.ErrPrefInternal, err.Error())
+		}
 	}
-
-	// month := dtoIn.GetMonth()
-	// lock agenda for client and contract in the month
-	if err := u.Repo.Begin(); err != nil {
-		return u.error(pkg.ErrPrefInternal, err.Error())
-	}
-	defer u.Repo.Rollback()
-	// delete all the agenda items for the client and contract in the month
-	// insert the new agenda items
-	if err := u.Repo.Commit(); err != nil {
-		return u.error(pkg.ErrPrefInternal, err.Error())
-	}
-	// Liberate the lock
-	// generate output
 	return nil
 }
 
@@ -44,11 +35,10 @@ func (u *Usecase) DeleteAgenda(clientID, contractID int, month time.Time) error 
 	return nil
 }
 
-
 // GetClientContracts is a method that returns all contracts of a client
-func (u *Usecase) GetContracts(clientID, contractID string) (*[]domain.Contract, error) {
+func (u *Usecase) getContracts(clientID, contractID string) (*[]domain.Contract, error) {
 	if contractID == "" && clientID == "" {
-		return nil, errors.New(pkg.ErrClientContractEmpty)
+		return nil, u.error(pkg.ErrPrefBadRequest, pkg.ErrClientContractEmpty)
 	}
 	contract := &domain.Contract{}
 	if clientID != "" {
@@ -57,9 +47,12 @@ func (u *Usecase) GetContracts(clientID, contractID string) (*[]domain.Contract,
 	if contractID != "" {
 		contract.ID = contractID
 	}
-	ret, _, err := u.Repo.Find(contract, -1)
+	ret, _, err := u.Repo.Find(contract, 100)
 	if err != nil {
-		return nil, err
+		return nil, u.error(pkg.ErrPrefInternal, err.Error())
+	}
+	if ret == nil {
+		return nil, u.error(pkg.ErrPrefBadRequest, pkg.ErrUnfound)
 	}
 	return ret.(*[]domain.Contract), nil
 }

@@ -24,6 +24,7 @@ type ContractCrud struct {
 	Start       string `json:"start" command:"name:start;pos:3+"`
 	End         string `json:"end" command:"name:end;pos:3+"`
 	Bond        string `json:"bond" command:"name:bond;pos:3+"`
+	Locked 	    string `json:"locked" command:"name:locked;pos:3+"`
 }
 
 // Validate is a method that validates the dto
@@ -86,6 +87,10 @@ func (c *ContractCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 		if c.Bond != nil {
 			bond = *c.Bond
 		}
+		locked := ""
+		if *c.Locked {
+			locked = "******"
+		}
 		ret = append(ret, &ContractCrud{
 			ID:          c.ID,
 			Date:        c.Date.Format(pkg.DateFormat),
@@ -97,6 +102,7 @@ func (c *ContractCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 			Start:       c.Start.Format(pkg.DateFormat),
 			End:         end,
 			Bond:        bond,
+			Locked:      locked,
 		})
 	}
 	if len(ret) == 0 {

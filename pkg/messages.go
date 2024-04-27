@@ -153,6 +153,6 @@ const (
 	ErrEmptyDescription         = "empty description"
 	ErrClientContractEmpty      = "client or contract should be informed"
 	ErrMonthEmpty               = "month should be informed"
-	ErrMonthInvalid             = "month invalid.Should have %s format"
+	ErrMonthInvalid             = "month invalid. Should have %s format"
 	ResultLimit                 = 100
 )

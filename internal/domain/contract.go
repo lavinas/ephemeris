@@ -32,7 +32,7 @@ type Contract struct {
 	Start       time.Time  `gorm:"type:datetime; not null; index"`
 	End         *time.Time `gorm:"type:datetime; null; index"`
 	Bond        *string    `gorm:"type:varchar(25); null; index"`
-	Locked      bool       `gorm:"type:boolean; not null; default:false; index"`
+	Locked      *bool      `gorm:"type:boolean;null; index"`
 }
 
 // NewContract creates a new contract
@@ -46,7 +46,6 @@ func NewContract(id, date, clientID, SponsorID, packageID, billingType, dueDay, 
 	contract.PackageID = packageID
 	contract.BillingType = billingType
 	contract.Start, _ = time.ParseInLocation(pkg.DateFormat, start, local)
-	contract.Locked = false
 	if SponsorID != "" {
 		contract.SponsorID = &SponsorID
 	}
@@ -124,6 +123,46 @@ func (c *Contract) Get() port.Domain {
 // GetEmpty is a method that returns an empty contract
 func (c *Contract) GetEmpty() port.Domain {
 	return &Contract{}
+}
+
+// Lock is a method that locks the contract
+func (c *Contract) Lock(repo port.Repository) error {
+	var locked = true
+	c.Locked = &locked
+	if err := repo.Begin(); err != nil {
+		return err
+	}
+	defer repo.Rollback()
+	if err := repo.Save(c); err != nil {
+		return err
+	}
+	if err := repo.Commit(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// IsLocked is a method that checks if the contract is locked
+func (c *Contract) IsLocked() bool {
+	return c.Locked != nil && *c.Locked
+}
+
+// Unlock is a method that unlocks the contract
+func (c *Contract) Unlock(repo port.Repository) error {
+	c.Locked = nil
+	if err := repo.Begin(); err != nil {
+		fmt.Println(2)
+		return err
+	}
+	if err := repo.Save(c); err != nil {
+		fmt.Println(3)
+		return err
+	}
+	if err := repo.Commit(); err != nil {
+		fmt.Println(4)
+		return err
+	}
+	return nil
 }
 
 // TableName is a method that returns the table name of the contract

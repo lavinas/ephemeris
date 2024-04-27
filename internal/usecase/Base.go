@@ -36,6 +36,8 @@ func (c *Usecase) Run(dto interface{}) error {
 		return c.Get(in)
 	case "up":
 		return c.Up(in)
+	case "make":
+		return c.AgendaMake(in)
 	default:
 		return c.error(pkg.ErrPrefCommandNotFound, pkg.ErrCommandNotFound)
 	}

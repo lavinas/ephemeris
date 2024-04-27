@@ -75,9 +75,6 @@ func (c *Commands) FindOne(data string, v []interface{}) (interface{}, error) {
 		return nil, errors.New(ErrorCommandNotFound)
 	}
 	if len(ret) > 1 {
-		for _, i := range ret {
-			fmt.Println(1, reflect.TypeOf(i).String())
-		}
 		return nil, errors.New(ErrorCommandDuplicated)
 	}
 	return ret[0], nil
