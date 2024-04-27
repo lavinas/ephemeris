@@ -131,6 +131,7 @@ const (
 	ErrBondNotFound             = "bond contract not found"
 	ErrDueDayNotProvided        = "due day not provided"
 	ErrSponsorNotFound          = "sponsor not found"
+	ErrPackageIDNotProvided     = "package id not provided"
 	ErrPackageNotFound          = "package not found"
 	ErrEmptyContractID          = "empty contract id"
 	ErrContractNotFound         = "contract not found"

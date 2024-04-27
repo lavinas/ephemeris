@@ -32,6 +32,7 @@ type Contract struct {
 	Start       time.Time  `gorm:"type:datetime; not null; index"`
 	End         *time.Time `gorm:"type:datetime; null; index"`
 	Bond        *string    `gorm:"type:varchar(25); null; index"`
+	Locked      bool       `gorm:"type:boolean; not null; default:false; index"`
 }
 
 // NewContract creates a new contract
@@ -42,15 +43,16 @@ func NewContract(id, date, clientID, SponsorID, packageID, billingType, dueDay, 
 	local, _ := time.LoadLocation(pkg.Location)
 	contract.Date, _ = time.ParseInLocation(pkg.DateFormat, date, local)
 	contract.ClientID = clientID
+	contract.PackageID = packageID
+	contract.BillingType = billingType
+	contract.Start, _ = time.ParseInLocation(pkg.DateFormat, start, local)
+	contract.Locked = false
 	if SponsorID != "" {
 		contract.SponsorID = &SponsorID
 	}
-	contract.PackageID = packageID
-	contract.BillingType = billingType
 	if d, err := strconv.ParseInt(dueDay, 10, 64); err == nil {
 		contract.DueDay = &d
 	}
-	contract.Start, _ = time.ParseInLocation(pkg.DateFormat, start, local)
 	if d, err := time.ParseInLocation(pkg.DateFormat, end, local); err == nil {
 		contract.End = &d
 	}
@@ -200,7 +202,7 @@ func (c *Contract) formatPackageID(repo port.Repository, filled bool) error {
 		if filled {
 			return nil
 		}
-		return errors.New(pkg.ErrServiceIDNotProvided)
+		return errors.New(pkg.ErrPackageIDNotProvided)
 	}
 	pack := &Package{ID: c.PackageID}
 	pack.Format(repo, "filled")
@@ -222,7 +224,7 @@ func (c *Contract) formatBillingType(filled bool) error {
 		return errors.New(pkg.ErrEmptyBillingType)
 	}
 	c.BillingType = strings.ToLower(c.BillingType)
-	if slices.Contains(billingTypes, c.BillingType) {
+	if !slices.Contains(billingTypes, c.BillingType) {
 		return fmt.Errorf(pkg.ErrInvalidBillingType, strings.Join(billingTypes, ", "))
 	}
 	return nil

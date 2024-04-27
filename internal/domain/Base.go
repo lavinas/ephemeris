@@ -1,10 +1,5 @@
 package domain
 
-type Base struct {
-}
-
-
-
 // All is a function that returns the domain entity
 func All() []interface{} {
 	return []interface{}{
