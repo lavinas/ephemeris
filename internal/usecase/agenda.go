@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/lavinas/ephemeris/internal/domain"
@@ -22,31 +23,35 @@ func (u *Usecase) AgendaMake(dtoIn interface{}) error {
 	}
 	ret := []port.DTOOut{}
 	for _, contract := range *contracts {
-		if contract.IsLocked() {
-			ret = append(ret, &dto.AgendaMakeOut{
-				ID:         "",
-				ClientID:   contract.ClientID,
-				ContractID: contract.ID,
-				Start:      pkg.Locked,
-				End:        pkg.Locked,
-			})
-			continue
+		out, err := u.AgendaContractMake(contract, month)
+		if err != nil {
+			return err
 		}
-		if err := contract.Lock(u.Repo); err != nil {
-			return u.error(pkg.ErrPrefInternal, err.Error())
-		}
-		u.generateAgenda(&contract, month)
-		if err := contract.Unlock(u.Repo); err != nil {
-			return u.error(pkg.ErrPrefInternal, err.Error())
-		}
+		ret = append(ret, out...)
 	}
 	u.Out = ret
 	return nil
 }
 
-// deleteAgenda deletes Agenda based on client, contract and month
-func (u *Usecase) DeleteAgenda(clientID, contractID int, month time.Time) error {
-	return nil
+// AgendaContractMake makes a preview of the agenda based on the client, contract and month
+func (u *Usecase) AgendaContractMake(contract domain.Contract, month time.Time) ([]port.DTOOut, error) {
+	if contract.IsLocked() {
+		ret := dto.AgendaMakeOut{ID: "", ClientID: contract.ClientID, ContractID: contract.ID,
+			Start: pkg.Locked, End: pkg.Locked}
+		return []port.DTOOut{&ret}, nil
+	}
+	if err := contract.Lock(u.Repo); err != nil {
+		return nil, u.error(pkg.ErrPrefInternal, err.Error())
+	}
+	defer contract.Unlock(u.Repo)
+	if err := u.DeleteAgenda(&contract, month); err != nil {
+		return nil, u.error(pkg.ErrPrefInternal, err.Error())
+	}
+	ret, err := u.GenerateAgenda(&contract, month)
+	if err != nil {
+		return nil, u.error(pkg.ErrPrefInternal, err.Error())
+	}
+	return ret, nil
 }
 
 // GetClientContracts is a method that returns all contracts of a client
@@ -71,7 +76,59 @@ func (u *Usecase) getContracts(clientID, contractID string) (*[]domain.Contract,
 	return ret.(*[]domain.Contract), nil
 }
 
-// generateAgenda generates the agenda based on the contract
-func (u *Usecase) generateAgenda(contract *domain.Contract, month time.Time) *[]domain.Agenda {
+// deleteAgenda deletes Agenda based on client, contract, month and status
+func (u *Usecase) DeleteAgenda(contract *domain.Contract, month time.Time) error {
+	firstday := time.Date(month.Year(), month.Month(), 1, 0, 0, 0, 0, time.Local)
+	lastday := firstday.AddDate(0, 1, 0).Add(time.Nanosecond * -1)
+	if err := u.Repo.Begin(); err != nil {
+		return u.error(pkg.ErrPrefInternal, err.Error())
+	}
+	for i := firstday; i.Before(lastday); i = i.AddDate(0, 0, 1) {
+		agenda := &domain.Agenda{ContractID: contract.ID, 
+			                     Start: i, 
+								 Status: pkg.AgendaStatusSlated, 
+						         Kind: pkg.AgendaKindSlated,
+								}
+		if err := u.Repo.Delete(agenda); err != nil {
+			u.Repo.Rollback()
+			return u.error(pkg.ErrPrefInternal, err.Error())
+		}
+	}
+	if err := u.Repo.Commit(); err != nil {
+		return u.error(pkg.ErrPrefInternal, err.Error())
+	}
 	return nil
+}
+
+// generateAgenda generates the agenda based on the contract
+func (u *Usecase) GenerateAgenda(contract *domain.Contract, month time.Time) ([]port.DTOOut, error) {
+	firstday := time.Date(month.Year(), month.Month(), 1, 0, 0, 0, 0, time.Local)
+	lastday := firstday.AddDate(0, 1, 0).Add(time.Nanosecond * -1)
+	ret := []port.DTOOut{}
+	if err := u.Repo.Begin(); err != nil {
+		return nil, u.error(pkg.ErrPrefInternal, err.Error())
+	}
+	for i := firstday; i.Before(lastday); i = i.AddDate(0, 0, 1) {
+		agenda := &domain.Agenda{
+			ID:         fmt.Sprintf("%s-%s", contract.ID, i.Format(pkg.DateFormat)),
+			ContractID: contract.ID,
+			Start:      i,
+			End:        i.AddDate(0, 0, 1).Add(time.Nanosecond * -1),
+			Kind:       pkg.AgendaKindSlated,
+			Status:     pkg.AgendaStatusSlated,
+		}
+		if err := u.Repo.Add(agenda); err != nil {
+			u.Repo.Rollback()
+			return nil, u.error(pkg.ErrPrefInternal, err.Error())
+		}
+		ret = append(ret, &dto.AgendaMakeOut{ID: agenda.ID,
+			ClientID:   contract.ClientID,
+			ContractID: contract.ID,
+			Start:      agenda.Start.Format(pkg.DateFormat),
+			End:        agenda.End.Format(pkg.DateFormat)})
+	}
+	if err := u.Repo.Commit(); err != nil {
+		return nil, u.error(pkg.ErrPrefInternal, err.Error())
+	}
+	return ret, nil
 }

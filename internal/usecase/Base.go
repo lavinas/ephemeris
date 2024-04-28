@@ -44,7 +44,8 @@ func (c *Usecase) Run(dto interface{}) error {
 }
 
 // Interface is a method that returns the output dto as an interface
-//  and a boolean that indicates if the output was limited
+//
+//	and a boolean that indicates if the output was limited
 func (c *Usecase) Interface() (interface{}, bool) {
 	return c.Out, c.Limited
 }

@@ -151,15 +151,12 @@ func (c *Contract) IsLocked() bool {
 func (c *Contract) Unlock(repo port.Repository) error {
 	c.Locked = nil
 	if err := repo.Begin(); err != nil {
-		fmt.Println(2)
 		return err
 	}
 	if err := repo.Save(c); err != nil {
-		fmt.Println(3)
 		return err
 	}
 	if err := repo.Commit(); err != nil {
-		fmt.Println(4)
 		return err
 	}
 	return nil

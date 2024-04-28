@@ -19,8 +19,8 @@ type Repository interface {
 	Find(base interface{}, limit int) (interface{}, bool, error)
 	// Save is a method that saves an object
 	Save(obj interface{}) error
-	// Delete is a method that deletes an object by its ID
-	Delete(obj interface{}, id string) error
+	// Delete is a method that deletes an object by filled fields
+	Delete(obj interface{}) error
 	// Close is a method that closes the repository
 	Close()
 }

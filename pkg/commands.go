@@ -37,9 +37,12 @@ func NewCommands() *Commands {
 func (c *Commands) Marshal(v interface{}, args ...string) string {
 	rvl := c.getInputSlice(v)
 	if len(rvl) == 0 {
-		return ""
+		return ErrNoResults
 	}
 	ret := c.getValuesSlice(rvl, slices.Contains(args, "nokeys"))
+	if len(ret) == 0 {
+		return ErrNoResults
+	}
 	if slices.Contains(args, "trim") {
 		ret = c.trimTable(ret)
 	}
@@ -124,6 +127,7 @@ func (c *Commands) getInputSlice(v interface{}) []reflect.Value {
 // getValuesSlice is a function that returns a slice of strings
 func (c *Commands) getValuesSlice(values []reflect.Value, nokeys bool) [][]string {
 	ret := make([][]string, len(values)+1)
+	filled := false
 	for i := 0; i < values[0].NumField(); i++ {
 		if nokeys {
 			tag := c.getParam(values[0].Type().Field(i), Fieldtag)
@@ -131,6 +135,7 @@ func (c *Commands) getValuesSlice(values []reflect.Value, nokeys bool) [][]strin
 				continue
 			}
 		}
+		filled = true
 		p, _, _, _, _ := c.getParamValues(values[0].Type().Field(i).Tag.Get(Fieldtag))
 		ret[0] = append(ret[0], strings.Join(p, ", "))
 	}
@@ -142,8 +147,12 @@ func (c *Commands) getValuesSlice(values []reflect.Value, nokeys bool) [][]strin
 					continue
 				}
 			}
+			filled = true
 			ret[i+1] = append(ret[i+1], values[i].Field(j).String())
 		}
+	}
+	if !filled {
+		return [][]string{}
 	}
 	return ret
 }

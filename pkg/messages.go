@@ -156,4 +156,5 @@ const (
 	ErrMonthInvalid             = "month invalid. Should have %s format"
 	ResultLimit                 = 100
 	Locked                      = "locked"
+	ErrNoResults                = "no results found"
 )

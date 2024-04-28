@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/lavinas/ephemeris/pkg"
 	"github.com/lavinas/ephemeris/internal/port"
-
+	"github.com/lavinas/ephemeris/pkg"
 )
 
 // AgendaMake represents the dto for making a agenda
@@ -21,11 +20,11 @@ type AgendaMake struct {
 
 // AgendaMakeOut represents the dto for making a agenda on output
 type AgendaMakeOut struct {
-	ID         string `json:"id"`
-	ClientID   string `json:"client_id"`
-	ContractID string `json:"contract_id"`
-	Start	   string `json:"start"`
-	End 	   string `json:"end"`
+	ID         string `json:"id" command:"name:id"`
+	ClientID   string `json:"client_id" command:"name:client"`
+	ContractID string `json:"contract_id" command:"name:contract"`
+	Start      string `json:"start" command:"name:start"`
+	End        string `json:"end" command:"name:end"`
 }
 
 // Validate is a method that validates the dto
@@ -47,7 +46,6 @@ func (a *AgendaMake) GetCommand() string {
 	return a.Action
 }
 
-
 // GetDomain is a method that returns the domain of the dto
 func (a *AgendaMake) GetDomain() []port.Domain {
 	return []port.Domain{}
@@ -62,5 +60,3 @@ func (a *AgendaMake) GetOut() port.DTOOut {
 func (a *AgendaMakeOut) GetDTO(domainIn interface{}) []port.DTOOut {
 	return []port.DTOOut{}
 }
-
-	

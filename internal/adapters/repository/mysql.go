@@ -92,18 +92,8 @@ func (r *MySql) Migrate(domain []interface{}) error {
 
 // Add adds a object to the database
 func (r *MySql) Add(obj interface{}) error {
-	tx := r.Db.Session(&gorm.Session{})
+	tx := r.Tx.Session(&gorm.Session{})
 	tx.Create(obj)
-	if tx.Error != nil {
-		return tx.Error
-	}
-	return nil
-}
-
-// Delete deletes a object from the database by id
-func (r *MySql) Delete(obj interface{}, id string) error {
-	tx := r.Db.Session(&gorm.Session{})
-	tx = tx.Delete(obj, "ID = ?", id)
 	if tx.Error != nil {
 		return tx.Error
 	}
@@ -114,7 +104,7 @@ func (r *MySql) Delete(obj interface{}, id string) error {
 func (r *MySql) Get(obj interface{}, id string) (bool, error) {
 	d := obj.(port.Domain)
 	name := d.TableName()
-	tx := r.Db.Session(&gorm.Session{})
+	tx := r.Tx.Session(&gorm.Session{})
 	tx = tx.Table(name).First(obj, "ID = ?", id)
 	if tx.Error == nil {
 		return true, nil
@@ -127,8 +117,22 @@ func (r *MySql) Get(obj interface{}, id string) (bool, error) {
 
 // Save saves a object to the database
 func (r *MySql) Save(obj interface{}) error {
-	tx := r.Db.Session(&gorm.Session{})
+	tx := r.Tx.Session(&gorm.Session{})
 	tx = tx.Save(obj)
+	if tx.Error != nil {
+		return tx.Error
+	}
+	return nil
+}
+
+// Delete deletes a object from the database by id
+func (r *MySql) Delete(obj interface{}) error {
+	tx := r.Tx.Session(&gorm.Session{})
+	tx, err := r.where(tx, reflect.TypeOf(obj).Elem(), obj)
+	if err != nil {
+		return err
+	}
+	tx = tx.Delete(obj)
 	if tx.Error != nil {
 		return tx.Error
 	}
@@ -166,7 +170,7 @@ func (r *MySql) Find(base interface{}, limit int) (interface{}, bool, error) {
 func (r *MySql) where(tx *gorm.DB, sob reflect.Type, base interface{}) (*gorm.DB, error) {
 	for i := 0; i < sob.NumField(); i++ {
 		isgorm := sob.Field(i).Tag.Get("gorm")
-		if isgorm == "-" || isgorm == ""{
+		if isgorm == "-" || isgorm == "" {
 			continue
 		}
 		elem := reflect.ValueOf(base).Elem().Field(i).Interface()
