@@ -45,7 +45,7 @@ func (u *Usecase) AgendaContractMake(contract domain.Contract, month time.Time) 
 	}
 	defer contract.Unlock(u.Repo)
 	if err := u.DeleteAgenda(&contract, month); err != nil {
-		return nil, u.error(pkg.ErrPrefInternal, err.Error())
+	   return nil, u.error(pkg.ErrPrefInternal, err.Error())
 	}
 	ret, err := u.GenerateAgenda(&contract, month)
 	if err != nil {
@@ -105,9 +105,9 @@ func (u *Usecase) GenerateAgenda(contract *domain.Contract, month time.Time) ([]
 	firstday := time.Date(month.Year(), month.Month(), 1, 0, 0, 0, 0, time.Local)
 	lastday := firstday.AddDate(0, 1, 0).Add(time.Nanosecond * -1)
 	ret := []port.DTOOut{}
-	if err := u.Repo.Begin(); err != nil {
-		return nil, u.error(pkg.ErrPrefInternal, err.Error())
-	}
+	// if err := u.Repo.Begin(); err != nil {
+	//	return nil, u.error(pkg.ErrPrefInternal, err.Error())
+	// }
 	for i := firstday; i.Before(lastday); i = i.AddDate(0, 0, 1) {
 		agenda := &domain.Agenda{
 			ID:         fmt.Sprintf("%s-%s", contract.ID, i.Format(pkg.DateFormat)),
@@ -117,8 +117,17 @@ func (u *Usecase) GenerateAgenda(contract *domain.Contract, month time.Time) ([]
 			Kind:       pkg.AgendaKindSlated,
 			Status:     pkg.AgendaStatusSlated,
 		}
+		if err := agenda.Format(u.Repo); err != nil {
+			return nil, u.error(pkg.ErrPrefBadRequest, err.Error())
+		}
+		if err := u.Repo.Begin(); err != nil {
+			return nil, u.error(pkg.ErrPrefInternal, err.Error())
+		}
 		if err := u.Repo.Add(agenda); err != nil {
 			u.Repo.Rollback()
+			return nil, u.error(pkg.ErrPrefInternal, err.Error())
+		}
+		if err := u.Repo.Commit(); err != nil {
 			return nil, u.error(pkg.ErrPrefInternal, err.Error())
 		}
 		ret = append(ret, &dto.AgendaMakeOut{ID: agenda.ID,
@@ -126,9 +135,12 @@ func (u *Usecase) GenerateAgenda(contract *domain.Contract, month time.Time) ([]
 			ContractID: contract.ID,
 			Start:      agenda.Start.Format(pkg.DateFormat),
 			End:        agenda.End.Format(pkg.DateFormat)})
+		if i == firstday {
+			break
+		}
 	}
-	if err := u.Repo.Commit(); err != nil {
-		return nil, u.error(pkg.ErrPrefInternal, err.Error())
-	}
+	// if err := u.Repo.Commit(); err != nil {
+	//	return nil, u.error(pkg.ErrPrefInternal, err.Error())
+	// }
 	return ret, nil
 }
