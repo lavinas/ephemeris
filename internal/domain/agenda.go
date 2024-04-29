@@ -147,6 +147,7 @@ func (c *Agenda) formatDate(filled bool) error {
 		if filled {
 			return nil
 		}
+		fmt.Println(1, pkg.ErrInvalidDateFormat, pkg.DateFormat)
 		return fmt.Errorf(pkg.ErrInvalidDateFormat, pkg.DateFormat)
 	}
 	return nil
