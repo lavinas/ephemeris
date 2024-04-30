@@ -23,7 +23,7 @@ func (u *Usecase) AgendaMake(dtoIn interface{}) error {
 	}
 	ret := []port.DTOOut{}
 	for _, contract := range *contracts {
-		out, err := u.AgendaContractMake(contract, month)
+		out, err := u.AgendaContractMake(dtoAgenda, contract, month)
 		if err != nil {
 			return err
 		}
@@ -34,10 +34,10 @@ func (u *Usecase) AgendaMake(dtoIn interface{}) error {
 }
 
 // AgendaContractMake makes a preview of the agenda based on the client, contract and month
-func (u *Usecase) AgendaContractMake(contract domain.Contract, month time.Time) ([]port.DTOOut, error) {
+func (u *Usecase) AgendaContractMake(dtoIn port.DTOIn, contract domain.Contract, month time.Time) ([]port.DTOOut, error) {
 	if contract.IsLocked() {
 		ret := dto.AgendaMakeOut{ID: "", ClientID: contract.ClientID, ContractID: contract.ID,
-			Start: pkg.Locked, End: pkg.Locked}
+			Start: pkg.Locked, End: pkg.Locked, Kind: pkg.Locked, Status: pkg.Locked}
 		return []port.DTOOut{&ret}, nil
 	}
 	if err := contract.Lock(u.Repo); err != nil {
@@ -47,7 +47,7 @@ func (u *Usecase) AgendaContractMake(contract domain.Contract, month time.Time) 
 	if err := u.DeleteAgenda(&contract, month); err != nil {
 	   return nil, u.error(pkg.ErrPrefInternal, err.Error())
 	}
-	ret, err := u.GenerateAgenda(&contract, month)
+	ret, err := u.GenerateAgenda(dtoIn, &contract, month)
 	if err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error())
 	}
@@ -101,40 +101,78 @@ func (u *Usecase) DeleteAgenda(contract *domain.Contract, month time.Time) error
 }
 
 // generateAgenda generates the agenda based on the contract
-func (u *Usecase) GenerateAgenda(contract *domain.Contract, month time.Time) ([]port.DTOOut, error) {
-	firstday := time.Date(month.Year(), month.Month(), 1, 0, 0, 0, 0, time.Local)
-	lastday := firstday.AddDate(0, 1, 0).Add(time.Nanosecond * -1)
+func (u *Usecase) GenerateAgenda(dtoIn port.DTOIn, contract *domain.Contract, month time.Time) ([]port.DTOOut, error) {
 	ret := []port.DTOOut{}
 	if err := u.Repo.Begin(); err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error())
 	}
 	defer u.Repo.Rollback()
-	for i := firstday; i.Before(lastday); i = i.AddDate(0, 0, 1) {
-		agenda := &domain.Agenda{
-			ID:         fmt.Sprintf("%s-%s", contract.ID, i.Format(pkg.DateFormat)),
-			Date:	    time.Now(),
-			ContractID: contract.ID,
-			Start:      i,
-			End:        i.AddDate(0, 0, 1).Add(time.Nanosecond * -1),
-			Kind:       pkg.AgendaKindSlated,
-			Status:     pkg.AgendaStatusSlated,
-		}
+	dtoOut := dtoIn.GetOut()
+	starts, ends, err := u.getDates(contract, month)
+	if err != nil {
+		return nil, u.error(pkg.ErrPrefInternal, err.Error())
+	}
+	for i := 0; i < len(starts); i++ {
+		agenda := dtoIn.GetDomain()[0].(*domain.Agenda)
+		u.setDates(agenda, contract.ID, starts[i], ends[i])
 		if err := agenda.Format(u.Repo); err != nil {
-			u.Repo.Rollback()
 			return nil, u.error(pkg.ErrPrefBadRequest, err.Error())
 		}
 		if err := u.Repo.Add(agenda); err != nil {
-			u.Repo.Rollback()
 			return nil, u.error(pkg.ErrPrefInternal, err.Error())
 		}
-		ret = append(ret, &dto.AgendaMakeOut{ID: agenda.ID,
-			ClientID:   contract.ClientID,
-			ContractID: contract.ID,
-			Start:      agenda.Start.Format(pkg.DateFormat),
-			End:        agenda.End.Format(pkg.DateFormat)})
+		ret = append(ret, dtoOut.GetDTO(agenda)...)
 	}
 	if err := u.Repo.Commit(); err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error())
 	}
 	return ret, nil
+}
+
+// getDates returns the dates of the contract based on the month
+func (u *Usecase) getDates(contract *domain.Contract, month time.Time) ([]time.Time, []time.Time, error) {
+	beginMonth := time.Date(month.Year(), month.Month(), 1, 0, 0, 0, 0, time.Local)
+	endMonth := beginMonth.AddDate(0, 1, 0).Add(time.Nanosecond * -1)
+	starts := []time.Time{}
+	ends := []time.Time{}
+	recur, minutes, err := u.getPackageParams(contract.PackageID)
+	if err != nil {
+		return nil, nil, err
+	}
+	for start := &contract.Start; start != nil && !start.After(endMonth); start = recur.Next(*start) {
+		if !start.Before(beginMonth) && !start.After(endMonth) {
+			starts = append(starts, *start)
+			ends = append(ends, start.Add(time.Minute*time.Duration(minutes)))
+		}
+		if recur.Next(*start) == nil {
+			break
+		}
+	}
+	return starts, ends, nil
+}
+
+// getPackageParams returns the recurrence struct and serviice minutes of the package
+func (u *Usecase) getPackageParams(packId string) (*domain.Recurrence, int, error) {
+	pack := domain.Package{ID: packId}
+	var err error
+	recur, err := pack.GetRecurrence(u.Repo)
+	if err != nil {
+		return nil, 0, u.error(pkg.ErrPrefInternal, err.Error())
+	}
+	service, err := pack.GetService(u.Repo)
+	if err != nil {
+		return nil, 0, u.error(pkg.ErrPrefInternal, err.Error())
+	}
+	var minutes int64 = 0
+	if service.Minutes != nil {
+		minutes = *service.Minutes
+	}
+	return recur, int(minutes), nil
+}
+
+// setDates sets the dates of the agenda and id based on dates and contract and month
+func (u *Usecase) setDates(agenda *domain.Agenda, contractID string, start time.Time, end time.Time) {
+	agenda.ID = fmt.Sprintf("%s-%s", contractID, start.Format(pkg.DateFormat))
+	agenda.Start = start
+	agenda.End = end
 }

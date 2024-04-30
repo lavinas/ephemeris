@@ -115,6 +115,24 @@ func (r *Recurrence) GetEmpty() port.Domain {
 	return &Recurrence{}
 }
 
+// Next is a method that returns the next date of the recurrence given a date
+func (r *Recurrence) Next(date time.Time) *time.Time {
+	var next time.Time
+	switch r.Cycle {
+	case pkg.RecurrenceCycleDay:
+		next = date.AddDate(0, 0, int(*r.Length))
+	case pkg.RecurrenceCycleWeek:
+		next = date.AddDate(0, 0, 7*int(*r.Length))
+	case pkg.RecurrenceCycleMonth:
+		next = date.AddDate(0, int(*r.Length), 0)
+	case pkg.RecurrenceCycleYear:
+		next = date.AddDate(int(*r.Length), 0, 0)
+	default:
+		return nil
+	}
+	return &next
+}
+
 // TableName returns the table name for database
 func (r *Recurrence) TableName() string {
 	return "recurrence"

@@ -89,6 +89,43 @@ func (p *Package) GetEmpty() port.Domain {
 	return &Package{}
 }
 
+
+// GetService is a method that returns the service of the package
+func (p *Package) GetService (repo port.Repository) (*Service, error) {
+	if p.ServiceID == "" {
+		if ok, err := p.Load(repo); err != nil {
+			return nil, err
+		} else if !ok {
+			return nil, errors.New(pkg.ErrPackageNotFound)
+		}
+	}
+	service := &Service{ID: p.ServiceID}
+	if ok, err := service.Load(repo); err != nil {
+		return nil, err
+	} else if !ok {
+		return nil, errors.New(pkg.ErrServiceNotFound)
+	}
+	return service, nil
+}
+
+// GetRecurrence is a method that returns the recurrence of the package
+func (p *Package) GetRecurrence (repo port.Repository) (*Recurrence, error) {
+	if p.RecurrenceID == "" {
+		if ok, err := p.Load(repo); err != nil {
+			return nil, err
+		} else if !ok {
+			return nil, errors.New(pkg.ErrPackageNotFound)
+		}
+	}
+	recurrence := &Recurrence{ID: p.RecurrenceID}
+	if ok, err := recurrence.Load(repo); err != nil {
+		return nil, err
+	} else if !ok {
+		return nil, errors.New(pkg.ErrRecurrenceNotFound)
+	}
+	return recurrence, nil
+}
+
 // TableName is a method that returns the table name of the contract
 func (p *Package) TableName() string {
 	return "package"

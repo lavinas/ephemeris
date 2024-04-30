@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"
 	"github.com/lavinas/ephemeris/pkg"
 )
@@ -25,6 +26,9 @@ type AgendaMakeOut struct {
 	ContractID string `json:"contract_id" command:"name:contract"`
 	Start      string `json:"start" command:"name:start"`
 	End        string `json:"end" command:"name:end"`
+	Kind	   string `json:"kind" command:"name:kind"`
+	Status     string `json:"status" command:"name:status"`
+
 }
 
 // Validate is a method that validates the dto
@@ -48,7 +52,14 @@ func (a *AgendaMake) GetCommand() string {
 
 // GetDomain is a method that returns the domain of the dto
 func (a *AgendaMake) GetDomain() []port.Domain {
-	return []port.Domain{}
+	return []port.Domain{
+		&domain.Agenda{
+			Date: time.Now(),
+			ContractID: a.ContractID,
+			Kind:  pkg.AgendaKindSlated,
+			Status: pkg.AgendaStatusSlated,
+		},
+	}
 }
 
 // GetOut is a method that returns the dto out
@@ -58,5 +69,16 @@ func (a *AgendaMake) GetOut() port.DTOOut {
 
 // GetDTO is a method that returns the dto out
 func (a *AgendaMakeOut) GetDTO(domainIn interface{}) []port.DTOOut {
-	return []port.DTOOut{}
+	agenda := domainIn.(*domain.Agenda)
+	return []port.DTOOut{
+		&AgendaMakeOut{
+			ID:         agenda.ID,
+			ClientID:   "",
+			ContractID: agenda.ContractID,
+			Start:      agenda.Start.Format(pkg.DateTimeFormat),
+			End:        agenda.End.Format(pkg.DateTimeFormat),
+			Kind:       agenda.Kind,
+			Status:     agenda.Status,
+		},
+	}
 }
