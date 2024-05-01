@@ -126,9 +126,9 @@ func (r *MySql) Save(obj interface{}) error {
 }
 
 // Delete deletes a object from the database by id
-func (r *MySql) Delete(obj interface{}) error {
+func (r *MySql) Delete(obj interface{}, extras ...interface{}) error {
 	tx := r.Tx.Session(&gorm.Session{})
-	tx, err := r.where(tx, reflect.TypeOf(obj).Elem(), obj)
+	tx, err := r.where(tx, reflect.TypeOf(obj).Elem(), obj, extras...)
 	if err != nil {
 		return err
 	}
@@ -143,12 +143,12 @@ func (r *MySql) Delete(obj interface{}) error {
 // Base represents a base object to filter the query and limit is the maximum number of objects to return
 // The function returns the objects, a boolean indicating if the limit was crossed and an error
 // Use -1 to cancel the limit
-func (r *MySql) Find(base interface{}, limit int) (interface{}, bool, error) {
+func (r *MySql) Find(base interface{}, limit int, extras ...interface{}) (interface{}, bool, error) {
 	sob := reflect.TypeOf(base).Elem()
 	result := reflect.New(reflect.SliceOf(sob)).Interface()
 	tx := r.Db.Session(&gorm.Session{})
 	var err error
-	tx, err = r.where(tx, sob, base)
+	tx, err = r.where(tx, sob, base, extras)
 	if err != nil {
 		return nil, false, err
 	}
@@ -167,7 +167,7 @@ func (r *MySql) Find(base interface{}, limit int) (interface{}, bool, error) {
 }
 
 // where is a method that filters the query
-func (r *MySql) where(tx *gorm.DB, sob reflect.Type, base interface{}) (*gorm.DB, error) {
+func (r *MySql) where(tx *gorm.DB, sob reflect.Type, base interface{}, extras ...interface{}) (*gorm.DB, error) {
 	for i := 0; i < sob.NumField(); i++ {
 		isgorm := sob.Field(i).Tag.Get("gorm")
 		if isgorm == "-" || isgorm == "" {
@@ -190,6 +190,9 @@ func (r *MySql) where(tx *gorm.DB, sob reflect.Type, base interface{}) (*gorm.DB
 		if i == 0 {
 			tx = tx.Session(&gorm.Session{})
 		}
+	}
+	if len(extras) > 0 {
+		tx = tx.Where(extras[0], extras[1:]...)
 	}
 	return tx, nil
 }

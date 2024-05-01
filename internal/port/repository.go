@@ -16,11 +16,11 @@ type Repository interface {
 	Get(obj interface{}, id string) (bool, error)
 	// Find is a method that finds an object by its base
 	// returns the object, a boolean that indicates if the object was limited and an error
-	Find(base interface{}, limit int) (interface{}, bool, error)
+	Find(base interface{}, limit int, extras ...interface{}) (interface{}, bool, error)
 	// Save is a method that saves an object
 	Save(obj interface{}) error
 	// Delete is a method that deletes an object by filled fields
-	Delete(obj interface{}) error
+	Delete(obj interface{}, extras ...interface{}) error
 	// Close is a method that closes the repository
 	Close()
 }

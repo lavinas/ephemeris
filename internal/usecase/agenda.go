@@ -84,15 +84,9 @@ func (u *Usecase) DeleteAgenda(contract *domain.Contract, month time.Time) error
 		return u.error(pkg.ErrPrefInternal, err.Error())
 	}
 	defer u.Repo.Rollback()
-	for i := firstday; i.Before(lastday); i = i.AddDate(0, 0, 1) {
-		agenda := &domain.Agenda{ContractID: contract.ID, 
-			                     Start: i, 
-								 Status: pkg.AgendaStatusSlated, 
-						         Kind: pkg.AgendaKindSlated,
-								}
-		if err := u.Repo.Delete(agenda); err != nil {
-			return u.error(pkg.ErrPrefInternal, err.Error())
-		}
+	agenda := &domain.Agenda{ContractID: contract.ID}
+	if err := u.Repo.Delete(agenda, "start >= ? AND start <= ?", firstday, lastday); err != nil {
+		return u.error(pkg.ErrPrefInternal, err.Error())
 	}
 	if err := u.Repo.Commit(); err != nil {
 		return u.error(pkg.ErrPrefInternal, err.Error())

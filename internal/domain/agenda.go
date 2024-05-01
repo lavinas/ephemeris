@@ -21,6 +21,7 @@ var (
 type Agenda struct {
 	ID           string     `gorm:"type:varchar(25); primaryKey"`
 	Date         time.Time  `gorm:"type:datetime; not null"`
+	ClientID     string     `gorm:"type:varchar(25); not null; index"` 
 	ContractID   string     `gorm:"type:varchar(25); not null; index"`
 	Start        time.Time  `gorm:"type:datetime; not null"`
 	End          time.Time  `gorm:"type:datetime; not null"`
