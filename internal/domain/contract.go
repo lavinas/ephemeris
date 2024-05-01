@@ -45,7 +45,7 @@ func NewContract(id, date, clientID, SponsorID, packageID, billingType, dueDay, 
 	contract.ClientID = clientID
 	contract.PackageID = packageID
 	contract.BillingType = billingType
-	contract.Start, _ = time.ParseInLocation(pkg.DateFormat, start, local)
+	contract.Start, _ = time.ParseInLocation(pkg.DateTimeFormat, start, local)
 	if SponsorID != "" {
 		contract.SponsorID = &SponsorID
 	}
@@ -289,7 +289,7 @@ func (c *Contract) formatStart(filled bool) error {
 		if filled {
 			return nil
 		}
-		return fmt.Errorf(pkg.ErrInvalidStartDate, pkg.DateFormat)
+		return fmt.Errorf(pkg.ErrInvalidStartDate, pkg.DateTimeFormat)
 	}
 	return nil
 }

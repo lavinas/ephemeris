@@ -61,7 +61,7 @@ const (
 	Location                    = "America/Sao_Paulo"
 	DateFormat                  = "02/01/2006"
 	MonthFormat                 = "01/2006"
-	DateTimeFormat              = "02/01/2006 15:04:05"
+	DateTimeFormat              = "02/01/2006 15:04"
 	ErrPrefBadRequest           = "bad request"
 	ErrPrefCommandNotFound      = "command not identified"
 	ErrPrefInternal             = "internal error"

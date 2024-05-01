@@ -47,7 +47,7 @@ func (c *ContractCrud) GetDomain() []port.Domain {
 		c.Date = time.Now().Format(pkg.DateFormat)
 	}
 	if c.Action == "add" && c.Start == "" {
-		c.Start = time.Now().Format(pkg.DateFormat)
+		c.Start = time.Now().Format(pkg.DateTimeFormat)
 	}
 	if c.Action == "add" && c.DueDay == "" {
 		c.DueDay = pkg.DefaultDueDay
@@ -99,7 +99,7 @@ func (c *ContractCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 			PackageID:   c.PackageID,
 			BillingType: c.BillingType,
 			DueDay:      due,
-			Start:       c.Start.Format(pkg.DateFormat),
+			Start:       c.Start.Format(pkg.DateTimeFormat),
 			End:         end,
 			Bond:        bond,
 			Locked:      locked,
