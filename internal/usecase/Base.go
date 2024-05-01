@@ -56,9 +56,9 @@ func (c *Usecase) String() string {
 		return ""
 	}
 	if c.Limited {
-		return pkg.NewCommands().Marshal(c.Out, "trim", "nokeys", "more")
+		return pkg.NewCommands().Marshal(c.Out, "trim", "nokeys", "more", "counter")
 	}
-	return pkg.NewCommands().Marshal(c.Out, "trim", "nokeys")
+	return pkg.NewCommands().Marshal(c.Out, "trim", "nokeys", "counter")
 }
 
 // sliceOf is a method that returns a slice of a struct

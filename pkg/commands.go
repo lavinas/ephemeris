@@ -39,7 +39,9 @@ func (c *Commands) Marshal(v interface{}, args ...string) string {
 	if len(rvl) == 0 {
 		return ErrNoResults
 	}
-	ret := c.getValuesSlice(rvl, slices.Contains(args, "nokeys"))
+	nokeys := slices.Contains(args, "nokeys")
+	counter := slices.Contains(args, "counter")
+	ret := c.getValuesSlice(rvl, nokeys, counter)
 	if len(ret) == 0 {
 		return ErrNoResults
 	}
@@ -125,9 +127,13 @@ func (c *Commands) getInputSlice(v interface{}) []reflect.Value {
 }
 
 // getValuesSlice is a function that returns a slice of strings
-func (c *Commands) getValuesSlice(values []reflect.Value, nokeys bool) [][]string {
+func (c *Commands) getValuesSlice(values []reflect.Value, nokeys bool, counter bool) [][]string {
 	ret := make([][]string, len(values)+1)
 	filled := false
+	count := 1
+	if counter {
+		ret[0] = append(ret[0], "#")
+	}
 	for i := 0; i < values[0].NumField(); i++ {
 		if nokeys {
 			tag := c.getParam(values[0].Type().Field(i), Fieldtag)
@@ -140,6 +146,10 @@ func (c *Commands) getValuesSlice(values []reflect.Value, nokeys bool) [][]strin
 		ret[0] = append(ret[0], strings.Join(p, ", "))
 	}
 	for i := 0; i < len(values); i++ {
+		if counter {
+			ret[i+1] = append(ret[i+1], strconv.Itoa(count))
+			count++
+		}
 		for j := 0; j < values[i].NumField(); j++ {
 			if nokeys {
 				tag := c.getParam(values[i].Type().Field(j), Fieldtag)
