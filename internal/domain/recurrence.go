@@ -191,7 +191,7 @@ func (r *Recurrence) formatCycle(filled bool) error {
 		}
 		return fmt.Errorf(pkg.ErrEmptyCycle, strings.Join(cycles, ", "))
 	}
-	if slices.Contains(cycles, r.Cycle) {
+	if !slices.Contains(cycles, r.Cycle) {
 		return fmt.Errorf(pkg.ErrInvalidCycle, strings.Join(cycles, ", "))
 	}
 	return nil
