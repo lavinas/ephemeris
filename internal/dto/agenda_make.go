@@ -73,7 +73,7 @@ func (a *AgendaMakeOut) GetDTO(domainIn interface{}) []port.DTOOut {
 	return []port.DTOOut{
 		&AgendaMakeOut{
 			ID:         agenda.ID,
-			ClientID:   "",
+			ClientID:   agenda.ClientID,
 			ContractID: agenda.ContractID,
 			Start:      agenda.Start.Format(pkg.DateTimeFormat),
 			End:        agenda.End.Format(pkg.DateTimeFormat),

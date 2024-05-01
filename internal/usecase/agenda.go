@@ -10,6 +10,11 @@ import (
 	"github.com/lavinas/ephemeris/pkg"
 )
 
+const (
+	idDateFormat =  "2006-01-02-15"
+	idFormat = "%s-%s"
+)
+
 // AgendaMake makes a preview of the agenda based on the client, contract and month
 func (u *Usecase) AgendaMake(dtoIn interface{}) error {
 	dtoAgenda := dtoIn.(*dto.AgendaMake)
@@ -108,7 +113,7 @@ func (u *Usecase) GenerateAgenda(dtoIn port.DTOIn, contract *domain.Contract, mo
 	}
 	for i := 0; i < len(starts); i++ {
 		agenda := dtoIn.GetDomain()[0].(*domain.Agenda)
-		u.setDates(agenda, contract.ID, starts[i], ends[i])
+		u.setDates(agenda, contract.ClientID, starts[i], ends[i])
 		if err := agenda.Format(u.Repo); err != nil {
 			return nil, u.error(pkg.ErrPrefBadRequest, err.Error())
 		}
@@ -165,8 +170,8 @@ func (u *Usecase) getPackageParams(packId string) (*domain.Recurrence, int, erro
 }
 
 // setDates sets the dates of the agenda and id based on dates and contract and month
-func (u *Usecase) setDates(agenda *domain.Agenda, contractID string, start time.Time, end time.Time) {
-	agenda.ID = fmt.Sprintf("%s-%s", contractID, start.Format(pkg.DateFormat))
+func (u *Usecase) setDates(agenda *domain.Agenda, clientID string, start time.Time, end time.Time) {
+	agenda.ID = fmt.Sprintf(idFormat, clientID, start.Format(idDateFormat))
 	agenda.Start = start
 	agenda.End = end
 }

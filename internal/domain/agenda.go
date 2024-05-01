@@ -19,7 +19,7 @@ var (
 
 // Agenda represents the agenda entity
 type Agenda struct {
-	ID           string     `gorm:"type:varchar(25); primaryKey"`
+	ID           string     `gorm:"type:varchar(50); primaryKey"`
 	Date         time.Time  `gorm:"type:datetime; not null"`
 	ClientID     string     `gorm:"type:varchar(25); not null; index"` 
 	ContractID   string     `gorm:"type:varchar(25); not null; index"`
@@ -32,11 +32,12 @@ type Agenda struct {
 }
 
 // NewAgenda creates a new agenda domain entity
-func NewAgenda(id, date, contractID, start, end, kind, status, bond, billing string) *Agenda {
+func NewAgenda(id, date, clientID, contractID, start, end, kind, status, bond, billing string) *Agenda {
 	agenda := &Agenda{}
 	agenda.ID = id
 	local, _ := time.LoadLocation(pkg.Location)
 	agenda.Date, _ = time.ParseInLocation(pkg.DateFormat, strings.TrimSpace(date), local)
+	agenda.ClientID = clientID
 	agenda.ContractID = contractID
 	agenda.Start, _ = time.ParseInLocation(pkg.DateTimeFormat, strings.TrimSpace(start), local)
 	agenda.End, _ = time.ParseInLocation(pkg.DateTimeFormat, strings.TrimSpace(end), local)
@@ -69,6 +70,9 @@ func (a *Agenda) Format(repo port.Repository, args ...string) error {
 		msg += err.Error() + " | "
 	}
 	if err := a.formatContractID(repo, filled); err != nil {
+		msg += err.Error() + " | "
+	}
+	if err := a.formatClientID(repo, filled); err != nil {
 		msg += err.Error() + " | "
 	}
 	if err := a.formatStart(filled); err != nil {
@@ -132,7 +136,7 @@ func (c *Agenda) formatID(filled bool) error {
 		}
 		return errors.New(pkg.ErrEmptyID)
 	}
-	if len(id) > 25 {
+	if len(id) > 50 {
 		return errors.New(pkg.ErrLongID)
 	}
 	if len(strings.Split(id, " ")) > 1 {
@@ -153,6 +157,24 @@ func (c *Agenda) formatDate(filled bool) error {
 	return nil
 }
 
+// formatClientID is a method that formats the client id
+func (c *Agenda) formatClientID(repo port.Repository, filled bool) error {
+	clientID := c.formatString(c.ClientID)
+	if clientID == "" {
+		if filled {
+			return nil
+		}
+		return errors.New(pkg.ErrEmptyClientID)
+	}
+	client := &Client{ID: clientID}
+	if exists, err := client.Load(repo); err != nil {
+		return err
+	} else if !exists {
+		return errors.New(pkg.ErrClientNotFound)
+	}
+	return nil
+}
+
 // formatContractID is a method that formats the contract id
 func (c *Agenda) formatContractID(repo port.Repository, filled bool) error {
 	contractID := c.formatString(c.ContractID)
@@ -167,6 +189,11 @@ func (c *Agenda) formatContractID(repo port.Repository, filled bool) error {
 		return err
 	} else if !exists {
 		return errors.New(pkg.ErrContractNotFound)
+	}
+	if c.ClientID == "" {
+		c.ClientID = contract.ClientID
+	} else if contract.ClientID != c.ClientID {
+		return errors.New(pkg.ErrContractClientMismatch)
 	}
 	return nil
 }

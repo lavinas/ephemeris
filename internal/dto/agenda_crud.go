@@ -15,6 +15,7 @@ type AgendaCrud struct {
 	Action     string `json:"-" command:"name:add,get,up;key;pos:2-"`
 	ID         string `json:"id" command:"name:id;pos:3+"`
 	Date       string `json:"date" command:"name:date;pos:3+"`
+	ClientID   string `json:"client_id" command:"name:client;pos:3+"`
 	ContractID string `json:"contract_id" command:"name:contract;pos:3+"`
 	Start      string `json:"start" command:"name:start;pos:3+"`
 	End        string `json:"end" command:"name:end;pos:3+"`
@@ -50,7 +51,7 @@ func (a *AgendaCrud) GetDomain() []port.Domain {
 		a.Status = pkg.DefaultAgendaStatus
 	}
 	return []port.Domain{
-		domain.NewAgenda(a.ID, a.Date, a.ContractID, a.Start, a.End, a.Kind, a.Status, a.Bond, a.Billing),
+		domain.NewAgenda(a.ID, a.Date, a.ClientID, a.ContractID, a.Start, a.End, a.Kind, a.Status, a.Bond, a.Billing),
 	}
 }
 
@@ -76,6 +77,7 @@ func (c *AgendaCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 		ret = append(ret, &AgendaCrud{
 			ID:         a.ID,
 			Date:       a.Date.Format(pkg.DateFormat),
+			ClientID:   a.ClientID,
 			ContractID: a.ContractID,
 			Start:      a.Start.Format(pkg.DateTimeFormat),
 			End:        a.End.Format(pkg.DateTimeFormat),

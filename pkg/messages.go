@@ -157,4 +157,5 @@ const (
 	ResultLimit                 = 100
 	Locked                      = "locked"
 	ErrNoResults                = "no results found"
+	ErrContractClientMismatch   = "contract and client mismatch"
 )
