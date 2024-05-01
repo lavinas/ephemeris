@@ -2,6 +2,7 @@ package port
 
 // UseCase is an interface that defines the methods for the use case
 type UseCase interface {
+	// Run is a method that runs the use case
 	Run(dtoIn interface{}) error
 	// Interface is a method that returns the result interface of the use case
 	Interface() (interface{}, bool)
