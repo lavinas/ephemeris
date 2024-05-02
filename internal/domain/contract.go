@@ -277,6 +277,9 @@ func (c *Contract) formatDueDay(filled bool) error {
 		}
 		return errors.New(pkg.ErrDueDayNotProvided)
 	}
+	if c.BillingType == pkg.BillingTypePerSession {
+		return errors.New(pkg.ErrInvalidPerSessionDueDay)
+	}
 	if *c.DueDay <= 0 || *c.DueDay > 31 {
 		return errors.New(pkg.ErrInvalidDueDay)
 	}

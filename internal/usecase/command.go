@@ -36,7 +36,7 @@ func (u *CommandUsecase) Run(line string) string {
 	cmd := pkg.Commands{}
 	dtoIn, err := cmd.FindOne(line, dto.All())
 	if err != nil {
-		return u.error(pkg.ErrPrefCommandNotFound, err.Error()).Error()
+		return u.error(pkg.ErrPrefBadRequest, err.Error()).Error()
 	}
 	if err := cmd.Unmarshal(line, dtoIn); err != nil {
 		return u.error(pkg.ErrPrefBadRequest, err.Error()).Error()

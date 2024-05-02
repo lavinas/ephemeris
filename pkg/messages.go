@@ -63,7 +63,6 @@ const (
 	MonthFormat                 = "01/2006"
 	DateTimeFormat              = "02/01/2006 15:04"
 	ErrPrefBadRequest           = "bad request"
-	ErrPrefCommandNotFound      = "command not identified"
 	ErrPrefInternal             = "internal error"
 	ErrPrefConflict             = "conflict"
 	ErrInvalidDateFormat        = "invalid date format. Use %s"
@@ -158,4 +157,5 @@ const (
 	Locked                      = "locked"
 	ErrNoResults                = "no results found"
 	ErrContractClientMismatch   = "contract and client mismatch"
+	ErrInvalidPerSessionDueDay  = "due day should not be informed for per-session billing type"
 )

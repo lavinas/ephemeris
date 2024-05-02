@@ -49,7 +49,7 @@ func (c *ContractCrud) GetDomain() []port.Domain {
 	if c.Action == "add" && c.Start == "" {
 		c.Start = time.Now().Format(pkg.DateTimeFormat)
 	}
-	if c.Action == "add" && c.DueDay == "" {
+	if c.Action == "add" && c.DueDay == "" && c.BillingType != pkg.BillingTypePerSession {
 		c.DueDay = pkg.DefaultDueDay
 	}
 	if c.Action == "add" && c.BillingType == "" {

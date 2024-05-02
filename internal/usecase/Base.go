@@ -39,7 +39,7 @@ func (c *Usecase) Run(dto interface{}) error {
 	case "make":
 		return c.AgendaMake(in)
 	default:
-		return c.error(pkg.ErrPrefCommandNotFound, pkg.ErrCommandNotFound)
+		return c.error(pkg.ErrPrefBadRequest, pkg.ErrCommandNotFound)
 	}
 }
 
