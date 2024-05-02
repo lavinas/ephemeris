@@ -22,16 +22,16 @@ var (
 
 // Contract represents the contract entity
 type Contract struct {
-	ID          string     `gorm:"type:varchar(25); primaryKey"`
+	ID          string     `gorm:"type:varchar(50); primaryKey"`
 	Date        time.Time  `gorm:"type:datetime; not null; index"`
-	ClientID    string     `gorm:"type:varchar(25); not null; index"`
-	SponsorID   *string    `gorm:"type:varchar(25); null; index"`
-	PackageID   string     `gorm:"type:varchar(25); not null; index"`
-	BillingType string     `gorm:"type:varchar(25); not null; index"`
+	ClientID    string     `gorm:"type:varchar(50); not null; index"`
+	SponsorID   *string    `gorm:"type:varchar(50); null; index"`
+	PackageID   string     `gorm:"type:varchar(50); not null; index"`
+	BillingType string     `gorm:"type:varchar(50); not null; index"`
 	DueDay      *int64     `gorm:"type:numeric(20); null; index"`
 	Start       time.Time  `gorm:"type:datetime; not null; index"`
 	End         *time.Time `gorm:"type:datetime; null; index"`
-	Bond        *string    `gorm:"type:varchar(25); null; index"`
+	Bond        *string    `gorm:"type:varchar(50); null; index"`
 	Locked      *bool      `gorm:"type:boolean;null; index"`
 }
 
@@ -176,7 +176,7 @@ func (c *Contract) formatID(filled bool) error {
 		}
 		return errors.New(pkg.ErrEmptyID)
 	}
-	if len(id) > 25 {
+	if len(id) > 50 {
 		return errors.New(pkg.ErrLongID)
 	}
 	if len(strings.Split(id, " ")) > 1 {

@@ -1,7 +1,7 @@
 # ephemeris
 
 # todo
-* Mudar ID para 100 chrs
+* Mudar ID para 50 chrs - Paulo
 * Colocar combinacao de horarios
 * Corrigir validacao telefone
 * Colocar formatacao no telefone no print

@@ -25,7 +25,7 @@ var (
 
 // Client represents the client entity
 type Client struct {
-	ID       string    `gorm:"type:varchar(25); primaryKey"`
+	ID       string    `gorm:"type:varchar(50); primaryKey"`
 	Date     time.Time `gorm:"type:datetime; not null; index"`
 	Name     string    `gorm:"type:varchar(100); not null; index"`
 	Email    string    `gorm:"type:varchar(100);  not null; index"`
@@ -122,7 +122,7 @@ func (c *Client) formatID(filled bool) error {
 		}
 		return errors.New(pkg.ErrEmptyID)
 	}
-	if len(id) > 25 {
+	if len(id) > 50 {
 		return errors.New(pkg.ErrLongID)
 	}
 	if len(strings.Split(id, " ")) > 1 {

@@ -26,10 +26,10 @@ var (
 
 // Recurrence represents the recurrence entity
 type Recurrence struct {
-	ID     string    `gorm:"type:varchar(25); primaryKey"`
+	ID     string    `gorm:"type:varchar(50); primaryKey"`
 	Date   time.Time `gorm:"type:datetime; not null; index"`
 	Name   string    `gorm:"type:varchar(100); not null; index"`
-	Cycle  string    `gorm:"type:varchar(20); not null; index"`
+	Cycle  string    `gorm:"type:varchar(50); not null; index"`
 	Length *int64    `gorm:"type:numeric(10); null; index"`
 	Limits *int64    `gorm:"type:numeric(10); null; index"`
 }
@@ -147,7 +147,7 @@ func (r *Recurrence) formatID(filled bool) error {
 		}
 		return fmt.Errorf(pkg.ErrEmptyID)
 	}
-	if len(r.ID) > 25 {
+	if len(r.ID) > 50 {
 		return fmt.Errorf(pkg.ErrLongID)
 	}
 	if len(strings.Split(r.ID, " ")) > 1 {

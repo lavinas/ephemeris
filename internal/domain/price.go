@@ -15,7 +15,7 @@ import (
 
 // Price represents the price entity
 type Price struct {
-	ID   string    `gorm:"type:varchar(25); primaryKey"`
+	ID   string    `gorm:"type:varchar(50); primaryKey"`
 	Date time.Time `gorm:"type:datetime; not null; index"`
 	Name string    `gorm:"type:varchar(100); not null; index"`
 	Unit *float64  `gorm:"type:numeric(20,2); null; index"`
@@ -109,6 +109,9 @@ func (p *Price) formatID(filled bool) error {
 			return nil
 		}
 		return errors.New(pkg.ErrEmptyID)
+	}
+	if len(p.ID) > 50 {
+		return errors.New(pkg.ErrLongID)
 	}
 	return nil
 }

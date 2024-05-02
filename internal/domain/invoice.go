@@ -31,13 +31,13 @@ var (
 
 // Invoice represents the invoice entity
 type Invoice struct {
-	ID            string    `gorm:"type:varchar(25); primaryKey"`
+	ID            string    `gorm:"type:varchar(50); primaryKey"`
 	Date          time.Time `gorm:"type:datetime; not null; index"`
-	ClientID      string    `gorm:"type:varchar(25); not null; index"`
+	ClientID      string    `gorm:"type:varchar(50); not null; index"`
 	Value         float64   `gorm:"type:numeric(20,2); not null; index"`
-	Status        string    `gorm:"type:varchar(25); not null; index"`
-	SendStatus    string    `gorm:"type:varchar(25); not null; index"`
-	PaymentStatus string    `gorm:"type:varchar(25); not null; index"`
+	Status        string    `gorm:"type:varchar(50); not null; index"`
+	SendStatus    string    `gorm:"type:varchar(50); not null; index"`
+	PaymentStatus string    `gorm:"type:varchar(50); not null; index"`
 }
 
 // NewInvoice creates a new invoice domain entity
@@ -126,7 +126,7 @@ func (c *Invoice) formatID(filled bool) error {
 		}
 		return errors.New(pkg.ErrEmptyID)
 	}
-	if len(id) > 25 {
+	if len(id) > 50 {
 		return errors.New(pkg.ErrLongID)
 	}
 	if len(strings.Split(id, " ")) > 1 {

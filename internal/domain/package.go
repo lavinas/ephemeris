@@ -14,11 +14,11 @@ import (
 
 // Package represents the package entity
 type Package struct {
-	ID           string    `gorm:"type:varchar(25); primaryKey"`
+	ID           string    `gorm:"type:varchar(50); primaryKey"`
 	Date         time.Time `gorm:"type:datetime; not null; index"`
-	ServiceID    string    `gorm:"type:varchar(25); not null; index"`
-	RecurrenceID string    `gorm:"type:varchar(25); not null; index"`
-	PriceID      string    `gorm:"type:varchar(25); not null; index"`
+	ServiceID    string    `gorm:"type:varchar(50); not null; index"`
+	RecurrenceID string    `gorm:"type:varchar(50); not null; index"`
+	PriceID      string    `gorm:"type:varchar(50); not null; index"`
 }
 
 // NewPackage creates a new package
@@ -140,7 +140,7 @@ func (p *Package) formatID(filled bool) error {
 		}
 		return errors.New(pkg.ErrEmptyID)
 	}
-	if len(id) > 25 {
+	if len(id) > 50 {
 		return errors.New(pkg.ErrLongID)
 	}
 	if len(strings.Split(id, " ")) > 1 {
