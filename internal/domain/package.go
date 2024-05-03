@@ -21,6 +21,28 @@ type Package struct {
 	PriceID      string    `gorm:"type:varchar(50); not null; index"`
 }
 
+
+// TODO: substitute Package for Package2
+// TODO: add package needs to be created one package
+// TODO: add package item needs to be created one package item
+// Package2 represents the package entity
+type Package2 struct {
+	ID           string    `gorm:"type:varchar(50); primaryKey"`
+	Date         time.Time `gorm:"type:datetime; not null; index"`
+	RecurrenceID string    `gorm:"type:varchar(50); not null; index"`
+	Price 	     *float64 `gorm:"type:decimal(10,2); not null"`
+}
+
+// TODO: package item with service and value. Put value in package and remove price entity.
+// TODO: create command join to add a item to a package
+// PackageItem represents the package item entity
+type PackageItem struct {
+	ID           string   `gorm:"type:varchar(50); primaryKey"`
+	PackageID    string   `gorm:"type:varchar(50); not null; index"`
+	ServiceID    string   `gorm:"type:varchar(50); not null; index"`
+	Price        *float64 `gorm:"type:decimal(10,2); not null"`
+}
+
 // NewPackage creates a new package
 func NewPackage(id, date, serviceID, recurrenceID, priceID string) *Package {
 	date = strings.TrimSpace(date)
@@ -89,9 +111,8 @@ func (p *Package) GetEmpty() port.Domain {
 	return &Package{}
 }
 
-
 // GetService is a method that returns the service of the package
-func (p *Package) GetService (repo port.Repository) (*Service, error) {
+func (p *Package) GetService(repo port.Repository) (*Service, error) {
 	if p.ServiceID == "" {
 		if ok, err := p.Load(repo); err != nil {
 			return nil, err
@@ -109,7 +130,7 @@ func (p *Package) GetService (repo port.Repository) (*Service, error) {
 }
 
 // GetRecurrence is a method that returns the recurrence of the package
-func (p *Package) GetRecurrence (repo port.Repository) (*Recurrence, error) {
+func (p *Package) GetRecurrence(repo port.Repository) (*Recurrence, error) {
 	if p.RecurrenceID == "" {
 		if ok, err := p.Load(repo); err != nil {
 			return nil, err

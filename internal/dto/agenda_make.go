@@ -26,9 +26,8 @@ type AgendaMakeOut struct {
 	ContractID string `json:"contract_id" command:"name:contract"`
 	Start      string `json:"start" command:"name:start"`
 	End        string `json:"end" command:"name:end"`
-	Kind	   string `json:"kind" command:"name:kind"`
+	Kind       string `json:"kind" command:"name:kind"`
 	Status     string `json:"status" command:"name:status"`
-
 }
 
 // Validate is a method that validates the dto
@@ -54,10 +53,10 @@ func (a *AgendaMake) GetCommand() string {
 func (a *AgendaMake) GetDomain() []port.Domain {
 	return []port.Domain{
 		&domain.Agenda{
-			Date: time.Now(),
+			Date:       time.Now(),
 			ContractID: a.ContractID,
-			Kind:  pkg.AgendaKindSlated,
-			Status: pkg.AgendaStatusSlated,
+			Kind:       pkg.AgendaKindSlated,
+			Status:     pkg.AgendaStatusSlated,
 		},
 	}
 }

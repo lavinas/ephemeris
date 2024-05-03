@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	idDateFormat =  "2006-01-02-15"
-	idFormat = "%s-%s"
+	idDateFormat = "2006-01-02-15"
+	idFormat     = "%s-%s"
 )
 
 // AgendaMake makes a preview of the agenda based on the client, contract and month
@@ -50,7 +50,7 @@ func (u *Usecase) AgendaContractMake(dtoIn port.DTOIn, contract domain.Contract,
 	}
 	defer contract.Unlock(u.Repo)
 	if err := u.DeleteAgenda(&contract, month); err != nil {
-	   return nil, u.error(pkg.ErrPrefInternal, err.Error())
+		return nil, u.error(pkg.ErrPrefInternal, err.Error())
 	}
 	ret, err := u.GenerateAgenda(dtoIn, &contract, month)
 	if err != nil {
