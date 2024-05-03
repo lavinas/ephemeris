@@ -3,6 +3,7 @@ package dto
 import (
 	"errors"
 	"time"
+	"fmt"
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"
@@ -17,7 +18,8 @@ type PackageCrud struct {
 	Date         string `json:"date" command:"name:date;pos:3+"`
 	ServiceID    string `json:"service" command:"name:service;pos:3+"`
 	RecurrenceID string `json:"recurrence" command:"name:recurrence;pos:3+"`
-	PriceID      string `json:"price" command:"name:price;pos:3+"`
+	UnitValue    string `json:"unit" command:"name:unit;pos:3+"`
+	PackValue    string `json:"pack" command:"name:pack;pos:3+"`
 }
 
 // Validate is a method that validates the dto
@@ -40,7 +42,7 @@ func (p *PackageCrud) GetDomain() []port.Domain {
 		p.Date = time.Now().Format(pkg.DateFormat)
 	}
 	return []port.Domain{
-		domain.NewPackage(p.ID, p.Date, p.ServiceID, p.RecurrenceID, p.PriceID),
+		domain.NewPackage(p.ID, p.Date, p.ServiceID, p.RecurrenceID, p.UnitValue, p.PackValue),
 	}
 }
 
@@ -55,13 +57,24 @@ func (p *PackageCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 	slices := domainIn.([]interface{})
 	packages := slices[0].(*[]domain.Package)
 	for _, p := range *packages {
-		ret = append(ret, &PackageCrud{
-			ID:           p.ID,
-			Date:         p.Date.Format(pkg.DateFormat),
-			ServiceID:    p.ServiceID,
-			RecurrenceID: p.RecurrenceID,
-			PriceID:      p.PriceID,
-		})
+		pack := ""
+		if p.Price != nil {
+			pack = fmt.Sprintf("%.2f", *p.Price)
+		}
+		for _, i := range p.Items {
+			unit := ""
+			if i.Price != nil {
+				unit = fmt.Sprintf("%.2f", *i.Price)
+			}
+			ret = append(ret, &PackageCrud{
+				ID:           p.ID,
+				Date:         p.Date.Format(pkg.DateFormat),
+				ServiceID:    i.ServiceID,
+				RecurrenceID: p.RecurrenceID,
+				UnitValue:    pack,
+				PackValue:    unit,
+			})
+		}
 	}
 	return ret
 }
@@ -69,5 +82,5 @@ func (p *PackageCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 // isEmpty is a method that checks if the dto is empty
 func (p *PackageCrud) isEmpty() bool {
 	return p.ID == "" && p.Date == "" && p.ServiceID == "" &&
-		p.RecurrenceID == "" && p.PriceID == ""
+		p.RecurrenceID == "" && p.UnitValue == "" && p.PackValue == ""
 }

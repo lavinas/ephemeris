@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -14,52 +15,36 @@ import (
 
 // Package represents the package entity
 type Package struct {
-	ID           string    `gorm:"type:varchar(50); primaryKey"`
-	Date         time.Time `gorm:"type:datetime; not null; index"`
-	ServiceID    string    `gorm:"type:varchar(50); not null; index"`
-	RecurrenceID string    `gorm:"type:varchar(50); not null; index"`
-	PriceID      string    `gorm:"type:varchar(50); not null; index"`
-}
-
-
-// TODO: substitute Package for Package2
-// TODO: add package needs to be created one package
-// TODO: add package item needs to be created one package item
-// Package2 represents the package entity
-type Package2 struct {
-	ID           string    `gorm:"type:varchar(50); primaryKey"`
-	Date         time.Time `gorm:"type:datetime; not null; index"`
-	RecurrenceID string    `gorm:"type:varchar(50); not null; index"`
-	Price 	     *float64 `gorm:"type:decimal(10,2); not null"`
-}
-
-// TODO: package item with service and value. Put value in package and remove price entity.
-// TODO: create command join to add a item to a package
-// PackageItem represents the package item entity
-type PackageItem struct {
-	ID           string   `gorm:"type:varchar(50); primaryKey"`
-	PackageID    string   `gorm:"type:varchar(50); not null; index"`
-	ServiceID    string   `gorm:"type:varchar(50); not null; index"`
-	Price        *float64 `gorm:"type:decimal(10,2); not null"`
+	ID           string         `gorm:"type:varchar(50); primaryKey"`
+	Date         time.Time      `gorm:"type:datetime; not null; index"`
+	RecurrenceID string         `gorm:"type:varchar(50); not null; index"`
+	Items        []*PackageItem `gorm:"foreignKey:PackageID"`
+	Price        *float64       `gorm:"type:decimal(10,2); not null"`
 }
 
 // NewPackage creates a new package
-func NewPackage(id, date, serviceID, recurrenceID, priceID string) *Package {
+func NewPackage(id, date, serviceID, recurrenceID, unitValue, packValue string) *Package {
 	date = strings.TrimSpace(date)
 	local, _ := time.LoadLocation(pkg.Location)
 	fdate := time.Time{}
+	var err error
 	if date != "" {
-		var err error
 		if fdate, err = time.ParseInLocation(pkg.DateFormat, date, local); err != nil {
 			fdate = time.Time{}
 		}
 	}
+	var p *float64
+	if r, err := strconv.ParseFloat(packValue, 64); err == nil {
+		p = &r
+	}
 	return &Package{
 		ID:           id,
 		Date:         fdate,
-		ServiceID:    serviceID,
 		RecurrenceID: recurrenceID,
-		PriceID:      priceID,
+		Items: []*PackageItem{
+			NewPackageItem(fmt.Sprintf("%s-%s", id, serviceID), id, serviceID, unitValue),
+		},
+		Price: p,
 	}
 }
 
@@ -73,13 +58,13 @@ func (p *Package) Format(repo port.Repository, args ...string) error {
 	if err := p.formatDate(filled); err != nil {
 		msg += err.Error() + " | "
 	}
-	if err := p.formatServiceID(repo, filled); err != nil {
-		msg += err.Error() + " | "
-	}
 	if err := p.formatRecurrenceID(repo, filled); err != nil {
 		msg += err.Error() + " | "
 	}
-	if err := p.formatPriceID(repo, filled); err != nil {
+	if err := p.Items[0].Format(repo, "filled"); err != nil {
+		msg += err.Error() + " | "
+	}
+	if err := p.formatPriceID(filled); err != nil {
 		msg += err.Error() + " | "
 	}
 	if err := p.validateDuplicity(repo, slices.Contains(args, "noduplicity")); err != nil {
@@ -111,22 +96,14 @@ func (p *Package) GetEmpty() port.Domain {
 	return &Package{}
 }
 
+// TableName is a method that returns the table name of the contract
+func (p *Package) TableName() string {
+	return "package"
+}
+
 // GetService is a method that returns the service of the package
 func (p *Package) GetService(repo port.Repository) (*Service, error) {
-	if p.ServiceID == "" {
-		if ok, err := p.Load(repo); err != nil {
-			return nil, err
-		} else if !ok {
-			return nil, errors.New(pkg.ErrPackageNotFound)
-		}
-	}
-	service := &Service{ID: p.ServiceID}
-	if ok, err := service.Load(repo); err != nil {
-		return nil, err
-	} else if !ok {
-		return nil, errors.New(pkg.ErrServiceNotFound)
-	}
-	return service, nil
+	return nil, nil
 }
 
 // GetRecurrence is a method that returns the recurrence of the package
@@ -147,10 +124,6 @@ func (p *Package) GetRecurrence(repo port.Repository) (*Recurrence, error) {
 	return recurrence, nil
 }
 
-// TableName is a method that returns the table name of the contract
-func (p *Package) TableName() string {
-	return "package"
-}
 
 // formatID is a method that formats the id of the package
 func (p *Package) formatID(filled bool) error {
@@ -182,25 +155,6 @@ func (p *Package) formatDate(filled bool) error {
 	return nil
 }
 
-// formatServiceID is a method that formats the service id of the package
-func (p *Package) formatServiceID(repo port.Repository, filled bool) error {
-	serviceID := p.formatString(p.ServiceID)
-	if serviceID == "" {
-		if filled {
-			return nil
-		}
-		return errors.New(pkg.ErrServiceIDNotProvided)
-	}
-	service := &Service{ID: p.ServiceID}
-	service.Format(repo, "filled")
-	if exists, err := service.Load(repo); err != nil {
-		return err
-	} else if !exists {
-		return errors.New(pkg.ErrServiceNotFound)
-	}
-	return nil
-}
-
 // formatRecurrenceID is a method that formats the recurrence id of the contract
 func (p *Package) formatRecurrenceID(repo port.Repository, filled bool) error {
 	recurrenceID := p.formatString(p.RecurrenceID)
@@ -221,20 +175,17 @@ func (p *Package) formatRecurrenceID(repo port.Repository, filled bool) error {
 }
 
 // formatPriceID is a method that formats the price id of the contract
-func (p *Package) formatPriceID(repo port.Repository, filled bool) error {
-	priceID := p.formatString(p.PriceID)
-	if priceID == "" {
+func (p *Package) formatPriceID(filled bool) error {
+	if p.Price == nil {
 		if filled {
 			return nil
 		}
-		return errors.New(pkg.ErrPriceIDNotProvided)
+		if p.Items[0].Price == nil {
+			return errors.New(pkg.ErrEmptyPackOrItemPrice)
+		}
 	}
-	price := &Price{ID: p.PriceID}
-	price.Format(repo, "filled")
-	if exists, err := price.Load(repo); err != nil {
-		return err
-	} else if !exists {
-		return errors.New(pkg.ErrPriceNotFound)
+	if *p.Price < 0 {
+		return errors.New(pkg.ErrInvalidPackPrice)
 	}
 	return nil
 }
