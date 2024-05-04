@@ -86,6 +86,10 @@ func (p *PackageCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 		packMap[p.ID] = &p
 	}
 	for _, i := range *items {
+		seq := "0"
+		if i.Sequence != nil {
+			seq = fmt.Sprintf("%d", *i.Sequence)
+		}
 		if pack, ok := packMap[i.PackageID]; ok {
 			ret = append(ret, &PackageCrud{
 				ID:           pack.ID,
@@ -94,7 +98,7 @@ func (p *PackageCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 				RecurrenceID: pack.RecurrenceID,
 				UnitValue:    fmt.Sprintf("%.2f", *i.Price),
 				PackValue:    fmt.Sprintf("%.2f", *pack.Price),
-				Sequence:     fmt.Sprintf("%d", i.Sequence),
+				Sequence:     seq,
 			})
 		}
 	}

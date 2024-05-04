@@ -17,7 +17,7 @@ type PackageItem struct {
 	ID        string   `gorm:"type:varchar(100); primaryKey"`
 	PackageID string   `gorm:"type:varchar(50); not null; index"`
 	ServiceID string   `gorm:"type:varchar(50); not null; index"`
-	Sequence  int      `gorm:"type:decimal(3,0); index"`
+	Sequence  *int      `gorm:"type:decimal(3,0); index"`
 	Price     *float64 `gorm:"type:decimal(10,2); index"`
 }
 
@@ -27,10 +27,10 @@ func NewPackageItem(id, packageID, serviceID, sequence, price string) *PackageIt
 	if r, err := strconv.ParseFloat(price, 64); err == nil {
 		p = &r
 	}
-	var s int = -1
+	var s *int
 	if seq, err := strconv.Atoi(sequence); err == nil {
-		s = seq
-	}
+		s = &seq
+	}		
 	return &PackageItem{
 		ID:        id,
 		PackageID: packageID,
@@ -150,10 +150,13 @@ func (p *PackageItem) formatServiceID(repo port.Repository, filled bool) error {
 
 // FormatSequence is a method that formats the package item entity
 func (p *PackageItem) formatSequence(filled bool) error {
-	if p.Sequence < 0 || p.Sequence > 999{
+	if p.Sequence == nil{
 		if filled {
 			return nil
 		}
+		return errors.New(pkg.ErrInvalidSequence)
+	}
+	if *p.Sequence < 0 || *p.Sequence > 999 {
 		return errors.New(pkg.ErrInvalidSequence)
 	}
 	return nil
