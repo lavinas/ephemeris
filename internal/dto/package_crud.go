@@ -71,8 +71,8 @@ func (p *PackageCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 				Date:         p.Date.Format(pkg.DateFormat),
 				ServiceID:    i.ServiceID,
 				RecurrenceID: p.RecurrenceID,
-				UnitValue:    pack,
-				PackValue:    unit,
+				UnitValue:    unit,
+				PackValue:    pack,
 			})
 		}
 	}

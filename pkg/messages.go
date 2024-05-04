@@ -161,6 +161,6 @@ const (
 	ErrEmptyPackageID           = "empty package id"
 	ErrEmptyUnitPrice           = "empty or invalid unit price"
 	ErrInvalidUnitPrice         = "unit price should be greater than zero"
-	ErrEmptyPackOrItemPrice     = "package or item price should be informed and not be with error"
+	ErrEmptyPackOrItemPrice     = "a vallid package or item price should be informed"
 	ErrInvalidPackPrice         = "package price should be greater than zero"
 )

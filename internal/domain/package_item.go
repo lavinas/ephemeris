@@ -17,7 +17,7 @@ type PackageItem struct {
 	ID        string   `gorm:"type:varchar(100); primaryKey"`
 	PackageID string   `gorm:"type:varchar(50); not null; index"`
 	ServiceID string   `gorm:"type:varchar(50); not null; index"`
-	Price     *float64 `gorm:"type:decimal(10,2); not null"`
+	Price     *float64 `gorm:"type:decimal(10,2); index"`
 }
 
 // NewPackageItem creates a new package item
@@ -38,16 +38,17 @@ func NewPackageItem(id, packageID, serviceID, price string) *PackageItem {
 func (p *PackageItem) Format(repo port.Repository, args ...string) error {
 	msg := ""
 	filled := slices.Contains(args, "filled")
-	if err := p.formatID(filled); err != nil {
+	compound := slices.Contains(args, "compound")
+	if err := p.formatID(filled, compound); err != nil {
 		msg = err.Error()
 	}
-	if err := p.formatPackageID(repo, filled); err != nil {
+	if err := p.formatPackageID(repo, filled, compound); err != nil {
 		msg += err.Error()
 	}
 	if err := p.formatServiceID(repo, filled); err != nil {
 		msg += err.Error()
 	}
-	if err := p.formatPrice(filled); err != nil {
+	if err := p.formatPrice(filled, compound); err != nil {
 		msg += err.Error()
 	}
 	if msg != "" {
@@ -82,9 +83,11 @@ func (p *PackageItem) TableName() string {
 }
 
 // FormatID is a method that formats the package item entity
-func (p *PackageItem) formatID(filled bool) error {
+func (p *PackageItem) formatID(filled bool, compound bool) error {
+	if compound {
+		return nil
+	}
 	id := p.formatString(p.ID)
-
 	if id == "" {
 		if filled {
 			return nil
@@ -102,7 +105,10 @@ func (p *PackageItem) formatID(filled bool) error {
 }
 
 // FormatPackageID is a method that formats the package item entity
-func (p *PackageItem) formatPackageID(repo port.Repository, filled bool) error {
+func (p *PackageItem) formatPackageID(repo port.Repository, filled bool, compound bool) error {
+	if compound {
+		return nil
+	}
 	if p.PackageID == "" {
 		if filled {
 			return nil
@@ -138,7 +144,10 @@ func (p *PackageItem) formatServiceID(repo port.Repository, filled bool) error {
 }
 
 // FormatPrice is a method that formats the package item entity
-func (p *PackageItem) formatPrice(filled bool) error {
+func (p *PackageItem) formatPrice(filled bool, compound bool) error {
+	if compound {
+		return nil
+	}
 	if p.Price == nil {
 		if filled {
 			return nil

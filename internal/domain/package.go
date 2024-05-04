@@ -19,7 +19,7 @@ type Package struct {
 	Date         time.Time      `gorm:"type:datetime; not null; index"`
 	RecurrenceID string         `gorm:"type:varchar(50); not null; index"`
 	Items        []*PackageItem `gorm:"foreignKey:PackageID"`
-	Price        *float64       `gorm:"type:decimal(10,2); not null"`
+	Price        *float64       `gorm:"type:decimal(10,2); index"`
 }
 
 // NewPackage creates a new package
@@ -61,7 +61,8 @@ func (p *Package) Format(repo port.Repository, args ...string) error {
 	if err := p.formatRecurrenceID(repo, filled); err != nil {
 		msg += err.Error() + " | "
 	}
-	if err := p.Items[0].Format(repo, "filled"); err != nil {
+	args = append(args, "compound")
+	if err := p.Items[0].Format(repo, args...); err != nil {
 		msg += err.Error() + " | "
 	}
 	if err := p.formatPriceID(filled); err != nil {
@@ -183,6 +184,7 @@ func (p *Package) formatPriceID(filled bool) error {
 		if p.Items[0].Price == nil {
 			return errors.New(pkg.ErrEmptyPackOrItemPrice)
 		}
+		return nil
 	}
 	if *p.Price < 0 {
 		return errors.New(pkg.ErrInvalidPackPrice)

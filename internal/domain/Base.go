@@ -8,6 +8,7 @@ func All() []interface{} {
 		&Recurrence{},
 		&Price{},
 		&Package{},
+		&PackageItem{},
 		&Contract{},
 		&Agenda{},
 		&Invoice{},
