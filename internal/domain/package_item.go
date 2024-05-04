@@ -17,19 +17,25 @@ type PackageItem struct {
 	ID        string   `gorm:"type:varchar(100); primaryKey"`
 	PackageID string   `gorm:"type:varchar(50); not null; index"`
 	ServiceID string   `gorm:"type:varchar(50); not null; index"`
+	Sequence  int      `gorm:"type:decimal(3,0); index"`
 	Price     *float64 `gorm:"type:decimal(10,2); index"`
 }
 
 // NewPackageItem creates a new package item
-func NewPackageItem(id, packageID, serviceID, price string) *PackageItem {
+func NewPackageItem(id, packageID, serviceID, sequence, price string) *PackageItem {
 	var p *float64
 	if r, err := strconv.ParseFloat(price, 64); err == nil {
 		p = &r
+	}
+	var s int = -1
+	if seq, err := strconv.Atoi(sequence); err == nil {
+		s = seq
 	}
 	return &PackageItem{
 		ID:        id,
 		PackageID: packageID,
 		ServiceID: serviceID,
+		Sequence:  s,
 		Price:     p,
 	}
 }
@@ -38,17 +44,22 @@ func NewPackageItem(id, packageID, serviceID, price string) *PackageItem {
 func (p *PackageItem) Format(repo port.Repository, args ...string) error {
 	msg := ""
 	filled := slices.Contains(args, "filled")
-	compound := slices.Contains(args, "compound")
-	if err := p.formatID(filled, compound); err != nil {
+	if err := p.formatID(filled); err != nil {
 		msg = err.Error()
 	}
-	if err := p.formatPackageID(repo, filled, compound); err != nil {
+	if err := p.formatPackageID(repo, filled); err != nil {
 		msg += err.Error()
 	}
 	if err := p.formatServiceID(repo, filled); err != nil {
 		msg += err.Error()
 	}
-	if err := p.formatPrice(filled, compound); err != nil {
+	if err := p.formatPrice(filled); err != nil {
+		msg += err.Error()
+	}
+	if err := p.formatSequence(filled); err != nil {
+		msg += err.Error()
+	}
+	if err := p.validateDuplicity(repo, slices.Contains(args, "noduplicity")); err != nil {
 		msg += err.Error()
 	}
 	if msg != "" {
@@ -83,10 +94,7 @@ func (p *PackageItem) TableName() string {
 }
 
 // FormatID is a method that formats the package item entity
-func (p *PackageItem) formatID(filled bool, compound bool) error {
-	if compound {
-		return nil
-	}
+func (p *PackageItem) formatID(filled bool) error {
 	id := p.formatString(p.ID)
 	if id == "" {
 		if filled {
@@ -105,10 +113,7 @@ func (p *PackageItem) formatID(filled bool, compound bool) error {
 }
 
 // FormatPackageID is a method that formats the package item entity
-func (p *PackageItem) formatPackageID(repo port.Repository, filled bool, compound bool) error {
-	if compound {
-		return nil
-	}
+func (p *PackageItem) formatPackageID(repo port.Repository, filled bool) error {
 	if p.PackageID == "" {
 		if filled {
 			return nil
@@ -143,11 +148,19 @@ func (p *PackageItem) formatServiceID(repo port.Repository, filled bool) error {
 	return nil
 }
 
-// FormatPrice is a method that formats the package item entity
-func (p *PackageItem) formatPrice(filled bool, compound bool) error {
-	if compound {
-		return nil
+// FormatSequence is a method that formats the package item entity
+func (p *PackageItem) formatSequence(filled bool) error {
+	if p.Sequence < 0 || p.Sequence > 999{
+		if filled {
+			return nil
+		}
+		return errors.New(pkg.ErrInvalidSequence)
 	}
+	return nil
+}
+
+// FormatPrice is a method that formats the package item entity
+func (p *PackageItem) formatPrice(filled bool) error {
 	if p.Price == nil {
 		if filled {
 			return nil
@@ -156,6 +169,21 @@ func (p *PackageItem) formatPrice(filled bool, compound bool) error {
 	}
 	if *p.Price < 0 {
 		return errors.New(pkg.ErrInvalidUnitPrice)
+	}
+	return nil
+}
+
+// ValidateDuplicity is a method that validates the duplicity of the package item entity
+func (p *PackageItem) validateDuplicity(repo port.Repository, noduplicity bool) error {
+	if noduplicity {
+		return nil
+	}
+	ok, err := repo.Get(&PackageItem{}, p.ID)
+	if err != nil {
+		return err
+	}
+	if ok {
+		return errors.New(pkg.ErrItemAlreadyExists)
 	}
 	return nil
 }

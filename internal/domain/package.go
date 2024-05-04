@@ -15,15 +15,14 @@ import (
 
 // Package represents the package entity
 type Package struct {
-	ID           string         `gorm:"type:varchar(50); primaryKey"`
-	Date         time.Time      `gorm:"type:datetime; not null; index"`
-	RecurrenceID string         `gorm:"type:varchar(50); not null; index"`
-	Items        []*PackageItem `gorm:"foreignKey:PackageID"`
-	Price        *float64       `gorm:"type:decimal(10,2); index"`
+	ID           string    `gorm:"type:varchar(50); primaryKey"`
+	Date         time.Time `gorm:"type:datetime; not null; index"`
+	RecurrenceID string    `gorm:"type:varchar(50); not null; index"`
+	Price        *float64  `gorm:"type:decimal(10,2); index"`
 }
 
 // NewPackage creates a new package
-func NewPackage(id, date, serviceID, recurrenceID, unitValue, packValue string) *Package {
+func NewPackage(id, date, serviceID, recurrenceID, packValue string) *Package {
 	date = strings.TrimSpace(date)
 	local, _ := time.LoadLocation(pkg.Location)
 	fdate := time.Time{}
@@ -41,10 +40,7 @@ func NewPackage(id, date, serviceID, recurrenceID, unitValue, packValue string) 
 		ID:           id,
 		Date:         fdate,
 		RecurrenceID: recurrenceID,
-		Items: []*PackageItem{
-			NewPackageItem(fmt.Sprintf("%s-%s", id, serviceID), id, serviceID, unitValue),
-		},
-		Price: p,
+		Price:        p,
 	}
 }
 
@@ -61,11 +57,7 @@ func (p *Package) Format(repo port.Repository, args ...string) error {
 	if err := p.formatRecurrenceID(repo, filled); err != nil {
 		msg += err.Error() + " | "
 	}
-	args = append(args, "compound")
-	if err := p.Items[0].Format(repo, args...); err != nil {
-		msg += err.Error() + " | "
-	}
-	if err := p.formatPriceID(filled); err != nil {
+	if err := p.formatPrice(filled); err != nil {
 		msg += err.Error() + " | "
 	}
 	if err := p.validateDuplicity(repo, slices.Contains(args, "noduplicity")); err != nil {
@@ -125,7 +117,6 @@ func (p *Package) GetRecurrence(repo port.Repository) (*Recurrence, error) {
 	return recurrence, nil
 }
 
-
 // formatID is a method that formats the id of the package
 func (p *Package) formatID(filled bool) error {
 	id := p.formatString(p.ID)
@@ -176,15 +167,12 @@ func (p *Package) formatRecurrenceID(repo port.Repository, filled bool) error {
 }
 
 // formatPriceID is a method that formats the price id of the contract
-func (p *Package) formatPriceID(filled bool) error {
+func (p *Package) formatPrice(filled bool) error {
 	if p.Price == nil {
 		if filled {
 			return nil
 		}
-		if p.Items[0].Price == nil {
-			return errors.New(pkg.ErrEmptyPackOrItemPrice)
-		}
-		return nil
+		return errors.New(pkg.ErrPriceIDNotProvided)
 	}
 	if *p.Price < 0 {
 		return errors.New(pkg.ErrInvalidPackPrice)

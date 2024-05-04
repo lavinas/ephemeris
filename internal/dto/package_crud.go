@@ -2,8 +2,9 @@ package dto
 
 import (
 	"errors"
-	"time"
 	"fmt"
+	"time"
+	"strconv"
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"
@@ -20,6 +21,7 @@ type PackageCrud struct {
 	RecurrenceID string `json:"recurrence" command:"name:recurrence;pos:3+"`
 	UnitValue    string `json:"unit" command:"name:unit;pos:3+"`
 	PackValue    string `json:"pack" command:"name:pack;pos:3+"`
+	Sequence     string `json:"sequence" command:"name:sequence;pos:3+"`
 }
 
 // Validate is a method that validates the dto
@@ -37,12 +39,34 @@ func (p *PackageCrud) GetCommand() string {
 
 // GetDomain is a method that returns a domain representation of the package dto
 func (p *PackageCrud) GetDomain() []port.Domain {
-	if p.Action == "add" && p.Date == "" {
-		time.Local, _ = time.LoadLocation(pkg.Location)
-		p.Date = time.Now().Format(pkg.DateFormat)
+	itemId := ""
+	if p.Action == "add" {
+		if p.Date == "" {
+			time.Local, _ = time.LoadLocation(pkg.Location)
+			p.Date = time.Now().Format(pkg.DateFormat)
+		}
+		if p.UnitValue == "" {
+			p.UnitValue = "0"
+		}
+		if p.PackValue == "" {
+			p.PackValue = "0"
+		}
+		if p.Sequence == "" {
+			p.Sequence = "0"
+		}
+		seq, _ := strconv.Atoi(p.Sequence)
+		itemId = fmt.Sprintf("%s_%03d", p.ID, seq)
+	}
+	if p.Action == "up" {
+		if p.Sequence == "" {
+			p.Sequence = "0"
+		}
+		seq, _ := strconv.Atoi(p.Sequence)
+		itemId = fmt.Sprintf("%s_%03d", p.ID, seq)
 	}
 	return []port.Domain{
-		domain.NewPackage(p.ID, p.Date, p.ServiceID, p.RecurrenceID, p.UnitValue, p.PackValue),
+		domain.NewPackage(p.ID, p.Date, p.ServiceID, p.RecurrenceID, p.PackValue),
+		domain.NewPackageItem(itemId, p.ID, p.ServiceID, p.Sequence, p.UnitValue),
 	}
 }
 
@@ -56,23 +80,21 @@ func (p *PackageCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 	ret := []port.DTOOut{}
 	slices := domainIn.([]interface{})
 	packages := slices[0].(*[]domain.Package)
+	items := slices[1].(*[]domain.PackageItem)
+	packMap := make(map[string]*domain.Package)
 	for _, p := range *packages {
-		pack := ""
-		if p.Price != nil {
-			pack = fmt.Sprintf("%.2f", *p.Price)
-		}
-		for _, i := range p.Items {
-			unit := ""
-			if i.Price != nil {
-				unit = fmt.Sprintf("%.2f", *i.Price)
-			}
+		packMap[p.ID] = &p
+	}
+	for _, i := range *items {
+		if pack, ok := packMap[i.PackageID]; ok {
 			ret = append(ret, &PackageCrud{
-				ID:           p.ID,
-				Date:         p.Date.Format(pkg.DateFormat),
+				ID:           pack.ID,
+				Date:         pack.Date.Format(pkg.DateFormat),
 				ServiceID:    i.ServiceID,
-				RecurrenceID: p.RecurrenceID,
-				UnitValue:    unit,
-				PackValue:    pack,
+				RecurrenceID: pack.RecurrenceID,
+				UnitValue:    fmt.Sprintf("%.2f", *i.Price),
+				PackValue:    fmt.Sprintf("%.2f", *pack.Price),
+				Sequence:     fmt.Sprintf("%d", i.Sequence),
 			})
 		}
 	}
@@ -82,5 +104,5 @@ func (p *PackageCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 // isEmpty is a method that checks if the dto is empty
 func (p *PackageCrud) isEmpty() bool {
 	return p.ID == "" && p.Date == "" && p.ServiceID == "" &&
-		p.RecurrenceID == "" && p.UnitValue == "" && p.PackValue == ""
+		p.RecurrenceID == "" && p.UnitValue == "" && p.PackValue == "" && p.Sequence == ""
 }

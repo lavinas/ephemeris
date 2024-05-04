@@ -168,6 +168,9 @@ func (r *MySql) Find(base interface{}, limit int, extras ...interface{}) (interf
 
 // where is a method that filters the query
 func (r *MySql) where(tx *gorm.DB, sob reflect.Type, base interface{}, extras ...interface{}) (*gorm.DB, error) {
+	if sob.Kind() == reflect.Ptr {
+		sob = sob.Elem()
+	}
 	for i := 0; i < sob.NumField(); i++ {
 		isgorm := sob.Field(i).Tag.Get("gorm")
 		if isgorm == "-" || isgorm == "" {

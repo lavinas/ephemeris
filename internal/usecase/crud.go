@@ -1,6 +1,8 @@
 package usecase
 
 import (
+	"fmt"
+
 	"github.com/lavinas/ephemeris/internal/port"
 	"github.com/lavinas/ephemeris/pkg"
 )
@@ -47,6 +49,7 @@ func (c *Usecase) Get(dtoIn interface{}) error {
 	domains := in.GetDomain()
 	result := []interface{}{}
 	limited := false
+	fmt.Println(0, domains)
 	for _, domain := range domains {
 		if err := domain.Format(c.Repo, "filled", "noduplicity"); err != nil {
 			return c.error(pkg.ErrPrefBadRequest, err.Error())

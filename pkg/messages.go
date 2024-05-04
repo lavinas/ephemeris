@@ -161,6 +161,8 @@ const (
 	ErrEmptyPackageID           = "empty package id"
 	ErrEmptyUnitPrice           = "empty or invalid unit price"
 	ErrInvalidUnitPrice         = "unit price should be greater than zero"
-	ErrEmptyPackOrItemPrice     = "a vallid package or item price should be informed"
+	ErrEmptyPackPrice           = "empty or invalid package price"
 	ErrInvalidPackPrice         = "package price should be greater than zero"
+	ErrInvalidSequence          = "invalid or unfound sequence. Should be numeric and beetween 0 and 999"
+	ErrItemAlreadyExists        = "package item already exists with this sequence"
 )
