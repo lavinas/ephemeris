@@ -35,11 +35,11 @@ const (
 	BillingTypePosSession       = "pos-session"
 	BillingTypePerSession       = "per-session"
 	DefaultBillingType          = BillingTypePrePaid
-	AgendaKindSlated            = "slated"
+	AgendaKindSlated            = "open"
 	AgendaKindRescheduled       = "rescheduled"
 	AgendaKindExtra             = "extra"
 	DefaulltAgendaKind          = AgendaKindSlated
-	AgendaStatusSlated          = "slated"
+	AgendaStatusSlated          = "open"
 	AgendaStatusDone            = "done"
 	AgendaStatusCanceled        = "canceled"
 	AgendaStatusOverdue         = "overdue"
