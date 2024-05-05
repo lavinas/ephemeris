@@ -88,6 +88,17 @@ func (p *PackageItem) GetEmpty() port.Domain {
 	return &PackageItem{}
 }
 
+// GetService is a method that returns the service of the package item
+func (p *PackageItem) GetService(repo port.Repository) (*Service, error) {
+	service := &Service{ID: p.ServiceID}
+	if exists, err := service.Load(repo); err != nil {
+		return nil, err
+	} else if !exists {
+		return nil, errors.New(pkg.ErrServiceNotFound)
+	}
+	return service, nil
+}
+
 // TableName is a method that returns the table name of the contract
 func (p *PackageItem) TableName() string {
 	return "package_item"
