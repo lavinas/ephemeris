@@ -17,8 +17,8 @@ type PackageCrud struct {
 	Action       string `json:"-" command:"name:add,get,up;key;pos:2-"`
 	ID           string `json:"id" command:"name:id;pos:3+"`
 	Date         string `json:"date" command:"name:date;pos:3+"`
-	ServiceID    string `json:"service" command:"name:service;pos:3+"`
 	RecurrenceID string `json:"recurrence" command:"name:recurrence;pos:3+"`
+	ServiceID    string `json:"service" command:"name:service;pos:3+"`
 	UnitValue    string `json:"unit" command:"name:unit;pos:3+"`
 	PackValue    string `json:"pack" command:"name:pack;pos:3+"`
 	Sequence     string `json:"seq" command:"name:seq;pos:3+"`
@@ -90,17 +90,27 @@ func (p *PackageCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 	for _, p := range *packages {
 		packMap[p.ID] = &p
 	}
+	last := ""
 	for _, i := range *items {
 		seq := "0"
 		if i.Sequence != nil {
 			seq = fmt.Sprintf("%d", *i.Sequence)
 		}
 		if pack, ok := packMap[i.PackageID]; ok {
+			id := pack.ID
+			date := pack.Date.Format(pkg.DateFormat)
+			recurrence := pack.RecurrenceID
+			if last == id {
+				id = ""
+				date = ""
+				recurrence = ""
+			}
+			last = pack.ID
 			ret = append(ret, &PackageCrud{
-				ID:           pack.ID,
-				Date:         pack.Date.Format(pkg.DateFormat),
+				ID:           id,
+				Date:         date,
+				RecurrenceID: recurrence,
 				ServiceID:    i.ServiceID,
-				RecurrenceID: pack.RecurrenceID,
 				UnitValue:    fmt.Sprintf("%.2f", *i.Price),
 				PackValue:    fmt.Sprintf("%.2f", *pack.Price),
 				Sequence:     seq,
