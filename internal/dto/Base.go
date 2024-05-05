@@ -9,6 +9,7 @@ func All() []interface{} {
 		&InvoiceCrud{},
 		&InvoiceItemCrud{},
 		&PackageCrud{},
+		&PackageAppend{},
 		&PriceCrud{},
 		&RecurrenceCrud{},
 		&ServiceCrud{},

@@ -21,7 +21,8 @@ type PackageCrud struct {
 	RecurrenceID string `json:"recurrence" command:"name:recurrence;pos:3+"`
 	UnitValue    string `json:"unit" command:"name:unit;pos:3+"`
 	PackValue    string `json:"pack" command:"name:pack;pos:3+"`
-	Sequence     string `json:"sequence" command:"name:sequence;pos:3+"`
+	Sequence     string `json:"seq" command:"name:seq;pos:3+"`
+	SequenceUp   string `json:"sequp" command:"name:sequp;pos:3+"`
 }
 
 // Validate is a method that validates the dto
@@ -57,16 +58,20 @@ func (p *PackageCrud) GetDomain() []port.Domain {
 		seq, _ := strconv.Atoi(p.Sequence)
 		itemId = fmt.Sprintf("%s_%03d", p.ID, seq)
 	}
+	seqUp := p.Sequence
 	if p.Action == "up" {
 		if p.Sequence == "" {
 			p.Sequence = "0"
 		}
 		seq, _ := strconv.Atoi(p.Sequence)
 		itemId = fmt.Sprintf("%s_%03d", p.ID, seq)
+		if p.SequenceUp != "" {
+			seqUp = p.SequenceUp
+		}
 	}
 	return []port.Domain{
 		domain.NewPackage(p.ID, p.Date, p.ServiceID, p.RecurrenceID, p.PackValue),
-		domain.NewPackageItem(itemId, p.ID, p.ServiceID, p.Sequence, p.UnitValue),
+		domain.NewPackageItem(itemId, p.ID, p.ServiceID, seqUp, p.UnitValue),
 	}
 }
 

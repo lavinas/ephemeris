@@ -17,7 +17,7 @@ type PackageItem struct {
 	ID        string   `gorm:"type:varchar(100); primaryKey"`
 	PackageID string   `gorm:"type:varchar(50); not null; index"`
 	ServiceID string   `gorm:"type:varchar(50); not null; index"`
-	Sequence  *int      `gorm:"type:decimal(3,0); index"`
+	Sequence  *int     `gorm:"type:decimal(3,0); index"`
 	Price     *float64 `gorm:"type:decimal(10,2); index"`
 }
 
@@ -30,7 +30,7 @@ func NewPackageItem(id, packageID, serviceID, sequence, price string) *PackageIt
 	var s *int
 	if seq, err := strconv.Atoi(sequence); err == nil {
 		s = &seq
-	}		
+	}
 	return &PackageItem{
 		ID:        id,
 		PackageID: packageID,
@@ -45,25 +45,25 @@ func (p *PackageItem) Format(repo port.Repository, args ...string) error {
 	msg := ""
 	filled := slices.Contains(args, "filled")
 	if err := p.formatID(filled); err != nil {
-		msg = err.Error()
+		msg = err.Error() + " | "
 	}
 	if err := p.formatPackageID(repo, filled); err != nil {
-		msg += err.Error()
+		msg += err.Error() + " | "
 	}
 	if err := p.formatServiceID(repo, filled); err != nil {
-		msg += err.Error()
+		msg += err.Error() + " | "
 	}
 	if err := p.formatPrice(filled); err != nil {
-		msg += err.Error()
+		msg += err.Error() + " | "
 	}
 	if err := p.formatSequence(filled); err != nil {
-		msg += err.Error()
+		msg += err.Error() + " | "
 	}
 	if err := p.validateDuplicity(repo, slices.Contains(args, "noduplicity")); err != nil {
-		msg += err.Error()
+		msg += err.Error()  + " | "
 	}
 	if msg != "" {
-		return errors.New(msg)
+		return errors.New(msg[:len(msg)-3])
 	}
 	return nil
 }
@@ -150,7 +150,7 @@ func (p *PackageItem) formatServiceID(repo port.Repository, filled bool) error {
 
 // FormatSequence is a method that formats the package item entity
 func (p *PackageItem) formatSequence(filled bool) error {
-	if p.Sequence == nil{
+	if p.Sequence == nil {
 		if filled {
 			return nil
 		}
