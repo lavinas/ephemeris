@@ -95,7 +95,7 @@ func (p *Package) TableName() string {
 }
 
 // GetService is a method that returns the service of the package
-func (p *Package) GetService(repo port.Repository) (*Service, error) {
+func (p *Package) GetService(repo port.Repository) ([]*Service, error) {
 	services := []*Service{}
 	i, _, err := repo.Find(&PackageItem{PackageID: p.ID}, 999)
 	if err != nil {
@@ -112,7 +112,7 @@ func (p *Package) GetService(repo port.Repository) (*Service, error) {
 		}
 		services = append(services, service)
 	}
-	return services[0], nil
+	return services, nil
 }
 
 // GetRecurrence is a method that returns the recurrence of the package
