@@ -111,8 +111,8 @@ func (u *Usecase) GenerateAgenda(dtoIn port.DTOIn, contract *domain.Contract, mo
 	if err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error())
 	}
+	agenda := dtoIn.GetDomain()[0].(*domain.Agenda)
 	for i := 0; i < len(starts); i++ {
-		agenda := dtoIn.GetDomain()[0].(*domain.Agenda)
 		u.setDates(agenda, contract.ClientID, starts[i], ends[i])
 		if err := agenda.Format(u.Repo); err != nil {
 			return nil, u.error(pkg.ErrPrefBadRequest, err.Error())
@@ -177,7 +177,7 @@ func (u *Usecase) getPackageParams(packId string) (*domain.Recurrence, []*domain
 
 // setDates sets the dates of the agenda and id based on dates and contract and month
 func (u *Usecase) setDates(agenda *domain.Agenda, clientID string, start time.Time, end time.Time) {
-	agenda.ID = fmt.Sprintf(idFormat, clientID, start.Format(idDateFormat))
+	agenda.ID = fmt.Sprintf(idFormat, start.Format(idDateFormat), clientID)
 	agenda.Start = start
 	agenda.End = end
 }
