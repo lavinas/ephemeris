@@ -24,7 +24,7 @@ services:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: ephemeris
     volumes:
-      - ./.mysql:/var/lib/.mysql
+      - ./mysql:/var/lib/mysql
     ports:
       - "3310:3306"
  
