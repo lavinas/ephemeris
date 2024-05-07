@@ -3,8 +3,8 @@ package dto
 import (
 	"errors"
 	"fmt"
-	"time"
 	"strconv"
+	"time"
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"

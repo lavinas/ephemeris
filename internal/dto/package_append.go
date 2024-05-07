@@ -12,12 +12,12 @@ import (
 
 // PackageAppend is a struct that represents the package append dto
 type PackageAppend struct {
-	Object       string `json:"-" command:"name:package;key;pos:2-"`
-	Action       string `json:"-" command:"name:append;key;pos:2-"`
-	ID           string `json:"id" command:"name:id;pos:3+"`
-	ServiceID    string `json:"service" command:"name:service;pos:3+"`
-	UnitValue    string `json:"unit" command:"name:unit;pos:3+"`
-	Sequence     string `json:"seq" command:"name:seq;pos:3+"`
+	Object    string `json:"-" command:"name:package;key;pos:2-"`
+	Action    string `json:"-" command:"name:append;key;pos:2-"`
+	ID        string `json:"id" command:"name:id;pos:3+"`
+	ServiceID string `json:"service" command:"name:service;pos:3+"`
+	UnitValue string `json:"unit" command:"name:unit;pos:3+"`
+	Sequence  string `json:"seq" command:"name:seq;pos:3+"`
 }
 
 // Validate is a method that validates the dto
@@ -74,4 +74,3 @@ func (p *PackageAppend) GetDTO(domainIn interface{}) []port.DTOOut {
 func (p *PackageAppend) isEmpty() bool {
 	return p.ID == "" && p.ServiceID == "" && p.UnitValue == "" && p.Sequence == ""
 }
-

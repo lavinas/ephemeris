@@ -87,14 +87,14 @@ func (u *Usecase) GenerateAgenda(dtoIn port.DTOIn, contract *domain.Contract, mo
 	if err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error())
 	}
-	ret, err := u.getAgenda(dtoIn, contract, starts, ends)
+	agendas, err := u.getAgenda(dtoIn, contract, starts, ends)
 	if err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error())
 	}
 	if err := u.Repo.Commit(); err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error())
 	}
-	return ret, nil
+	return agendas, nil
 }
 
 // GetContracts is a method that returns all contracts of a client
@@ -120,7 +120,7 @@ func (u *Usecase) getContracts(clientID, contractID string) (*[]domain.Contract,
 }
 
 // getAgenda generates the agenda based on the contract
-func (u *Usecase) getAgenda(dtoIn port.DTOIn, contract  *domain.Contract, starts []time.Time, ends []time.Time) ([]port.DTOOut, error) {
+func (u *Usecase) getAgenda(dtoIn port.DTOIn, contract *domain.Contract, starts []time.Time, ends []time.Time) ([]port.DTOOut, error) {
 	ret := []port.DTOOut{}
 	agenda := dtoIn.GetDomain()[0].(*domain.Agenda)
 	dtoOut := dtoIn.GetOut()
@@ -137,18 +137,11 @@ func (u *Usecase) getAgenda(dtoIn port.DTOIn, contract  *domain.Contract, starts
 		ret = append(ret, dtoOut.GetDTO(agenda)...)
 	}
 	return ret, nil
-
 }
 
 // getDates returns the dates of the contract based on the month
 func (u *Usecase) getDates(contract *domain.Contract, month time.Time) ([]time.Time, []time.Time, error) {
-	beginMonth := time.Date(month.Year(), month.Month(), 1, 0, 0, 0, 0, time.Local)
-	endMonth := beginMonth.AddDate(0, 1, 0).Add(time.Nanosecond * -1)
-	if contract.End != nil && contract.End.Before(endMonth) {
-		endMonth = *contract.End
-		endMonth = endMonth.AddDate(0, 0, 1).Add(time.Nanosecond * -1)
-	}
-	starts, ends, err := u.mountDates(contract, beginMonth, endMonth)
+	starts, ends, err := u.mountDates(contract, month)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -160,17 +153,18 @@ func (u *Usecase) getDates(contract *domain.Contract, month time.Time) ([]time.T
 }
 
 // mountDates returns the dates of the contract based on the month
-func (u *Usecase) mountDates(contract *domain.Contract, beginMonth, endMonth time.Time) ([]time.Time, []time.Time, error) {
-	starts := []time.Time{}
-	ends := []time.Time{}
+func (u *Usecase) mountDates(contract *domain.Contract, month time.Time) ([]time.Time, []time.Time, error) {
+	beginMonth, endMonth := u.getMonthBound(contract, month)
 	recur, services, err := u.getPackageParams(contract.PackageID)
 	if err != nil {
 		return nil, nil, err
 	}
+	starts := []time.Time{}
+	ends := []time.Time{}
 	count := 0
 	appended := 0
 	for start := &contract.Start; start != nil && !start.After(endMonth); start = recur.Next(*start) {
-		m := services[count % len(services)].Minutes
+		m := services[count%len(services)].Minutes
 		count++
 		var minutes int64 = 0
 		if m != nil {
@@ -186,7 +180,17 @@ func (u *Usecase) mountDates(contract *domain.Contract, beginMonth, endMonth tim
 		}
 	}
 	return starts, ends, nil
+}
 
+// getMonthBound returns the bound of the contract based on the month
+func (u *Usecase) getMonthBound(contract *domain.Contract, month time.Time) (time.Time, time.Time) {
+	beginMonth := time.Date(month.Year(), month.Month(), 1, 0, 0, 0, 0, time.Local)
+	endMonth := beginMonth.AddDate(0, 1, 0).Add(time.Nanosecond * -1)
+	if contract.End != nil && contract.End.Before(endMonth) {
+		endMonth = *contract.End
+		endMonth = endMonth.AddDate(0, 0, 1).Add(time.Nanosecond * -1)
+	}
+	return beginMonth, endMonth
 }
 
 // delBound deletes the bound of the contract
@@ -207,7 +211,7 @@ func (u *Usecase) delBound(contract *domain.Contract, month time.Time, starts, e
 }
 
 // minus returns the subtracted slice minus the subtractor slice
-func (u *Usecase) minus(subtracted []time.Time, subtractor[]time.Time) ([]time.Time, []int) {
+func (u *Usecase) minus(subtracted []time.Time, subtractor []time.Time) ([]time.Time, []int) {
 	times := []time.Time{}
 	pos := []int{}
 	maps := make(map[time.Time]bool)
@@ -226,7 +230,7 @@ func (u *Usecase) minus(subtracted []time.Time, subtractor[]time.Time) ([]time.T
 }
 
 // keep returns the slice with the positions
-func (u *Usecase) keep(times []time.Time, pos[]int) ([]time.Time) {
+func (u *Usecase) keep(times []time.Time, pos []int) []time.Time {
 	ret := []time.Time{}
 	for _, p := range pos {
 		ret = append(ret, times[p])

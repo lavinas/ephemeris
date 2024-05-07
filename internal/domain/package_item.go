@@ -60,7 +60,7 @@ func (p *PackageItem) Format(repo port.Repository, args ...string) error {
 		msg += err.Error() + " | "
 	}
 	if err := p.validateDuplicity(repo, slices.Contains(args, "noduplicity")); err != nil {
-		msg += err.Error()  + " | "
+		msg += err.Error() + " | "
 	}
 	if msg != "" {
 		return errors.New(msg[:len(msg)-3])
