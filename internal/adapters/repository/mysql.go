@@ -148,7 +148,7 @@ func (r *MySql) Find(base interface{}, limit int, extras ...interface{}) (interf
 	result := reflect.New(reflect.SliceOf(sob)).Interface()
 	tx := r.Db.Session(&gorm.Session{})
 	var err error
-	tx, err = r.where(tx, sob, base, extras)
+	tx, err = r.where(tx, sob, base, extras...)
 	if err != nil {
 		return nil, false, err
 	}

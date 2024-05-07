@@ -22,7 +22,7 @@ func (u *Usecase) AgendaMake(dtoIn interface{}) error {
 		return u.error(pkg.ErrPrefBadRequest, err.Error())
 	}
 	month, _ := time.Parse(pkg.MonthFormat, dtoAgenda.Month)
-	contracts, err := u.getContracts(dtoAgenda.ClientID, dtoAgenda.ContractID)
+	contracts, err := u.getContracts(dtoAgenda.ClientID, dtoAgenda.ContractID, month)
 	if err != nil {
 		return err
 	}
@@ -98,9 +98,9 @@ func (u *Usecase) GenerateAgenda(dtoIn port.DTOIn, contract *domain.Contract, mo
 }
 
 // GetContracts is a method that returns all contracts of a client
-func (u *Usecase) getContracts(clientID, contractID string) (*[]domain.Contract, error) {
+func (u *Usecase) getContracts(clientID, contractID string, month time.Time) (*[]domain.Contract, error) {
 	if contractID == "" && clientID == "" {
-		return nil, u.error(pkg.ErrPrefBadRequest, pkg.ErrClientContractEmpty)
+		return u.getContractsByMonth(month)
 	}
 	contract := &domain.Contract{}
 	if clientID != "" {
@@ -117,6 +117,30 @@ func (u *Usecase) getContracts(clientID, contractID string) (*[]domain.Contract,
 		return nil, u.error(pkg.ErrPrefBadRequest, pkg.ErrUnfound)
 	}
 	return ret.(*[]domain.Contract), nil
+}
+
+
+// getContractsByMonth is a method that returns all contracts of a client based on the month
+func (u *Usecase) getContractsByMonth(month time.Time) (*[]domain.Contract, error) {
+	firstday := time.Date(month.Year(), month.Month(), 1, 0, 0, 0, 0, time.Local)
+	lastday := firstday.AddDate(0, 1, 0).Add(time.Nanosecond * -1)
+	contract := &domain.Contract{}
+	if err := u.Repo.Begin(); err != nil {
+		return nil, u.error(pkg.ErrPrefInternal, err.Error())
+	}
+	defer u.Repo.Rollback()
+	ret, _, err := u.Repo.Find(contract, 100, "start <= ? AND (end IS NULL OR end >= ?)", lastday, firstday)
+	if err != nil {
+		return nil, u.error(pkg.ErrPrefInternal, err.Error())
+	}
+	if ret == nil {
+		return nil, u.error(pkg.ErrPrefBadRequest, pkg.ErrUnfound)
+	}
+	if err := u.Repo.Commit(); err != nil {
+		return nil, u.error(pkg.ErrPrefInternal, err.Error())
+	}
+	return ret.(*[]domain.Contract), nil
+
 }
 
 // getAgenda generates the agenda based on the contract
@@ -154,7 +178,7 @@ func (u *Usecase) getDates(contract *domain.Contract, month time.Time) ([]time.T
 
 // mountDates returns the dates of the contract based on the month
 func (u *Usecase) mountDates(contract *domain.Contract, month time.Time) ([]time.Time, []time.Time, error) {
-	beginMonth, endMonth := u.getMonthBound(contract, month)
+	beginMonth, endMonth := u.getBound(contract, month)
 	recur, services, err := u.getPackageParams(contract.PackageID)
 	if err != nil {
 		return nil, nil, err
@@ -177,8 +201,8 @@ func (u *Usecase) mountDates(contract *domain.Contract, month time.Time) ([]time
 	return starts, ends, nil
 }
 
-// getMonthBound returns the bound of the contract based on the month
-func (u *Usecase) getMonthBound(contract *domain.Contract, month time.Time) (time.Time, time.Time) {
+// getBound returns the bound of the contract based on the month
+func (u *Usecase) getBound(contract *domain.Contract, month time.Time) (time.Time, time.Time) {
 	beginMonth := time.Date(month.Year(), month.Month(), 1, 0, 0, 0, 0, time.Local)
 	endMonth := beginMonth.AddDate(0, 1, 0).Add(time.Nanosecond * -1)
 	if contract.End != nil && contract.End.Before(endMonth) {
@@ -258,7 +282,6 @@ func (u *Usecase) keep(times []time.Time, pos []int) []time.Time {
 	}
 	return ret
 }
-
 
 // setDates sets the dates of the agenda and id based on dates and contract and month
 func (u *Usecase) setDates(agenda *domain.Agenda, clientID string, start time.Time, end time.Time) {

@@ -62,6 +62,7 @@ const (
 	DateFormat                  = "02/01/2006"
 	MonthFormat                 = "01/2006"
 	DateTimeFormat              = "02/01/2006 15:04"
+	DefaultDateFormat           = "2006-01-02"
 	ErrPrefBadRequest           = "bad request"
 	ErrPrefInternal             = "internal error"
 	ErrPrefConflict             = "conflict"

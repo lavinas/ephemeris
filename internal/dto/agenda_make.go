@@ -32,9 +32,6 @@ type AgendaMakeOut struct {
 
 // Validate is a method that validates the dto
 func (a *AgendaMake) Validate(repo port.Repository) error {
-	if a.ContractID == "" && a.ClientID == "" {
-		return errors.New(pkg.ErrClientContractEmpty)
-	}
 	if a.Month == "" {
 		return errors.New(pkg.ErrMonthEmpty)
 	}
