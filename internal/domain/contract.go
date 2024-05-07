@@ -125,6 +125,20 @@ func (c *Contract) GetEmpty() port.Domain {
 	return &Contract{}
 }
 
+// GetBond is a method that returns the bond contract of the contract
+func (c *Contract) GetBond(repo port.Repository) (*Contract, error) {
+	if c.Bond == nil {
+		return nil, nil
+	}
+	bond := &Contract{ID: *c.Bond}
+	if exists, err := bond.Load(repo); err != nil {
+		return nil, err
+	} else if !exists {
+		return nil, errors.New(pkg.ErrBondNotFound)
+	}
+	return bond, nil
+}
+
 // Lock is a method that locks the contract
 func (c *Contract) Lock(repo port.Repository) error {
 	var locked = true

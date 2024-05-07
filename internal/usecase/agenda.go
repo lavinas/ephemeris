@@ -59,7 +59,45 @@ func (u *Usecase) AgendaContractMake(dtoIn port.DTOIn, contract domain.Contract,
 	return ret, nil
 }
 
-// GetClientContracts is a method that returns all contracts of a client
+// deleteAgenda deletes Agenda based on client, contract, month and status
+func (u *Usecase) DeleteAgenda(contract *domain.Contract, month time.Time) error {
+	firstday := time.Date(month.Year(), month.Month(), 1, 0, 0, 0, 0, time.Local)
+	lastday := firstday.AddDate(0, 1, 0).Add(time.Nanosecond * -1)
+	if err := u.Repo.Begin(); err != nil {
+		return u.error(pkg.ErrPrefInternal, err.Error())
+	}
+	defer u.Repo.Rollback()
+	agenda := &domain.Agenda{ContractID: contract.ID}
+	if err := u.Repo.Delete(agenda, "start >= ? AND start <= ?", firstday, lastday); err != nil {
+		return u.error(pkg.ErrPrefInternal, err.Error())
+	}
+	if err := u.Repo.Commit(); err != nil {
+		return u.error(pkg.ErrPrefInternal, err.Error())
+	}
+	return nil
+}
+
+// generateAgenda generates the agenda based on the contract
+func (u *Usecase) GenerateAgenda(dtoIn port.DTOIn, contract *domain.Contract, month time.Time) ([]port.DTOOut, error) {
+	if err := u.Repo.Begin(); err != nil {
+		return nil, u.error(pkg.ErrPrefInternal, err.Error())
+	}
+	defer u.Repo.Rollback()
+	starts, ends, err := u.getDates(contract, month)
+	if err != nil {
+		return nil, u.error(pkg.ErrPrefInternal, err.Error())
+	}
+	ret, err := u.getAgenda(dtoIn, contract, starts, ends)
+	if err != nil {
+		return nil, u.error(pkg.ErrPrefInternal, err.Error())
+	}
+	if err := u.Repo.Commit(); err != nil {
+		return nil, u.error(pkg.ErrPrefInternal, err.Error())
+	}
+	return ret, nil
+}
+
+// GetContracts is a method that returns all contracts of a client
 func (u *Usecase) getContracts(clientID, contractID string) (*[]domain.Contract, error) {
 	if contractID == "" && clientID == "" {
 		return nil, u.error(pkg.ErrPrefBadRequest, pkg.ErrClientContractEmpty)
@@ -81,59 +119,48 @@ func (u *Usecase) getContracts(clientID, contractID string) (*[]domain.Contract,
 	return ret.(*[]domain.Contract), nil
 }
 
-// deleteAgenda deletes Agenda based on client, contract, month and status
-func (u *Usecase) DeleteAgenda(contract *domain.Contract, month time.Time) error {
-	firstday := time.Date(month.Year(), month.Month(), 1, 0, 0, 0, 0, time.Local)
-	lastday := firstday.AddDate(0, 1, 0).Add(time.Nanosecond * -1)
-	if err := u.Repo.Begin(); err != nil {
-		return u.error(pkg.ErrPrefInternal, err.Error())
-	}
-	defer u.Repo.Rollback()
-	agenda := &domain.Agenda{ContractID: contract.ID}
-	if err := u.Repo.Delete(agenda, "start >= ? AND start <= ?", firstday, lastday); err != nil {
-		return u.error(pkg.ErrPrefInternal, err.Error())
-	}
-	if err := u.Repo.Commit(); err != nil {
-		return u.error(pkg.ErrPrefInternal, err.Error())
-	}
-	return nil
-}
-
-// generateAgenda generates the agenda based on the contract
-func (u *Usecase) GenerateAgenda(dtoIn port.DTOIn, contract *domain.Contract, month time.Time) ([]port.DTOOut, error) {
+// getAgenda generates the agenda based on the contract
+func (u *Usecase) getAgenda(dtoIn port.DTOIn, contract  *domain.Contract, starts []time.Time, ends []time.Time) ([]port.DTOOut, error) {
 	ret := []port.DTOOut{}
-	if err := u.Repo.Begin(); err != nil {
-		return nil, u.error(pkg.ErrPrefInternal, err.Error())
-	}
-	defer u.Repo.Rollback()
-	dtoOut := dtoIn.GetOut()
-	starts, ends, err := u.getDates(contract, month)
-	if err != nil {
-		return nil, u.error(pkg.ErrPrefInternal, err.Error())
-	}
 	agenda := dtoIn.GetDomain()[0].(*domain.Agenda)
+	dtoOut := dtoIn.GetOut()
 	for i := 0; i < len(starts); i++ {
 		agenda.ContractID = contract.ID
 		agenda.ClientID = contract.ClientID
 		u.setDates(agenda, contract.ClientID, starts[i], ends[i])
 		if err := agenda.Format(u.Repo); err != nil {
-			return nil, u.error(pkg.ErrPrefBadRequest, err.Error())
+			return nil, u.error(pkg.ErrPrefInternal, err.Error())
 		}
 		if err := u.Repo.Add(agenda); err != nil {
 			return nil, u.error(pkg.ErrPrefInternal, err.Error())
 		}
 		ret = append(ret, dtoOut.GetDTO(agenda)...)
 	}
-	if err := u.Repo.Commit(); err != nil {
-		return nil, u.error(pkg.ErrPrefInternal, err.Error())
-	}
 	return ret, nil
+
 }
 
 // getDates returns the dates of the contract based on the month
 func (u *Usecase) getDates(contract *domain.Contract, month time.Time) ([]time.Time, []time.Time, error) {
 	beginMonth := time.Date(month.Year(), month.Month(), 1, 0, 0, 0, 0, time.Local)
 	endMonth := beginMonth.AddDate(0, 1, 0).Add(time.Nanosecond * -1)
+	if contract.End != nil && contract.End.Before(endMonth) {
+		endMonth = *contract.End
+		endMonth = endMonth.AddDate(0, 0, 1).Add(time.Nanosecond * -1)
+	}
+	starts, ends, err := u.mountDates(contract, beginMonth, endMonth)
+	if err != nil {
+		return nil, nil, err
+	}
+	starts, ends, err = u.delBound(contract, month, starts, ends)
+	if err != nil {
+		return nil, nil, err
+	}
+	return starts, ends, nil
+}
+
+// mountDates returns the dates of the contract based on the month
+func (u *Usecase) mountDates(contract *domain.Contract, beginMonth, endMonth time.Time) ([]time.Time, []time.Time, error) {
 	starts := []time.Time{}
 	ends := []time.Time{}
 	recur, services, err := u.getPackageParams(contract.PackageID)
@@ -157,11 +184,54 @@ func (u *Usecase) getDates(contract *domain.Contract, month time.Time) ([]time.T
 		if recur.Limits != nil && appended >= int(*recur.Limits) {
 			break
 		}
-		if recur.Next(*start) == nil {
-			break
-		}
 	}
 	return starts, ends, nil
+
+}
+
+// delBound deletes the bound of the contract
+func (u *Usecase) delBound(contract *domain.Contract, month time.Time, starts, ends []time.Time) ([]time.Time, []time.Time, error) {
+	bond, err := contract.GetBond(u.Repo)
+	if err != nil {
+		return nil, nil, u.error(pkg.ErrPrefInternal, err.Error())
+	}
+	if bond == nil {
+		return starts, ends, nil
+	}
+	delStarts, _, err := u.getDates(bond, month)
+	if err != nil {
+		return nil, nil, err
+	}
+	st, pos := u.minus(starts, delStarts)
+	return st, u.keep(ends, pos), nil
+}
+
+// minus returns the subtracted slice minus the subtractor slice
+func (u *Usecase) minus(subtracted []time.Time, subtractor[]time.Time) ([]time.Time, []int) {
+	times := []time.Time{}
+	pos := []int{}
+	maps := make(map[time.Time]bool)
+	for _, s := range subtractor {
+		maps[s] = true
+	}
+	count := 0
+	for _, s := range subtracted {
+		if _, ok := maps[s]; !ok {
+			times = append(times, s)
+			pos = append(pos, count)
+		}
+		count++
+	}
+	return times, pos
+}
+
+// keep returns the slice with the positions
+func (u *Usecase) keep(times []time.Time, pos[]int) ([]time.Time) {
+	ret := []time.Time{}
+	for _, p := range pos {
+		ret = append(ret, times[p])
+	}
+	return ret
 }
 
 // getPackageParams returns the recurrence struct and serviice minutes of the package
