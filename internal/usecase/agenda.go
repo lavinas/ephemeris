@@ -113,6 +113,8 @@ func (u *Usecase) GenerateAgenda(dtoIn port.DTOIn, contract *domain.Contract, mo
 	}
 	agenda := dtoIn.GetDomain()[0].(*domain.Agenda)
 	for i := 0; i < len(starts); i++ {
+		agenda.ContractID = contract.ID
+		agenda.ClientID = contract.ClientID
 		u.setDates(agenda, contract.ClientID, starts[i], ends[i])
 		if err := agenda.Format(u.Repo); err != nil {
 			return nil, u.error(pkg.ErrPrefBadRequest, err.Error())
@@ -139,19 +141,21 @@ func (u *Usecase) getDates(contract *domain.Contract, month time.Time) ([]time.T
 		return nil, nil, err
 	}
 	count := 0
+	appended := 0
 	for start := &contract.Start; start != nil && !start.After(endMonth); start = recur.Next(*start) {
-		if count >= len(services) {
-			count = 0
-		}
-		m := services[count].Minutes
+		m := services[count % len(services)].Minutes
+		count++
 		var minutes int64 = 0
 		if m != nil {
 			minutes = *m
 		}
-		count++
 		if !start.Before(beginMonth) && !start.After(endMonth) {
 			starts = append(starts, *start)
 			ends = append(ends, start.Add(time.Minute*time.Duration(minutes)))
+			appended++
+		}
+		if recur.Limits != nil && appended >= int(*recur.Limits) {
+			break
 		}
 		if recur.Next(*start) == nil {
 			break
