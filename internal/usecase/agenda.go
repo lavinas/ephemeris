@@ -164,12 +164,7 @@ func (u *Usecase) mountDates(contract *domain.Contract, month time.Time) ([]time
 	count := 0
 	appended := 0
 	for start := &contract.Start; start != nil && !start.After(endMonth); start = recur.Next(*start) {
-		m := services[count%len(services)].Minutes
-		count++
-		var minutes int64 = 0
-		if m != nil {
-			minutes = *m
-		}
+		minutes := u.getMinutes(services, count)
 		if !start.Before(beginMonth) && !start.After(endMonth) {
 			starts = append(starts, *start)
 			ends = append(ends, start.Add(time.Minute*time.Duration(minutes)))
@@ -191,6 +186,32 @@ func (u *Usecase) getMonthBound(contract *domain.Contract, month time.Time) (tim
 		endMonth = endMonth.AddDate(0, 0, 1).Add(time.Nanosecond * -1)
 	}
 	return beginMonth, endMonth
+}
+
+// getPackageParams returns the recurrence struct and serviice minutes of the package
+func (u *Usecase) getPackageParams(packId string) (*domain.Recurrence, []*domain.Service, error) {
+	pack := domain.Package{ID: packId}
+	var err error
+	recur, err := pack.GetRecurrence(u.Repo)
+	if err != nil {
+		return nil, []*domain.Service{}, u.error(pkg.ErrPrefInternal, err.Error())
+	}
+	services, err := pack.GetService(u.Repo)
+	if err != nil {
+		return nil, []*domain.Service{}, u.error(pkg.ErrPrefInternal, err.Error())
+	}
+	return recur, services, nil
+}
+
+// getMinutes returns the minutes of the slice of services
+func (u *Usecase) getMinutes(services []*domain.Service, count int) int {
+	m := services[count%len(services)].Minutes
+	count++
+	var minutes int64 = 0
+	if m != nil {
+		minutes = *m
+	}
+	return int(minutes)
 }
 
 // delBound deletes the bound of the contract
@@ -238,20 +259,6 @@ func (u *Usecase) keep(times []time.Time, pos []int) []time.Time {
 	return ret
 }
 
-// getPackageParams returns the recurrence struct and serviice minutes of the package
-func (u *Usecase) getPackageParams(packId string) (*domain.Recurrence, []*domain.Service, error) {
-	pack := domain.Package{ID: packId}
-	var err error
-	recur, err := pack.GetRecurrence(u.Repo)
-	if err != nil {
-		return nil, []*domain.Service{}, u.error(pkg.ErrPrefInternal, err.Error())
-	}
-	services, err := pack.GetService(u.Repo)
-	if err != nil {
-		return nil, []*domain.Service{}, u.error(pkg.ErrPrefInternal, err.Error())
-	}
-	return recur, services, nil
-}
 
 // setDates sets the dates of the agenda and id based on dates and contract and month
 func (u *Usecase) setDates(agenda *domain.Agenda, clientID string, start time.Time, end time.Time) {
