@@ -14,11 +14,11 @@ import (
 type PriceCrud struct {
 	Object string `json:"-" command:"name:price;key;pos:2-"`
 	Action string `json:"-" command:"name:add,get,up;key;pos:2-"`
-	ID     string `json:"id" command:"name:id;pos:3+"`
-	Date   string `json:"date" command:"name:date;pos:3+"`
-	Name   string `json:"name" command:"name:name;pos:3+"`
-	Unit   string `json:"unit" command:"name:unit;pos:3+"`
-	Pack   string `json:"pack" command:"name:pack;pos:3+"`
+	ID     string `json:"id" command:"name:id;pos:3+;trans:string"`
+	Date   string `json:"date" command:"name:date;pos:3+;trans:time"`
+	Name   string `json:"name" command:"name:name;pos:3+;trans:string"`
+	Unit   string `json:"unit" command:"name:unit;pos:3+;trans:numeric"`
+	Pack   string `json:"pack" command:"name:pack;pos:3+;trans:numeric"`
 }
 
 // Validate is a method that validates the dto

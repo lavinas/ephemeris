@@ -40,6 +40,11 @@ func (c *Usecase) Get(dtoIn interface{}) error {
 	if err := in.Validate(c.Repo); err != nil {
 		return c.error(pkg.ErrPrefBadRequest, err.Error())
 	}
+	cmd := pkg.NewCommands()
+	extras, err := cmd.Transpose(in)
+	if err != nil {
+		return c.error(pkg.ErrPrefInternal, err.Error())
+	}
 	if err := c.Repo.Begin(); err != nil {
 		return c.error(pkg.ErrPrefInternal, err.Error())
 	}
@@ -51,7 +56,7 @@ func (c *Usecase) Get(dtoIn interface{}) error {
 		if err := domain.Format(c.Repo, "filled", "noduplicity"); err != nil {
 			return c.error(pkg.ErrPrefBadRequest, err.Error())
 		}
-		base, lim, err := c.Repo.Find(domain, pkg.ResultLimit)
+		base, lim, err := c.Repo.Find(domain, pkg.ResultLimit, extras...)
 		limited = lim
 		if err != nil {
 			return c.error(pkg.ErrPrefInternal, err.Error())

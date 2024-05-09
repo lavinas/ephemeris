@@ -119,7 +119,6 @@ func (u *Usecase) getContracts(clientID, contractID string, month time.Time) (*[
 	return ret.(*[]domain.Contract), nil
 }
 
-
 // getContractsByMonth is a method that returns all contracts of a client based on the month
 func (u *Usecase) getContractsByMonth(month time.Time) (*[]domain.Contract, error) {
 	firstday := time.Date(month.Year(), month.Month(), 1, 0, 0, 0, 0, time.Local)

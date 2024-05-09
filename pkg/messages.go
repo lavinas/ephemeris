@@ -16,6 +16,7 @@ const (
 	Tagnotnull                  = "not null"
 	Tagkey                      = "key"
 	TagPos                      = "pos"
+	TagTranspose                = "trans"
 	RoleClient                  = "client"
 	RoleLiable                  = "liable"
 	RolePayer                   = "payer"

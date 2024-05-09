@@ -8,20 +8,22 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Command is a struct that represents a command
 type Param struct {
-	names   []string
-	name    string
-	field   string
-	ftype   string
-	iskey   bool
-	notnull bool
-	posInit *int
-	posEnd  *int
-	corr    []string
-	value   string
+	names     []string
+	name      string
+	field     string
+	ftype     string
+	iskey     bool
+	notnull   bool
+	posInit   *int
+	posEnd    *int
+	corr      []string
+	value     string
+	transpose string
 }
 
 // Texts is a struct that groups all texts functionalities
@@ -88,19 +90,129 @@ func (c *Commands) FindOne(data string, v []interface{}) (interface{}, error) {
 // ToStruc is a function that converts a string to a struct
 func (c *Commands) Unmarshal(data string, v interface{}) error {
 	st := reflect.TypeOf(v).Elem()
-	tags, err := c.getParams(st, Fieldtag)
+	params, err := c.getParams(st, Fieldtag)
 	if err != nil {
 		return err
 	}
-	if err := c.validateFields(tags); err != nil {
+	if err := c.validateFields(params); err != nil {
 		return err
 	}
-	if err := c.mapValues(data, tags); err != nil {
+	if err := c.mapValues(data, params); err != nil {
 		return err
 	}
-	c.setFields(v, tags)
+	c.setFields(v, params)
 	return nil
 }
+
+// Transpose is a function that returns the transpose of a struct in a slice of strings
+// trabspose string, numeric and time fields with tag command and sub-tab transpose
+func (c *Commands) Transpose(v interface{}) ([]interface{}, error) {
+	trans := []interface{}{}
+	etype := reflect.TypeOf(v).Elem()
+	eval := reflect.ValueOf(v).Elem()
+	params := []*Param{}
+	for i := 0; i < etype.NumField(); i++ {
+		param := c.getParam(etype.Field(i), Fieldtag)
+		val, trs := c.transpose(eval.Field(i).String(), param)
+		param.value = val
+		params = append(params, param)
+		if trs != "" {
+			trans = append(trans, trs)
+		}
+	}
+	c.setFields(v, params)
+	return trans, nil
+}
+
+// transpose is a function that returns the transpose of a string
+func (c *Commands) transpose (data string, param *Param) (string, string) {
+	if data == "" || param.transpose == "" {
+		return data, ""
+	}
+	switch param.transpose {
+	case "string":
+		return c.transposeString(data, param.field)
+	case "float":
+		return c.transposeNumeric(data, param.field)
+	case "time":
+		return c.transposeTime(data, param.field)
+	default:
+		return data, ""
+	}
+}
+
+// transposeString is a function that returns the transpose of a string
+func (c *Commands) transposeString(data string, field string) (string, string) {
+	data = strings.ReplaceAll(data, "+", "%")
+	data = strings.ReplaceAll(data, "-", "%")
+	data = strings.ReplaceAll(data, "*", "%")
+	return "", fmt.Sprintf("%s like '%s'", field, data)
+}
+
+// transposeFloat is a function that returns the transpose of a float
+func (c *Commands) transposeNumeric(data string, field string) (string, string) {
+	data = strings.ReplaceAll(data, ",", ".")
+	cmd := data[len(data)-1:]
+	switch cmd {
+	case "+":
+		data = data[:len(data)-1]
+		return "", fmt.Sprintf("%s >= %s", field, data)
+	case "-":
+		data = data[:len(data)-1]
+		return "", fmt.Sprintf("%s <= %s", field, data)
+	case "*":
+		data = strings.ReplaceAll(data, "*", "%")
+		return "", fmt.Sprintf("%s like '%s'", field, data)
+	default:
+		return data, ""
+	}
+}
+
+// transposeTime is a function that returns the transpose of a time
+func (c *Commands) transposeTime(data string, field string) (string, string) {
+	cmd := data[len(data)-1:]
+	switch cmd {
+	case "+":
+		data = data[:len(data)-1]
+		data = c.translateTime(data)
+		return "", fmt.Sprintf("%s >= '%s'", field, data)
+	case "-":
+		data = data[:len(data)-1]
+		data = c.translateTime(data)
+		return "", fmt.Sprintf("%s <= '%s'", field, data)
+	case "*":
+		data = c.translateTime(data)
+		return "", fmt.Sprintf("%s like '%s'", field, data)
+	default:
+		return data, ""
+	}
+}
+
+// translateTime is a function that translates a time string layout to a default time layout
+func (c *Commands) translateTime(data string) string {
+	formats := []string{
+		"02-01-2006",
+		"02-01-2006 15:04:05",
+		"02-01-2006 15:04",
+		"01-02-2006",
+		"01-02-2006 15:04:05",
+		"01-02-2006 15:04",
+		"2006-01-02",
+		"2006-01-02 15:04:05",
+		"2006-01-02 15:04",
+	}
+	data = strings.ReplaceAll(data, "/", "-")
+	new := "2006-01-02 15:04:05"
+	for _, format := range formats {
+		t, err := time.Parse(format, data)
+		if err != nil {
+			continue
+		}
+		return t.Format(new)
+	}
+	return data
+}
+
 
 // getInputSlice is a function that returns a slice of reflect.Values
 func (c *Commands) getInputSlice(v interface{}) []reflect.Value {
@@ -142,7 +254,7 @@ func (c *Commands) getValuesSlice(values []reflect.Value, nokeys bool, counter b
 			}
 		}
 		filled = true
-		p, _, _, _, _ := c.getParamValues(values[0].Type().Field(i).Tag.Get(Fieldtag))
+		p, _, _, _, _, _ := c.getParamValues(values[0].Type().Field(i).Tag.Get(Fieldtag))
 		ret[0] = append(ret[0], strings.Join(p, ", "))
 	}
 	for i := 0; i < len(values); i++ {
@@ -191,14 +303,14 @@ func (c *Commands) getParams(st reflect.Type, tagname string, args ...string) ([
 	ret := []*Param{}
 	keys := slices.Contains(args, "keys")
 	for i := 0; i < st.NumField(); i++ {
-		tag := c.getParam(st.Field(i), tagname)
-		if tag == nil {
+		params := c.getParam(st.Field(i), tagname)
+		if params == nil {
 			continue
 		}
-		if keys && !tag.iskey {
+		if keys && !params.iskey {
 			continue
 		}
-		ret = append(ret, tag)
+		ret = append(ret, params)
 	}
 	c.setCorrelations(ret)
 	return ret, nil
@@ -210,19 +322,20 @@ func (c *Commands) getParam(field reflect.StructField, tagname string) *Param {
 	if tag == "" {
 		return nil
 	}
-	names, notnull, iskey, init, end := c.getParamValues(tag)
+	names, notnull, iskey, init, end, transp := c.getParamValues(tag)
 	return &Param{names: names, name: "", field: field.Name, ftype: field.Type.String(),
-		notnull: notnull, iskey: iskey, posInit: init, posEnd: end}
+		notnull: notnull, iskey: iskey, posInit: init, posEnd: end, transpose: transp}
 }
 
 // splitValues is a function that splits the values of a tag into name, notnull and iskey
-func (c *Commands) getParamValues(tag string) ([]string, bool, bool, *int, *int) {
+func (c *Commands) getParamValues(tag string) ([]string, bool, bool, *int, *int, string) {
 	fields := strings.Split(tag, ";")
 	names := []string{}
 	notnull := false
 	iskey := false
 	var init *int
 	var end *int
+	transp := ""
 	for _, fd := range fields {
 		if strings.Contains(fd, Tagname) {
 			names = c.getNames(fd)
@@ -232,9 +345,11 @@ func (c *Commands) getParamValues(tag string) ([]string, bool, bool, *int, *int)
 			iskey = true
 		} else if strings.Contains(fd, TagPos) {
 			init, end = c.getPositions(fd)
+		} else if strings.Contains(fd, TagTranspose) {
+			transp = c.getTranspose(fd)
 		}
 	}
-	return names, notnull, iskey, init, end
+	return names, notnull, iskey, init, end, transp
 }
 
 // getNames is a function that returns the names inside a tag
@@ -273,6 +388,15 @@ func (c *Commands) getPositions(data string) (*int, *int) {
 	default:
 		return nil, nil
 	}
+}
+
+// getTranspose is a function that returns the transpose inside a tag
+func (c *Commands) getTranspose(data string) string {
+	s := strings.Split(data, ":")
+	if len(s) != 2 || s[0] != TagTranspose || s[1] == "" {
+		return ""
+	}
+	return s[1]
 }
 
 // setCorrelations is a function that sets the correlations of a struct

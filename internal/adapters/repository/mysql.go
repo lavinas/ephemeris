@@ -177,14 +177,6 @@ func (r *MySql) where(tx *gorm.DB, sob reflect.Type, base interface{}, extras ..
 			continue
 		}
 		elem := reflect.ValueOf(base).Elem().Field(i).Interface()
-		if sob.Field(i).Type.Kind() == reflect.Struct {
-			etype := sob.Field(i).Type
-			var err error
-			if tx, err = r.where(tx, etype, elem); err != nil {
-				return nil, err
-			}
-			continue
-		}
 		if pkg.IsEmpty(elem) {
 			continue
 		}
