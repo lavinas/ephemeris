@@ -58,39 +58,39 @@ func (a *AgendaCrud) GetDomain() []port.Domain {
 }
 
 // GetOut is a method that returns the output dto
-func (c *AgendaCrud) GetOut() port.DTOOut {
-	return c
+func (a *AgendaCrud) GetOut() port.DTOOut {
+	return a
 }
 
 // GetDTO is a method that returns the dto
-func (c *AgendaCrud) GetDTO(domainIn interface{}) []port.DTOOut {
+func (a *AgendaCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 	ret := []port.DTOOut{}
 	slices := domainIn.([]interface{})
 	agenda := slices[0].(*[]domain.Agenda)
-	for _, a := range *agenda {
+	for _, ag := range *agenda {
 		bond := ""
-		if a.Bond != nil {
-			bond = c.Bond
+		if ag.Bond != nil {
+			bond = a.Bond
 		}
 		billing := ""
-		if a.BillingMonth != nil {
-			billing = a.BillingMonth.Format(pkg.DateFormat)
+		if ag.BillingMonth != nil {
+			billing = ag.BillingMonth.Format(pkg.DateFormat)
 		}
 		ret = append(ret, &AgendaCrud{
-			ID:         a.ID,
-			Date:       a.Date.Format(pkg.DateFormat),
-			ClientID:   a.ClientID,
-			ContractID: a.ContractID,
-			Start:      a.Start.Format(pkg.DateTimeFormat),
-			End:        a.End.Format(pkg.DateTimeFormat),
-			Kind:       a.Kind,
-			Status:     a.Status,
+			ID:         ag.ID,
+			Date:       ag.Date.Format(pkg.DateFormat),
+			ClientID:   ag.ClientID,
+			ContractID: ag.ContractID,
+			Start:      ag.Start.Format(pkg.DateTimeFormat),
+			End:        ag.End.Format(pkg.DateTimeFormat),
+			Kind:       ag.Kind,
+			Status:     ag.Status,
 			Bond:       bond,
 			Billing:    billing,
 		})
 	}
-	if c.Sort != "" {
-		s := strings.Split(c.Sort, " ")
+	if a.Sort != "" {
+		s := strings.Split(a.Sort, " ")
 		down := false
 		if len(s) > 1 && s[1] == "down"{
 			down = true

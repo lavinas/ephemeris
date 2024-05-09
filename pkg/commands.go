@@ -143,8 +143,8 @@ func (c *Commands) Sort(v interface{}, field string, down bool) {
 		return
 	}
 	sort.Slice(v, func(i, j int) bool {
-		iv := reflect.ValueOf(v).Index(i).Elem().Elem()
-		jv := reflect.ValueOf(v).Index(j).Elem().Elem()
+		iv := reflect.ValueOf(v).Index(i).Elem().Interface()
+		jv := reflect.ValueOf(v).Index(j).Elem().Interface()
 		ivf := c.fieldByTag(iv, field)
 		jvf := c.fieldByTag(jv, field)
 		if down {
@@ -160,8 +160,10 @@ func (c *Commands) fieldByTag (v interface{}, field string) string {
 	eval := reflect.ValueOf(v).Elem()
 	for i := 0; i < etype.NumField(); i++ {
 		param := c.getParam(etype.Field(i), Fieldtag)
-		if param.field == field {
-			return eval.Field(i).String()
+		for _, j := range param.names {
+			if j == field {
+				return eval.Field(i).String()
+			}
 		}
 	}
 	return ""
@@ -195,7 +197,6 @@ func (c *Commands) transposeString(data string, field string) (string, string, e
 	if data == "cmd" {
 		data = "c*"
 	} 
-	fmt.Println(800, data, field)
 	if !strings.Contains(data, "+") && !strings.Contains(data, "-") && !strings.Contains(data, "*") {
 		return data, "", nil
 	}
@@ -268,7 +269,6 @@ func (c *Commands) translateTime(data string) string {
 	}
 	return data
 }
-
 
 // getInputSlice is a function that returns a slice of reflect.Values
 func (c *Commands) getInputSlice(v interface{}) []reflect.Value {
