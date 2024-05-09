@@ -68,7 +68,9 @@ func (u *Usecase) DeleteAgenda(contract *domain.Contract, month time.Time) error
 	}
 	defer u.Repo.Rollback()
 	agenda := &domain.Agenda{ContractID: contract.ID}
-	if err := u.Repo.Delete(agenda, "start >= ? AND start <= ?", firstday, lastday); err != nil {
+	p1 := fmt.Sprintf("start >= '%s'", firstday.Format("2006-01-02 15:04:05"))
+	p2 := fmt.Sprintf("start <= '%s'", lastday.Format("2006-01-02 15:04:05"))
+	if err := u.Repo.Delete(agenda, p1, p2); err != nil {
 		return u.error(pkg.ErrPrefInternal, err.Error())
 	}
 	if err := u.Repo.Commit(); err != nil {
@@ -128,7 +130,11 @@ func (u *Usecase) getContractsByMonth(month time.Time) (*[]domain.Contract, erro
 		return nil, u.error(pkg.ErrPrefInternal, err.Error())
 	}
 	defer u.Repo.Rollback()
-	ret, _, err := u.Repo.Find(contract, 100, "start <= ? AND (end IS NULL OR end >= ?)", lastday, firstday)
+	p1 := fmt.Sprintf("start <= '%s'", lastday.Format("2006-01-02 15:04:05"))
+	p2 := fmt.Sprintf("end is null or end >= '%s'", firstday.Format("2006-01-02 15:04:05"))
+	fmt.Println(1, p1)
+	fmt.Println(2, p2)
+	ret, _, err := u.Repo.Find(contract, 100, p1, p2)
 	if err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error())
 	}

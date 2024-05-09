@@ -13,16 +13,16 @@ import (
 type AgendaCrud struct {
 	Object     string `json:"-" command:"name:agenda;key;pos:2-"`
 	Action     string `json:"-" command:"name:add,get,up;key;pos:2-"`
-	ID         string `json:"id" command:"name:id;pos:3+"`
-	Date       string `json:"date" command:"name:date;pos:3+"`
-	ClientID   string `json:"client_id" command:"name:client;pos:3+"`
-	ContractID string `json:"contract_id" command:"name:contract;pos:3+"`
-	Start      string `json:"start" command:"name:start;pos:3+"`
-	End        string `json:"end" command:"name:end;pos:3+"`
-	Kind       string `json:"kind" command:"name:kind;pos:3+"`
-	Status     string `json:"status" command:"name:status;pos:3+"`
-	Bond       string `json:"bond" command:"name:bond;pos:3+"`
-	Billing    string `json:"billing" command:"name:billing;pos:3+"`
+	ID         string `json:"id" command:"name:id;pos:3+;trans:string"`
+	Date       string `json:"date" command:"name:date;pos:3+;trans:time"`
+	ClientID   string `json:"client_id" command:"name:client;pos:3+;trans:string"`
+	ContractID string `json:"contract_id" command:"name:contract;pos:3+;trans:string"`
+	Start      string `json:"start" command:"name:start;pos:3+;trans:time"`
+	End        string `json:"end" command:"name:end;pos:3+;trans:time"`
+	Kind       string `json:"kind" command:"name:kind;pos:3+;trans:string"`
+	Status     string `json:"status" command:"name:status;pos:3+;trans:string"`
+	Bond       string `json:"bond" command:"name:bond;pos:3+;trans:string"`
+	Billing    string `json:"billing" command:"name:billing;pos:3+;trans:time"`
 }
 
 // Validate is a method that validates the dto

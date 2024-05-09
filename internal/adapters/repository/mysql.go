@@ -186,8 +186,8 @@ func (r *MySql) where(tx *gorm.DB, sob reflect.Type, base interface{}, extras ..
 			tx = tx.Session(&gorm.Session{})
 		}
 	}
-	if len(extras) > 0 {
-		tx = tx.Where(extras[0], extras[1:]...)
+	for _, extra := range extras {
+		tx = tx.Where(extra)
 	}
 	return tx, nil
 }
