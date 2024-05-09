@@ -167,4 +167,6 @@ const (
 	ErrInvalidPackPrice         = "package price should be greater than zero"
 	ErrInvalidSequence          = "invalid or unfound sequence. Should be numeric and beetween 0 and 999"
 	ErrItemAlreadyExists        = "package item already exists with this sequence"
+	ErrorTransposeStruct        = "transpose struct error in struct tag. Should have field name and type"
+	ErrorTransposeType          = "transpose type error in struct tag. Should have string, int, float or time"
 )

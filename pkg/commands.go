@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"sort"
 )
 
 // Command is a struct that represents a command
@@ -113,7 +114,10 @@ func (c *Commands) Transpose(v interface{}) ([]interface{}, error) {
 	params := []*Param{}
 	for i := 0; i < etype.NumField(); i++ {
 		param := c.getParam(etype.Field(i), Fieldtag)
-		val, trs := c.transpose(eval.Field(i).String(), param)
+		val, trs, err := c.transpose(eval.Field(i).String(), param)
+		if err != nil {
+			return nil, err
+		}
 		param.value = val
 		params = append(params, param)
 		if trs != "" {
@@ -124,67 +128,119 @@ func (c *Commands) Transpose(v interface{}) ([]interface{}, error) {
 	return trans, nil
 }
 
-// transpose is a function that returns the transpose of a string
-func (c *Commands) transpose (data string, param *Param) (string, string) {
-	if data == "" || param.transpose == "" {
-		return data, ""
+// Order is a function that orders a slice of structs by a field
+func (c *Commands) Sort(v interface{}, field string, down bool) {
+	if len(field) != 0 && field[0] == '.' {
+		field = field[1:]
 	}
-	switch param.transpose {
+	if field == "" {
+		return
+	}
+	if reflect.TypeOf(v).Kind() == reflect.Ptr {
+		v = reflect.ValueOf(v).Elem().Interface()
+	}
+	if reflect.TypeOf(v).Kind() != reflect.Slice {
+		return
+	}
+	sort.Slice(v, func(i, j int) bool {
+		iv := reflect.ValueOf(v).Index(i).Elem().Elem()
+		jv := reflect.ValueOf(v).Index(j).Elem().Elem()
+		ivf := c.fieldByTag(iv, field)
+		jvf := c.fieldByTag(jv, field)
+		if down {
+			return ivf > jvf
+		}
+		return ivf < jvf
+	})
+}
+
+// fieldByTag is a function that returns the field of a struct by a tag
+func (c *Commands) fieldByTag (v interface{}, field string) string {
+	etype := reflect.TypeOf(v).Elem()
+	eval := reflect.ValueOf(v).Elem()
+	for i := 0; i < etype.NumField(); i++ {
+		param := c.getParam(etype.Field(i), Fieldtag)
+		if param.field == field {
+			return eval.Field(i).String()
+		}
+	}
+	return ""
+}
+
+// transpose is a function that returns the transpose of a string
+func (c *Commands) transpose (data string, param *Param) (string, string, error) {
+	if data == "" || param.transpose == "" {
+		return data, "", nil
+	}
+	trs := strings.Split(param.transpose, ",")
+	if len(trs) != 2 {
+		return "", "", errors.New(ErrorTransposeStruct) 
+	}
+	field := trs[0]
+	ftype := trs[1]
+	switch ftype {
 	case "string":
-		return c.transposeString(data, param.field)
+		return c.transposeString(data, field)
 	case "float":
-		return c.transposeNumeric(data, param.field)
+		return c.transposeNumeric(data, field)
 	case "time":
-		return c.transposeTime(data, param.field)
+		return c.transposeTime(data, field)
 	default:
-		return data, ""
+		return "", "", errors.New(ErrorTransposeType)
 	}
 }
 
 // transposeString is a function that returns the transpose of a string
-func (c *Commands) transposeString(data string, field string) (string, string) {
+func (c *Commands) transposeString(data string, field string) (string, string, error) {
+	if data == "cmd" {
+		data = "c*"
+	} 
+	fmt.Println(800, data, field)
+	if !strings.Contains(data, "+") && !strings.Contains(data, "-") && !strings.Contains(data, "*") {
+		return data, "", nil
+	}
 	data = strings.ReplaceAll(data, "+", "%")
 	data = strings.ReplaceAll(data, "-", "%")
 	data = strings.ReplaceAll(data, "*", "%")
-	return "", fmt.Sprintf("%s like '%s'", field, data)
+	return "", fmt.Sprintf("%s like '%s'", field, data), nil
 }
 
 // transposeFloat is a function that returns the transpose of a float
-func (c *Commands) transposeNumeric(data string, field string) (string, string) {
+func (c *Commands) transposeNumeric(data string, field string) (string, string, error) {
 	data = strings.ReplaceAll(data, ",", ".")
 	cmd := data[len(data)-1:]
 	switch cmd {
 	case "+":
 		data = data[:len(data)-1]
-		return "", fmt.Sprintf("%s >= %s", field, data)
+		return "", fmt.Sprintf("%s >= %s", field, data), nil
 	case "-":
 		data = data[:len(data)-1]
-		return "", fmt.Sprintf("%s <= %s", field, data)
+		return "", fmt.Sprintf("%s <= %s", field, data), nil
 	case "*":
 		data = strings.ReplaceAll(data, "*", "%")
-		return "", fmt.Sprintf("%s like '%s'", field, data)
+		return "", fmt.Sprintf("%s like '%s'", field, data), nil
 	default:
-		return data, ""
+		return data, "", nil
 	}
 }
 
 // transposeTime is a function that returns the transpose of a time
-func (c *Commands) transposeTime(data string, field string) (string, string) {
+func (c *Commands) transposeTime(data string, field string) (string, string, error) {
 	cmd := data[len(data)-1:]
 	switch cmd {
 	case "+":
 		data = data[:len(data)-1]
 		data = c.translateTime(data)
-		return "", fmt.Sprintf("%s >= '%s'", field, data)
+		return "", fmt.Sprintf("%s >= '%s'", field, data), nil
 	case "-":
 		data = data[:len(data)-1]
 		data = c.translateTime(data)
-		return "", fmt.Sprintf("%s <= '%s'", field, data)
+		return "", fmt.Sprintf("%s <= '%s'", field, data), nil
 	case "*":
 		data = c.translateTime(data)
-		return "", fmt.Sprintf("%s like '%s'", field, data)
+		return "", fmt.Sprintf("%s like '%s'", field, data), nil
 	default:
-		return data, ""
+		return data, "", nil
 	}
 }
 
@@ -499,14 +555,18 @@ func (c *Commands) getValue(pos int, names []string, ss []string) string {
 		if slices.Contains(names, ss[j]) {
 			break
 		}
-		if ss[j][0] == '.' {
-			ss[j] = ss[j][1:]
+		v := ss[j]
+		if v[0] == '.' {
+			v = v[1:]
 		}
-		if ss[j] != "" {
+		if v != "" {
 			value += ss[j] + " "
 		}
 	}
-	return strings.TrimSpace(value)
+	if value == "" {
+		return value
+	}
+	return strings.TrimSpace(value[:len(value)-1])
 }
 
 // setFields is a function that sets the fields of a DTO

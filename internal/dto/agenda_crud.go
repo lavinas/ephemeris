@@ -2,6 +2,7 @@ package dto
 
 import (
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/lavinas/ephemeris/internal/domain"
@@ -13,16 +14,17 @@ import (
 type AgendaCrud struct {
 	Object     string `json:"-" command:"name:agenda;key;pos:2-"`
 	Action     string `json:"-" command:"name:add,get,up;key;pos:2-"`
-	ID         string `json:"id" command:"name:id;pos:3+;trans:string"`
-	Date       string `json:"date" command:"name:date;pos:3+;trans:time"`
-	ClientID   string `json:"client_id" command:"name:client;pos:3+;trans:string"`
-	ContractID string `json:"contract_id" command:"name:contract;pos:3+;trans:string"`
-	Start      string `json:"start" command:"name:start;pos:3+;trans:time"`
-	End        string `json:"end" command:"name:end;pos:3+;trans:time"`
-	Kind       string `json:"kind" command:"name:kind;pos:3+;trans:string"`
-	Status     string `json:"status" command:"name:status;pos:3+;trans:string"`
-	Bond       string `json:"bond" command:"name:bond;pos:3+;trans:string"`
-	Billing    string `json:"billing" command:"name:billing;pos:3+;trans:time"`
+	Sort       string `json:"sort" command:"name:sort;pos:3+"`
+	ID         string `json:"id" command:"name:id;pos:3+;trans:id,string"`
+	Date       string `json:"date" command:"name:date;pos:3+;trans:date,time"`
+	ClientID   string `json:"client_id" command:"name:client;pos:3+;trans:client_id,string"`
+	ContractID string `json:"contract_id" command:"name:contract;pos:3+;trans:contract_id,string"`
+	Start      string `json:"start" command:"name:start;pos:3+;trans:start,time"`
+	End        string `json:"end" command:"name:end;pos:3+;trans:end,time"`
+	Kind       string `json:"kind" command:"name:kind;pos:3+;trans:kind,string"`
+	Status     string `json:"status" command:"name:status;pos:3+;trans:status,string"`
+	Bond       string `json:"bond" command:"name:bond;pos:3+;trans:bond,string"`
+	Billing    string `json:"billing" command:"name:billing;pos:3+;trans:billing_month,time"`
 }
 
 // Validate is a method that validates the dto
@@ -57,7 +59,7 @@ func (a *AgendaCrud) GetDomain() []port.Domain {
 
 // GetOut is a method that returns the output dto
 func (c *AgendaCrud) GetOut() port.DTOOut {
-	return &AgendaCrud{}
+	return c
 }
 
 // GetDTO is a method that returns the dto
@@ -87,8 +89,18 @@ func (c *AgendaCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 			Billing:    billing,
 		})
 	}
+	if c.Sort != "" {
+		s := strings.Split(c.Sort, " ")
+		down := false
+		if len(s) > 1 && s[1] == "down"{
+			down = true
+		}	
+		cmd := pkg.NewCommands()	
+		cmd.Sort(ret, s[0], down)
+	}
 	return ret
 }
+
 
 // isEmpty is a method that returns if the dto is empty
 func (a *AgendaCrud) isEmpty() bool {
