@@ -13,13 +13,14 @@ import (
 type InvoiceCrud struct {
 	Object        string `json:"-" command:"name:invoice;key;pos:2-"`
 	Action        string `json:"-" command:"name:add,get,up;key;pos:2-"`
-	ID            string `json:"id" command:"name:id;pos:3+"`
-	Date          string `json:"date" command:"name:date;pos:3+"`
-	ClientID      string `json:"client_id" command:"name:client;pos:3+"`
-	Value         string `json:"value" command:"name:value;pos:3+"`
-	Status        string `json:"status" command:"name:status;pos:3+"`
-	SendStatus    string `json:"send_status" command:"name:send_status;pos:3+"`
-	PaymentStatus string `json:"payment_status" command:"name:payment_status;pos:3+"`
+	Sort          string `json:"sort" command:"name:sort;pos:3+"`
+	ID            string `json:"id" command:"name:id;pos:3+;trans:id,string"`
+	Date          string `json:"date" command:"name:date;pos:3+;trans:date,time"`
+	ClientID      string `json:"client_id" command:"name:client;pos:3+;trans:client_id,string"`
+	Value         string `json:"value" command:"name:value;pos:3+;trans:value,numeric"`
+	Status        string `json:"status" command:"name:status;pos:3+;trans:status,string"`
+	SendStatus    string `json:"send_status" command:"name:send_status;pos:3+;trans:send_status,string"`
+	PaymentStatus string `json:"payment_status" command:"name:payment_status;pos:3+;trans:payment_status,string"`
 }
 
 // Validate is a method that validates the dto
@@ -57,7 +58,7 @@ func (i *InvoiceCrud) GetDomain() []port.Domain {
 
 // GetOut is a method that returns the output dto
 func (i *InvoiceCrud) GetOut() port.DTOOut {
-	return &InvoiceCrud{}
+	return i
 }
 
 // GetDTO is a method that returns the output dto
@@ -76,6 +77,7 @@ func (i *InvoiceCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 			PaymentStatus: invoice.PaymentStatus,
 		})
 	}
+	pkg.NewCommands().Sort(ret, i.Sort)
 	return ret
 }
 

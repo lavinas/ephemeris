@@ -15,14 +15,15 @@ import (
 type PackageCrud struct {
 	Object       string `json:"-" command:"name:package;key;pos:2-"`
 	Action       string `json:"-" command:"name:add,get,up;key;pos:2-"`
-	ID           string `json:"id" command:"name:id;pos:3+"`
-	Date         string `json:"date" command:"name:date;pos:3+"`
-	RecurrenceID string `json:"recurrence" command:"name:recurrence;pos:3+"`
-	ServiceID    string `json:"service" command:"name:service;pos:3+"`
-	UnitValue    string `json:"unit" command:"name:unit;pos:3+"`
-	PackValue    string `json:"pack" command:"name:pack;pos:3+"`
-	Sequence     string `json:"seq" command:"name:seq;pos:3+"`
-	SequenceUp   string `json:"sequp" command:"name:sequp;pos:3+"`
+	Sort         string `json:"sort" command:"name:sort;pos:3+"`
+	ID           string `json:"id" command:"name:id;pos:3+;trans:id,string"`
+	Date         string `json:"date" command:"name:date;pos:3+;trans:date,time"`
+	RecurrenceID string `json:"recurrence" command:"name:recurrence;pos:3+;trans:recurrence_id,string"`
+	ServiceID    string `json:"service" command:"name:service;pos:3+;trans:service_id,string"`
+	UnitValue    string `json:"unit" command:"name:unit;pos:3+;trans:price,numeric"`
+	PackValue    string `json:"pack" command:"name:pack;pos:3+;trans:price,numeric"`
+	Sequence     string `json:"seq" command:"name:seq;pos:3+;trans:sequence,numeric"`
+	SequenceUp   string `json:"sequp" command:"name:sequp;pos:3+;trans:sequence,numeric"`
 }
 
 // Validate is a method that validates the dto
@@ -77,7 +78,7 @@ func (p *PackageCrud) GetDomain() []port.Domain {
 
 // GetOut is a method that returns the output dto
 func (p *PackageCrud) GetOut() port.DTOOut {
-	return &PackageCrud{}
+	return p
 }
 
 // GetDTO is a method that returns the dto
@@ -117,6 +118,7 @@ func (p *PackageCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 			})
 		}
 	}
+	pkg.NewCommands().Sort(ret, p.Sort)
 	return ret
 }
 

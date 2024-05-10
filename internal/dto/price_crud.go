@@ -14,6 +14,7 @@ import (
 type PriceCrud struct {
 	Object string `json:"-" command:"name:price;key;pos:2-"`
 	Action string `json:"-" command:"name:add,get,up;key;pos:2-"`
+	Sort   string `json:"sort" command:"name:sort;pos:3+"`
 	ID     string `json:"id" command:"name:id;pos:3+;trans:string"`
 	Date   string `json:"date" command:"name:date;pos:3+;trans:time"`
 	Name   string `json:"name" command:"name:name;pos:3+;trans:string"`
@@ -47,7 +48,7 @@ func (p *PriceCrud) GetDomain() []port.Domain {
 
 // GetOut is a method that returns the dto out
 func (p *PriceCrud) GetOut() port.DTOOut {
-	return &PriceCrud{}
+	return p
 }
 
 // GetDTO is a method that returns the dto
@@ -72,6 +73,7 @@ func (p *PriceCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 			Pack: pack,
 		})
 	}
+	pkg.NewCommands().Sort(ret, p.Sort)
 	return ret
 }
 

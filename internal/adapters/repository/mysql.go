@@ -26,7 +26,7 @@ type MySql struct {
 
 // NewRepository creates a new repository handler
 func NewRepository(dns string) (*MySql, error) {
-	db, err := gorm.Open(mysql.Open(dns), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
+	db, err := gorm.Open(mysql.Open(dns), &gorm.Config{Logger: logger.Default.LogMode(logger.Info)})
 	if err != nil {
 		return nil, err
 	}

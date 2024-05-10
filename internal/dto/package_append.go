@@ -14,6 +14,7 @@ import (
 type PackageAppend struct {
 	Object    string `json:"-" command:"name:package;key;pos:2-"`
 	Action    string `json:"-" command:"name:append;key;pos:2-"`
+	Sort      string `json:"sort" command:"name:sort;pos:3+"`
 	ID        string `json:"id" command:"name:id;pos:3+"`
 	ServiceID string `json:"service" command:"name:service;pos:3+"`
 	UnitValue string `json:"unit" command:"name:unit;pos:3+"`
@@ -47,7 +48,7 @@ func (p *PackageAppend) GetDomain() []port.Domain {
 
 // GetOut is a method that returns the dto out
 func (p *PackageAppend) GetOut() port.DTOOut {
-	return &PackageAppend{}
+	return p
 }
 
 // GetDTO is a method that returns the dto
@@ -67,6 +68,7 @@ func (p *PackageAppend) GetDTO(domainIn interface{}) []port.DTOOut {
 			Sequence:  fmt.Sprintf("%d", *domain.Sequence),
 		})
 	}
+	pkg.NewCommands().Sort(ret, p.Sort)
 	return ret
 }
 

@@ -6,10 +6,10 @@ import (
 	"math"
 	"reflect"
 	"slices"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
-	"sort"
 )
 
 // Command is a struct that represents a command
@@ -92,6 +92,7 @@ func (c *Commands) FindOne(data string, v []interface{}) (interface{}, error) {
 func (c *Commands) Unmarshal(data string, v interface{}) error {
 	st := reflect.TypeOf(v).Elem()
 	params, err := c.getParams(st, Fieldtag)
+
 	if err != nil {
 		return err
 	}
@@ -174,7 +175,7 @@ func (c *Commands) sort(v interface{}, field string, down bool) {
 }
 
 // fieldByTag is a function that returns the field of a struct by a tag
-func (c *Commands) fieldByTag (v interface{}, field string) string {
+func (c *Commands) fieldByTag(v interface{}, field string) string {
 	etype := reflect.TypeOf(v).Elem()
 	eval := reflect.ValueOf(v).Elem()
 	for i := 0; i < etype.NumField(); i++ {
@@ -189,20 +190,20 @@ func (c *Commands) fieldByTag (v interface{}, field string) string {
 }
 
 // transpose is a function that returns the transpose of a string
-func (c *Commands) transpose (data string, param *Param) (string, string, error) {
+func (c *Commands) transpose(data string, param *Param) (string, string, error) {
 	if data == "" || param.transpose == "" {
 		return data, "", nil
 	}
 	trs := strings.Split(param.transpose, ",")
 	if len(trs) != 2 {
-		return "", "", errors.New(ErrorTransposeStruct) 
+		return "", "", errors.New(ErrorTransposeStruct)
 	}
 	field := trs[0]
 	ftype := trs[1]
 	switch ftype {
 	case "string":
 		return c.transposeString(data, field)
-	case "float":
+	case "numeric":
 		return c.transposeNumeric(data, field)
 	case "time":
 		return c.transposeTime(data, field)
@@ -215,7 +216,7 @@ func (c *Commands) transpose (data string, param *Param) (string, string, error)
 func (c *Commands) transposeString(data string, field string) (string, string, error) {
 	if data == "cmd" {
 		data = "c*"
-	} 
+	}
 	if !strings.Contains(data, "+") && !strings.Contains(data, "-") && !strings.Contains(data, "*") {
 		return data, "", nil
 	}
@@ -536,6 +537,7 @@ func (c *Commands) mapValues(data string, params []*Param) error {
 		} else if param.notnull && param.value == "" {
 			message += fmt.Sprintf(ErrorNotNullField, param.field) + " | "
 		}
+
 	}
 	if message != "" {
 		return errors.New(message[:len(message)-3])

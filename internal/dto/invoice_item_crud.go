@@ -12,11 +12,12 @@ import (
 type InvoiceItemCrud struct {
 	Object      string `json:"-" command:"name:item;key;pos:2-"`
 	Action      string `json:"-" command:"name:add,get,up;key;pos:2-"`
-	ID          string `json:"id" command:"name:id;pos:3+"`
-	InvoiceID   string `json:"invoice_id" command:"name:invoice;pos:3+"`
-	AgendaID    string `json:"agenda_id" command:"name:agenda;pos:3+"`
-	Value       string `json:"value" command:"name:value;pos:3+"`
-	Description string `json:"description" command:"name:description;pos:3+"`
+	Sort        string `json:"sort" command:"name:sort;pos:3+"`
+	ID          string `json:"id" command:"name:id;pos:3+;trans:id,string"`
+	InvoiceID   string `json:"invoice_id" command:"name:invoice;pos:3+;trans:invoice_id,string"`
+	AgendaID    string `json:"agenda_id" command:"name:agenda;pos:3+;trans:agenda_id,string"`
+	Value       string `json:"value" command:"name:value;pos:3+;trans:value,numeric"`
+	Description string `json:"description" command:"name:description;pos:3+;trans:description,string"`
 }
 
 // Validate is a method that validates the dto
@@ -41,7 +42,7 @@ func (i *InvoiceItemCrud) GetDomain() []port.Domain {
 
 // GetOut is a method that returns the output dto
 func (i *InvoiceItemCrud) GetOut() port.DTOOut {
-	return &InvoiceItemCrud{}
+	return i
 }
 
 func (i *InvoiceItemCrud) GetDTO(domainIn interface{}) []port.DTOOut {
@@ -61,6 +62,7 @@ func (i *InvoiceItemCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 			Description: item.Description,
 		})
 	}
+	pkg.NewCommands().Sort(ret, i.Sort)
 	return ret
 }
 

@@ -76,8 +76,7 @@ func (c *ClientCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 		}
 		ret = append(ret, &dto)
 	}
-	cmd := pkg.NewCommands()
-	cmd.Sort(ret, c.Sort)
+	pkg.NewCommands().Sort(ret, c.Sort)
 	return ret
 }
 

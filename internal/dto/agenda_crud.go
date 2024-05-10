@@ -88,11 +88,9 @@ func (a *AgendaCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 			Billing:    billing,
 		})
 	}
-	cmd := pkg.NewCommands()
-	cmd.Sort(ret, a.Sort)
+	pkg.NewCommands().Sort(ret, a.Sort)
 	return ret
 }
-
 
 // isEmpty is a method that returns if the dto is empty
 func (a *AgendaCrud) isEmpty() bool {

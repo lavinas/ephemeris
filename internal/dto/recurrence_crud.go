@@ -14,12 +14,12 @@ import (
 type RecurrenceCrud struct {
 	Object string `json:"-" command:"name:recurrence;key;pos:2-"`
 	Action string `json:"-" command:"name:add,get,up;key;pos:2-"`
-	ID     string `json:"id" command:"name:id;pos:3+"`
-	Date   string `json:"date" command:"name:date;pos:3+"`
-	Name   string `json:"name" command:"name:name;pos:3+"`
-	Cycle  string `json:"cycle" command:"name:cycle;pos:3+"`
-	Length string `json:"quantity" command:"name:length;pos:3+"`
-	Limit  string `json:"limit" command:"name:limit;pos:3+"`
+	Sort   string `json:"sort" command:"name:sort;pos:3+"`
+	ID     string `json:"id" command:"name:id;pos:3+;trans:id,string"`
+	Date   string `json:"date" command:"name:date;pos:3+;trans:date,time"`
+	Cycle  string `json:"cycle" command:"name:cycle;pos:3+;trans:cycle,string"`
+	Length string `json:"quantity" command:"name:length;pos:3+;trans:length,numeric"`
+	Limit  string `json:"limit" command:"name:limit;pos:3+;trans:limit,numeric"`
 }
 
 // Validate is a method that validates the dto
@@ -51,13 +51,13 @@ func (r *RecurrenceCrud) GetDomain() []port.Domain {
 		r.Cycle = pkg.DefaultRecurrenceCycle
 	}
 	return []port.Domain{
-		domain.NewRecurrence(r.ID, r.Date, r.Name, r.Cycle, r.Length, r.Limit),
+		domain.NewRecurrence(r.ID, r.Date, r.Cycle, r.Length, r.Limit),
 	}
 }
 
 // GetOut is a method that returns the dto out
 func (r *RecurrenceCrud) GetOut() port.DTOOut {
-	return &RecurrenceCrud{}
+	return r
 }
 
 // GetDTO is a method that returns the dto
@@ -77,17 +77,17 @@ func (r *RecurrenceCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 		ret = append(ret, &RecurrenceCrud{
 			ID:     domain.ID,
 			Date:   domain.Date.Format(pkg.DateFormat),
-			Name:   domain.Name,
 			Cycle:  domain.Cycle,
 			Length: len,
 			Limit:  lim,
 		})
 	}
+	pkg.NewCommands().Sort(ret, r.Sort)
 	return ret
 }
 
 // isEmpty is a method that checks if the dto is empty
 func (r *RecurrenceCrud) isEmpty() bool {
-	return r.ID == "" && r.Name == "" && r.Cycle == "" &&
+	return r.ID == "" && r.Cycle == "" &&
 		r.Length == "" && r.Limit == "" && r.Date == ""
 }

@@ -14,17 +14,18 @@ import (
 type ContractCrud struct {
 	Object      string `json:"-" command:"name:contract;key;pos:2-"`
 	Action      string `json:"-" command:"name:add,get,up;key;pos:2-"`
-	ID          string `json:"id" command:"name:id;pos:3+"`
-	Date        string `json:"date" command:"name:date;pos:3+"`
-	ClientID    string `json:"client" command:"name:client;pos:3+"`
-	SponsorID   string `json:"sponsor" command:"name:sponsor;pos:3+"`
-	PackageID   string `json:"package" command:"name:package;pos:3+"`
-	BillingType string `json:"billing" command:"name:billing;pos:3+"`
-	DueDay      string `json:"due" command:"name:due;pos:3+"`
-	Start       string `json:"start" command:"name:start;pos:3+"`
-	End         string `json:"end" command:"name:end;pos:3+"`
-	Bond        string `json:"bond" command:"name:bond;pos:3+"`
-	Locked      string `json:"locked" command:"name:locked;pos:3+"`
+	Sort        string `json:"sort" command:"name:sort;pos:3+"`
+	ID          string `json:"id" command:"name:id;pos:3+;trans:id,string"`
+	Date        string `json:"date" command:"name:date;pos:3+;trans:date,time"`
+	ClientID    string `json:"client" command:"name:client;pos:3+;trans:client_id,string"`
+	SponsorID   string `json:"sponsor" command:"name:sponsor;pos:3+;trans:sponsor_id,string"`
+	PackageID   string `json:"package" command:"name:package;pos:3+;trans:package_id,string"`
+	BillingType string `json:"billing" command:"name:billing;pos:3+;trans:billing_type,string"`
+	DueDay      string `json:"due" command:"name:due;pos:3+;trans:due_day,int64"`
+	Start       string `json:"start" command:"name:start;pos:3+;trans:start,time"`
+	End         string `json:"end" command:"name:end;pos:3+;trans:end,time"`
+	Bond        string `json:"bond" command:"name:bond;pos:3+;trans:bond,string"`
+	Locked      string `json:"locked" command:"name:locked;pos:3+;trans:locked,string"`
 }
 
 // Validate is a method that validates the dto
@@ -62,7 +63,7 @@ func (c *ContractCrud) GetDomain() []port.Domain {
 
 // GetOut is a method that returns the dto out
 func (c *ContractCrud) GetOut() port.DTOOut {
-	return &ContractCrud{}
+	return c
 }
 
 // GetDTO is a method that returns the dto
@@ -105,9 +106,7 @@ func (c *ContractCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 			Locked:      locked,
 		})
 	}
-	if len(ret) == 0 {
-		return nil
-	}
+	pkg.NewCommands().Sort(ret, c.Sort)
 	return ret
 }
 

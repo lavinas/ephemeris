@@ -14,10 +14,11 @@ import (
 type ServiceCrud struct {
 	Object  string `json:"-" command:"name:service;key;pos:2-"`
 	Action  string `json:"-" command:"name:add,get,up;key;pos:2-"`
-	ID      string `json:"id" command:"name:id;pos:3+"`
-	Date    string `json:"date" command:"name:date;pos:3+"`
-	Name    string `json:"name" command:"name:name;pos:3+"`
-	Minutes string `json:"minutes" command:"name:minutes;pos:3+"`
+	Sort    string `json:"sort" command:"name:sort;pos:3+"`
+	ID      string `json:"id" command:"name:id;pos:3+;trans:id,string"`
+	Date    string `json:"date" command:"name:date;pos:3+;trans:date,time"`
+	Name    string `json:"name" command:"name:name;pos:3+;trans:name,string"`
+	Minutes string `json:"minutes" command:"name:minutes;pos:3+;trans:minutes,numeric"`
 }
 
 // Validate is a method that validates the dto
@@ -50,7 +51,7 @@ func (c *ServiceCrud) GetDomain() []port.Domain {
 
 // GetOut is a method that returns the output dto
 func (c *ServiceCrud) GetOut() port.DTOOut {
-	return &ServiceCrud{}
+	return c
 }
 
 // GetDTO is a method that returns the dto
@@ -71,6 +72,7 @@ func (c *ServiceCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 		}
 		ret = append(ret, &dto)
 	}
+	pkg.NewCommands().Sort(ret, c.Sort)
 	return ret
 }
 
