@@ -2,7 +2,6 @@ package dto
 
 import (
 	"errors"
-	"strings"
 	"time"
 
 	"github.com/lavinas/ephemeris/internal/domain"
@@ -89,15 +88,8 @@ func (a *AgendaCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 			Billing:    billing,
 		})
 	}
-	if a.Sort != "" {
-		s := strings.Split(a.Sort, " ")
-		down := false
-		if len(s) > 1 && s[1] == "down"{
-			down = true
-		}	
-		cmd := pkg.NewCommands()	
-		cmd.Sort(ret, s[0], down)
-	}
+	cmd := pkg.NewCommands()
+	cmd.Sort(ret, a.Sort)
 	return ret
 }
 

@@ -28,7 +28,7 @@ type Client struct {
 	ID       string    `gorm:"type:varchar(50); primaryKey"`
 	Date     time.Time `gorm:"type:datetime; not null; index"`
 	Name     string    `gorm:"type:varchar(100); not null; index"`
-	Email    string    `gorm:"type:varchar(100);  not null; index"`
+	Email    string    `gorm:"type:varchar(100); not null; index"`
 	Phone    string    `gorm:"type:varchar(20); not null; index"`
 	Contact  string    `gorm:"type:varchar(20); not null; index"`
 	Document *string   `gorm:"type:varchar(20); null; index"`

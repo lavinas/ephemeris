@@ -129,13 +129,32 @@ func (c *Commands) Transpose(v interface{}) ([]interface{}, error) {
 }
 
 // Order is a function that orders a slice of structs by a field
-func (c *Commands) Sort(v interface{}, field string, down bool) {
-	if len(field) != 0 && field[0] == '.' {
-		field = field[1:]
+func (c *Commands) Sort(v interface{}, cmd string) {
+	if cmd == "" {
+		return
 	}
+	field, down := c.sortParams(cmd)
 	if field == "" {
 		return
 	}
+	c.sort(v, field, down)
+}
+
+// sortParams is a function that returns the field and the direction of a command
+func (c *Commands) sortParams(cmd string) (string, bool) {
+	field := strings.Split(cmd, " ")[0]
+	down := false
+	if strings.Contains(cmd, "down") {
+		down = true
+	}
+	if len(field) != 0 && field[0] == '.' {
+		field = field[1:]
+	}
+	return field, down
+}
+
+// sort is a function that sorts a slice of structs by a field
+func (c *Commands) sort(v interface{}, field string, down bool) {
 	if reflect.TypeOf(v).Kind() == reflect.Ptr {
 		v = reflect.ValueOf(v).Elem().Interface()
 	}
