@@ -111,7 +111,7 @@ func (u *Usecase) getContracts(clientID, contractID string, month time.Time) (*[
 	if contractID != "" {
 		contract.ID = contractID
 	}
-	ret, _, err := u.Repo.Find(contract, 100)
+	ret, _, err := u.Repo.Find(contract, 0)
 	if err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error())
 	}
@@ -132,7 +132,7 @@ func (u *Usecase) getContractsByMonth(month time.Time) (*[]domain.Contract, erro
 	defer u.Repo.Rollback()
 	p1 := fmt.Sprintf("start <= '%s'", lastday.Format("2006-01-02 15:04:05"))
 	p2 := fmt.Sprintf("end is null or end >= '%s'", firstday.Format("2006-01-02 15:04:05"))
-	ret, _, err := u.Repo.Find(contract, 100, p1, p2)
+	ret, _, err := u.Repo.Find(contract, 0, p1, p2)
 	if err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error())
 	}

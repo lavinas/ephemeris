@@ -152,7 +152,10 @@ func (r *MySql) Find(base interface{}, limit int, extras ...interface{}) (interf
 	if err != nil {
 		return nil, false, err
 	}
-	if tx = tx.Limit(limit + 1).Find(result); tx.Error != nil {
+	if limit > 0 {
+		tx = tx.Limit(limit + 1)
+	}
+	if tx = tx.Find(result); tx.Error != nil {
 		return nil, false, tx.Error
 	}
 	if reflect.ValueOf(result).Elem().Len() == 0 {
