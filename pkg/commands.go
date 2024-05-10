@@ -412,25 +412,26 @@ func (c *Commands) getParamValues(tag string) ([]string, bool, bool, *int, *int,
 	var end *int
 	transp := ""
 	for _, fd := range fields {
-		if strings.Contains(fd, Tagname) {
-			names = c.getNames(fd)
-		} else if strings.Contains(fd, Tagnotnull) {
+		vals := strings.Split(fd, ":")
+		switch vals[0] {
+		case Tagname:
+			names = c.getNames(vals)
+		case Tagnotnull:
 			notnull = true
-		} else if strings.Contains(fd, Tagkey) {
+		case Tagkey:
 			iskey = true
-		} else if strings.Contains(fd, TagPos) {
-			init, end = c.getPositions(fd)
-		} else if strings.Contains(fd, TagTranspose) {
-			transp = c.getTranspose(fd)
+		case TagPos:
+			init, end = c.getPositions(vals)
+		case TagTranspose:
+			transp = c.getTranspose(vals)
 		}
 	}
 	return names, notnull, iskey, init, end, transp
 }
 
 // getNames is a function that returns the names inside a tag
-func (c *Commands) getNames(data string) []string {
+func (c *Commands) getNames(s []string) []string {
 	ret := []string{}
-	s := strings.Split(data, ":")
 	if len(s) != 2 || s[0] != Tagname || s[1] == "" {
 		return ret
 	}
@@ -442,8 +443,7 @@ func (c *Commands) getNames(data string) []string {
 }
 
 // getPositions is a function that returns the positions inside a tag
-func (c *Commands) getPositions(data string) (*int, *int) {
-	s := strings.Split(data, ":")
+func (c *Commands) getPositions(s []string) (*int, *int) {
 	if len(s) != 2 || s[0] != TagPos || s[1] == "" {
 		return nil, nil
 	}
@@ -466,8 +466,7 @@ func (c *Commands) getPositions(data string) (*int, *int) {
 }
 
 // getTranspose is a function that returns the transpose inside a tag
-func (c *Commands) getTranspose(data string) string {
-	s := strings.Split(data, ":")
+func (c *Commands) getTranspose(s []string) string {
 	if len(s) != 2 || s[0] != TagTranspose || s[1] == "" {
 		return ""
 	}

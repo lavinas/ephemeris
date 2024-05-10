@@ -13,6 +13,7 @@ import (
 type ClientCrud struct {
 	Object   string `json:"-" command:"name:client;key;pos:2-"`
 	Action   string `json:"-" command:"name:add,get,up;key;pos:2-"`
+	Sort     string `json:"sort" command:"name:sort;pos:3+"`
 	ID       string `json:"id" command:"name:id;pos:3+;trans:id,string"`
 	Date     string `json:"date" command:"name:date;pos:3+;trans:date,time"`
 	Name     string `json:"name" command:"name:name;pos:3+;trans:name,string"`
@@ -51,7 +52,7 @@ func (c *ClientCrud) GetDomain() []port.Domain {
 
 // GetOut is a method that returns the output dto
 func (c *ClientCrud) GetOut() port.DTOOut {
-	return &ClientCrud{}
+	return c
 }
 
 // GetDTO is a method that returns the dto
@@ -75,9 +76,8 @@ func (c *ClientCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 		}
 		ret = append(ret, &dto)
 	}
-	if len(ret) == 0 {
-		return nil
-	}
+	cmd := pkg.NewCommands()
+	cmd.Sort(ret, c.Sort)
 	return ret
 }
 
