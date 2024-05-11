@@ -66,6 +66,19 @@ func (i *InvoiceItemCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 	return ret
 }
 
+// Getinstructions is a method that returns the instructions of the dto for given domain
+func (i *InvoiceItemCrud) GetInstructions(domain port.Domain) (port.Domain, []interface{}, error) {
+	cmd, err := pkg.NewCommands().Transpose(i)
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(cmd) > 0 {
+		domain := i.GetDomain()[0]
+		return domain, cmd, nil
+	}
+	return domain, cmd, nil
+}
+
 // isEmpty is a method that checks if the dto is empty
 func (i *InvoiceItemCrud) isEmpty() bool {
 	if i.ID == "" && i.InvoiceID == "" && i.AgendaID == "" && i.Value == "" && i.Description == "" {

@@ -72,6 +72,19 @@ func (p *PackageAppend) GetDTO(domainIn interface{}) []port.DTOOut {
 	return ret
 }
 
+// Getinstructions is a method that returns the instructions of the dto for given domain
+func (p *PackageAppend) GetInstructions(domain port.Domain) (port.Domain, []interface{}, error) {
+	cmd, err := pkg.NewCommands().Transpose(p)
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(cmd) > 0 {
+		domain := p.GetDomain()[0]
+		return domain, cmd, nil
+	}
+	return domain, cmd, nil
+}
+
 // isEmpty is a method that checks if the dto is empty
 func (p *PackageAppend) isEmpty() bool {
 	return p.ID == "" && p.ServiceID == "" && p.UnitValue == "" && p.Sequence == ""

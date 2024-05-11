@@ -184,6 +184,7 @@ func (c *Agenda) formatContractID(repo port.Repository, filled bool) error {
 		}
 		return errors.New(pkg.ErrEmptyContractID)
 	}
+	fmt.Println("contractID", contractID)
 	contract := &Contract{ID: contractID}
 	if exists, err := contract.Load(repo); err != nil {
 		return err

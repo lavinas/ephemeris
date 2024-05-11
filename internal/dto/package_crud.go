@@ -122,6 +122,23 @@ func (p *PackageCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 	return ret
 }
 
+// Getinstructions is a method that returns the instructions of the dto for given domain
+func (p *PackageCrud) GetInstructions(domain port.Domain) (port.Domain, []interface{}, error) {
+	cmd, err := pkg.NewCommands().Transpose(p)
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(cmd) > 0 {
+		d := p.GetDomain()
+		domain := d[0]
+		if fmt.Sprintf("%T", domain) != "*domain.Package" {
+			domain = d[1]
+		}
+		return domain, cmd, nil
+	}
+	return domain, cmd, nil
+}
+
 // isEmpty is a method that checks if the dto is empty
 func (p *PackageCrud) isEmpty() bool {
 	return p.ID == "" && p.Date == "" && p.ServiceID == "" &&

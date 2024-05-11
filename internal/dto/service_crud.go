@@ -22,40 +22,40 @@ type ServiceCrud struct {
 }
 
 // Validate is a method that validates the dto
-func (c *ServiceCrud) Validate(repo port.Repository) error {
-	if c.Action != "get" && c.isEmpty() {
+func (s *ServiceCrud) Validate(repo port.Repository) error {
+	if s.Action != "get" && s.isEmpty() {
 		return errors.New(pkg.ErrParamsNotInformed)
 	}
 	return nil
 }
 
 // GetCommand is a method that returns the command of the dto
-func (p *ServiceCrud) GetCommand() string {
-	return p.Action
+func (s *ServiceCrud) GetCommand() string {
+	return s.Action
 }
 
 // GetDomain is a method that returns a string representation of the service
-func (c *ServiceCrud) GetDomain() []port.Domain {
-	if c.Action == "add" && c.Date == "" {
+func (s *ServiceCrud) GetDomain() []port.Domain {
+	if s.Action == "add" && s.Date == "" {
 		time.Local, _ = time.LoadLocation(pkg.Location)
-		c.Date = time.Now().Format(pkg.DateFormat)
+		s.Date = time.Now().Format(pkg.DateFormat)
 	}
-	if c.Action == "add" && c.Minutes == "" {
-		c.Minutes = "0"
+	if s.Action == "add" && s.Minutes == "" {
+		s.Minutes = "0"
 	}
 
 	return []port.Domain{
-		domain.NewService(c.ID, c.Date, c.Name, c.Minutes),
+		domain.NewService(s.ID, s.Date, s.Name, s.Minutes),
 	}
 }
 
 // GetOut is a method that returns the output dto
-func (c *ServiceCrud) GetOut() port.DTOOut {
-	return c
+func (s *ServiceCrud) GetOut() port.DTOOut {
+	return s
 }
 
 // GetDTO is a method that returns the dto
-func (c *ServiceCrud) GetDTO(domainIn interface{}) []port.DTOOut {
+func (s *ServiceCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 	ret := []port.DTOOut{}
 	slices := domainIn.([]interface{})
 	services := slices[0].(*[]domain.Service)
@@ -72,11 +72,25 @@ func (c *ServiceCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 		}
 		ret = append(ret, &dto)
 	}
-	pkg.NewCommands().Sort(ret, c.Sort)
+	pkg.NewCommands().Sort(ret, s.Sort)
 	return ret
 }
 
+// Getinstructions is a method that returns the instructions of the dto for given domain
+func (s *ServiceCrud) GetInstructions(domain port.Domain) (port.Domain, []interface{}, error) {
+	cmd, err := pkg.NewCommands().Transpose(s)
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(cmd) > 0 {
+		domain := s.GetDomain()[0]
+		return domain, cmd, nil
+	}
+	return domain, cmd, nil
+}
+
+
 // isEmpty is a method that checks if the dto is empty
-func (c *ServiceCrud) isEmpty() bool {
-	return c.ID == "" && c.Date == "" && c.Name == ""
+func (s *ServiceCrud) isEmpty() bool {
+	return s.ID == "" && s.Date == "" && s.Name == "" && s.Minutes == ""
 }

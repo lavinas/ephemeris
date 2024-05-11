@@ -9,6 +9,8 @@ type DTOIn interface {
 	GetDomain() []Domain
 	// GetOut is a method that returns the DTOOut
 	GetOut() DTOOut
+	// GetInstructions is a method that returns the instructions of the DTOIn for a given domain
+	GetInstructions(domain Domain) (Domain, []interface{}, error)
 }
 
 type DTOOut interface {

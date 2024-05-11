@@ -63,6 +63,19 @@ func (a *AgendaMake) GetOut() port.DTOOut {
 	return &AgendaMakeOut{}
 }
 
+// Getinstructions is a method that returns the instructions of the dto for given domain
+func (a *AgendaMake) GetInstructions(domain port.Domain) (port.Domain, []interface{}, error) {
+	cmd, err := pkg.NewCommands().Transpose(a)
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(cmd) > 0 {
+		domain := a.GetDomain()[0]
+		return domain, cmd, nil
+	}
+	return domain, cmd, nil
+}
+
 // GetDTO is a method that returns the dto out
 func (a *AgendaMakeOut) GetDTO(domainIn interface{}) []port.DTOOut {
 	agenda := domainIn.(*domain.Agenda)
@@ -78,3 +91,4 @@ func (a *AgendaMakeOut) GetDTO(domainIn interface{}) []port.DTOOut {
 		},
 	}
 }
+

@@ -110,6 +110,19 @@ func (c *ContractCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 	return ret
 }
 
+// Getinstructions is a method that returns the instructions of the dto for given domain
+func (c *ContractCrud) GetInstructions(domain port.Domain) (port.Domain, []interface{}, error) {
+	cmd, err := pkg.NewCommands().Transpose(c)
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(cmd) > 0 {
+		domain := c.GetDomain()[0]
+		return domain, cmd, nil
+	}
+	return domain, cmd, nil
+}
+
 // isEmpty is a method that checks if the dto is empty
 func (c *ContractCrud) isEmpty() bool {
 	return c.ID == "" && c.Date == "" && c.ClientID == "" && c.SponsorID == "" && c.PackageID == "" &&
