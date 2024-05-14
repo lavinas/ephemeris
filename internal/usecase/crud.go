@@ -48,12 +48,12 @@ func (c *Usecase) Get(dtoIn interface{}) error {
 	result := []interface{}{}
 	limited := false
 	for _, domain := range domains {
-		if err := domain.Format(c.Repo, "filled", "noduplicity"); err != nil {
-			return c.error(pkg.ErrPrefBadRequest, err.Error())
-		}
 		domain, extras, err := in.GetInstructions(domain)
 		if err != nil {
 			return c.error(pkg.ErrPrefInternal, err.Error())
+		}
+		if err := domain.Format(c.Repo, "filled", "noduplicity"); err != nil {
+			return c.error(pkg.ErrPrefBadRequest, err.Error())
 		}
 		base, lim, err := c.Repo.Find(domain, pkg.ResultLimit, extras...)
 		limited = lim
