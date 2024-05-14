@@ -220,8 +220,6 @@ func (c *Commands) transposeString(data string, field string) (string, string, e
 	if !strings.Contains(data, "+") && !strings.Contains(data, "-") && !strings.Contains(data, "*") {
 		return data, "", nil
 	}
-	data = strings.ReplaceAll(data, "+", "%")
-	data = strings.ReplaceAll(data, "-", "%")
 	data = strings.ReplaceAll(data, "*", "%")
 	return "", fmt.Sprintf("%s like '%s'", field, data), nil
 }
