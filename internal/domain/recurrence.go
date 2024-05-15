@@ -162,7 +162,6 @@ func (r *Recurrence) formatDate(filled bool) error {
 	return nil
 }
 
-
 // formatCycle is a method that formats the recurrence cycle
 func (r *Recurrence) formatCycle(filled bool) error {
 	r.Cycle = r.formatString(r.Cycle)

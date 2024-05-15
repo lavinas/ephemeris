@@ -26,6 +26,7 @@ type AgendaMakeOut struct {
 	ContractID string `json:"contract_id" command:"name:contract"`
 	Start      string `json:"start" command:"name:start"`
 	End        string `json:"end" command:"name:end"`
+	Event      string `json:"event" command:"name:event"`
 	Kind       string `json:"kind" command:"name:kind"`
 	Status     string `json:"status" command:"name:status"`
 }
@@ -55,8 +56,9 @@ func (a *AgendaMake) GetDomain() []port.Domain {
 		&domain.Agenda{
 			Date:       date,
 			ContractID: a.ContractID,
-			Kind:       pkg.AgendaKindSlated,
-			Status:     pkg.AgendaStatusSlated,
+			Event:      pkg.AgendaEventProgrammed,
+			Kind:       pkg.AgendaKindRegular,
+			Status:     pkg.AgendaStatusOpen,
 		},
 	}
 }
@@ -89,9 +91,9 @@ func (a *AgendaMakeOut) GetDTO(domainIn interface{}) []port.DTOOut {
 			ContractID: agenda.ContractID,
 			Start:      agenda.Start.Format(pkg.DateTimeFormat),
 			End:        agenda.End.Format(pkg.DateTimeFormat),
+			Event:	    agenda.Event,
 			Kind:       agenda.Kind,
 			Status:     agenda.Status,
 		},
 	}
 }
-

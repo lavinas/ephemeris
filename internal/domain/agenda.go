@@ -13,8 +13,9 @@ import (
 )
 
 var (
-	kindAgenda   = []string{pkg.AgendaKindSlated, pkg.AgendaKindRescheduled, pkg.AgendaKindExtra}
-	statusAgenda = []string{pkg.AgendaStatusSlated, pkg.AgendaStatusDone, pkg.AgendaStatusCanceled, pkg.AgendaStatusOverdue}
+	eventAgenda  = []string{pkg.AgendaEventProgrammed, pkg.AgendaEventExecuted}
+	kindAgenda   = []string{pkg.AgendaKindRegular, pkg.AgendaKindRescheduled, pkg.AgendaKindExtra}
+	statusAgenda = []string{pkg.AgendaStatusOpen, pkg.AgendaStatusDone, pkg.AgendaStatusCanceled}
 )
 
 // Agenda represents the agenda entity
@@ -25,6 +26,7 @@ type Agenda struct {
 	ContractID   string     `gorm:"type:varchar(50); not null; index"`
 	Start        time.Time  `gorm:"type:datetime; not null"`
 	End          time.Time  `gorm:"type:datetime; not null"`
+	Event        string     `gorm:"type:varchar(50); not null; index"`
 	Kind         string     `gorm:"type:varchar(50); not null; index"`
 	Status       string     `gorm:"type:varchar(50); not null; index"`
 	Bond         *string    `gorm:"type:varchar(50)"`
@@ -32,7 +34,7 @@ type Agenda struct {
 }
 
 // NewAgenda creates a new agenda domain entity
-func NewAgenda(id, date, clientID, contractID, start, end, kind, status, bond, billing string) *Agenda {
+func NewAgenda(id, date, clientID, contractID, start, end, event, kind, status, bond, billing string) *Agenda {
 	agenda := &Agenda{}
 	agenda.ID = id
 	local, _ := time.LoadLocation(pkg.Location)
@@ -41,6 +43,7 @@ func NewAgenda(id, date, clientID, contractID, start, end, kind, status, bond, b
 	agenda.ContractID = contractID
 	agenda.Start, _ = time.ParseInLocation(pkg.DateTimeFormat, strings.TrimSpace(start), local)
 	agenda.End, _ = time.ParseInLocation(pkg.DateTimeFormat, strings.TrimSpace(end), local)
+	agenda.Event = event
 	agenda.Kind = kind
 	agenda.Status = status
 	if bond != "" {
@@ -79,6 +82,9 @@ func (a *Agenda) Format(repo port.Repository, args ...string) error {
 		msg += err.Error() + " | "
 	}
 	if err := a.formatEnd(filled); err != nil {
+		msg += err.Error() + " | "
+	}
+	if err := a.formatEvent(filled); err != nil {
 		msg += err.Error() + " | "
 	}
 	if err := a.formatKind(filled); err != nil {
@@ -220,6 +226,22 @@ func (c *Agenda) formatEnd(filled bool) error {
 	if c.Start.After(c.End) {
 		return errors.New(pkg.ErrStartAfterEndDate)
 	}
+	return nil
+}
+
+// formatEvent is a method that formats the event of the agenda
+func (c *Agenda) formatEvent(filled bool) error {
+	event := c.formatString(c.Event)
+	if event == "" {
+		if filled {
+			return nil
+		}
+		return errors.New(pkg.ErrEmptyEvent)
+	}
+	if !slices.Contains(eventAgenda, event) {
+		return fmt.Errorf(pkg.ErrInvalidEvent, strings.Join(eventAgenda, ", "))
+	}
+	c.Event = event
 	return nil
 }
 

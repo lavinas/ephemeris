@@ -36,15 +36,17 @@ const (
 	BillingTypePosSession       = "pos-session"
 	BillingTypePerSession       = "per-session"
 	DefaultBillingType          = BillingTypePrePaid
-	AgendaKindSlated            = "open"
+	AgendaEventProgrammed       = "programmed"
+	AgendaEventExecuted         = "executed"
+	DefaultAgendaEvent          = AgendaEventProgrammed
+	AgendaKindRegular           = "regular"
 	AgendaKindRescheduled       = "rescheduled"
 	AgendaKindExtra             = "extra"
-	DefaulltAgendaKind          = AgendaKindSlated
-	AgendaStatusSlated          = "open"
+	DefaulltAgendaKind          = AgendaKindRegular
+	AgendaStatusOpen            = "open"
 	AgendaStatusDone            = "done"
 	AgendaStatusCanceled        = "canceled"
-	AgendaStatusOverdue         = "overdue"
-	DefaultAgendaStatus         = AgendaStatusSlated
+	DefaultAgendaStatus         = AgendaStatusOpen
 	InvoiceStatusActive         = "active"
 	InvoiceStatusCanceled       = "canceled"
 	DefaultInvoiceStatus        = InvoiceStatusActive
@@ -169,4 +171,6 @@ const (
 	ErrItemAlreadyExists        = "package item already exists with this sequence"
 	ErrorTransposeStruct        = "transpose struct error in struct tag. Should have field name and type"
 	ErrorTransposeType          = "transpose type error in struct tag. Should have string, numeric or time"
+	ErrEmptyEvent               = "empty event"
+	ErrInvalidEvent             = "invalid event. Should be %s"
 )

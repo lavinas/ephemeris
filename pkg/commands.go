@@ -268,7 +268,7 @@ func (c *Commands) transposeTime(data string, field string) (string, string, err
 func (c *Commands) translateTime(data string) string {
 	d := strings.Split(data, " ")
 	t, err := time.Parse(DateFormat, d[0])
-	if err != nil || len(d) > 2{
+	if err != nil || len(d) > 2 {
 		return data
 	}
 	data = t.Format("2006-01-02")

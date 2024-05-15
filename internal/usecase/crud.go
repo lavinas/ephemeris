@@ -1,7 +1,6 @@
 package usecase
 
 import (
-
 	"github.com/lavinas/ephemeris/internal/port"
 	"github.com/lavinas/ephemeris/pkg"
 )

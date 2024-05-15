@@ -89,7 +89,6 @@ func (s *ServiceCrud) GetInstructions(domain port.Domain) (port.Domain, []interf
 	return domain, cmd, nil
 }
 
-
 // isEmpty is a method that checks if the dto is empty
 func (s *ServiceCrud) isEmpty() bool {
 	return s.ID == "" && s.Date == "" && s.Name == "" && s.Minutes == ""
