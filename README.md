@@ -5,8 +5,10 @@
 * Colocar combinacao de horarios - OK
 * Corrigit limite 0 (unlimited) no find - OK
 * Colocar agenda complementar a outra - OK
-* Conciliacar agenda 
 * Validar agenda - OK
+* Fazer notificacao de agenda 
+* Conciliar agenda
+* Rever validacoes da agenda crude
 * Fazer invoice
 * Fazer envio de invoice por wapp
 * fazer envio de invoice por email
