@@ -256,8 +256,9 @@ func (c *Commands) transposeTime(data string, field string) (string, string, err
 		data = c.translateTime(data)
 		return "", fmt.Sprintf("%s <= '%s'", field, data), nil
 	case "*":
+		data = data[:len(data)-1]
 		data = c.translateTime(data)
-		return "", fmt.Sprintf("%s like '%s'", field, data), nil
+		return "", fmt.Sprintf("%s like '%s%%'", field, data), nil
 	default:
 		return data, "", nil
 	}
@@ -265,21 +266,23 @@ func (c *Commands) transposeTime(data string, field string) (string, string, err
 
 // translateTime is a function that translates a time string layout to a default time layout
 func (c *Commands) translateTime(data string) string {
-	formats := []string{
-		"02-01-2006",
-		"02-01-2006 15:04:05",
-		"02-01-2006 15:04",
-		"01-02-2006",
-		"01-02-2006 15:04:05",
-		"01-02-2006 15:04",
-		"2006-01-02",
-		"2006-01-02 15:04:05",
-		"2006-01-02 15:04",
+	formats := map[string]string{
+		"02-01-2006": "2006-01-02",
+		"02-01-2006 15": "2006-01-02 15",
+		"02-01-2006 15:04": "2006-01-02 15:04",
+		"02-01-2006 15:04:05": "2006-01-02 15:04:05",
+		"01-02-2006": "2006-01-02",
+		"01-02-2006 15": "2006-01-02 15",
+		"01-02-2006 15:04": "2006-01-02 15:04",
+		"01-02-2006 15:04:05": "2006-01-02 15:04:05",
+		"2006-01-02": "2006-01-02",
+		"2006-01-02 15": "2006-01-02 15",
+		"2006-01-02 15:04": "2006-01-02 15:04",
+		"2006-01-02 15:04:05": "2006-01-02 15:04:05",	
 	}
 	data = strings.ReplaceAll(data, "/", "-")
-	new := "2006-01-02 15:04:05"
-	for _, format := range formats {
-		t, err := time.Parse(format, data)
+	for value, new := range formats {
+		t, err := time.Parse(value, data)
 		if err != nil {
 			continue
 		}
@@ -561,6 +564,9 @@ func (c *Commands) posValues(init *int, end *int, values []string) []string {
 		values = values[*init-1:]
 	}
 	if end != nil {
+		if *end > len(values) {
+			*end = len(values)
+		}
 		values = values[:*end]
 	}
 	return values

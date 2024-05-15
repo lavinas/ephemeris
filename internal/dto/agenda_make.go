@@ -48,9 +48,12 @@ func (a *AgendaMake) GetCommand() string {
 
 // GetDomain is a method that returns the domain of the dto
 func (a *AgendaMake) GetDomain() []port.Domain {
+	time.Local, _ = time.LoadLocation(pkg.Location)
+	d := time.Now()
+	date := time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, time.Local)
 	return []port.Domain{
 		&domain.Agenda{
-			Date:       time.Now(),
+			Date:       date,
 			ContractID: a.ContractID,
 			Kind:       pkg.AgendaKindSlated,
 			Status:     pkg.AgendaStatusSlated,
