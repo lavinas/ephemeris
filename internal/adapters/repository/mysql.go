@@ -162,7 +162,7 @@ func (r *MySql) Find(base interface{}, limit int, extras ...interface{}) (interf
 		return nil, false, nil
 	}
 	crossLimit := false
-	if limit != -1 && reflect.ValueOf(result).Elem().Len() > limit {
+	if limit > 0 && reflect.ValueOf(result).Elem().Len() > limit {
 		reflect.ValueOf(result).Elem().SetLen(limit)
 		crossLimit = true
 	}

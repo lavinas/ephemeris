@@ -266,27 +266,14 @@ func (c *Commands) transposeTime(data string, field string) (string, string, err
 
 // translateTime is a function that translates a time string layout to a default time layout
 func (c *Commands) translateTime(data string) string {
-	formats := map[string]string{
-		"02-01-2006": "2006-01-02",
-		"02-01-2006 15": "2006-01-02 15",
-		"02-01-2006 15:04": "2006-01-02 15:04",
-		"02-01-2006 15:04:05": "2006-01-02 15:04:05",
-		"01-02-2006": "2006-01-02",
-		"01-02-2006 15": "2006-01-02 15",
-		"01-02-2006 15:04": "2006-01-02 15:04",
-		"01-02-2006 15:04:05": "2006-01-02 15:04:05",
-		"2006-01-02": "2006-01-02",
-		"2006-01-02 15": "2006-01-02 15",
-		"2006-01-02 15:04": "2006-01-02 15:04",
-		"2006-01-02 15:04:05": "2006-01-02 15:04:05",	
+	d := strings.Split(data, " ")
+	t, err := time.Parse(DateFormat, d[0])
+	if err != nil || len(d) > 2{
+		return data
 	}
-	data = strings.ReplaceAll(data, "/", "-")
-	for value, new := range formats {
-		t, err := time.Parse(value, data)
-		if err != nil {
-			continue
-		}
-		return t.Format(new)
+	data = t.Format("2006-01-02")
+	if len(d) > 1 {
+		data += " " + d[1]
 	}
 	return data
 }
