@@ -6,7 +6,7 @@ type AgendaReport struct {
 	Action     string `json:"-" command:"name:report,repo,rep;key;pos:2-"`
 	ClientID   string `json:"client" command:"name:client;pos:3+"`
 	ContractID string `json:"contract" command:"name:contract;pos:3+"`
-	Start      string `json:"start" command:"name:start;pos:3+"`
-	End        string `json:"end" command:"name:end;pos:3+"`
+	At         string `json:"at" command:"name:at;pos:3+"`
+	Minutes    string `json:"minutes" command:"name:minutes,min;pos:3+"`
 	Kind       string `json:"kind" command:"name:kind;pos:3+"`
 }
