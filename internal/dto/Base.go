@@ -13,5 +13,6 @@ func All() []interface{} {
 		&PriceCrud{},
 		&RecurrenceCrud{},
 		&ServiceCrud{},
+		&SessionCrud{},
 	}
 }

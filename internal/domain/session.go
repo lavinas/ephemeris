@@ -24,7 +24,7 @@ type Session struct {
 	ClientID   string    `gorm:"type:varchar(50); not null; index"`
 	ContractID string    `gorm:"type:varchar(50); index"`
 	At         time.Time `gorm:"type:datetime; not null"`
-	Minutes    int       `gorm:"type:int; not null"`
+	Minutes    int64       `gorm:"type:int; not null"`
 	Kind       string    `gorm:"type:varchar(50); not null; index"`
 	Status     string    `gorm:"type:varchar(50); not null; index"`
 }
@@ -38,7 +38,7 @@ func NewSession(id, date, clientID, contractID, at, minutes, kind, status string
 	local, _ := time.LoadLocation(pkg.Location)
 	session.Date, _ = time.ParseInLocation(pkg.DateFormat, date, local)
 	session.At, _ = time.ParseInLocation("2006-01-02T15:04:05", at, local)
-	session.Minutes, _ = strconv.Atoi(minutes)
+	session.Minutes, _ = strconv.ParseInt(minutes, 10, 64)
 	session.Kind = kind
 	session.Status = status
 	return session
@@ -69,10 +69,38 @@ func (s *Session) Format(repo port.Repository, args ...string) error {
 	if err := s.formatStatus(filled); err != nil {
 		msg += err.Error() + " | "
 	}
+	if err := s.validateDuplicity(repo, slices.Contains(args, "noduplicity")); err != nil {
+		msg += err.Error() + " | "
+	}
 	if msg != "" {
 		return errors.New(msg[:len(msg)-3])
 	}
 	return nil
+}
+
+// Exists is a function that checks if a agenda exists
+func (s *Session) Load(repo port.Repository) (bool, error) {
+	return repo.Get(s, s.ID)
+}
+
+// GetID is a method that returns the id of the client
+func (s *Session) GetID() string {
+	return s.ID
+}
+
+// Get is a method that returns the client
+func (s *Session) Get() port.Domain {
+	return s
+}
+
+// GetEmpty is a method that returns an empty client with just id
+func (s *Session) GetEmpty() port.Domain {
+	return &Session{}
+}
+
+// TableName returns the table name for database
+func (s *Session) TableName() string {
+	return "session"
 }
 
 // formatID is a method that validates the session id
@@ -186,6 +214,21 @@ func (s *Session) formatStatus(filled bool) error {
 	}
 	if !slices.Contains(StatusSession, s.Status) {
 		return errors.New(pkg.ErrInvalidStatus)
+	}
+	return nil
+}
+
+// validateDuplicity is a method that validates the duplicity of a client
+func (s *Session) validateDuplicity(repo port.Repository, noduplicity bool) error {
+	if noduplicity {
+		return nil
+	}
+	ok, err := repo.Get(&Session{}, s.ID)
+	if err != nil {
+		return err
+	}
+	if ok {
+		return fmt.Errorf(pkg.ErrAlreadyExists, s.ID)
 	}
 	return nil
 }
