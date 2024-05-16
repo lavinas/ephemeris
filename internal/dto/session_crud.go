@@ -114,5 +114,6 @@ func (s *SessionCrud) GetInstructions(domain port.Domain) (port.Domain, []interf
 
 // isEmpty is a method that checks if the dto is empty
 func (s *SessionCrud) isEmpty() bool {
-	return s.ID == "" && s.Date == "" && s.ClientID == "" && s.ContractID == "" && s.Minutes == "" && s.Kind == "" && s.Status == ""
+	return false
+	// return s.ID == "" && s.Date == "" && s.ClientID == "" && s.ContractID == "" && s.Minutes == "" && s.Kind == "" && s.Status == ""
 }
