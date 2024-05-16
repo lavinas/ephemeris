@@ -27,7 +27,7 @@ type SessionCrud struct {
 
 // Validate is a method that validates the dto
 func (s *SessionCrud) Validate(repo port.Repository) error {
-	if s.isEmpty() {
+	if s.isEmpty() && s.Action != "get"{
 		return errors.New(pkg.ErrParamsNotInformed)
 	}
 	return nil
@@ -50,6 +50,9 @@ func (s *SessionCrud) GetDomain() []port.Domain {
 	if s.Action == "add" && s.Status == "" {
 		s.Status = pkg.DefaultSessionStatus
 	}
+	if s.Action == "add" && s.Minutes == "" {
+		s.Minutes = "0"
+	}
 	return []port.Domain{
 		domain.NewSession(s.ID, s.Date, s.ClientID, s.ContractID, s.At, s.Minutes, s.Kind, s.Status),
 	}
@@ -66,13 +69,17 @@ func (s *SessionCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 	slices := domainIn.([]interface{})
 	sessions := slices[0].(*[]domain.Session)
 	for _, se := range *sessions {
+		m := ""
+		if se.Minutes != nil {
+			m = strconv.FormatInt(*se.Minutes, 10)
+		}
 		ret = append(ret, &SessionCrud{
 			ID:         se.ID,
 			Date:       se.Date.Format(pkg.DateFormat),
 			ClientID:   se.ClientID,
 			ContractID: se.ContractID,
 			At:         se.At.Format(pkg.DateTimeFormat),
-			Minutes:    strconv.FormatInt(se.Minutes, 10),
+			Minutes:    m,
 			Kind:       se.Kind,
 			Status:     se.Status,
 		})

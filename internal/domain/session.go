@@ -24,7 +24,7 @@ type Session struct {
 	ClientID   string    `gorm:"type:varchar(50); not null; index"`
 	ContractID string    `gorm:"type:varchar(50); index"`
 	At         time.Time `gorm:"type:datetime; not null"`
-	Minutes    int64       `gorm:"type:int; not null"`
+	Minutes    *int64    `gorm:"type:int; not null"`
 	Kind       string    `gorm:"type:varchar(50); not null; index"`
 	Status     string    `gorm:"type:varchar(50); not null; index"`
 }
@@ -37,8 +37,11 @@ func NewSession(id, date, clientID, contractID, at, minutes, kind, status string
 	session.ContractID = contractID
 	local, _ := time.LoadLocation(pkg.Location)
 	session.Date, _ = time.ParseInLocation(pkg.DateFormat, date, local)
-	session.At, _ = time.ParseInLocation("2006-01-02T15:04:05", at, local)
-	session.Minutes, _ = strconv.ParseInt(minutes, 10, 64)
+	session.At, _ = time.ParseInLocation(pkg.DateTimeFormat, at, local)
+	m, err := strconv.ParseInt(minutes, 10, 64)
+	if err == nil {
+		session.Minutes = &m
+	}
 	session.Kind = kind
 	session.Status = status
 	return session
@@ -179,7 +182,7 @@ func (s *Session) formatAt(filled bool) error {
 
 // formatMinutes is a method that validates the session minutes
 func (s *Session) formatMinutes(filled bool) error {
-	if s.Minutes == 0 {
+	if s.Minutes == nil {
 		if filled {
 			return nil
 		}
