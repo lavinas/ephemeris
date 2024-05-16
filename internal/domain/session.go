@@ -152,6 +152,8 @@ func (s *Session) formatClientContractID(repo port.Repository, filled bool) erro
 		}
 		if s.ClientID != "" && contract.ClientID != s.ClientID {
 			return errors.New(pkg.ErrContractClientMismatch)
+		} else {
+			s.ClientID = contract.ClientID
 		}
 	}
 	if s.ClientID == "" {
