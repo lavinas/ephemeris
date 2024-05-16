@@ -53,6 +53,12 @@ func (s *SessionCrud) GetDomain() []port.Domain {
 	if s.Action == "add" && s.Minutes == "" {
 		s.Minutes = "0"
 	}
+	if s.Action == "add" && s.At == "" {
+		s.At = time.Now().Format(pkg.DateTimeFormat)
+	}
+	if s.Action == "add" && s.ID == "" {
+		s.ID = time.Now().Format("2006-01-02-15-04-05") + "-" + s.ClientID
+	}
 	return []port.Domain{
 		domain.NewSession(s.ID, s.Date, s.ClientID, s.ContractID, s.At, s.Minutes, s.Kind, s.Status),
 	}
