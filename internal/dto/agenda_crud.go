@@ -20,7 +20,6 @@ type AgendaCrud struct {
 	ContractID string `json:"contract_id" command:"name:contract;pos:3+;trans:contract_id,string"`
 	Start      string `json:"start" command:"name:start;pos:3+;trans:start,time"`
 	End        string `json:"end" command:"name:end;pos:3+;trans:end,time"`
-	Event      string `json:"event" command:"name:event;pos:3+;trans:event,string"`
 	Kind       string `json:"kind" command:"name:kind;pos:3+;trans:kind,string"`
 	Status     string `json:"status" command:"name:status;pos:3+;trans:status,string"`
 	Bond       string `json:"bond" command:"name:bond;pos:3+;trans:bond,string"`
@@ -46,9 +45,6 @@ func (a *AgendaCrud) GetDomain() []port.Domain {
 		time.Local, _ = time.LoadLocation(pkg.Location)
 		a.Date = time.Now().Format(pkg.DateFormat)
 	}
-	if a.Action == "add" && a.Event == "" {
-		a.Event = pkg.DefaultAgendaEvent
-	}
 	if a.Action == "add" && a.Kind == "" {
 		a.Kind = pkg.DefaulltAgendaKind
 	}
@@ -56,7 +52,7 @@ func (a *AgendaCrud) GetDomain() []port.Domain {
 		a.Status = pkg.DefaultAgendaStatus
 	}
 	return []port.Domain{
-		domain.NewAgenda(a.ID, a.Date, a.ClientID, a.ContractID, a.Start, a.End, a.Event, a.Kind, a.Status, a.Bond, a.Billing),
+		domain.NewAgenda(a.ID, a.Date, a.ClientID, a.ContractID, a.Start, a.End, a.Kind, a.Status, a.Bond, a.Billing),
 	}
 }
 
@@ -86,7 +82,6 @@ func (a *AgendaCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 			ContractID: ag.ContractID,
 			Start:      ag.Start.Format(pkg.DateTimeFormat),
 			End:        ag.End.Format(pkg.DateTimeFormat),
-			Event:      ag.Event,
 			Kind:       ag.Kind,
 			Status:     ag.Status,
 			Bond:       bond,

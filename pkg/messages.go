@@ -61,6 +61,14 @@ const (
 	InvoiceSendStatusSent       = "sent"
 	InvoiceSendStatusViewed     = "viewed"
 	DefaultInvoiceSendStatus    = InvoiceSendStatusNotSent
+	SessionKindRegular          = "regular"
+	SessionKindRescheduled      = "rescheduled"
+	SessionKindExtra            = "extra"
+	DefaultSessionKind          = SessionKindRegular
+	SessionStatusOpen           = "open"
+	SessionStatusDone           = "done"
+	SessionStatusCanceled       = "canceled"
+	DefaultSessionStatus        = SessionStatusOpen
 	Location                    = "America/Sao_Paulo"
 	DateFormat                  = "02/01/2006"
 	MonthFormat                 = "01/2006"
@@ -173,4 +181,7 @@ const (
 	ErrorTransposeType          = "transpose type error in struct tag. Should have string, numeric or time"
 	ErrEmptyEvent               = "empty event"
 	ErrInvalidEvent             = "invalid event. Should be %s"
+	ErrEmptyClientOrContractID  = "client or contract should be informed"
+	ErrEmptyAt                  = "at should be informed"
+	ErrEmptyMinutes             = "minutes should be informed"
 )
