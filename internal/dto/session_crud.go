@@ -12,7 +12,7 @@ type SessionCrud struct {
 	Object     string `json:"-" command:"name:session;key;pos:2-"`
 	Action     string `json:"-" command:"name:add,get,up;key;pos:2-"`
 	Sort       string `json:"sort" command:"name:sort;pos:3+"`
-	ID         string `json:"id" command:name:id;pos:3+;trans:id,string"`
+	ID         string `json:"id" command:"name:id;pos:3+;trans:id,string"`
 	Date       string `json:"date" command:"name:date;pos:3+;trans:date,time"`
 	ClientID   string `json:"client_id" command:"name:client;pos:3+;trans:client_id,string"`
 	ContractID string `json:"contract_id" command:"name:contract;pos:3+;trans:contract_id,string"`
