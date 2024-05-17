@@ -1,7 +1,6 @@
 package dto
 
 import (
-	"errors"
 	"strconv"
 	"time"
 
@@ -27,9 +26,6 @@ type SessionCrud struct {
 
 // Validate is a method that validates the dto
 func (s *SessionCrud) Validate(repo port.Repository) error {
-	if s.isEmpty() && s.Action != "get"{
-		return errors.New(pkg.ErrParamsNotInformed)
-	}
 	return nil
 }
 
@@ -110,10 +106,4 @@ func (s *SessionCrud) GetInstructions(domain port.Domain) (port.Domain, []interf
 		return domain, cmd, nil
 	}
 	return domain, cmd, nil
-}
-
-// isEmpty is a method that checks if the dto is empty
-func (s *SessionCrud) isEmpty() bool {
-	return false
-	// return s.ID == "" && s.Date == "" && s.ClientID == "" && s.ContractID == "" && s.Minutes == "" && s.Kind == "" && s.Status == ""
-}
+}	

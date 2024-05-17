@@ -184,4 +184,5 @@ const (
 	ErrEmptyClientOrContractID  = "client or contract should be informed"
 	ErrEmptyAt                  = "at should be informed"
 	ErrEmptyMinutes             = "minutes should be informed"
+	ErrFileNotInformed		    = "file not informed"	
 )

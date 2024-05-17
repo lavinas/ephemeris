@@ -38,6 +38,8 @@ func (c *Usecase) Run(dto interface{}) error {
 		return c.Up(in)
 	case "make":
 		return c.AgendaMake(in)
+	case "csv":
+		return c.SessionCSV(in)
 	default:
 		return c.error(pkg.ErrPrefBadRequest, pkg.ErrCommandNotFound)
 	}

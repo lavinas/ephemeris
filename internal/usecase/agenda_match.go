@@ -12,10 +12,6 @@ func (u *Usecase) AgendaMatch(dtoIn interface{}) error {
 	if err := in.Validate(u.Repo); err != nil {
 		return u.error(pkg.ErrPrefBadRequest, err.Error())
 	}
-	
-
-
-
 	return nil
 }
 

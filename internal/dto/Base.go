@@ -14,5 +14,6 @@ func All() []interface{} {
 		&RecurrenceCrud{},
 		&ServiceCrud{},
 		&SessionCrud{},
+		&SessionCSV{},
 	}
 }
