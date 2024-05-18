@@ -19,9 +19,8 @@ type SessionCSVLine struct {
 	ID         string `json:"id" command:"name:id"`
 	Date       string `json:"date" command:"name:date"`
 	ClientID   string `json:"client_id" command:"name:client"`
-	ContractID string `json:"contract_id" command:"name:contract"`
+	ServiceID  string `json:"contract_id" command:"name:contract"`
 	At         string `json:"at" command:"name:at"`
-	Minutes    string `json:"minutes" command:"name:minutes"`
 	Kind       string `json:"kind" command:"name:kind"`
 	Status     string `json:"status" command:"name:status"`
 	Response   string `json:"resp" command:"name:response"`
