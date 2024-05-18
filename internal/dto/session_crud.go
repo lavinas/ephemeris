@@ -1,7 +1,6 @@
 package dto
 
 import (
-	"strconv"
 	"time"
 
 	"github.com/lavinas/ephemeris/internal/domain"
@@ -17,9 +16,8 @@ type SessionCrud struct {
 	ID         string `json:"id" command:"name:id;pos:3+;trans:id,string"`
 	Date       string `json:"date" command:"name:date;pos:3+;trans:date,time"`
 	ClientID   string `json:"client_id" command:"name:client;pos:3+;trans:client_id,string"`
-	ContractID string `json:"contract_id" command:"name:contract;pos:3+;trans:contract_id,string"`
+	ServiceID  string `json:"service" command:"name:service;pos:3+;trans:service_id,string"`
 	At         string `json:"at" command:"name:at;pos:3+;trans:at,time"`
-	Minutes    string `json:"minutes" command:"name:minutes;pos:3+;trans:minutes,numeric"`
 	Kind       string `json:"kind" command:"name:kind;pos:3+;trans:kind,string"`
 	Status     string `json:"status" command:"name:status;pos:3+;trans:status,string"`
 }
@@ -46,22 +44,14 @@ func (s *SessionCrud) GetDomain() []port.Domain {
 	if s.Action == "add" && s.Status == "" {
 		s.Status = pkg.DefaultSessionStatus
 	}
-	if s.Action == "add" && s.Minutes == "" {
-		s.Minutes = "0"
-	}
 	if s.Action == "add" && s.At == "" {
 		s.At = time.Now().Format(pkg.DateTimeFormat)
 	}
 	if s.Action == "add" && s.ID == "" {
-		s.ID = time.Now().Format("2006-01-02-15-04-05")
-		if s.ClientID != "" {
-			s.ID = s.ID + "-" + s.ClientID
-		} else {
-			s.ID = s.ID + "-" + s.ContractID
-		}
+		s.ID = time.Now().Format("2006-01-02-15-04-05") + "-" + s.ClientID + "-" + s.ServiceID
 	}
 	return []port.Domain{
-		domain.NewSession(s.ID, s.Date, s.ClientID, s.ContractID, s.At, s.Minutes, s.Kind, s.Status),
+		domain.NewSession(s.ID, s.Date, s.ClientID, s.ServiceID, s.At, s.Kind, s.Status),
 	}
 }
 
@@ -76,17 +66,12 @@ func (s *SessionCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 	slices := domainIn.([]interface{})
 	sessions := slices[0].(*[]domain.Session)
 	for _, se := range *sessions {
-		m := ""
-		if se.Minutes != nil {
-			m = strconv.FormatInt(*se.Minutes, 10)
-		}
 		ret = append(ret, &SessionCrud{
 			ID:         se.ID,
 			Date:       se.Date.Format(pkg.DateFormat),
 			ClientID:   se.ClientID,
-			ContractID: se.ContractID,
+			ServiceID:  se.ServiceID,
 			At:         se.At.Format(pkg.DateTimeFormat),
-			Minutes:    m,
 			Kind:       se.Kind,
 			Status:     se.Status,
 		})

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"strconv"
 	"strings"
 	"time"
 
@@ -22,25 +21,24 @@ type Session struct {
 	ID         string    `gorm:"type:varchar(50); primaryKey"`
 	Date       time.Time `gorm:"type:datetime; not null"`
 	ClientID   string    `gorm:"type:varchar(50); not null; index"`
-	ContractID string    `gorm:"type:varchar(50); index"`
+	ServiceID  string    `gorm:"type:varchar(50); not null; index"`
 	At         time.Time `gorm:"type:datetime; not null"`
-	Minutes    *int64    `gorm:"type:int; not null"`
 	Kind       string    `gorm:"type:varchar(50); not null; index"`
 	Status     string    `gorm:"type:varchar(50); not null; index"`
 }
 
 // NewSession creates a new session domain entity
-func NewSession(id, date, clientID, contractID, at, minutes, kind, status string) *Session {
+func NewSession(id, date, clientID, serviceID, at, kind, status string) *Session {
 	session := &Session{}
 	session.ID = id
 	session.ClientID = clientID
-	session.ContractID = contractID
+	session.ServiceID = serviceID
 	local, _ := time.LoadLocation(pkg.Location)
 	session.Date, _ = time.ParseInLocation(pkg.DateFormat, date, local)
-	session.At, _ = time.ParseInLocation(pkg.DateTimeFormat, at, local)
-	m, err := strconv.ParseInt(minutes, 10, 64)
-	if err == nil {
-		session.Minutes = &m
+	var err error
+	session.At, err = time.ParseInLocation(pkg.DateTimeFormat, at, local)
+	if err != nil {
+		session.At, _ = time.ParseInLocation(pkg.DateFormat, at, local)
 	}
 	session.Kind = kind
 	session.Status = status
@@ -57,13 +55,10 @@ func (s *Session) Format(repo port.Repository, args ...string) error {
 	if err := s.formatDate(filled); err != nil {
 		msg += err.Error() + " | "
 	}
-	if err := s.formatClientContractID(repo, filled); err != nil {
+	if err := s.formatClientID(repo, filled); err != nil {
 		msg += err.Error() + " | "
 	}
 	if err := s.formatAt(filled); err != nil {
-		msg += err.Error() + " | "
-	}
-	if err := s.formatMinutes(filled); err != nil {
 		msg += err.Error() + " | "
 	}
 	if err := s.formatKind(filled); err != nil {
@@ -136,26 +131,7 @@ func (s *Session) formatDate(filled bool) error {
 }
 
 // validateClientID is a method that validates the session client id
-func (s *Session) formatClientContractID(repo port.Repository, filled bool) error {
-	if s.ClientID == "" && s.ContractID == "" {
-		if filled {
-			return nil
-		}
-		return errors.New(pkg.ErrEmptyClientOrContractID)
-	}
-	if s.ContractID != "" {
-		contract := &Contract{ID: s.ContractID}
-		if ok, err := contract.Load(repo); err != nil {
-			return err
-		} else if !ok {
-			return errors.New(pkg.ErrContractNotFound)
-		}
-		if s.ClientID != "" && contract.ClientID != s.ClientID {
-			return errors.New(pkg.ErrContractClientMismatch)
-		} else {
-			s.ClientID = contract.ClientID
-		}
-	}
+func (s *Session) formatClientID(repo port.Repository, filled bool) error {
 	if s.ClientID == "" {
 		if filled {
 			return nil
@@ -171,6 +147,23 @@ func (s *Session) formatClientContractID(repo port.Repository, filled bool) erro
 	return nil
 }
 
+// formatServiceID is a method that validates the session service id
+func (s *Session) formatServiceID(repo port.Repository, filled bool) error {
+	if s.ServiceID == "" {
+		if filled {
+			return nil
+		}
+		return errors.New(pkg.ErrEmptyServiceID)
+	}
+	service := &Service{ID: s.ServiceID}
+	if ok, err := service.Load(repo); err != nil {
+		return err
+	} else if !ok {
+		return errors.New(pkg.ErrServiceNotFound)
+	}
+	return nil
+}
+
 // formatAt is a method that validates the session at
 func (s *Session) formatAt(filled bool) error {
 	if s.At.IsZero() {
@@ -182,18 +175,6 @@ func (s *Session) formatAt(filled bool) error {
 	return nil
 }
 
-// formatMinutes is a method that validates the session minutes
-func (s *Session) formatMinutes(filled bool) error {
-	if s.Minutes == nil {
-		if filled {
-			return nil
-		}
-		if s.Kind != pkg.SessionKindRegular {
-			return errors.New(pkg.ErrEmptyMinutes)
-		}
-	}
-	return nil
-}
 
 // formatKind is a method that validates the session kind
 func (s *Session) formatKind(filled bool) error {
