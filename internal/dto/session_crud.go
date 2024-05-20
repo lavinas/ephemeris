@@ -15,11 +15,11 @@ type SessionCrud struct {
 	Sort       string `json:"sort" command:"name:sort;pos:3+"`
 	ID         string `json:"id" command:"name:id;pos:3+;trans:id,string"`
 	Date       string `json:"date" command:"name:date;pos:3+;trans:date,time"`
-	ClientID   string `json:"client_id" command:"name:client;pos:3+;trans:client_id,string"`
-	ServiceID  string `json:"service" command:"name:service;pos:3+;trans:service_id,string"`
-	At         string `json:"at" command:"name:at;pos:3+;trans:at,time"`
-	Kind       string `json:"kind" command:"name:kind;pos:3+;trans:kind,string"`
-	Status     string `json:"status" command:"name:status;pos:3+;trans:status,string"`
+	ClientID   string `json:"client_id" command:"name:client;pos:3+;trans:client_id,string" csv:"client"`
+	ServiceID  string `json:"service" command:"name:service;pos:3+;trans:service_id,string" csv:"service"`
+	At         string `json:"at" command:"name:at;pos:3+;trans:at,time" csv:"at"`
+	Kind       string `json:"kind" command:"name:kind;pos:3+;trans:kind,string" csv:"kind"`
+	Status     string `json:"status" command:"name:status;pos:3+;trans:status,string" csv:"status"`
 }
 
 // Validate is a method that validates the dto
@@ -45,7 +45,15 @@ func (s *SessionCrud) GetDomain() []port.Domain {
 		s.Status = pkg.DefaultSessionStatus
 	}
 	if s.Action == "add" && s.ID == "" {
-		s.ID = time.Now().Format("2006-01-02-15-04-05") + "-" + s.ClientID + "-" + s.ServiceID
+		at := time.Now().Format("2006-01-02-15-04")
+		t, err := time.Parse(pkg.DateTimeFormat, at)
+		if err != nil {
+			t, err = time.Parse(pkg.DateFormat, s.Date)
+		}
+		if err == nil {
+			at = t.Format("2006-01-02-15-04")
+		}
+		s.ID = at + "-" + s.ClientID + "-" + s.ServiceID
 	}
 	return []port.Domain{
 		domain.NewSession(s.ID, s.Date, s.ClientID, s.ServiceID, s.At, s.Kind, s.Status),

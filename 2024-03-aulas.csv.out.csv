@@ -1,0 +1,70 @@
+client,service,at,kind,status,result,id
+viviane_cerqueira,canto_60,01/04/2024,regular,done,added,2024-05-20-00-00-viviane_cerqueira-canto_60
+camila_trevisan,piano_60,02/04/2024,regular,over,error: bad request: client not found | invalid status. Should be %s,
+leonardo_rodrigues,canto_30,02/04/2024,regular,done,added,2024-05-20-00-00-leonardo_rodrigues-canto_30
+rose_Taveira,canto_60,02/04/2024,adjust,done,error: bad request: client not found | invalid kind. Should be %s,
+sophia_lopes,canto_60,02/04/2024,regular,done,added,2024-05-20-00-00-sophia_lopes-canto_60
+estevan_m,canto_60,03/04/2024,regular,done,error: bad request: client not found,
+reginaldo_regino,canto_60,03/04/2024,regular,done,added,2024-05-20-00-00-reginaldo_regino-canto_60
+timbere_nogueira,canto_60,03/04/2024,regular,done,error: bad request: client not found,
+camila_trevisan,canto_60,04/04/2024,regular,over,error: bad request: client not found | invalid status. Should be %s,
+jacqueline_rodrigues,canto_60,04/04/2024,regular,done,added,2024-05-20-00-00-jacqueline_rodrigues-canto_60
+jose_augusto,canto_60,04/04/2024,regular,done,added,2024-05-20-00-00-jose_augusto-canto_60
+reginaldo_regino,canto_60,04/04/2024,adjust,done,error: bad request: invalid kind. Should be %s | register already exists with id 2024-05-20-00-00-reginaldo_regino-canto_60,
+rose_Taveira,canto_45,04/04/2024,regular,done,error: bad request: client not found,
+leandro_bauch,canto_60,05/04/2024,regular,done,added,2024-05-20-00-00-leandro_bauch-canto_60
+viviane_cerqueira,canto_60,08/04/2024,regular,done,error: bad request: register already exists with id 2024-05-20-00-00-viviane_cerqueira-canto_60,
+camila_trevisan,canto_60,09/04/2024,regular,done,error: bad request: client not found,
+carlos_canada,canto_60,09/04/2024,adjust,done,error: bad request: client not found | invalid kind. Should be %s,
+sophia_lopes,canto_30,09/04/2024,regular,done,added,2024-05-20-00-00-sophia_lopes-canto_30
+sophia_lopes,canto_30,09/04/2024,adjust,done,error: bad request: invalid kind. Should be %s | register already exists with id 2024-05-20-00-00-sophia_lopes-canto_30,
+thais_oliveira,canto_60,09/04/2024,regular,done,error: bad request: client not found,
+denise,canto_60,10/04/2024,regular,done,error: bad request: client not found,
+estevan_m,canto_60,10/04/2024,regular,done,error: bad request: client not found,
+pericles_costa,canto_60,10/04/2024,regular,done,added,2024-05-20-00-00-pericles_costa-canto_60
+reginaldo_regino,canto_60,10/04/2024,regular,adjust,error: bad request: invalid status. Should be %s | register already exists with id 2024-05-20-00-00-reginaldo_regino-canto_60,
+ana_flavia,canto_60,11/04/2024,regular,done,added,2024-05-20-00-00-ana_flavia-canto_60
+ana_silva,canto_60,11/04/2024,regular,done,added,2024-05-20-00-00-ana_silva-canto_60
+camila_trevisan,canto_60,11/04/2024,regular,done,error: bad request: client not found,
+giovanna_boni,canto_45,11/04/2024,regular,done,added,2024-05-20-00-00-giovanna_boni-canto_45
+jacqueline_rodrigues,canto_60,11/04/2024,regular,done,error: bad request: register already exists with id 2024-05-20-00-00-jacqueline_rodrigues-canto_60,
+lucas_ribeiro,canto_30,11/04/2024,regular,done,added,2024-05-20-00-00-lucas_ribeiro-canto_30
+rose_Taveira,canto_60,13/04/2024,regular,done,error: bad request: client not found,
+camila_trevisan,piano_60,16/04/2024,regular,done,error: bad request: client not found,
+leonardo_rodrigues,canto_30,16/04/2024,regular,done,error: bad request: register already exists with id 2024-05-20-00-00-leonardo_rodrigues-canto_30,
+sophia_lopes,canto_60,16/04/2024,regular,done,error: bad request: register already exists with id 2024-05-20-00-00-sophia_lopes-canto_60,
+timbere_nogueira,canto_60,17/04/2024,regular,done,error: bad request: client not found,
+camila_trevisan,canto_60,18/04/2024,regular,done,error: bad request: client not found,
+carlos_canada,canto_60,18/04/2024,regular,done,error: bad request: client not found,
+giovanna_boni,canto_45,18/04/2024,regular,done,error: bad request: register already exists with id 2024-05-20-00-00-giovanna_boni-canto_45,
+jacqueline_rodrigues,canto_60,18/04/2024,regular,done,error: bad request: register already exists with id 2024-05-20-00-00-jacqueline_rodrigues-canto_60,
+jose_augusto,canto_60,18/04/2024,regular,done,error: bad request: register already exists with id 2024-05-20-00-00-jose_augusto-canto_60,
+rose_Taveira,canto_45,18/04/2024,regular,done,error: bad request: client not found,
+leandro_bauch,canto_60,19/04/2024,regular,done,error: bad request: register already exists with id 2024-05-20-00-00-leandro_bauch-canto_60,
+timbere_nogueira,canto_60,19/04/2024,regular,done,error: bad request: client not found,
+ana_flavia,canto_60,20/04/2024,regular,done,error: bad request: register already exists with id 2024-05-20-00-00-ana_flavia-canto_60,
+beatriz_nagaoka,canto_60,22/04/2024,regular,done,added,2024-05-20-00-00-beatriz_nagaoka-canto_60
+viviane_cerqueira,canto_60,22/04/2024,regular,done,error: bad request: register already exists with id 2024-05-20-00-00-viviane_cerqueira-canto_60,
+leandro_bauch,canto_60,23/04/2024,adjust,done,error: bad request: invalid kind. Should be %s | register already exists with id 2024-05-20-00-00-leandro_bauch-canto_60,
+denise,canto_60,24/04/2024,regular,done,error: bad request: client not found,
+sophia_lopes,canto_30,24/04/2024,regular,done,error: bad request: register already exists with id 2024-05-20-00-00-sophia_lopes-canto_30,
+timbere_nogueira,canto_60,24/04/2024,regular,done,error: bad request: client not found,
+ana_silva,canto_60,25/04/2024,regular,done,error: bad request: register already exists with id 2024-05-20-00-00-ana_silva-canto_60,
+camila_trevisan,canto_60,25/04/2024,regular,done,error: bad request: client not found,
+leandro_bauch,canto_60,26/04/2024,regular,done,error: bad request: register already exists with id 2024-05-20-00-00-leandro_bauch-canto_60,
+luiz_rescke,canto_60,26/04/2024,regular,done,error: bad request: client not found,
+neuza_silva,canto_30,26/04/2024,regular,done,added,2024-05-20-00-00-neuza_silva-canto_30
+pericles_costa,canto_60,30/04/2024,regular,done,error: bad request: register already exists with id 2024-05-20-00-00-pericles_costa-canto_60,
+sophia_lopes,canto_60,30/04/2024,regular,done,error: bad request: register already exists with id 2024-05-20-00-00-sophia_lopes-canto_60,
+ana_flavia,canto_60,25/04/2024,regular,done,error: bad request: register already exists with id 2024-05-20-00-00-ana_flavia-canto_60,
+24,regular,done,error: bad request: register already exists with id 2024-05-20-00-00-00-ana_flavia-canto_60,
+ne,error: bad request: id should have just one word. Use _ to separate words,
+timbere_nogueira,canto_60,24/04/2024,regular,done,error: bad request: id should have just one word. Use _ to separate words | client not found,
+ana_silva,canto_60,25/04/2024,regular,done,error: bad request: id should have just one word. Use _ to separate words,
+camila_trevisan,canto_60,25/04/2024,regular,done,error: bad request: id should have just one word. Use _ to separate words | client not found,
+leandro_bauch,canto_60,26/04/2024,regular,done,error: bad request: id should have just one word. Use _ to separate words,
+luiz_rescke,canto_60,26/04/2024,regular,done,error: bad request: id should have just one word. Use _ to separate words | client not found,
+neuza_silva,canto_30,26/04/2024,regular,done,error: bad request: id should have just one word. Use _ to separate words,
+pericles_costa,canto_60,30/04/2024,regular,done,error: bad request: id should have just one word. Use _ to separate words,
+sophia_lopes,canto_60,30/04/2024,regular,done,error: bad request: id should have just one word. Use _ to separate words,
+ana_flavia,canto_60,25/04/2024,regular,done,error: bad request: id should have just one word. Use _ to separate words,

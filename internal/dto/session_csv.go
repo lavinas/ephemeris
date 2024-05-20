@@ -14,16 +14,20 @@ type SessionCSV struct {
 	File       string `json:"file" command:"name:file;pos:3+;"`
 }
 
+type SessionCSVOut struct {
+	ClientID   string `csv:"client"`
+	ServiceID  string `csv:"service"`
+	At         string `csv:"at"`
+	Kind       string `csv:"kind"`
+	Status     string `csv:"status"`
+	Result     string `csv:"result"`
+	ID         string `csv:"id"`
+}
+
+
 // SessionCSVLine represents the dto for getting a session
 type SessionCSVLine struct {
-	ID         string `json:"id" command:"name:id"`
-	Date       string `json:"date" command:"name:date"`
-	ClientID   string `json:"client_id" command:"name:client"`
-	ServiceID  string `json:"contract_id" command:"name:contract"`
-	At         string `json:"at" command:"name:at"`
-	Kind       string `json:"kind" command:"name:kind"`
-	Status     string `json:"status" command:"name:status"`
-	Response   string `json:"resp" command:"name:response"`
+	ServiceCrud
 }
 
 // Validate is a method that validates the dto
