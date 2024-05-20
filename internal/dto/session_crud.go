@@ -44,9 +44,6 @@ func (s *SessionCrud) GetDomain() []port.Domain {
 	if s.Action == "add" && s.Status == "" {
 		s.Status = pkg.DefaultSessionStatus
 	}
-	if s.Action == "add" && s.At == "" {
-		s.At = time.Now().Format(pkg.DateTimeFormat)
-	}
 	if s.Action == "add" && s.ID == "" {
 		s.ID = time.Now().Format("2006-01-02-15-04-05") + "-" + s.ClientID + "-" + s.ServiceID
 	}

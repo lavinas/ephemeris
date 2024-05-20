@@ -182,7 +182,7 @@ const (
 	ErrEmptyEvent               = "empty event"
 	ErrInvalidEvent             = "invalid event. Should be %s"
 	ErrEmptyClientOrContractID  = "client or contract should be informed"
-	ErrEmptyAt                  = "at should be informed"
+	ErrEmptyAt                  = "at (session date and/or time) should be informed"
 	ErrEmptyMinutes             = "minutes should be informed"
 	ErrFileNotInformed		    = "file not informed"
 	ErrEmptyServiceID           = "empty service id"

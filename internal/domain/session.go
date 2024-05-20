@@ -58,6 +58,9 @@ func (s *Session) Format(repo port.Repository, args ...string) error {
 	if err := s.formatClientID(repo, filled); err != nil {
 		msg += err.Error() + " | "
 	}
+	if err := s.formatServiceID(repo, filled); err != nil {
+		msg += err.Error() + " | "
+	}
 	if err := s.formatAt(filled); err != nil {
 		msg += err.Error() + " | "
 	}
