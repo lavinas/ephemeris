@@ -21,7 +21,7 @@ type SessionCSVOut struct {
 	Kind       string `csv:"kind"`
 	Status     string `csv:"status"`
 	Result     string `csv:"result"`
-	ID         string `csv:"id"`
+	Message    string `csv:"id"`
 }
 
 
