@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"io"
 	"os"
+	"fmt"
 
 	"github.com/gocarina/gocsv"
 )
@@ -31,16 +32,16 @@ type Base struct {
 }
 
 // ReadCSV is a method that reads a csv
-func (b *Base) ReadCSV(file string) ([]*SessionCrud, error) {
+func (b *Base) ReadCSV(file string, dto interface{}) error {
 	gocsv.SetCSVReader(b.setReader)
 	fileIn, err := os.OpenFile(file, os.O_RDONLY, 0644)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer fileIn.Close()
-	sessionsIn := []*SessionCrud{}
-	gocsv.UnmarshalFile(fileIn, &sessionsIn)
-	return sessionsIn, nil
+	gocsv.UnmarshalFile(fileIn, dto)
+	fmt.Println(1, dto)
+	return nil
 }
 
 // setReader is a method that sets the reader

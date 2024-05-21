@@ -45,7 +45,8 @@ func (s *SessionCrud) GetCommand() string {
 func (s *SessionCrud) GetDomain() []port.Domain {
 	domains := []port.Domain{}
 	if s.Csv != "" {
-		sessions, _ := s.ReadCSV(s.Csv)
+		sessions := []*SessionCrud{}
+		s.ReadCSV(s.Csv, &sessions)
 		for _, se := range sessions {
 			se.Action = s.Action
 			se.Object = s.Object
