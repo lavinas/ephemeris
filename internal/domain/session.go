@@ -12,8 +12,8 @@ import (
 )
 
 var (
-	KindSession   = []string{pkg.SessionKindRegular, pkg.SessionKindRescheduled, pkg.SessionKindExtra}
-	StatusSession = []string{pkg.SessionStatusOpen, pkg.SessionStatusDone, pkg.SessionStatusCanceled}
+	KindSession   = []string{pkg.SessionKindRegular, pkg.SessionKindAdjust, pkg.SessionKindExtra}
+	StatusSession = []string{pkg.SessionStatusDone, pkg.SessionStatusOver, pkg.SessionStatusAdjust}
 )
 
 // Session represents the session entity
@@ -178,7 +178,6 @@ func (s *Session) formatAt(filled bool) error {
 	return nil
 }
 
-
 // formatKind is a method that validates the session kind
 func (s *Session) formatKind(filled bool) error {
 	if s.Kind == "" {
@@ -188,7 +187,8 @@ func (s *Session) formatKind(filled bool) error {
 		return errors.New(pkg.ErrEmptyKind)
 	}
 	if !slices.Contains(KindSession, s.Kind) {
-		return errors.New(pkg.ErrInvalidKind)
+		kinds := strings.Join(KindSession, ", ")
+		return fmt.Errorf(pkg.ErrInvalidKind, kinds[:len(kinds)-2])
 	}
 	return nil
 }
@@ -202,7 +202,8 @@ func (s *Session) formatStatus(filled bool) error {
 		return errors.New(pkg.ErrEmptyStatus)
 	}
 	if !slices.Contains(StatusSession, s.Status) {
-		return errors.New(pkg.ErrInvalidStatus)
+		status := strings.Join(StatusSession, ", ")
+		return fmt.Errorf(pkg.ErrInvalidStatus, status[:len(status)-2])
 	}
 	return nil
 }

@@ -62,13 +62,13 @@ const (
 	InvoiceSendStatusViewed     = "viewed"
 	DefaultInvoiceSendStatus    = InvoiceSendStatusNotSent
 	SessionKindRegular          = "regular"
-	SessionKindRescheduled      = "rescheduled"
+	SessionKindAdjust           = "adjust"
 	SessionKindExtra            = "extra"
 	DefaultSessionKind          = SessionKindRegular
-	SessionStatusOpen           = "open"
 	SessionStatusDone           = "done"
-	SessionStatusCanceled       = "canceled"
-	DefaultSessionStatus        = SessionStatusOpen
+	SessionStatusOver		    = "over"
+	SessionStatusAdjust         = "adjust"
+	DefaultSessionStatus        = SessionStatusDone
 	Location                    = "America/Sao_Paulo"
 	DateFormat                  = "02/01/2006"
 	MonthFormat                 = "01/2006"

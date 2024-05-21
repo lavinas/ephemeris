@@ -46,9 +46,9 @@ func (s *SessionCrud) GetDomain() []port.Domain {
 	}
 	if s.Action == "add" && s.ID == "" {
 		at := time.Now().Format("2006-01-02-15-04")
-		t, err := time.Parse(pkg.DateTimeFormat, at)
+		t, err := time.Parse(pkg.DateTimeFormat, s.At)
 		if err != nil {
-			t, err = time.Parse(pkg.DateFormat, s.Date)
+			t, err = time.Parse(pkg.DateFormat, s.At)
 		}
 		if err == nil {
 			at = t.Format("2006-01-02-15-04")
