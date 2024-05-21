@@ -10,7 +10,7 @@ import (
 func (u *Usecase) AgendaMatch(dtoIn interface{}) error {
 	in := dtoIn.(*dto.AgendaMatch)
 	if err := in.Validate(u.Repo); err != nil {
-		return u.error(pkg.ErrPrefBadRequest, err.Error())
+		return u.error(pkg.ErrPrefBadRequest, err.Error(), 0, 0)
 	}
 	return nil
 }

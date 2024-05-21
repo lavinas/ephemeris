@@ -186,4 +186,6 @@ const (
 	ErrEmptyMinutes             = "minutes should be informed"
 	ErrFileNotInformed		    = "file not informed"
 	ErrEmptyServiceID           = "empty service id"
+	ErrCsvAndGet                = "csv and get are not allowed together"
+	ErrCsvAndParams             = "csv and params are not allowed together"
 )

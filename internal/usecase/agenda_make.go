@@ -19,7 +19,7 @@ const (
 func (u *Usecase) AgendaMake(dtoIn interface{}) error {
 	dtoAgenda := dtoIn.(*dto.AgendaMake)
 	if err := dtoAgenda.Validate(u.Repo); err != nil {
-		return u.error(pkg.ErrPrefBadRequest, err.Error())
+		return u.error(pkg.ErrPrefBadRequest, err.Error(), 0, 0)
 	}
 	month, _ := time.Parse(pkg.MonthFormat, dtoAgenda.Month)
 	contracts, err := u.getContracts(dtoAgenda.ClientID, dtoAgenda.ContractID, month)
@@ -46,15 +46,15 @@ func (u *Usecase) AgendaContractMake(dtoIn port.DTOIn, contract domain.Contract,
 		return []port.DTOOut{&ret}, nil
 	}
 	if err := contract.Lock(u.Repo); err != nil {
-		return nil, u.error(pkg.ErrPrefInternal, err.Error())
+		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
 	defer contract.Unlock(u.Repo)
 	if err := u.DeleteAgenda(&contract, month); err != nil {
-		return nil, u.error(pkg.ErrPrefInternal, err.Error())
+		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
 	ret, err := u.GenerateAgenda(dtoIn, &contract, month)
 	if err != nil {
-		return nil, u.error(pkg.ErrPrefInternal, err.Error())
+		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
 	return ret, nil
 }
@@ -64,17 +64,17 @@ func (u *Usecase) DeleteAgenda(contract *domain.Contract, month time.Time) error
 	firstday := time.Date(month.Year(), month.Month(), 1, 0, 0, 0, 0, time.Local)
 	lastday := firstday.AddDate(0, 1, 0).Add(time.Nanosecond * -1)
 	if err := u.Repo.Begin(); err != nil {
-		return u.error(pkg.ErrPrefInternal, err.Error())
+		return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
 	defer u.Repo.Rollback()
 	agenda := &domain.Agenda{ContractID: contract.ID}
 	p1 := fmt.Sprintf("start >= '%s'", firstday.Format("2006-01-02 15:04:05"))
 	p2 := fmt.Sprintf("start <= '%s'", lastday.Format("2006-01-02 15:04:05"))
 	if err := u.Repo.Delete(agenda, p1, p2); err != nil {
-		return u.error(pkg.ErrPrefInternal, err.Error())
+		return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
 	if err := u.Repo.Commit(); err != nil {
-		return u.error(pkg.ErrPrefInternal, err.Error())
+		return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
 	return nil
 }
@@ -82,19 +82,19 @@ func (u *Usecase) DeleteAgenda(contract *domain.Contract, month time.Time) error
 // generateAgenda generates the agenda based on the contract
 func (u *Usecase) GenerateAgenda(dtoIn port.DTOIn, contract *domain.Contract, month time.Time) ([]port.DTOOut, error) {
 	if err := u.Repo.Begin(); err != nil {
-		return nil, u.error(pkg.ErrPrefInternal, err.Error())
+		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
 	defer u.Repo.Rollback()
 	starts, ends, err := u.getDates(contract, month)
 	if err != nil {
-		return nil, u.error(pkg.ErrPrefInternal, err.Error())
+		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
 	agendas, err := u.getAgenda(dtoIn, contract, starts, ends)
 	if err != nil {
-		return nil, u.error(pkg.ErrPrefInternal, err.Error())
+		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
 	if err := u.Repo.Commit(); err != nil {
-		return nil, u.error(pkg.ErrPrefInternal, err.Error())
+		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
 	return agendas, nil
 }
@@ -113,10 +113,10 @@ func (u *Usecase) getContracts(clientID, contractID string, month time.Time) (*[
 	}
 	ret, _, err := u.Repo.Find(contract, 0)
 	if err != nil {
-		return nil, u.error(pkg.ErrPrefInternal, err.Error())
+		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
 	if ret == nil {
-		return nil, u.error(pkg.ErrPrefBadRequest, pkg.ErrUnfound)
+		return nil, u.error(pkg.ErrPrefBadRequest, pkg.ErrUnfound, 0, 0)
 	}
 	return ret.(*[]domain.Contract), nil
 }
@@ -127,20 +127,20 @@ func (u *Usecase) getContractsByMonth(month time.Time) (*[]domain.Contract, erro
 	lastday := firstday.AddDate(0, 1, 0).Add(time.Nanosecond * -1)
 	contract := &domain.Contract{}
 	if err := u.Repo.Begin(); err != nil {
-		return nil, u.error(pkg.ErrPrefInternal, err.Error())
+		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
 	defer u.Repo.Rollback()
 	p1 := fmt.Sprintf("start <= '%s'", lastday.Format("2006-01-02 15:04:05"))
 	p2 := fmt.Sprintf("end is null or end >= '%s'", firstday.Format("2006-01-02 15:04:05"))
 	ret, _, err := u.Repo.Find(contract, 0, p1, p2)
 	if err != nil {
-		return nil, u.error(pkg.ErrPrefInternal, err.Error())
+		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
 	if ret == nil {
-		return nil, u.error(pkg.ErrPrefBadRequest, pkg.ErrUnfound)
+		return nil, u.error(pkg.ErrPrefBadRequest, pkg.ErrUnfound, 0, 0)
 	}
 	if err := u.Repo.Commit(); err != nil {
-		return nil, u.error(pkg.ErrPrefInternal, err.Error())
+		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
 	return ret.(*[]domain.Contract), nil
 
@@ -151,17 +151,19 @@ func (u *Usecase) getAgenda(dtoIn port.DTOIn, contract *domain.Contract, starts 
 	ret := []port.DTOOut{}
 	agenda := dtoIn.GetDomain()[0].(*domain.Agenda)
 	dtoOut := dtoIn.GetOut()
+	count := 1
 	for i := 0; i < len(starts); i++ {
 		agenda.ContractID = contract.ID
 		agenda.ClientID = contract.ClientID
 		u.setDates(agenda, contract.ClientID, starts[i], ends[i])
 		if err := agenda.Format(u.Repo); err != nil {
-			return nil, u.error(pkg.ErrPrefInternal, err.Error())
+			return nil, u.error(pkg.ErrPrefInternal, err.Error(), count, len(starts))
 		}
 		if err := u.Repo.Add(agenda); err != nil {
-			return nil, u.error(pkg.ErrPrefInternal, err.Error())
+			return nil, u.error(pkg.ErrPrefInternal, err.Error(), count, len(starts))
 		}
 		ret = append(ret, dtoOut.GetDTO(agenda)...)
+		count++
 	}
 	return ret, nil
 }
@@ -221,11 +223,11 @@ func (u *Usecase) getPackageParams(packId string) (*domain.Recurrence, []*domain
 	var err error
 	recur, err := pack.GetRecurrence(u.Repo)
 	if err != nil {
-		return nil, []*domain.Service{}, u.error(pkg.ErrPrefInternal, err.Error())
+		return nil, []*domain.Service{}, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
 	services, err := pack.GetService(u.Repo)
 	if err != nil {
-		return nil, []*domain.Service{}, u.error(pkg.ErrPrefInternal, err.Error())
+		return nil, []*domain.Service{}, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
 	return recur, services, nil
 }
@@ -245,7 +247,7 @@ func (u *Usecase) getMinutes(services []*domain.Service, count int) int {
 func (u *Usecase) delBound(contract *domain.Contract, month time.Time, starts, ends []time.Time) ([]time.Time, []time.Time, error) {
 	bond, err := contract.GetBond(u.Repo)
 	if err != nil {
-		return nil, nil, u.error(pkg.ErrPrefInternal, err.Error())
+		return nil, nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
 	if bond == nil {
 		return starts, ends, nil

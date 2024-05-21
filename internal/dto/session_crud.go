@@ -1,6 +1,7 @@
 package dto
 
 import (
+	"errors"
 	"time"
 
 	"github.com/lavinas/ephemeris/internal/domain"
@@ -10,12 +11,14 @@ import (
 
 // SessionCrud represents the dto for getting a session
 type SessionCrud struct {
+	Base
 	Object     string `json:"-" command:"name:session;key;pos:2-"`
 	Action     string `json:"-" command:"name:add,get,up;key;pos:2-"`
 	Sort       string `json:"sort" command:"name:sort;pos:3+"`
-	ID         string `json:"id" command:"name:id;pos:3+;trans:id,string"`
-	Date       string `json:"date" command:"name:date;pos:3+;trans:date,time"`
-	ClientID   string `json:"client_id" command:"name:client;pos:3+;trans:client_id,string" csv:"client"`
+	Csv	       string `json:"csv" command:"name:csv;pos:3+;" csv:"file"`
+	ID         string `json:"id" command:"name:id;pos:3+;trans:id,string" csv:"id"`
+	Date       string `json:"date" command:"name:date;pos:3+;trans:date,time" csv:"date"`
+	ClientID   string `json:"client" command:"name:client;pos:3+;trans:client_id,string" csv:"client"`
 	ServiceID  string `json:"service" command:"name:service;pos:3+;trans:service_id,string" csv:"service"`
 	At         string `json:"at" command:"name:at;pos:3+;trans:at,time" csv:"at"`
 	Kind       string `json:"kind" command:"name:kind;pos:3+;trans:kind,string" csv:"kind"`
@@ -24,6 +27,12 @@ type SessionCrud struct {
 
 // Validate is a method that validates the dto
 func (s *SessionCrud) Validate(repo port.Repository) error {
+	if s.Csv != "" && s.Action == "get" {
+		return errors.New(pkg.ErrCsvAndGet)
+	}
+	if s.Csv != "" && (s.ID != "" || s.Date != "" || s.ClientID != "" || s.ServiceID != "" || s.At != "" || s.Kind != "" || s.Status != "") {
+		return errors.New(pkg.ErrCsvAndParams)
+	}
 	return nil
 }
 
@@ -34,30 +43,45 @@ func (s *SessionCrud) GetCommand() string {
 
 // GetDomain is a method that returns a string representation of the agenda
 func (s *SessionCrud) GetDomain() []port.Domain {
-	if s.Action == "add" && s.Date == "" {
+	domains := []port.Domain{}
+	if s.Csv != "" {
+		sessions, _ := s.ReadCSV(s.Csv)
+		for _, se := range sessions {
+			se.Action = s.Action
+			se.Object = s.Object
+			domains = append(domains, se.getDomain(se))
+		}
+		return domains
+	}
+	return []port.Domain{
+		s.getDomain(s),
+	}
+}
+
+// getDomain is a method that returns the domain of one object
+func (s *SessionCrud) getDomain(one *SessionCrud) port.Domain {
+	if one.Action == "add" && one.Date == "" {
 		time.Local, _ = time.LoadLocation(pkg.Location)
-		s.Date = time.Now().Format(pkg.DateFormat)
+		one.Date = time.Now().Format(pkg.DateFormat)
 	}
-	if s.Action == "add" && s.Kind == "" {
-		s.Kind = pkg.DefaultSessionKind
+	if one.Action == "add" && one.Kind == "" {
+		one.Kind = pkg.DefaultSessionKind
 	}
-	if s.Action == "add" && s.Status == "" {
-		s.Status = pkg.DefaultSessionStatus
+	if one.Action == "add" && one.Status == "" {
+		one.Status = pkg.DefaultSessionStatus
 	}
-	if s.Action == "add" && s.ID == "" {
+	if one.Action == "add" && one.ID == "" {
 		at := time.Now().Format("2006-01-02-15-04")
-		t, err := time.Parse(pkg.DateTimeFormat, s.At)
+		t, err := time.Parse(pkg.DateTimeFormat, one.At)
 		if err != nil {
-			t, err = time.Parse(pkg.DateFormat, s.At)
+			t, err = time.Parse(pkg.DateFormat, one.At)
 		}
 		if err == nil {
 			at = t.Format("2006-01-02-15-04")
 		}
-		s.ID = at + "-" + s.ClientID + "-" + s.ServiceID
+		one.ID = at + "-" + one.ClientID + "-" + one.ServiceID
 	}
-	return []port.Domain{
-		domain.NewSession(s.ID, s.Date, s.ClientID, s.ServiceID, s.At, s.Kind, s.Status),
-	}
+	return domain.NewSession(one.ID, one.Date, one.ClientID, one.ServiceID, one.At, one.Kind, one.Status)
 }
 
 // GetOut is a method that returns the output dto

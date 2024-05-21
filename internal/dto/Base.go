@@ -1,5 +1,14 @@
 package dto
 
+import (
+	"encoding/csv"
+	"io"
+	"os"
+
+	"github.com/gocarina/gocsv"
+)
+
+
 func All() []interface{} {
 	return []interface{}{
 		&AgendaCrud{},
@@ -14,6 +23,31 @@ func All() []interface{} {
 		&RecurrenceCrud{},
 		&ServiceCrud{},
 		&SessionCrud{},
-		&SessionCSV{},
 	}
+}
+
+// Base represents the base dto
+type Base struct {
+}
+
+// ReadCSV is a method that reads a csv
+func (b *Base) ReadCSV(file string) ([]*SessionCrud, error) {
+	gocsv.SetCSVReader(b.setReader)
+	fileIn, err := os.OpenFile(file, os.O_RDONLY, 0644)
+	if err != nil {
+		return nil, err
+	}
+	defer fileIn.Close()
+	sessionsIn := []*SessionCrud{}
+	gocsv.UnmarshalFile(fileIn, &sessionsIn)
+	return sessionsIn, nil
+}
+
+// setReader is a method that sets the reader
+func (b *Base) setReader (r io.Reader) gocsv.CSVReader {
+	reader := csv.NewReader(r)
+	reader.Comma = ','
+	reader.LazyQuotes = true
+	reader.FieldsPerRecord = -1
+	return reader
 }

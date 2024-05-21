@@ -115,6 +115,9 @@ func (c *Commands) Transpose(v interface{}) ([]interface{}, error) {
 	params := []*Param{}
 	for i := 0; i < etype.NumField(); i++ {
 		param := c.getParam(etype.Field(i), Fieldtag)
+		if param == nil {
+			continue
+		}
 		val, trs, err := c.transpose(eval.Field(i).String(), param)
 		if err != nil {
 			return nil, err

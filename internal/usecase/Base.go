@@ -3,6 +3,7 @@ package usecase
 import (
 	"errors"
 	"reflect"
+	"fmt"
 
 	"github.com/lavinas/ephemeris/internal/port"
 	"github.com/lavinas/ephemeris/pkg"
@@ -38,10 +39,8 @@ func (c *Usecase) Run(dto interface{}) error {
 		return c.Up(in)
 	case "make":
 		return c.AgendaMake(in)
-	case "csv":
-		return c.SessionCSV(in)
 	default:
-		return c.error(pkg.ErrPrefBadRequest, pkg.ErrCommandNotFound)
+		return c.error(pkg.ErrPrefBadRequest, pkg.ErrCommandNotFound, 0, 0)
 	}
 }
 
@@ -74,7 +73,7 @@ func (c *Usecase) sliceOf(in interface{}) interface{} {
 // merge is a method that merges two structs
 func (c *Usecase) merge(source interface{}, target interface{}) error {
 	if reflect.TypeOf(source) != reflect.TypeOf(target) {
-		return c.error(pkg.ErrPrefInternal, pkg.ErrInvalidTypeOnMerge)
+		return c.error(pkg.ErrPrefInternal, pkg.ErrInvalidTypeOnMerge, 0, 0)
 	}
 	s := reflect.ValueOf(source).Elem()
 	t := reflect.ValueOf(target).Elem()
@@ -87,8 +86,11 @@ func (c *Usecase) merge(source interface{}, target interface{}) error {
 }
 
 // error is a function that logs an error and returns it
-func (c *Usecase) error(prefix string, err string) error {
+func (c *Usecase) error(prefix string, err string, line int, lines int) error {
 	err = prefix + ": " + err
+	if lines > 1 {
+		err = fmt.Sprintf("%s at line %d of %d", err, line, lines)
+	}
 	c.Log.Println(err)
 	return errors.New(err)
 }
