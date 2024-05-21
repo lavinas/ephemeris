@@ -6,6 +6,8 @@ import (
 	"os"
 
 	"github.com/gocarina/gocsv"
+	"github.com/lavinas/ephemeris/internal/port"
+	"github.com/lavinas/ephemeris/pkg"
 )
 
 
@@ -31,7 +33,7 @@ type Base struct {
 }
 
 // ReadCSV is a method that reads a csv
-func (b *Base) ReadCSV(file string, dto interface{}) error {
+func (b *Base) ReadCSV(dto interface{}, file string) error {
 	gocsv.SetCSVReader(b.setReader)
 	fileIn, err := os.OpenFile(file, os.O_RDONLY, 0644)
 	if err != nil {
@@ -41,6 +43,20 @@ func (b *Base) ReadCSV(file string, dto interface{}) error {
 	gocsv.UnmarshalFile(fileIn, dto)
 	return nil
 }
+
+// Getinstructions is a method that returns the instructions of the dto for given domain
+func (b *Base) getInstructions(s port.DTOIn, domain port.Domain) (port.Domain, []interface{}, error) {
+	cmd, err := pkg.NewCommands().Transpose(s)
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(cmd) > 0 {
+		domain := s.GetDomain()[0]
+		return domain, cmd, nil
+	}
+	return domain, cmd, nil
+}	
+
 
 // setReader is a method that sets the reader
 func (b *Base) setReader (r io.Reader) gocsv.CSVReader {

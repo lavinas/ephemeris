@@ -46,7 +46,7 @@ func (s *SessionCrud) GetDomain() []port.Domain {
 	domains := []port.Domain{}
 	if s.Csv != "" {
 		sessions := []*SessionCrud{}
-		s.ReadCSV(s.Csv, &sessions)
+		s.ReadCSV(&sessions, s.Csv)
 		for _, se := range sessions {
 			se.Action = s.Action
 			se.Object = s.Object
@@ -114,13 +114,5 @@ func (s *SessionCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 
 // Getinstructions is a method that returns the instructions of the dto for given domain
 func (s *SessionCrud) GetInstructions(domain port.Domain) (port.Domain, []interface{}, error) {
-	cmd, err := pkg.NewCommands().Transpose(s)
-	if err != nil {
-		return nil, nil, err
-	}
-	if len(cmd) > 0 {
-		domain := s.GetDomain()[0]
-		return domain, cmd, nil
-	}
-	return domain, cmd, nil
+	return s.getInstructions(s, domain)
 }	
