@@ -2,6 +2,7 @@ package dto
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/lavinas/ephemeris/internal/domain"
@@ -11,25 +12,28 @@ import (
 
 // AgendaCrud represents the dto for getting a agenda
 type AgendaCrud struct {
+	Base
 	Object     string `json:"-" command:"name:agenda;key;pos:2-"`
 	Action     string `json:"-" command:"name:add,get,up;key;pos:2-"`
 	Sort       string `json:"sort" command:"name:sort;pos:3+"`
-	ID         string `json:"id" command:"name:id;pos:3+;trans:id,string"`
-	Date       string `json:"date" command:"name:date;pos:3+;trans:date,time"`
-	ClientID   string `json:"client_id" command:"name:client;pos:3+;trans:client_id,string"`
-	ContractID string `json:"contract_id" command:"name:contract;pos:3+;trans:contract_id,string"`
-	Start      string `json:"start" command:"name:start;pos:3+;trans:start,time"`
-	End        string `json:"end" command:"name:end;pos:3+;trans:end,time"`
-	Kind       string `json:"kind" command:"name:kind;pos:3+;trans:kind,string"`
-	Status     string `json:"status" command:"name:status;pos:3+;trans:status,string"`
-	Bond       string `json:"bond" command:"name:bond;pos:3+;trans:bond,string"`
-	Billing    string `json:"billing" command:"name:billing;pos:3+;trans:billing_month,time"`
+	Csv	       string `json:"csv" command:"name:csv;pos:3+;" csv:"file"`
+	ID         string `json:"id" command:"name:id;pos:3+;trans:id,string" csv:"id"`
+	Date       string `json:"date" command:"name:date;pos:3+;trans:date,time" csv:"date"`
+	ClientID   string `json:"client" command:"name:client;pos:3+;trans:client_id,string" csv:"client"`
+	ContractID string `json:"contract" command:"name:contract;pos:3+;trans:contract_id,string" csv:"contract"`
+	Start      string `json:"start" command:"name:start;pos:3+;trans:start,time" csv:"start"`
+	End        string `json:"end" command:"name:end;pos:3+;trans:end,time" csv:"end"`
+	Kind       string `json:"kind" command:"name:kind;pos:3+;trans:kind,string" csv:"kind"`
+	Status     string `json:"status" command:"name:status;pos:3+;trans:status,string" csv:"status"`
+	Bond       string `json:"bond" command:"name:bond;pos:3+;trans:bond,string" csv:"bond"`
+	Billing    string `json:"billing" command:"name:billing;pos:3+;trans:billing_month,time" csv:"billing"`
 }
 
 // Validate is a method that validates the dto
 func (a *AgendaCrud) Validate(repo port.Repository) error {
-	if a.isEmpty() && a.Action != "get" {
-		return errors.New(pkg.ErrParamsNotInformed)
+	if a.Csv != "" && (a.ID != "" || a.Date != "" || a.ClientID != "" || a.ContractID != "" || a.Start != "" || a.End != "" || 
+	                   a.Kind != "" || a.Status != "" || a.Bond != "" || a.Billing != "") {
+		return errors.New(pkg.ErrCsvAndParams)
 	}
 	return nil
 }
@@ -41,19 +45,38 @@ func (a *AgendaCrud) GetCommand() string {
 
 // GetDomain is a method that returns a string representation of the agenda
 func (a *AgendaCrud) GetDomain() []port.Domain {
-	if a.Action == "add" && a.Date == "" {
-		time.Local, _ = time.LoadLocation(pkg.Location)
-		a.Date = time.Now().Format(pkg.DateFormat)
-	}
-	if a.Action == "add" && a.Kind == "" {
-		a.Kind = pkg.DefaulltAgendaKind
-	}
-	if a.Action == "add" && a.Status == "" {
-		a.Status = pkg.DefaultAgendaStatus
+	if a.Csv != "" {
+		domains := []port.Domain{}
+		agendas := []*AgendaCrud{}
+		a.ReadCSV(&agendas, a.Csv)
+		for _, ag := range agendas {
+			ag.Action = a.Action
+			ag.Object = a.Object
+			domains = append(domains, ag.getDomain(ag))
+		}
+		for _, domain := range domains {
+			fmt.Println(0, domain)
+		}
+		return domains
 	}
 	return []port.Domain{
-		domain.NewAgenda(a.ID, a.Date, a.ClientID, a.ContractID, a.Start, a.End, a.Kind, a.Status, a.Bond, a.Billing),
+		a.getDomain(a),
 	}
+}
+
+// getDomain is a method that returns the domain of one object
+func (a *AgendaCrud) getDomain(one *AgendaCrud) port.Domain {
+	if one.Action == "add" && one.Date == "" {
+		time.Local, _ = time.LoadLocation(pkg.Location)
+		one.Date = time.Now().Format(pkg.DateFormat)
+	}
+	if one.Action == "add" && one.Kind == "" {
+		one.Kind = pkg.DefaulltAgendaKind
+	}
+	if one.Action == "add" && one.Status == "" {
+		one.Status = pkg.DefaultAgendaStatus
+	}
+	return domain.NewAgenda(one.ID, one.Date, one.ClientID, one.ContractID, one.Start, one.End, one.Kind, one.Status, one.Bond, one.Billing)
 }
 
 // GetOut is a method that returns the output dto
@@ -65,28 +88,30 @@ func (a *AgendaCrud) GetOut() port.DTOOut {
 func (a *AgendaCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 	ret := []port.DTOOut{}
 	slices := domainIn.([]interface{})
-	agenda := slices[0].(*[]domain.Agenda)
-	for _, ag := range *agenda {
-		bond := ""
-		if ag.Bond != nil {
-			bond = a.Bond
+	for _, slice := range slices {
+		agenda := slice.(*[]domain.Agenda)
+		for _, ag := range *agenda {
+			bond := ""
+			if ag.Bond != nil {
+				bond = a.Bond
+			}
+			billing := ""
+			if ag.BillingMonth != nil {
+				billing = ag.BillingMonth.Format(pkg.DateFormat)
+			}
+			ret = append(ret, &AgendaCrud{
+				ID:         ag.ID,
+				Date:       ag.Date.Format(pkg.DateFormat),
+				ClientID:   ag.ClientID,
+				ContractID: ag.ContractID,
+				Start:      ag.Start.Format(pkg.DateTimeFormat),
+				End:        ag.End.Format(pkg.DateTimeFormat),
+				Kind:       ag.Kind,
+				Status:     ag.Status,
+				Bond:       bond,
+				Billing:    billing,
+			})
 		}
-		billing := ""
-		if ag.BillingMonth != nil {
-			billing = ag.BillingMonth.Format(pkg.DateFormat)
-		}
-		ret = append(ret, &AgendaCrud{
-			ID:         ag.ID,
-			Date:       ag.Date.Format(pkg.DateFormat),
-			ClientID:   ag.ClientID,
-			ContractID: ag.ContractID,
-			Start:      ag.Start.Format(pkg.DateTimeFormat),
-			End:        ag.End.Format(pkg.DateTimeFormat),
-			Kind:       ag.Kind,
-			Status:     ag.Status,
-			Bond:       bond,
-			Billing:    billing,
-		})
 	}
 	pkg.NewCommands().Sort(ret, a.Sort)
 	return ret
@@ -103,9 +128,4 @@ func (a *AgendaCrud) GetInstructions(domain port.Domain) (port.Domain, []interfa
 		return domain, cmd, nil
 	}
 	return domain, cmd, nil
-}
-
-// isEmpty is a method that returns if the dto is empty
-func (a *AgendaCrud) isEmpty() bool {
-	return a.ID == "" && a.Date == "" && a.ContractID == "" && a.Start == "" && a.End == "" && a.Kind == "" && a.Status == "" && a.Bond == "" && a.Billing == ""
 }

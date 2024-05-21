@@ -27,7 +27,8 @@ type SessionCrud struct {
 
 // Validate is a method that validates the dto
 func (s *SessionCrud) Validate(repo port.Repository) error {
-	if s.Csv != "" && (s.ID != "" || s.Date != "" || s.ClientID != "" || s.ServiceID != "" || s.At != "" || s.Kind != "" || s.Status != "") {
+	if s.Csv != "" && (s.ID != "" || s.Date != "" || s.ClientID != "" || s.ServiceID != "" || 
+	                   s.At != "" || s.Kind != "" || s.Status != "") {
 		return errors.New(pkg.ErrCsvAndParams)
 	}
 	return nil
@@ -40,8 +41,8 @@ func (s *SessionCrud) GetCommand() string {
 
 // GetDomain is a method that returns a string representation of the agenda
 func (s *SessionCrud) GetDomain() []port.Domain {
-	domains := []port.Domain{}
 	if s.Csv != "" {
+		domains := []port.Domain{}
 		sessions := []*SessionCrud{}
 		s.ReadCSV(&sessions, s.Csv)
 		for _, se := range sessions {
