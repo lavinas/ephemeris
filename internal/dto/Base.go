@@ -4,7 +4,6 @@ import (
 	"encoding/csv"
 	"io"
 	"os"
-	"fmt"
 
 	"github.com/gocarina/gocsv"
 )
@@ -40,7 +39,6 @@ func (b *Base) ReadCSV(file string, dto interface{}) error {
 	}
 	defer fileIn.Close()
 	gocsv.UnmarshalFile(fileIn, dto)
-	fmt.Println(1, dto)
 	return nil
 }
 
