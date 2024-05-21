@@ -93,17 +93,19 @@ func (s *SessionCrud) GetOut() port.DTOOut {
 func (s *SessionCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 	ret := []port.DTOOut{}
 	slices := domainIn.([]interface{})
-	sessions := slices[0].(*[]domain.Session)
-	for _, se := range *sessions {
-		ret = append(ret, &SessionCrud{
-			ID:         se.ID,
-			Date:       se.Date.Format(pkg.DateFormat),
-			ClientID:   se.ClientID,
-			ServiceID:  se.ServiceID,
-			At:         se.At.Format(pkg.DateTimeFormat),
-			Kind:       se.Kind,
-			Status:     se.Status,
-		})
+	for _, slice := range slices {
+		sessions := slice.(*[]domain.Session)
+		for _, se := range *sessions {
+			ret = append(ret, &SessionCrud{
+				ID:         se.ID,
+				Date:       se.Date.Format(pkg.DateFormat),
+				ClientID:   se.ClientID,
+				ServiceID:  se.ServiceID,
+				At:         se.At.Format(pkg.DateTimeFormat),
+				Kind:       se.Kind,
+				Status:     se.Status,
+			})
+		}
 	}
 	pkg.NewCommands().Sort(ret, s.Sort)
 	return ret
