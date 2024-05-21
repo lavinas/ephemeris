@@ -183,6 +183,9 @@ func (c *Commands) fieldByTag(v interface{}, field string) string {
 	eval := reflect.ValueOf(v).Elem()
 	for i := 0; i < etype.NumField(); i++ {
 		param := c.getParam(etype.Field(i), Fieldtag)
+		if param == nil {
+			continue
+		}
 		for _, j := range param.names {
 			if j == field {
 				return eval.Field(i).String()

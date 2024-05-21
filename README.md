@@ -6,8 +6,10 @@
 * Corrigit limite 0 (unlimited) no find - OK
 * Colocar agenda complementar a outra - OK
 * Validar agenda - OK
-* Fazer notificacao de agenda 
-* Conciliar agenda
+* Fazer notificacao de agenda - OK
+* Fazer sessions - OK
+* CSV para todos os dtos - Em andamento - fazer a partir de invoice_crud.go
+* Conciliar agenda com sessoes
 * Rever validacoes da agenda crude
 * Fazer invoice
 * Fazer envio de invoice por wapp

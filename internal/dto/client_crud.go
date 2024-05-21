@@ -11,22 +11,24 @@ import (
 
 // ClientGet represents the dto for getting a client
 type ClientCrud struct {
+	Base
 	Object   string `json:"-" command:"name:client;key;pos:2-"`
 	Action   string `json:"-" command:"name:add,get,up;key;pos:2-"`
 	Sort     string `json:"sort" command:"name:sort;pos:3+"`
-	ID       string `json:"id" command:"name:id;pos:3+;trans:id,string"`
-	Date     string `json:"date" command:"name:date;pos:3+;trans:date,time"`
-	Name     string `json:"name" command:"name:name;pos:3+;trans:name,string"`
-	Email    string `json:"email" command:"name:email;pos:3+;trans:email,string"`
-	Phone    string `json:"phone" command:"name:phone;pos:3+;trans:phone,string"`
-	Document string `json:"document" command:"name:document;pos:3+;trans:document,string"`
-	Contact  string `json:"contact" command:"name:contact;pos:3+;trans:contact,string"`
+	Csv      string `json:"csv" command:"name:csv;pos:3+;" csv:"file"`
+	ID       string `json:"id" command:"name:id;pos:3+;trans:id,string" csv:"id"`
+	Date     string `json:"date" command:"name:date;pos:3+;trans:date,time" csv:"date"`
+	Name     string `json:"name" command:"name:name;pos:3+;trans:name,string" csv:"name"`
+	Email    string `json:"email" command:"name:email;pos:3+;trans:email,string" csv:"email"`
+	Phone    string `json:"phone" command:"name:phone;pos:3+;trans:phone,string" csv:"phone"`
+	Document string `json:"document" command:"name:document;pos:3+;trans:document,string" csv:"document"`
+	Contact  string `json:"contact" command:"name:contact;pos:3+;trans:contact,string" csv:"contact"`
 }
 
 // Validate is a method that validates the dto
 func (c *ClientCrud) Validate(repo port.Repository) error {
-	if c.Action != "get" && c.isEmpty() {
-		return errors.New(pkg.ErrParamsNotInformed)
+	if c.Csv != "" && (c.ID != "" || c.Date != "" || c.Name != "" || c.Email != "" || c.Phone != "" || c.Document != "" || c.Contact != "") {
+		return errors.New(pkg.ErrCsvAndParams)
 	}
 	return nil
 }
@@ -38,17 +40,32 @@ func (p *ClientCrud) GetCommand() string {
 
 // GetDomain is a method that returns a string representation of the client
 func (c *ClientCrud) GetDomain() []port.Domain {
-	if c.Action == "add" && c.Date == "" {
-		time.Local, _ = time.LoadLocation(pkg.Location)
-		c.Date = time.Now().Format(pkg.DateFormat)
+	if c.Csv != "" {
+		domains := []port.Domain{}
+		clients := []*ClientCrud{}
+		c.ReadCSV(&clients, c.Csv)
+		for _, client := range clients {
+			client.Action = c.Action
+			client.Object = c.Object
+			domains = append(domains, c.getDomain(client))
+		}
+		return domains
 	}
-	if c.Action == "add" && c.Contact == "" {
-		c.Contact = pkg.DefaultContact
-	}
-	return []port.Domain{
-		domain.NewClient(c.ID, c.Date, c.Name, c.Email, c.Phone, c.Document, c.Contact),
-	}
+	return []port.Domain{c.getDomain(c)}
 }
+
+// getDomain is a method that returns a string representation of the agenda
+func (c *ClientCrud) getDomain(one *ClientCrud) port.Domain {
+	if one.Action == "add" && one.Date == "" {
+		time.Local, _ = time.LoadLocation(pkg.Location)
+		one.Date = time.Now().Format(pkg.DateFormat)
+	}
+	if one.Action == "add" && one.Contact == "" {
+		one.Contact = pkg.DefaultContact
+	}
+	return domain.NewClient(one.ID, one.Date, one.Name, one.Email, one.Phone, one.Document, one.Contact)
+}
+
 
 // GetOut is a method that returns the output dto
 func (c *ClientCrud) GetOut() port.DTOOut {
@@ -59,22 +76,24 @@ func (c *ClientCrud) GetOut() port.DTOOut {
 func (c *ClientCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 	ret := []port.DTOOut{}
 	slices := domainIn.([]interface{})
-	clients := slices[0].(*[]domain.Client)
-	for _, client := range *clients {
-		doc := ""
-		if client.Document != nil {
-			doc = *client.Document
+	for _, slice := range slices {
+		clients := slice.(*[]domain.Client)
+		for _, client := range *clients {
+			doc := ""
+			if client.Document != nil {
+				doc = *client.Document
+			}
+			dto := ClientCrud{
+				ID:       client.ID,
+				Date:     client.Date.Format(pkg.DateFormat),
+				Name:     client.Name,
+				Email:    client.Email,
+				Phone:    client.Phone,
+				Document: doc,
+				Contact:  client.Contact,
+			}
+			ret = append(ret, &dto)
 		}
-		dto := ClientCrud{
-			ID:       client.ID,
-			Date:     client.Date.Format(pkg.DateFormat),
-			Name:     client.Name,
-			Email:    client.Email,
-			Phone:    client.Phone,
-			Document: doc,
-			Contact:  client.Contact,
-		}
-		ret = append(ret, &dto)
 	}
 	pkg.NewCommands().Sort(ret, c.Sort)
 	return ret
@@ -82,22 +101,6 @@ func (c *ClientCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 
 // Getinstructions is a method that returns the instructions of the dto for given domain
 func (c *ClientCrud) GetInstructions(domain port.Domain) (port.Domain, []interface{}, error) {
-	cmd, err := pkg.NewCommands().Transpose(c)
-	if err != nil {
-		return nil, nil, err
-	}
-	if len(cmd) > 0 {
-		domain := c.GetDomain()[0]
-		return domain, cmd, nil
-	}
-	return domain, cmd, nil
+	return c.getInstructions(c, domain)
 }
 
-// IsEmpty is a method that returns true if the dto is empty
-func (c *ClientCrud) isEmpty() bool {
-	if c.ID == "" && c.Date == "" && c.Name == "" && c.Email == "" &&
-		c.Phone == "" && c.Document == "" && c.Contact == "" {
-		return true
-	}
-	return false
-}
