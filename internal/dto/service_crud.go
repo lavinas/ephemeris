@@ -12,19 +12,21 @@ import (
 
 // ServiceCrud represents the dto for getting a service
 type ServiceCrud struct {
+	Base
 	Object  string `json:"-" command:"name:service;key;pos:2-"`
 	Action  string `json:"-" command:"name:add,get,up;key;pos:2-"`
 	Sort    string `json:"sort" command:"name:sort;pos:3+"`
-	ID      string `json:"id" command:"name:id;pos:3+;trans:id,string"`
-	Date    string `json:"date" command:"name:date;pos:3+;trans:date,time"`
-	Name    string `json:"name" command:"name:name;pos:3+;trans:name,string"`
-	Minutes string `json:"minutes" command:"name:minutes;pos:3+;trans:minutes,numeric"`
+	Csv     string `json:"csv" command:"name:csv;pos:3+;" csv:"file"`
+	ID      string `json:"id" command:"name:id;pos:3+;trans:id,string" csv:"id"`
+	Date    string `json:"date" command:"name:date;pos:3+;trans:date,time" csv:"date"`
+	Name    string `json:"name" command:"name:name;pos:3+;trans:name,string" csv:"name"`
+	Minutes string `json:"minutes" command:"name:minutes;pos:3+;trans:minutes,numeric" csv:"minutes"`
 }
 
 // Validate is a method that validates the dto
 func (s *ServiceCrud) Validate(repo port.Repository) error {
-	if s.Action != "get" && s.isEmpty() {
-		return errors.New(pkg.ErrParamsNotInformed)
+	if s.Csv != "" && (s.ID != "" || s.Date != "" || s.Name != "" || s.Minutes != "") {
+		return errors.New(pkg.ErrCsvAndParams)
 	}
 	return nil
 }
@@ -36,17 +38,30 @@ func (s *ServiceCrud) GetCommand() string {
 
 // GetDomain is a method that returns a string representation of the service
 func (s *ServiceCrud) GetDomain() []port.Domain {
-	if s.Action == "add" && s.Date == "" {
-		time.Local, _ = time.LoadLocation(pkg.Location)
-		s.Date = time.Now().Format(pkg.DateFormat)
+	if s.Csv != "" {
+		domains := []port.Domain{}
+		services := []*ServiceCrud{}
+		s.ReadCSV(&services, s.Csv)
+		for _, service := range services {
+			service.Action = s.Action
+			service.Object = s.Object
+			domains = append(domains, s.getDomain(service))
+		}
+		return domains
 	}
-	if s.Action == "add" && s.Minutes == "" {
-		s.Minutes = "0"
-	}
+	return []port.Domain{s.getDomain(s)}
+}
 
-	return []port.Domain{
-		domain.NewService(s.ID, s.Date, s.Name, s.Minutes),
+// getDomain is a method that returns a string representation of the service
+func (s *ServiceCrud) getDomain(one *ServiceCrud) port.Domain {
+	if one.Action == "add" && one.Date == "" {
+		time.Local, _ = time.LoadLocation(pkg.Location)
+		one.Date = time.Now().Format(pkg.DateFormat)
 	}
+	if one.Action == "add" && one.Minutes == "" {
+		one.Minutes = "0"
+	}
+	return domain.NewService(one.ID, one.Date, one.Name, one.Minutes)
 }
 
 // GetOut is a method that returns the output dto
@@ -58,19 +73,21 @@ func (s *ServiceCrud) GetOut() port.DTOOut {
 func (s *ServiceCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 	ret := []port.DTOOut{}
 	slices := domainIn.([]interface{})
-	services := slices[0].(*[]domain.Service)
-	for _, service := range *services {
-		min := ""
-		if service.Minutes != nil {
-			min = strconv.FormatInt(*service.Minutes, 10)
+	for _, slice := range slices {
+		services := slice.(*[]domain.Service)
+		for _, service := range *services {
+			min := ""
+			if service.Minutes != nil {
+				min = strconv.FormatInt(*service.Minutes, 10)
+			}
+			dto := ServiceCrud{
+				ID:      service.ID,
+				Date:    service.Date.Format(pkg.DateFormat),
+				Name:    service.Name,
+				Minutes: min,
+			}
+			ret = append(ret, &dto)
 		}
-		dto := ServiceCrud{
-			ID:      service.ID,
-			Date:    service.Date.Format(pkg.DateFormat),
-			Name:    service.Name,
-			Minutes: min,
-		}
-		ret = append(ret, &dto)
 	}
 	pkg.NewCommands().Sort(ret, s.Sort)
 	return ret
@@ -78,18 +95,5 @@ func (s *ServiceCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 
 // Getinstructions is a method that returns the instructions of the dto for given domain
 func (s *ServiceCrud) GetInstructions(domain port.Domain) (port.Domain, []interface{}, error) {
-	cmd, err := pkg.NewCommands().Transpose(s)
-	if err != nil {
-		return nil, nil, err
-	}
-	if len(cmd) > 0 {
-		domain := s.GetDomain()[0]
-		return domain, cmd, nil
-	}
-	return domain, cmd, nil
-}
-
-// isEmpty is a method that checks if the dto is empty
-func (s *ServiceCrud) isEmpty() bool {
-	return s.ID == "" && s.Date == "" && s.Name == "" && s.Minutes == ""
+	return s.getInstructions(s, domain)
 }

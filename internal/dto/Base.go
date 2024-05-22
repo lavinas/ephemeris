@@ -21,7 +21,6 @@ func All() []interface{} {
 		&InvoiceItemCrud{},
 		&PackageCrud{},
 		&PackageAppend{},
-		&PriceCrud{},
 		&RecurrenceCrud{},
 		&ServiceCrud{},
 		&SessionCrud{},

@@ -6,7 +6,6 @@ func All() []interface{} {
 		&Client{},
 		&Service{},
 		&Recurrence{},
-		&Price{},
 		&Package{},
 		&PackageItem{},
 		&Contract{},

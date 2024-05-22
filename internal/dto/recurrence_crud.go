@@ -12,20 +12,22 @@ import (
 
 // RecurrenceCrud is a struct that represents the recurrence get data transfer object
 type RecurrenceCrud struct {
+	Base
 	Object string `json:"-" command:"name:recurrence;key;pos:2-"`
 	Action string `json:"-" command:"name:add,get,up;key;pos:2-"`
 	Sort   string `json:"sort" command:"name:sort;pos:3+"`
-	ID     string `json:"id" command:"name:id;pos:3+;trans:id,string"`
-	Date   string `json:"date" command:"name:date;pos:3+;trans:date,time"`
-	Cycle  string `json:"cycle" command:"name:cycle;pos:3+;trans:cycle,string"`
-	Length string `json:"quantity" command:"name:length;pos:3+;trans:length,numeric"`
-	Limit  string `json:"limit" command:"name:limit;pos:3+;trans:limit,numeric"`
+	Csv    string `json:"csv" command:"name:csv;pos:3+;" csv:"file"`
+	ID     string `json:"id" command:"name:id;pos:3+;trans:id,string" csv:"id"`
+	Date   string `json:"date" command:"name:date;pos:3+;trans:date,time"  csv:"date"`
+	Cycle  string `json:"cycle" command:"name:cycle;pos:3+;trans:cycle,string" csv:"cycle"`
+	Length string `json:"quantity" command:"name:length;pos:3+;trans:length,numeric" csv:"length"`
+	Limit  string `json:"limit" command:"name:limit;pos:3+;trans:limit,numeric" csv:"limit"`
 }
 
 // Validate is a method that validates the dto
 func (r *RecurrenceCrud) Validate(repo port.Repository) error {
-	if r.Action != "get" && r.isEmpty() {
-		return errors.New(pkg.ErrParamsNotInformed)
+	if r.Csv != "" && (r.ID != "" || r.Date != "" || r.Cycle != "" || r.Length != "" || r.Limit != "") {
+		return errors.New(pkg.ErrCsvAndParams)
 	}
 	return nil
 }
@@ -37,22 +39,36 @@ func (p *RecurrenceCrud) GetCommand() string {
 
 // GetDomain is a method that returns the domain of the dto
 func (r *RecurrenceCrud) GetDomain() []port.Domain {
-	if r.Action == "add" && r.Date == "" {
+	if r.Csv != "" {
+		domains := []port.Domain{}
+		recurrences := []*RecurrenceCrud{}
+		r.ReadCSV(&recurrences, r.Csv)
+		for _, recurrence := range recurrences {
+			recurrence.Action = r.Action
+			recurrence.Object = r.Object
+			domains = append(domains, r.getDomain(recurrence))
+		}
+		return domains
+	}
+	return []port.Domain{r.getDomain(r)}
+}
+
+// getDomain is a method that returns the domain of the dto
+func (r *RecurrenceCrud) getDomain(one *RecurrenceCrud) port.Domain {
+	if one.Action == "add" && one.Date == "" {
 		time.Local, _ = time.LoadLocation(pkg.Location)
-		r.Date = time.Now().Format(pkg.DateFormat)
+		one.Date = time.Now().Format(pkg.DateFormat)
 	}
-	if r.Action == "add" && r.Length == "" {
-		r.Length = "0"
+	if one.Action == "add" && one.Length == "" {
+		one.Length = "0"
 	}
-	if r.Action == "add" && r.Limit == "" {
-		r.Limit = "0"
+	if one.Action == "add" && one.Limit == "" {
+		one.Limit = "0"
 	}
-	if r.Action == "add" && r.Cycle == "" {
-		r.Cycle = pkg.DefaultRecurrenceCycle
+	if one.Action == "add" && one.Cycle == "" {
+		one.Cycle = pkg.DefaultRecurrenceCycle
 	}
-	return []port.Domain{
-		domain.NewRecurrence(r.ID, r.Date, r.Cycle, r.Length, r.Limit),
-	}
+	return domain.NewRecurrence(one.ID, one.Date, one.Cycle, one.Length, one.Limit)
 }
 
 // GetOut is a method that returns the dto out
@@ -64,23 +80,25 @@ func (r *RecurrenceCrud) GetOut() port.DTOOut {
 func (r *RecurrenceCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 	ret := []port.DTOOut{}
 	slices := domainIn.([]interface{})
-	recurrences := slices[0].(*[]domain.Recurrence)
-	for _, domain := range *recurrences {
-		len := ""
-		if domain.Length != nil {
-			len = strconv.FormatInt(*domain.Length, 10)
+	for _, slice := range slices {
+		recurrences := slice.(*[]domain.Recurrence)
+		for _, recurrence := range *recurrences {
+			len := ""
+			if recurrence.Length != nil {
+				len = strconv.FormatInt(*recurrence.Length, 10)
+			}
+			lim := ""
+			if recurrence.Limits != nil {
+				lim = strconv.FormatInt(*recurrence.Limits, 10)
+			}
+			ret = append(ret, &RecurrenceCrud{
+				ID:     recurrence.ID,
+				Date:   recurrence.Date.Format(pkg.DateFormat),
+				Cycle:  recurrence.Cycle,
+				Length: len,
+				Limit:  lim,
+			})
 		}
-		lim := ""
-		if domain.Limits != nil {
-			lim = strconv.FormatInt(*domain.Limits, 10)
-		}
-		ret = append(ret, &RecurrenceCrud{
-			ID:     domain.ID,
-			Date:   domain.Date.Format(pkg.DateFormat),
-			Cycle:  domain.Cycle,
-			Length: len,
-			Limit:  lim,
-		})
 	}
 	pkg.NewCommands().Sort(ret, r.Sort)
 	return ret
@@ -88,19 +106,5 @@ func (r *RecurrenceCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 
 // Getinstructions is a method that returns the instructions of the dto for given domain
 func (r *RecurrenceCrud) GetInstructions(domain port.Domain) (port.Domain, []interface{}, error) {
-	cmd, err := pkg.NewCommands().Transpose(r)
-	if err != nil {
-		return nil, nil, err
-	}
-	if len(cmd) > 0 {
-		domain := r.GetDomain()[0]
-		return domain, cmd, nil
-	}
-	return domain, cmd, nil
-}
-
-// isEmpty is a method that checks if the dto is empty
-func (r *RecurrenceCrud) isEmpty() bool {
-	return r.ID == "" && r.Cycle == "" &&
-		r.Length == "" && r.Limit == "" && r.Date == ""
+	return r.getInstructions(r, domain)
 }

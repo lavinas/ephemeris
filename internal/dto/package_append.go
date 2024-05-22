@@ -12,19 +12,21 @@ import (
 
 // PackageAppend is a struct that represents the package append dto
 type PackageAppend struct {
+	Base
 	Object    string `json:"-" command:"name:package;key;pos:2-"`
 	Action    string `json:"-" command:"name:append;key;pos:2-"`
 	Sort      string `json:"sort" command:"name:sort;pos:3+"`
-	ID        string `json:"id" command:"name:id;pos:3+"`
-	ServiceID string `json:"service" command:"name:service;pos:3+"`
-	UnitValue string `json:"unit" command:"name:unit;pos:3+"`
-	Sequence  string `json:"seq" command:"name:seq;pos:3+"`
+	Csv 	  string `json:"csv" command:"name:csv;pos:3+;" csv:"file"`
+	ID        string `json:"id" command:"name:id;pos:3+" csv:"id"`
+	ServiceID string `json:"service" command:"name:service;pos:3+" csv:"service"`
+	UnitValue string `json:"unit" command:"name:unit;pos:3+" csv:"unit"`
+	Sequence  string `json:"seq" command:"name:seq;pos:3+" csv:"seq"`
 }
 
 // Validate is a method that validates the dto
 func (p *PackageAppend) Validate(repo port.Repository) error {
-	if p.isEmpty() {
-		return errors.New(pkg.ErrParamsNotInformed)
+	if p.Csv != "" && (p.ID != "" || p.ServiceID != "" || p.UnitValue != "" || p.Sequence != "") {
+		return errors.New(pkg.ErrCsvAndParams)
 	}
 	return nil
 }
@@ -36,14 +38,28 @@ func (p *PackageAppend) GetCommand() string {
 
 // GetDomain is a method that returns a domain representation of the package dto
 func (p *PackageAppend) GetDomain() []port.Domain {
-	if p.UnitValue == "" {
-		p.UnitValue = "0"
+	if p.Csv != "" {
+		domains := []port.Domain{}
+		items := []*PackageAppend{}
+		p.ReadCSV(&items, p.Csv)
+		for _, item := range items {
+			item.Action = p.Action
+			item.Object = p.Object
+			domains = append(domains, p.getDomain(item))
+		}
+		return domains
 	}
-	seq, _ := strconv.Atoi(p.Sequence)
-	itemId := fmt.Sprintf("%s_%03d", p.ID, seq)
-	return []port.Domain{
-		domain.NewPackageItem(itemId, p.ID, p.ServiceID, p.Sequence, p.UnitValue),
+	return []port.Domain{p.getDomain(p)}
+}
+
+// getDomain is a method that returns a domain representation of the package dto
+func (p *PackageAppend) getDomain(one *PackageAppend) port.Domain {
+	if one.Action == "add" && one.UnitValue == "" {
+		one.UnitValue = "0"
 	}
+	seq, _ := strconv.Atoi(one.Sequence)
+	itemId := fmt.Sprintf("%s_%03d", one.ID, seq)
+	return domain.NewPackageItem(itemId, one.ID, one.ServiceID, one.Sequence, one.UnitValue)
 }
 
 // GetOut is a method that returns the dto out
@@ -55,18 +71,20 @@ func (p *PackageAppend) GetOut() port.DTOOut {
 func (p *PackageAppend) GetDTO(domainIn interface{}) []port.DTOOut {
 	ret := []port.DTOOut{}
 	slices := domainIn.([]interface{})
-	items := slices[0].(*[]domain.PackageItem)
-	for _, domain := range *items {
-		unit := ""
-		if domain.Price != nil {
-			unit = fmt.Sprintf("%.2f", *domain.Price)
+	for _, slice := range slices {
+		items := slice.(*[]domain.PackageItem)
+		for _, item := range *items {
+			unit := ""
+			if item.Price != nil {
+				unit = fmt.Sprintf("%.2f", *item.Price)
+			}
+			ret = append(ret, &PackageAppend{
+				ID:        item.PackageID,
+				ServiceID: item.ServiceID,
+				UnitValue: unit,
+				Sequence:  fmt.Sprintf("%d", *item.Sequence),
+			})
 		}
-		ret = append(ret, &PackageAppend{
-			ID:        domain.PackageID,
-			ServiceID: domain.ServiceID,
-			UnitValue: unit,
-			Sequence:  fmt.Sprintf("%d", *domain.Sequence),
-		})
 	}
 	pkg.NewCommands().Sort(ret, p.Sort)
 	return ret
@@ -74,18 +92,5 @@ func (p *PackageAppend) GetDTO(domainIn interface{}) []port.DTOOut {
 
 // Getinstructions is a method that returns the instructions of the dto for given domain
 func (p *PackageAppend) GetInstructions(domain port.Domain) (port.Domain, []interface{}, error) {
-	cmd, err := pkg.NewCommands().Transpose(p)
-	if err != nil {
-		return nil, nil, err
-	}
-	if len(cmd) > 0 {
-		domain := p.GetDomain()[0]
-		return domain, cmd, nil
-	}
-	return domain, cmd, nil
-}
-
-// isEmpty is a method that checks if the dto is empty
-func (p *PackageAppend) isEmpty() bool {
-	return p.ID == "" && p.ServiceID == "" && p.UnitValue == "" && p.Sequence == ""
+	return p.getInstructions(p, domain)
 }
