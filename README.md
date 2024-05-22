@@ -8,7 +8,7 @@
 * Validar agenda - OK
 * Fazer notificacao de agenda - OK
 * Fazer sessions - OK
-* CSV para todos os dtos - Em andamento - fazer a partir de invoice_crud.go
+* CSV para todos os dtos - Em andamento - falta apenas package
 * Conciliar agenda com sessoes
 * Rever validacoes da agenda crude
 * Fazer invoice
