@@ -66,7 +66,7 @@ const (
 	SessionKindExtra            = "extra"
 	DefaultSessionKind          = SessionKindRegular
 	SessionStatusDone           = "done"
-	SessionStatusOver		    = "over"
+	SessionStatusOver           = "over"
 	SessionStatusAdjust         = "adjust"
 	DefaultSessionStatus        = SessionStatusDone
 	Location                    = "America/Sao_Paulo"
@@ -184,7 +184,7 @@ const (
 	ErrEmptyClientOrContractID  = "client or contract should be informed"
 	ErrEmptyAt                  = "at (session date and/or time) should be informed"
 	ErrEmptyMinutes             = "minutes should be informed"
-	ErrFileNotInformed		    = "file not informed"
+	ErrFileNotInformed          = "file not informed"
 	ErrEmptyServiceID           = "empty service id"
 	ErrCsvAndGet                = "csv and get are not allowed together"
 	ErrCsvAndParams             = "csv and params are not allowed together"

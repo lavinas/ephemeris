@@ -13,9 +13,11 @@ import (
 
 // PackageAddIn represents the input dto for adding a package usecase
 type PackageCrud struct {
+	Base
 	Object       string `json:"-" command:"name:package;key;pos:2-"`
 	Action       string `json:"-" command:"name:add,get,up;key;pos:2-"`
 	Sort         string `json:"sort" command:"name:sort;pos:3+"`
+	Csv          string `json:"csv" command:"name:csv;pos:3+;" csv:"file"`
 	ID           string `json:"id" command:"name:id;pos:3+;trans:id,string"`
 	Date         string `json:"date" command:"name:date;pos:3+;trans:date,time"`
 	RecurrenceID string `json:"recurrence" command:"name:recurrence;pos:3+;trans:recurrence_id,string"`

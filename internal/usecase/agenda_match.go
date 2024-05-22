@@ -1,7 +1,6 @@
 package usecase
 
 import (
-
 	"github.com/lavinas/ephemeris/internal/dto"
 	"github.com/lavinas/ephemeris/pkg"
 )
@@ -14,4 +13,3 @@ func (u *Usecase) AgendaMatch(dtoIn interface{}) error {
 	}
 	return nil
 }
-

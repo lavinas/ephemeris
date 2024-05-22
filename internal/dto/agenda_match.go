@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"
 	"github.com/lavinas/ephemeris/pkg"
-	"github.com/lavinas/ephemeris/internal/domain"
 )
 
 // AgendaMatch represents the dto for matching a agenda with sessions
@@ -64,6 +64,3 @@ func (a *AgendaMatch) GetInstructions() string {
 func (a *AgendaMatch) GetDTO(domainIn interface{}) []port.DTOOut {
 	return []port.DTOOut{a}
 }
-
-
-

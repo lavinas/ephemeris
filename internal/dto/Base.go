@@ -10,7 +10,6 @@ import (
 	"github.com/lavinas/ephemeris/pkg"
 )
 
-
 func All() []interface{} {
 	return []interface{}{
 		&AgendaCrud{},
@@ -54,11 +53,10 @@ func (b *Base) getInstructions(s port.DTOIn, domain port.Domain) (port.Domain, [
 		return domain, cmd, nil
 	}
 	return domain, cmd, nil
-}	
-
+}
 
 // setReader is a method that sets the reader
-func (b *Base) setReader (r io.Reader) gocsv.CSVReader {
+func (b *Base) setReader(r io.Reader) gocsv.CSVReader {
 	reader := csv.NewReader(r)
 	reader.Comma = ','
 	reader.LazyQuotes = true

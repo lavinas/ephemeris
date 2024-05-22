@@ -66,7 +66,6 @@ func (c *ClientCrud) getDomain(one *ClientCrud) port.Domain {
 	return domain.NewClient(one.ID, one.Date, one.Name, one.Email, one.Phone, one.Document, one.Contact)
 }
 
-
 // GetOut is a method that returns the output dto
 func (c *ClientCrud) GetOut() port.DTOOut {
 	return c
@@ -103,4 +102,3 @@ func (c *ClientCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 func (c *ClientCrud) GetInstructions(domain port.Domain) (port.Domain, []interface{}, error) {
 	return c.getInstructions(c, domain)
 }
-

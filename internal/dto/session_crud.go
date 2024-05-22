@@ -12,23 +12,23 @@ import (
 // SessionCrud represents the dto for getting a session
 type SessionCrud struct {
 	Base
-	Object     string `json:"-" command:"name:session;key;pos:2-"`
-	Action     string `json:"-" command:"name:add,get,up;key;pos:2-"`
-	Sort       string `json:"sort" command:"name:sort;pos:3+"`
-	Csv	       string `json:"csv" command:"name:csv;pos:3+;" csv:"file"`
-	ID         string `json:"id" command:"name:id;pos:3+;trans:id,string" csv:"id"`
-	Date       string `json:"date" command:"name:date;pos:3+;trans:date,time" csv:"date"`
-	ClientID   string `json:"client" command:"name:client;pos:3+;trans:client_id,string" csv:"client"`
-	ServiceID  string `json:"service" command:"name:service;pos:3+;trans:service_id,string" csv:"service"`
-	At         string `json:"at" command:"name:at;pos:3+;trans:at,time" csv:"at"`
-	Kind       string `json:"kind" command:"name:kind;pos:3+;trans:kind,string" csv:"kind"`
-	Status     string `json:"status" command:"name:status;pos:3+;trans:status,string" csv:"status"`
+	Object    string `json:"-" command:"name:session;key;pos:2-"`
+	Action    string `json:"-" command:"name:add,get,up;key;pos:2-"`
+	Sort      string `json:"sort" command:"name:sort;pos:3+"`
+	Csv       string `json:"csv" command:"name:csv;pos:3+;" csv:"file"`
+	ID        string `json:"id" command:"name:id;pos:3+;trans:id,string" csv:"id"`
+	Date      string `json:"date" command:"name:date;pos:3+;trans:date,time" csv:"date"`
+	ClientID  string `json:"client" command:"name:client;pos:3+;trans:client_id,string" csv:"client"`
+	ServiceID string `json:"service" command:"name:service;pos:3+;trans:service_id,string" csv:"service"`
+	At        string `json:"at" command:"name:at;pos:3+;trans:at,time" csv:"at"`
+	Kind      string `json:"kind" command:"name:kind;pos:3+;trans:kind,string" csv:"kind"`
+	Status    string `json:"status" command:"name:status;pos:3+;trans:status,string" csv:"status"`
 }
 
 // Validate is a method that validates the dto
 func (s *SessionCrud) Validate(repo port.Repository) error {
-	if s.Csv != "" && (s.ID != "" || s.Date != "" || s.ClientID != "" || s.ServiceID != "" || 
-	                   s.At != "" || s.Kind != "" || s.Status != "") {
+	if s.Csv != "" && (s.ID != "" || s.Date != "" || s.ClientID != "" || s.ServiceID != "" ||
+		s.At != "" || s.Kind != "" || s.Status != "") {
 		return errors.New(pkg.ErrCsvAndParams)
 	}
 	return nil
@@ -96,13 +96,13 @@ func (s *SessionCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 		sessions := slice.(*[]domain.Session)
 		for _, se := range *sessions {
 			ret = append(ret, &SessionCrud{
-				ID:         se.ID,
-				Date:       se.Date.Format(pkg.DateFormat),
-				ClientID:   se.ClientID,
-				ServiceID:  se.ServiceID,
-				At:         se.At.Format(pkg.DateTimeFormat),
-				Kind:       se.Kind,
-				Status:     se.Status,
+				ID:        se.ID,
+				Date:      se.Date.Format(pkg.DateFormat),
+				ClientID:  se.ClientID,
+				ServiceID: se.ServiceID,
+				At:        se.At.Format(pkg.DateTimeFormat),
+				Kind:      se.Kind,
+				Status:    se.Status,
 			})
 		}
 	}
@@ -113,4 +113,4 @@ func (s *SessionCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 // Getinstructions is a method that returns the instructions of the dto for given domain
 func (s *SessionCrud) GetInstructions(domain port.Domain) (port.Domain, []interface{}, error) {
 	return s.getInstructions(s, domain)
-}	
+}

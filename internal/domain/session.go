@@ -18,13 +18,13 @@ var (
 
 // Session represents the session entity
 type Session struct {
-	ID         string    `gorm:"type:varchar(50); primaryKey"`
-	Date       time.Time `gorm:"type:datetime; not null"`
-	ClientID   string    `gorm:"type:varchar(50); not null; index"`
-	ServiceID  string    `gorm:"type:varchar(50); not null; index"`
-	At         time.Time `gorm:"type:datetime; not null"`
-	Kind       string    `gorm:"type:varchar(50); not null; index"`
-	Status     string    `gorm:"type:varchar(50); not null; index"`
+	ID        string    `gorm:"type:varchar(50); primaryKey"`
+	Date      time.Time `gorm:"type:datetime; not null"`
+	ClientID  string    `gorm:"type:varchar(50); not null; index"`
+	ServiceID string    `gorm:"type:varchar(50); not null; index"`
+	At        time.Time `gorm:"type:datetime; not null"`
+	Kind      string    `gorm:"type:varchar(50); not null; index"`
+	Status    string    `gorm:"type:varchar(50); not null; index"`
 }
 
 // NewSession creates a new session domain entity

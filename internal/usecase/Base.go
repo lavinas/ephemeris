@@ -2,8 +2,8 @@ package usecase
 
 import (
 	"errors"
-	"reflect"
 	"fmt"
+	"reflect"
 
 	"github.com/lavinas/ephemeris/internal/port"
 	"github.com/lavinas/ephemeris/pkg"

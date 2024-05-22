@@ -16,7 +16,7 @@ type PackageAppend struct {
 	Object    string `json:"-" command:"name:package;key;pos:2-"`
 	Action    string `json:"-" command:"name:append;key;pos:2-"`
 	Sort      string `json:"sort" command:"name:sort;pos:3+"`
-	Csv 	  string `json:"csv" command:"name:csv;pos:3+;" csv:"file"`
+	Csv       string `json:"csv" command:"name:csv;pos:3+;" csv:"file"`
 	ID        string `json:"id" command:"name:id;pos:3+" csv:"id"`
 	ServiceID string `json:"service" command:"name:service;pos:3+" csv:"service"`
 	UnitValue string `json:"unit" command:"name:unit;pos:3+" csv:"unit"`

@@ -16,7 +16,7 @@ type AgendaCrud struct {
 	Object     string `json:"-" command:"name:agenda;key;pos:2-"`
 	Action     string `json:"-" command:"name:add,get,up;key;pos:2-"`
 	Sort       string `json:"sort" command:"name:sort;pos:3+"`
-	Csv	       string `json:"csv" command:"name:csv;pos:3+;" csv:"file"`
+	Csv        string `json:"csv" command:"name:csv;pos:3+;" csv:"file"`
 	ID         string `json:"id" command:"name:id;pos:3+;trans:id,string" csv:"id"`
 	Date       string `json:"date" command:"name:date;pos:3+;trans:date,time" csv:"date"`
 	ClientID   string `json:"client" command:"name:client;pos:3+;trans:client_id,string" csv:"client"`
@@ -31,8 +31,8 @@ type AgendaCrud struct {
 
 // Validate is a method that validates the dto
 func (a *AgendaCrud) Validate(repo port.Repository) error {
-	if a.Csv != "" && (a.ID != "" || a.Date != "" || a.ClientID != "" || a.ContractID != "" || a.Start != "" || a.End != "" || 
-	                   a.Kind != "" || a.Status != "" || a.Bond != "" || a.Billing != "") {
+	if a.Csv != "" && (a.ID != "" || a.Date != "" || a.ClientID != "" || a.ContractID != "" || a.Start != "" || a.End != "" ||
+		a.Kind != "" || a.Status != "" || a.Bond != "" || a.Billing != "") {
 		return errors.New(pkg.ErrCsvAndParams)
 	}
 	return nil
