@@ -143,7 +143,7 @@ func (r *Recurrence) formatID(filled bool) error {
 		return fmt.Errorf(pkg.ErrEmptyID)
 	}
 	if len(r.ID) > 50 {
-		return fmt.Errorf(pkg.ErrLongID)
+		return fmt.Errorf(pkg.ErrLongID50)
 	}
 	if len(strings.Split(r.ID, " ")) > 1 {
 		return fmt.Errorf(pkg.ErrInvalidID)

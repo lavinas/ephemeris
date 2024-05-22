@@ -18,7 +18,7 @@ var (
 
 // Session represents the session entity
 type Session struct {
-	ID        string    `gorm:"type:varchar(50); primaryKey"`
+	ID        string    `gorm:"type:varchar(150); primaryKey"`
 	Date      time.Time `gorm:"type:datetime; not null"`
 	ClientID  string    `gorm:"type:varchar(50); not null; index"`
 	ServiceID string    `gorm:"type:varchar(50); not null; index"`
@@ -112,8 +112,8 @@ func (s *Session) formatID(filled bool) error {
 		}
 		return errors.New(pkg.ErrEmptyID)
 	}
-	if len(s.ID) > 50 {
-		return errors.New(pkg.ErrLongID)
+	if len(s.ID) > 150 {
+		return errors.New(pkg.ErrLongID150)
 	}
 	ids := strings.Split(s.ID, " ")
 	if len(ids) > 1 {

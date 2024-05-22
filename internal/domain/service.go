@@ -101,8 +101,8 @@ func (s *Service) formatID(filled bool) error {
 		}
 		return errors.New(pkg.ErrEmptyID)
 	}
-	if len(s.ID) > 25 {
-		return errors.New(pkg.ErrLongID)
+	if len(s.ID) > 50 {
+		return errors.New(pkg.ErrLongID50)
 	}
 	if len(strings.Split(s.ID, " ")) > 1 {
 		return errors.New(pkg.ErrInvalidID)

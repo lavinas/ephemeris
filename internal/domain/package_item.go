@@ -14,7 +14,7 @@ import (
 // TODO: create command join to add a item to a package
 // PackageItem represents the package item entity
 type PackageItem struct {
-	ID        string   `gorm:"type:varchar(100); primaryKey"`
+	ID        string   `gorm:"type:varchar(50); primaryKey"`
 	PackageID string   `gorm:"type:varchar(50); not null; index"`
 	ServiceID string   `gorm:"type:varchar(50); not null; index"`
 	Sequence  *int     `gorm:"type:decimal(3,0); index"`
@@ -113,8 +113,8 @@ func (p *PackageItem) formatID(filled bool) error {
 		}
 		return errors.New(pkg.ErrEmptyID)
 	}
-	if len(id) > 100 {
-		return errors.New(pkg.ErrLongID)
+	if len(id) > 50 {
+		return errors.New(pkg.ErrLongID50)
 	}
 	if len(strings.Split(id, " ")) > 1 {
 		return errors.New(pkg.ErrInvalidID)

@@ -15,8 +15,8 @@ import (
 
 // InvoiceItem represents the invoice item entity
 type InvoiceItem struct {
-	ID          string  `gorm:"type:varchar(50); primaryKey"`
-	InvoiceID   string  `gorm:"type:varchar(50); not null"`
+	ID          string  `gorm:"type:varchar(150); primaryKey"`
+	InvoiceID   string  `gorm:"type:varchar(150); not null"`
 	AgendaID    *string `gorm:"type:varchar(50); null"`
 	Value       float64 `gorm:"type:numeric(20,2); not null"`
 	Description string  `gorm:"type:varchar(100); not null"`
@@ -102,8 +102,8 @@ func (c *InvoiceItem) formatID(filled bool) error {
 		}
 		return errors.New(pkg.ErrEmptyID)
 	}
-	if len(id) > 50 {
-		return errors.New(pkg.ErrLongID)
+	if len(id) > 150 {
+		return errors.New(pkg.ErrLongID150)
 	}
 	if len(strings.Split(id, " ")) > 1 {
 		return errors.New(pkg.ErrInvalidID)

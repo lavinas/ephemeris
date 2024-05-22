@@ -123,7 +123,7 @@ func (c *Client) formatID(filled bool) error {
 		return errors.New(pkg.ErrEmptyID)
 	}
 	if len(id) > 50 {
-		return errors.New(pkg.ErrLongID)
+		return errors.New(pkg.ErrLongID50)
 	}
 	if len(strings.Split(id, " ")) > 1 {
 		return errors.New(pkg.ErrInvalidID)

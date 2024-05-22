@@ -49,6 +49,7 @@ func (s *SessionCrud) GetDomain() []port.Domain {
 			se.Action = s.Action
 			se.Object = s.Object
 			domains = append(domains, se.getDomain(se))
+			
 		}
 		return domains
 	}
@@ -78,7 +79,7 @@ func (s *SessionCrud) getDomain(one *SessionCrud) port.Domain {
 		if err == nil {
 			at = t.Format("2006-01-02-15-04")
 		}
-		one.ID = at + "-" + one.ClientID + "-" + one.ServiceID
+		one.ID = at + "-" + one.ClientID + "-" + one.ServiceID + "-" + one.Kind
 	}
 	return domain.NewSession(one.ID, one.Date, one.ClientID, one.ServiceID, one.At, one.Kind, one.Status)
 }

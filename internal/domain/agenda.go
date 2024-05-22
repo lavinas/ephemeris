@@ -19,7 +19,7 @@ var (
 
 // Agenda represents the agenda entity
 type Agenda struct {
-	ID           string     `gorm:"type:varchar(50); primaryKey"`
+	ID           string     `gorm:"type:varchar(150); primaryKey"`
 	Date         time.Time  `gorm:"type:datetime; not null"`
 	ClientID     string     `gorm:"type:varchar(50); not null; index"`
 	ContractID   string     `gorm:"type:varchar(50); not null; index"`
@@ -136,8 +136,8 @@ func (c *Agenda) formatID(filled bool) error {
 		}
 		return errors.New(pkg.ErrEmptyID)
 	}
-	if len(id) > 50 {
-		return errors.New(pkg.ErrLongID)
+	if len(id) > 150 {
+		return errors.New(pkg.ErrLongID150)
 	}
 	if len(strings.Split(id, " ")) > 1 {
 		return errors.New(pkg.ErrInvalidID)
