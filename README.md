@@ -8,8 +8,8 @@
 * Validar agenda - OK
 * Fazer notificacao de agenda - OK
 * Fazer sessions - OK
-* CSV para todos os dtos - Em andamento - falta apenas package
-* Conciliar agenda com sessoes
+* CSV para todos os dtos - Ok
+* Conciliar agenda com sessoes - em andamento  
 * Rever validacoes da agenda crude
 * Fazer invoice
 * Fazer envio de invoice por wapp
@@ -22,3 +22,4 @@
 * Permitir volta a ser null no crud
 * Permitir get com like 
 * Validar conflito de agenda no horario de cadastro do contrato
+* Fazer importacao de csv para package

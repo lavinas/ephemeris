@@ -77,6 +77,12 @@ func (s *Session) Format(repo port.Repository, args ...string) error {
 	if err := s.formatDiscount(filled); err != nil {
 		msg += err.Error() + " | "
 	}
+	if err := s.formatProcess(filled); err != nil {
+		msg += err.Error() + " | "
+	}
+	if err := s.formatMessage(filled); err != nil {
+		msg += err.Error() + " | "
+	}
 	if err := s.validateDuplicity(repo, slices.Contains(args, "noduplicity")); err != nil {
 		msg += err.Error() + " | "
 	}
@@ -195,7 +201,7 @@ func (s *Session) formatStatus(filled bool) error {
 	}
 	if !slices.Contains(StatusSession, s.Status) {
 		status := strings.Join(StatusSession, ", ")
-		return fmt.Errorf(pkg.ErrInvalidStatus, status[:len(status)-2])
+		return fmt.Errorf(pkg.ErrInvalidStatus, status)
 	}
 	return nil
 }
