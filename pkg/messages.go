@@ -66,9 +66,15 @@ const (
 	SessionKindExtra            = "extra"
 	DefaultSessionKind          = SessionKindRegular
 	SessionStatusDone           = "done"
-	SessionStatusOver           = "over"
-	SessionStatusAdjust         = "adjust"
+	SessionStatusSaved          = "saved"
+	SessionStatusMissed         = "missed"
 	DefaultSessionStatus        = SessionStatusDone
+	DefaultSessionDiscount      = "0"
+	ProcessStatusWait           = "waiting"
+	ProcessStatusSuccess        = "success"
+	ProcessStatusError          = "error"
+	DefaultSessionProcess       = ProcessStatusWait
+	DefaultSessionMessage       = ""
 	Location                    = "America/Sao_Paulo"
 	DateFormat                  = "02/01/2006"
 	MonthFormat                 = "01/2006"
@@ -189,4 +195,11 @@ const (
 	ErrEmptyServiceID           = "empty service id"
 	ErrCsvAndGet                = "csv and get are not allowed together"
 	ErrCsvAndParams             = "csv and params are not allowed together"
+	ErrEmptyDiscount            = "empty discount"
+	ErrInvalidDiscount          = "discount should be between 0 and 1"
+	ErrEmptyProcess             = "empty process"
+	ErrInvalidProcess           = "invalid process. Should be %s"
+	ErrEmptyMessage             = "empty message"
+	ErrInvalidMessage           = "message should be informed"
+	ErrLongMessage255           = "message should have at most 255"
 )

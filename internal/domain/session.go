@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -12,8 +13,8 @@ import (
 )
 
 var (
-	KindSession   = []string{pkg.SessionKindRegular, pkg.SessionKindAdjust, pkg.SessionKindExtra}
-	StatusSession = []string{pkg.SessionStatusDone, pkg.SessionStatusOver, pkg.SessionStatusAdjust}
+	StatusSession = []string{pkg.SessionStatusDone, pkg.SessionStatusSaved, pkg.SessionStatusMissed}
+	StatusProcess = []string{pkg.ProcessStatusWait, pkg.ProcessStatusSuccess, pkg.ProcessStatusError}
 )
 
 // Session represents the session entity
@@ -23,12 +24,14 @@ type Session struct {
 	ClientID  string    `gorm:"type:varchar(50); not null; index"`
 	ServiceID string    `gorm:"type:varchar(50); not null; index"`
 	At        time.Time `gorm:"type:datetime; not null"`
-	Kind      string    `gorm:"type:varchar(50); not null; index"`
 	Status    string    `gorm:"type:varchar(50); not null; index"`
+	Discount  *float64  `gorm:"type:decimal(5,4); not null"`
+	Process   string    `gorm:"type:varchar(50); not null; index"`
+	Message   string    `gorm:"type:varchar(255); not null"`
 }
 
 // NewSession creates a new session domain entity
-func NewSession(id, date, clientID, serviceID, at, kind, status string) *Session {
+func NewSession(id, date, clientID, serviceID, at, status string, discount, process, message string) *Session {
 	session := &Session{}
 	session.ID = id
 	session.ClientID = clientID
@@ -40,8 +43,12 @@ func NewSession(id, date, clientID, serviceID, at, kind, status string) *Session
 	if err != nil {
 		session.At, _ = time.ParseInLocation(pkg.DateFormat, at, local)
 	}
-	session.Kind = kind
 	session.Status = status
+	if disc, err := strconv.ParseFloat(discount, 64); err == nil {
+		session.Discount = &disc
+	}
+	session.Process = process
+	session.Message = message
 	return session
 }
 
@@ -64,10 +71,10 @@ func (s *Session) Format(repo port.Repository, args ...string) error {
 	if err := s.formatAt(filled); err != nil {
 		msg += err.Error() + " | "
 	}
-	if err := s.formatKind(filled); err != nil {
+	if err := s.formatStatus(filled); err != nil {
 		msg += err.Error() + " | "
 	}
-	if err := s.formatStatus(filled); err != nil {
+	if err := s.formatDiscount(filled); err != nil {
 		msg += err.Error() + " | "
 	}
 	if err := s.validateDuplicity(repo, slices.Contains(args, "noduplicity")); err != nil {
@@ -178,21 +185,6 @@ func (s *Session) formatAt(filled bool) error {
 	return nil
 }
 
-// formatKind is a method that validates the session kind
-func (s *Session) formatKind(filled bool) error {
-	if s.Kind == "" {
-		if filled {
-			return nil
-		}
-		return errors.New(pkg.ErrEmptyKind)
-	}
-	if !slices.Contains(KindSession, s.Kind) {
-		kinds := strings.Join(KindSession, ", ")
-		return fmt.Errorf(pkg.ErrInvalidKind, kinds[:len(kinds)-2])
-	}
-	return nil
-}
-
 // formatStatus is a method that validates the session status
 func (s *Session) formatStatus(filled bool) error {
 	if s.Status == "" {
@@ -204,6 +196,49 @@ func (s *Session) formatStatus(filled bool) error {
 	if !slices.Contains(StatusSession, s.Status) {
 		status := strings.Join(StatusSession, ", ")
 		return fmt.Errorf(pkg.ErrInvalidStatus, status[:len(status)-2])
+	}
+	return nil
+}
+
+// formatDiscount is a method that validates the session discount
+func (s *Session) formatDiscount(filled bool) error {
+	if s.Discount == nil {
+		if filled {
+			return nil
+		}
+		return errors.New(pkg.ErrEmptyDiscount)
+	}
+	if *s.Discount < 0 || *s.Discount > 1 {
+		return errors.New(pkg.ErrInvalidDiscount)
+	}
+	return nil
+}
+
+// formatProcess is a method that validates the session process
+func (s *Session) formatProcess(filled bool) error {
+	if s.Process == "" {
+		if filled {
+			return nil
+		}
+		return errors.New(pkg.ErrEmptyProcess)
+	}
+	if !slices.Contains(StatusProcess, s.Process) {
+		status := strings.Join(StatusProcess, ", ")
+		return fmt.Errorf(pkg.ErrInvalidProcess, status[:len(status)-2])
+	}
+	return nil
+}
+
+// formatMessage is a method that validates the session message
+func (s *Session) formatMessage(filled bool) error {
+	if s.Process == pkg.ProcessStatusError && s.Message == "" {
+		if filled {
+			return nil
+		}
+		return errors.New(pkg.ErrEmptyMessage)
+	}
+	if len(s.Message) > 255 {
+		return errors.New(pkg.ErrLongMessage255)
 	}
 	return nil
 }

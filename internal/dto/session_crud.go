@@ -2,6 +2,7 @@ package dto
 
 import (
 	"errors"
+	"strconv"
 	"time"
 
 	"github.com/lavinas/ephemeris/internal/domain"
@@ -21,14 +22,16 @@ type SessionCrud struct {
 	ClientID  string `json:"client" command:"name:client;pos:3+;trans:client_id,string" csv:"client"`
 	ServiceID string `json:"service" command:"name:service;pos:3+;trans:service_id,string" csv:"service"`
 	At        string `json:"at" command:"name:at;pos:3+;trans:at,time" csv:"at"`
-	Kind      string `json:"kind" command:"name:kind;pos:3+;trans:kind,string" csv:"kind"`
 	Status    string `json:"status" command:"name:status;pos:3+;trans:status,string" csv:"status"`
+	Discount  string `json:"discount" command:"name:discount;pos:3+;trans:discount,numeric" csv:"discount"`
+	Process   string `json:"process" command:"name:process;pos:3+;trans:process,string" csv:"process"`
+	Message   string `json:"message" command:"name:message;pos:3+;trans:message,string" csv:"message"`
 }
 
 // Validate is a method that validates the dto
 func (s *SessionCrud) Validate(repo port.Repository) error {
 	if s.Csv != "" && (s.ID != "" || s.Date != "" || s.ClientID != "" || s.ServiceID != "" ||
-		s.At != "" || s.Kind != "" || s.Status != "") {
+		s.At != "" || s.Discount != "" || s.Status != "" || s.Process != "" || s.Message != "") {
 		return errors.New(pkg.ErrCsvAndParams)
 	}
 	return nil
@@ -49,7 +52,7 @@ func (s *SessionCrud) GetDomain() []port.Domain {
 			se.Action = s.Action
 			se.Object = s.Object
 			domains = append(domains, se.getDomain(se))
-			
+
 		}
 		return domains
 	}
@@ -64,8 +67,8 @@ func (s *SessionCrud) getDomain(one *SessionCrud) port.Domain {
 		time.Local, _ = time.LoadLocation(pkg.Location)
 		one.Date = time.Now().Format(pkg.DateFormat)
 	}
-	if one.Action == "add" && one.Kind == "" {
-		one.Kind = pkg.DefaultSessionKind
+	if one.Action == "add" && one.Discount == "" {
+		one.Discount = pkg.DefaultSessionDiscount
 	}
 	if one.Action == "add" && one.Status == "" {
 		one.Status = pkg.DefaultSessionStatus
@@ -79,9 +82,13 @@ func (s *SessionCrud) getDomain(one *SessionCrud) port.Domain {
 		if err == nil {
 			at = t.Format("2006-01-02-15-04")
 		}
-		one.ID = at + "-" + one.ClientID + "-" + one.ServiceID + "-" + one.Kind
+		one.ID = at + "_" + one.ClientID + "_" + one.ServiceID + "_" + one.Status + "_" + one.Discount
 	}
-	return domain.NewSession(one.ID, one.Date, one.ClientID, one.ServiceID, one.At, one.Kind, one.Status)
+	if one.Action == "add" {
+		one.Process = pkg.DefaultSessionProcess
+		one.Message = pkg.DefaultSessionMessage
+	}
+	return domain.NewSession(one.ID, one.Date, one.ClientID, one.ServiceID, one.At, one.Status, one.Discount, one.Process, one.Message)
 }
 
 // GetOut is a method that returns the output dto
@@ -96,14 +103,21 @@ func (s *SessionCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 	for _, slice := range slices {
 		sessions := slice.(*[]domain.Session)
 		for _, se := range *sessions {
+			discount := pkg.DefaultSessionDiscount
+			if se.Discount != nil {
+				discount = strconv.FormatFloat(*se.Discount, 'f', 4, 64)
+			}
+
 			ret = append(ret, &SessionCrud{
 				ID:        se.ID,
 				Date:      se.Date.Format(pkg.DateFormat),
 				ClientID:  se.ClientID,
 				ServiceID: se.ServiceID,
 				At:        se.At.Format(pkg.DateTimeFormat),
-				Kind:      se.Kind,
 				Status:    se.Status,
+				Discount:  discount,
+				Process:   se.Process,
+				Message:   se.Message,
 			})
 		}
 	}
