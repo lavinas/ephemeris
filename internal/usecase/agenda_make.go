@@ -29,7 +29,7 @@ func (u *Usecase) AgendaMake(dtoIn interface{}) error {
 		return u.error(pkg.ErrPrefBadRequest, err.Error(), 0, 0)
 	}
 	month, _ := time.Parse(pkg.MonthFormat, dtoAgenda.Month)
-	contracts, err := u.getContracts(dtoAgenda.ClientID, dtoAgenda.ContractID, month)
+	contracts, err := u.getContracts(dtoAgenda)
 	if err != nil {
 		return err
 	}
@@ -59,11 +59,11 @@ func (u *Usecase) AgendaContractMake(dtoIn port.DTOIn, contract domain.Contract,
 	if err := u.DeleteAgenda(&contract, month); err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
-	ret, err := u.GenerateAgenda(dtoIn, &contract, month)
+	dtosOut, err := u.GenerateAgenda(dtoIn, &contract, month)
 	if err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
-	return ret, nil
+	return dtosOut, nil
 }
 
 // deleteAgenda deletes Agenda based on client, contract, month and status
@@ -96,76 +96,50 @@ func (u *Usecase) GenerateAgenda(dtoIn port.DTOIn, contract *domain.Contract, mo
 	if err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
-	agendas, err := u.getAgenda(dtoIn, contract, items)
+	dtosOut, err := u.saveAgenda(dtoIn, contract, items)
 	if err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
 	if err := u.Repo.Commit(); err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
-	return agendas, nil
+	return dtosOut, nil
 }
 
 // GetContracts is a method that returns all contracts of a client
-func (u *Usecase) getContracts(clientID, contractID string, month time.Time) (*[]domain.Contract, error) {
-	if contractID == "" && clientID == "" {
-		return u.getContractsByMonth(month)
+func (u *Usecase) getContracts(dtoAgenda *dto.AgendaMake) (*[]domain.Contract, error) {
+	contract := dtoAgenda.GetDomain()[0].(*domain.Contract)
+	_, inst, err := dtoAgenda.GetInstructions(contract)
+	if err != nil {
+		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
-	contract := &domain.Contract{}
-	if clientID != "" {
-		contract.ClientID = clientID
-	}
-	if contractID != "" {
-		contract.ID = contractID
-	}
-	ret, _, err := u.Repo.Find(contract, 0)
+	ret, _, err := u.Repo.Find(contract, 0, inst...)
 	if err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
 	if ret == nil {
 		return nil, u.error(pkg.ErrPrefBadRequest, pkg.ErrUnfound, 0, 0)
-	}
-	return ret.(*[]domain.Contract), nil
-}
-
-// getContractsByMonth is a method that returns all contracts of a client based on the month
-func (u *Usecase) getContractsByMonth(month time.Time) (*[]domain.Contract, error) {
-	firstday := time.Date(month.Year(), month.Month(), 1, 0, 0, 0, 0, time.Local)
-	lastday := firstday.AddDate(0, 1, 0).Add(time.Nanosecond * -1)
-	contract := &domain.Contract{}
-	if err := u.Repo.Begin(); err != nil {
-		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
-	}
-	defer u.Repo.Rollback()
-	p1 := fmt.Sprintf("start <= '%s'", lastday.Format("2006-01-02 15:04:05"))
-	p2 := fmt.Sprintf("end is null or end >= '%s'", firstday.Format("2006-01-02 15:04:05"))
-	ret, _, err := u.Repo.Find(contract, 0, p1, p2)
-	if err != nil {
-		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
-	}
-	if ret == nil {
-		return nil, u.error(pkg.ErrPrefBadRequest, pkg.ErrUnfound, 0, 0)
-	}
-	if err := u.Repo.Commit(); err != nil {
-		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
 	return ret.(*[]domain.Contract), nil
 }
 
 // getAgenda generates the agenda based on the contract
-func (u *Usecase) getAgenda(dtoIn port.DTOIn, contract *domain.Contract, items []*agendaItem) ([]port.DTOOut, error) {
+func (u *Usecase) saveAgenda(dtoIn port.DTOIn, contract *domain.Contract, items []*agendaItem) ([]port.DTOOut, error) {
 	ret := []port.DTOOut{}
-	agenda := dtoIn.GetDomain()[0].(*domain.Agenda)
+	agenda := domain.Agenda{}
+	agenda.Date = time.Now()
+	agenda.Kind = pkg.DefaultAgendaKind
+	agenda.Status = pkg.DefaultAgendaStatus
 	dtoOut := dtoIn.GetOut()
 	count := 1
 	for i := 0; i < len(items); i++ {
-		if err := u.setAgenda(agenda, contract, items[i]); err != nil {
+		if err := u.setAgenda(&agenda, contract, items[i]); err != nil {
 			return nil, u.error(pkg.ErrPrefInternal, err.Error(), count, len(items))
 		}
 		if err := u.Repo.Add(agenda); err != nil {
 			return nil, u.error(pkg.ErrPrefInternal, err.Error(), count, len(items))
 		}
-		ret = append(ret, dtoOut.GetDTO(agenda)...)
+		ret = append(ret, dtoOut.GetDTO(&agenda)...)
 		count++
 	}
 	return ret, nil

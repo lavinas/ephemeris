@@ -27,15 +27,15 @@ type Agenda struct {
 	ContractID   *string    `gorm:"type:varchar(50); null; index"`
 	Start        time.Time  `gorm:"type:datetime; not null"`
 	End          time.Time  `gorm:"type:datetime; not null"`
-	Kind         string     `gorm:"type:varchar(50); not null; index"`
 	Price        *float64   `gorm:"type:decimal(10,2)"`
+	Kind         string     `gorm:"type:varchar(50); not null; index"`
 	Status       string     `gorm:"type:varchar(50); not null; index"`
 	Bond         *string    `gorm:"type:varchar(50)"`
 	BillingMonth *time.Time `gorm:"type:datetime"`
 }
 
 // NewAgenda creates a new agenda domain entity
-func NewAgenda(id, date, clientID, serviceID, contractID, start, end, kind, price, status, bond, billing string) *Agenda {
+func NewAgenda(id, date, clientID, serviceID, contractID, start, end, price, kind, status, bond, billing string) *Agenda {
 	agenda := &Agenda{}
 	agenda.ID = id
 	local, _ := time.LoadLocation(pkg.Location)

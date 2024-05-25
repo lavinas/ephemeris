@@ -24,8 +24,8 @@ type AgendaCrud struct {
 	ContractID string `json:"contract" command:"name:contract;pos:3+;trans:contract_id,string" csv:"contract"`
 	Start      string `json:"start" command:"name:start;pos:3+;trans:start,time" csv:"start"`
 	End        string `json:"end" command:"name:end;pos:3+;trans:end,time" csv:"end"`
-	Kind       string `json:"kind" command:"name:kind;pos:3+;trans:kind,string" csv:"kind"`
 	Price      string `json:"price" command:"name:price;pos:3+;trans:price,float" csv:"price"`
+	Kind       string `json:"kind" command:"name:kind;pos:3+;trans:kind,string" csv:"kind"`
 	Status     string `json:"status" command:"name:status;pos:3+;trans:status,string" csv:"status"`
 	Bond       string `json:"bond" command:"name:bond;pos:3+;trans:bond,string" csv:"bond"`
 	Billing    string `json:"billing" command:"name:billing;pos:3+;trans:billing_month,time" csv:"billing"`
@@ -56,9 +56,6 @@ func (a *AgendaCrud) GetDomain() []port.Domain {
 			ag.Object = a.Object
 			domains = append(domains, ag.getDomain(ag))
 		}
-		for _, domain := range domains {
-			fmt.Println(0, domain)
-		}
 		return domains
 	}
 	return []port.Domain{
@@ -73,13 +70,13 @@ func (a *AgendaCrud) getDomain(one *AgendaCrud) port.Domain {
 		one.Date = time.Now().Format(pkg.DateFormat)
 	}
 	if one.Action == "add" && one.Kind == "" {
-		one.Kind = pkg.DefaulltAgendaKind
+		one.Kind = pkg.DefaultAgendaKind
 	}
 	if one.Action == "add" && one.Status == "" {
 		one.Status = pkg.DefaultAgendaStatus
 	}
-	return domain.NewAgenda(one.ID, one.Date, one.ClientID, one.ServiceID, one.ContractID, one.Start,
-		one.End, one.Kind, one.Price, one.Status, one.Bond, one.Billing)
+	return domain.NewAgenda(one.ID, one.Date, one.ClientID, one.ServiceID, one.ContractID, 
+		one.Start, one.End, one.Price, one.Kind, one.Status, one.Bond, one.Billing)
 }
 
 // GetOut is a method that returns the output dto
@@ -118,8 +115,8 @@ func (a *AgendaCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 				ContractID: contractID,
 				Start:      ag.Start.Format(pkg.DateTimeFormat),
 				End:        ag.End.Format(pkg.DateTimeFormat),
-				Kind:       ag.Kind,
 				Price:      price,
+				Kind:       ag.Kind,
 				Status:     ag.Status,
 				Bond:       bond,
 				Billing:    billing,

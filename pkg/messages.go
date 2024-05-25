@@ -42,7 +42,7 @@ const (
 	AgendaKindRegular           = "regular"
 	AgendaKindRescheduled       = "rescheduled"
 	AgendaKindExtra             = "extra"
-	DefaulltAgendaKind          = AgendaKindRegular
+	DefaultAgendaKind          = AgendaKindRegular
 	AgendaStatusOpen            = "open"
 	AgendaStatusDone            = "done"
 	AgendaStatusCanceled        = "canceled"
