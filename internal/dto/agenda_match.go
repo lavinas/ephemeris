@@ -12,20 +12,16 @@ import (
 
 // AgendaMatch represents the dto for matching a agenda with sessions
 type AgendaMatch struct {
-	Object     string `json:"-" command:"name:agenda;key;pos:2-"`
-	Action     string `json:"-" command:"name:match;key;pos:2-"`
-	ClientID   string `json:"client_id" command:"name:client;pos:3+"`
-	ContractID string `json:"contract_id" command:"name:contract;pos:3+"`
-	Month      string `json:"month" command:"name:month;pos:3+"`
+	Object   string `json:"-" command:"name:agenda;key;pos:2-"`
+	Action   string `json:"-" command:"name:match;key;pos:2-"`
+	ClientID string `json:"client_id" command:"name:client;pos:3+"`
+	Month    string `json:"month" command:"name:month;pos:3+"`
 }
 
 // Validate is a method that validates the dto
 func (a *AgendaMatch) Validate(repo port.Repository) error {
-	if a.Month == "" {
-		return errors.New(pkg.ErrMonthEmpty)
-	}
-	if _, err := time.Parse(pkg.MonthFormat, a.Month); err != nil {
-		return fmt.Errorf(pkg.ErrMonthInvalid, pkg.MonthFormat)
+	if _, err := a.parseMonth(); err != nil {
+		return err
 	}
 	return nil
 }
@@ -37,15 +33,11 @@ func (a *AgendaMatch) GetCommand() string {
 
 // GetDomain is a method that returns the domain of the dto
 func (a *AgendaMatch) GetDomain() []port.Domain {
-	time.Local, _ = time.LoadLocation(pkg.Location)
-	d := time.Now()
-	date := time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, time.Local)
 	return []port.Domain{
 		&domain.Agenda{
-			Date:       date,
-			ContractID: a.ContractID,
-			Kind:       pkg.AgendaKindRegular,
-			Status:     pkg.AgendaStatusOpen,
+			ClientID: a.ClientID,
+			Kind:     pkg.AgendaKindRegular,
+			Status:   pkg.AgendaStatusOpen,
 		},
 	}
 }
@@ -57,10 +49,21 @@ func (a *AgendaMatch) GetOut() port.DTOOut {
 
 // GetInstructions is a method that returns the instructions of the dto
 func (a *AgendaMatch) GetInstructions() string {
-	return fmt.Sprintf("Matching agenda for client %s and contract %s on month %s", a.ClientID, a.ContractID, a.Month)
+	month, _ := a.parseMonth()
+	start := time.Date(month.Year(), month.Month(), 1, 0, 0, 0, 0, time.Local)
+	end := start.AddDate(0, 1, 0).Add(time.Nanosecond * -1)
+	return fmt.Sprintf("At >= '%s' and At <= '%s'", start.Format("2006-01-02 15:04:05"), end.Format("2006-01-02 15:04:05"))
 }
 
 // GetDTO is a method that returns the dto
 func (a *AgendaMatch) GetDTO(domainIn interface{}) []port.DTOOut {
 	return []port.DTOOut{a}
+}
+
+// parseMonth is a method that parses the month
+func (a *AgendaMatch) parseMonth() (time.Time, error) {
+	if a.Month == "" {
+		return time.Time{}, errors.New(pkg.ErrMonthEmpty)
+	}
+	return time.Parse(pkg.MonthFormat, a.Month)
 }

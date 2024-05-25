@@ -20,10 +20,12 @@ type AgendaCrud struct {
 	ID         string `json:"id" command:"name:id;pos:3+;trans:id,string" csv:"id"`
 	Date       string `json:"date" command:"name:date;pos:3+;trans:date,time" csv:"date"`
 	ClientID   string `json:"client" command:"name:client;pos:3+;trans:client_id,string" csv:"client"`
+	ServiceID  string `json:"service" command:"name:service;pos:3+;trans:service_id,string" csv:"service"`
 	ContractID string `json:"contract" command:"name:contract;pos:3+;trans:contract_id,string" csv:"contract"`
 	Start      string `json:"start" command:"name:start;pos:3+;trans:start,time" csv:"start"`
 	End        string `json:"end" command:"name:end;pos:3+;trans:end,time" csv:"end"`
 	Kind       string `json:"kind" command:"name:kind;pos:3+;trans:kind,string" csv:"kind"`
+	Price      string `json:"price" command:"name:price;pos:3+;trans:price,float" csv:"price"`
 	Status     string `json:"status" command:"name:status;pos:3+;trans:status,string" csv:"status"`
 	Bond       string `json:"bond" command:"name:bond;pos:3+;trans:bond,string" csv:"bond"`
 	Billing    string `json:"billing" command:"name:billing;pos:3+;trans:billing_month,time" csv:"billing"`
@@ -32,7 +34,7 @@ type AgendaCrud struct {
 // Validate is a method that validates the dto
 func (a *AgendaCrud) Validate(repo port.Repository) error {
 	if a.Csv != "" && (a.ID != "" || a.Date != "" || a.ClientID != "" || a.ContractID != "" || a.Start != "" || a.End != "" ||
-		a.Kind != "" || a.Status != "" || a.Bond != "" || a.Billing != "") {
+		a.Kind != "" || a.Status != "" || a.Bond != "" || a.Billing != "" || a.Price != "" || a.ServiceID != "") {
 		return errors.New(pkg.ErrCsvAndParams)
 	}
 	return nil
@@ -76,7 +78,8 @@ func (a *AgendaCrud) getDomain(one *AgendaCrud) port.Domain {
 	if one.Action == "add" && one.Status == "" {
 		one.Status = pkg.DefaultAgendaStatus
 	}
-	return domain.NewAgenda(one.ID, one.Date, one.ClientID, one.ContractID, one.Start, one.End, one.Kind, one.Status, one.Bond, one.Billing)
+	return domain.NewAgenda(one.ID, one.Date, one.ClientID, one.ServiceID, one.ContractID, one.Start,
+		one.End, one.Kind, one.Price, one.Status, one.Bond, one.Billing)
 }
 
 // GetOut is a method that returns the output dto
@@ -99,14 +102,24 @@ func (a *AgendaCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 			if ag.BillingMonth != nil {
 				billing = ag.BillingMonth.Format(pkg.DateFormat)
 			}
+			contractID := ""
+			if ag.ContractID != nil {
+				contractID = *ag.ContractID
+			}
+			price := ""
+			if ag.Price != nil {
+				price = fmt.Sprintf("%.2f", *ag.Price)
+			}
 			ret = append(ret, &AgendaCrud{
 				ID:         ag.ID,
 				Date:       ag.Date.Format(pkg.DateFormat),
 				ClientID:   ag.ClientID,
-				ContractID: ag.ContractID,
+				ServiceID:  ag.ServiceID,
+				ContractID: contractID,
 				Start:      ag.Start.Format(pkg.DateTimeFormat),
 				End:        ag.End.Format(pkg.DateTimeFormat),
 				Kind:       ag.Kind,
+				Price:      price,
 				Status:     ag.Status,
 				Bond:       bond,
 				Billing:    billing,

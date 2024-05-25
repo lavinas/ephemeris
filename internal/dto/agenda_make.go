@@ -23,11 +23,13 @@ type AgendaMake struct {
 type AgendaMakeOut struct {
 	ID         string `json:"id" command:"name:id"`
 	ClientID   string `json:"client_id" command:"name:client"`
+	ServiceID  string `json:"service_id" command:"name:service"`
 	ContractID string `json:"contract_id" command:"name:contract"`
 	Start      string `json:"start" command:"name:start"`
 	End        string `json:"end" command:"name:end"`
 	Event      string `json:"event" command:"name:event"`
 	Kind       string `json:"kind" command:"name:kind"`
+	Price      string `json:"price" command:"name:price"`
 	Status     string `json:"status" command:"name:status"`
 }
 
@@ -54,10 +56,9 @@ func (a *AgendaMake) GetDomain() []port.Domain {
 	date := time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, time.Local)
 	return []port.Domain{
 		&domain.Agenda{
-			Date:       date,
-			ContractID: a.ContractID,
-			Kind:       pkg.AgendaKindRegular,
-			Status:     pkg.AgendaStatusOpen,
+			Date:   date,
+			Kind:   pkg.AgendaKindRegular,
+			Status: pkg.AgendaStatusOpen,
 		},
 	}
 }
@@ -83,14 +84,24 @@ func (a *AgendaMake) GetInstructions(domain port.Domain) (port.Domain, []interfa
 // GetDTO is a method that returns the dto out
 func (a *AgendaMakeOut) GetDTO(domainIn interface{}) []port.DTOOut {
 	agenda := domainIn.(*domain.Agenda)
+	contract := ""
+	if agenda.ContractID != nil {
+		contract = *agenda.ContractID
+	}
+	price := ""
+	if agenda.Price != nil {
+		price = fmt.Sprintf("%.2f", *agenda.Price)
+	}
 	return []port.DTOOut{
 		&AgendaMakeOut{
 			ID:         agenda.ID,
 			ClientID:   agenda.ClientID,
-			ContractID: agenda.ContractID,
+			ServiceID:  agenda.ServiceID,
+			ContractID: contract,
 			Start:      agenda.Start.Format(pkg.DateTimeFormat),
 			End:        agenda.End.Format(pkg.DateTimeFormat),
 			Kind:       agenda.Kind,
+			Price:      price,
 			Status:     agenda.Status,
 		},
 	}

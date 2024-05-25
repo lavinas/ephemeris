@@ -153,6 +153,7 @@ const (
 	ErrPackageNotFound          = "package not found"
 	ErrEmptyContractID          = "empty contract id"
 	ErrContractNotFound         = "contract not found"
+	ErrContractIDNotProvided    = "contract id not provided"
 	ErrEmptyKind                = "empty kind"
 	ErrInvalidKind              = "invalid kind. Should be %s"
 	ErrEmptyStatus              = "empty status"

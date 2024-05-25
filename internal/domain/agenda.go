@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -22,23 +23,28 @@ type Agenda struct {
 	ID           string     `gorm:"type:varchar(150); primaryKey"`
 	Date         time.Time  `gorm:"type:datetime; not null"`
 	ClientID     string     `gorm:"type:varchar(50); not null; index"`
-	ContractID   string     `gorm:"type:varchar(50); not null; index"`
+	ServiceID    string     `gorm:"type:varchar(50); not null; index"`
+	ContractID   *string    `gorm:"type:varchar(50); null; index"`
 	Start        time.Time  `gorm:"type:datetime; not null"`
 	End          time.Time  `gorm:"type:datetime; not null"`
 	Kind         string     `gorm:"type:varchar(50); not null; index"`
+	Price        *float64   `gorm:"type:decimal(10,2)"`
 	Status       string     `gorm:"type:varchar(50); not null; index"`
 	Bond         *string    `gorm:"type:varchar(50)"`
 	BillingMonth *time.Time `gorm:"type:datetime"`
 }
 
 // NewAgenda creates a new agenda domain entity
-func NewAgenda(id, date, clientID, contractID, start, end, kind, status, bond, billing string) *Agenda {
+func NewAgenda(id, date, clientID, serviceID, contractID, start, end, kind, price, status, bond, billing string) *Agenda {
 	agenda := &Agenda{}
 	agenda.ID = id
 	local, _ := time.LoadLocation(pkg.Location)
 	agenda.Date, _ = time.ParseInLocation(pkg.DateFormat, strings.TrimSpace(date), local)
+	agenda.ServiceID = serviceID
 	agenda.ClientID = clientID
-	agenda.ContractID = contractID
+	if contractID != "" {
+		agenda.ContractID = &contractID
+	}
 	agenda.Start, _ = time.ParseInLocation(pkg.DateTimeFormat, strings.TrimSpace(start), local)
 	agenda.End, _ = time.ParseInLocation(pkg.DateTimeFormat, strings.TrimSpace(end), local)
 	agenda.Kind = kind
@@ -54,6 +60,9 @@ func NewAgenda(id, date, clientID, contractID, start, end, kind, status, bond, b
 		if err == nil && !mont.IsZero() {
 			agenda.BillingMonth = &mont
 		}
+	}
+	if p, err := strconv.ParseFloat(price, 64); err == nil {
+		agenda.Price = &p
 	}
 	return agenda
 }
@@ -75,6 +84,9 @@ func (a *Agenda) Format(repo port.Repository, args ...string) error {
 	if err := a.formatClientID(repo, filled); err != nil {
 		msg += err.Error() + " | "
 	}
+	if err := a.formatServiceID(repo, filled); err != nil {
+		msg += err.Error() + " | "
+	}
 	if err := a.formatStart(filled); err != nil {
 		msg += err.Error() + " | "
 	}
@@ -82,6 +94,9 @@ func (a *Agenda) Format(repo port.Repository, args ...string) error {
 		msg += err.Error() + " | "
 	}
 	if err := a.formatKind(filled); err != nil {
+		msg += err.Error() + " | "
+	}
+	if err := a.formatPrice(filled); err != nil {
 		msg += err.Error() + " | "
 	}
 	if err := a.formatStatus(filled); err != nil {
@@ -175,16 +190,36 @@ func (c *Agenda) formatClientID(repo port.Repository, filled bool) error {
 	return nil
 }
 
-// formatContractID is a method that formats the contract id
-func (c *Agenda) formatContractID(repo port.Repository, filled bool) error {
-	contractID := c.formatString(c.ContractID)
-	if contractID == "" {
+// formarServiceID is a method that formats the service id
+func (c *Agenda) formatServiceID(repo port.Repository, filled bool) error {
+	serviceID := c.formatString(c.ServiceID)
+	if serviceID == "" {
 		if filled {
 			return nil
 		}
-		return errors.New(pkg.ErrEmptyContractID)
+		return errors.New(pkg.ErrEmptyServiceID)
 	}
-	contract := &Contract{ID: contractID}
+	service := &Service{ID: serviceID}
+	if exists, err := service.Load(repo); err != nil {
+		return err
+	} else if !exists {
+		return errors.New(pkg.ErrServiceNotFound)
+	}
+	return nil
+}
+
+// formatContractID is a method that formats the contract id
+func (c *Agenda) formatContractID(repo port.Repository, filled bool) error {
+	if c.ContractID == nil {
+		if c.Price != nil {
+			if filled {
+				return nil
+			}
+			return errors.New(pkg.ErrContractIDNotProvided)
+		}
+		return nil
+	}
+	contract := &Contract{ID: *c.ContractID}
 	if exists, err := contract.Load(repo); err != nil {
 		return err
 	} else if !exists {
@@ -236,6 +271,23 @@ func (c *Agenda) formatKind(filled bool) error {
 		return fmt.Errorf(pkg.ErrInvalidKind, strings.Join(kindAgenda, ", "))
 	}
 	c.Kind = kind
+	return nil
+}
+
+// formatPrice is a method that formats the price of the agenda
+func (c *Agenda) formatPrice(filled bool) error {
+	if c.Price == nil {
+		if c.ContractID == nil {
+			if filled {
+				return nil
+			}
+			return errors.New(pkg.ErrPriceIDNotProvided)
+		}
+		return nil
+	}
+	if *c.Price < 0 {
+		return errors.New(pkg.ErrInvalidPackPrice)
+	}
 	return nil
 }
 
