@@ -66,7 +66,7 @@ func (u *Usecase) AgendaContractMake(dtoIn port.DTOIn, contract domain.Contract,
 	return dtosOut, nil
 }
 
-// deleteAgenda deletes Agenda based on client, contract, month and status
+// DeleteAgenda deletes Agenda based on client, contract, month and status
 func (u *Usecase) DeleteAgenda(contract *domain.Contract, month time.Time) error {
 	firstday := time.Date(month.Year(), month.Month(), 1, 0, 0, 0, 0, time.Local)
 	lastday := firstday.AddDate(0, 1, 0).Add(time.Nanosecond * -1)
@@ -123,7 +123,7 @@ func (u *Usecase) getContracts(dtoAgenda *dto.AgendaMake) (*[]domain.Contract, e
 	return ret.(*[]domain.Contract), nil
 }
 
-// getAgenda generates the agenda based on the contract
+// saveAgenda saves the agenda based on the contract, items and dto
 func (u *Usecase) saveAgenda(dtoIn port.DTOIn, contract *domain.Contract, items []*agendaItem) ([]port.DTOOut, error) {
 	ret := []port.DTOOut{}
 	agenda := domain.Agenda{}
@@ -145,7 +145,7 @@ func (u *Usecase) saveAgenda(dtoIn port.DTOIn, contract *domain.Contract, items 
 	return ret, nil
 }
 
-// getDates returns the dates of the contract based on the month
+// getItems returns the items of the agenda based on contract and the month
 func (u *Usecase) getItems(contract *domain.Contract, month time.Time) ([]*agendaItem, error) {
 	items, err := u.mountItems(contract, month)
 	if err != nil {
@@ -158,7 +158,7 @@ func (u *Usecase) getItems(contract *domain.Contract, month time.Time) ([]*agend
 	return items, nil
 }
 
-// mountDates returns the dates of the contract based on the month
+// mounItems mounts the agenda items based on the contract and month
 func (u *Usecase) mountItems(contract *domain.Contract, month time.Time) ([]*agendaItem, error) {
 	beginMonth, endMonth := u.getBound(contract, month)
 	recur, services, prices, err := u.getPackageParams(contract.PackageID)
@@ -214,7 +214,7 @@ func (u *Usecase) getPackageParams(packId string) (*domain.Recurrence, []*domain
 	return recur, services, prices, nil
 }
 
-// getMinutes returns the minutes of the slice of services
+// getServicePrice returns the service price based on the count
 func (u *Usecase) getServicePrice(services []*domain.Service, prices []*float64, count int) (int, string, *float64) {
 	idx := count % len(services)
 	m := services[idx].Minutes
