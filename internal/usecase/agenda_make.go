@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	idDateFormat = "2006-01-02-15"
-	idFormat     = "%s-%s"
+	idDateFormat = "2006_01_02_15"
+	idFormat     = "%s_%s"
 )
 
 type agendaItem struct {
