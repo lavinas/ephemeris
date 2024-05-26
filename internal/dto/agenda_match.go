@@ -33,13 +33,7 @@ func (a *AgendaMatch) GetCommand() string {
 
 // GetDomain is a method that returns the domain of the dto
 func (a *AgendaMatch) GetDomain() []port.Domain {
-	return []port.Domain{
-		&domain.Agenda{
-			ClientID: a.ClientID,
-			Kind:     pkg.AgendaKindRegular,
-			Status:   pkg.AgendaStatusOpen,
-		},
-	}
+	return nil
 }
 
 // GetOut is a method that returns the output dto
@@ -48,11 +42,36 @@ func (a *AgendaMatch) GetOut() port.DTOOut {
 }
 
 // GetInstructions is a method that returns the instructions of the dto
-func (a *AgendaMatch) GetInstructions() string {
-	month, _ := a.parseMonth()
+func (a *AgendaMatch) GetInstructions(domain port.Domain) (port.Domain, []interface{}, error) {
+	return nil, nil, nil
+}
+
+// GetMatchDomain is a method that returns the domain of the dt
+func (a *AgendaMatch) GetMatchDomain(name string) (port.Domain, []interface{}, error) {
+	month, err := a.parseMonth()
+	if err != nil {
+		return nil, nil, err
+	}
 	start := time.Date(month.Year(), month.Month(), 1, 0, 0, 0, 0, time.Local)
 	end := start.AddDate(0, 1, 0).Add(time.Nanosecond * -1)
-	return fmt.Sprintf("At >= '%s' and At <= '%s'", start.Format("2006-01-02 15:04:05"), end.Format("2006-01-02 15:04:05"))
+	startS := start.Format("2006-01-02 15:04:05")
+	endS := end.Format("2006-01-02 15:04:05")
+	switch name {
+	case "session":
+		f1 := fmt.Sprintf("At >= '%s'", startS)
+		f2 := fmt.Sprintf("At <= '%s'", endS)
+		return &domain.Session{
+			ClientID: a.ClientID,
+			Process:  pkg.ProcessStatusWait,
+		}, []interface{}{f1, f2}, nil
+	case "agenda":
+		f1 := fmt.Sprintf("Start >='%s'", startS)
+		f2 := fmt.Sprintf("Start <='%s'", endS)
+		return &domain.Agenda{
+			ClientID: a.ClientID,
+		}, []interface{}{f1, f2}, nil
+	}
+	return nil, nil, errors.New(pkg.MatchDomainNotFound)
 }
 
 // GetDTO is a method that returns the dto

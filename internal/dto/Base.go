@@ -14,6 +14,7 @@ func All() []interface{} {
 	return []interface{}{
 		&AgendaCrud{},
 		&AgendaMake{},
+		&AgendaMatch{},
 		&ClientCrud{},
 		&ContractCrud{},
 		&InvoiceCrud{},

@@ -31,9 +31,11 @@ func (u *Usecase) AgendaMatch(dtoIn interface{}) error {
 // getSessionsMatch returns the sessions based on the client and month
 func (u *Usecase) getSessionsMatch(dto *dto.AgendaMatch) (map[string]*domain.Session, error) {
 	mapSessions := map[string]*domain.Session{}
-	agenda := dto.GetDomain()[0].(*domain.Agenda)
-	instructions := dto.GetInstructions()
-	sessions, _, err := u.Repo.Find(agenda, 0, instructions)
+	s, inst, err := dto.GetMatchDomain("session")
+	if err != nil {
+		return nil, err
+	}
+	sessions, _, err := u.Repo.Find(s, 0, inst...)
 	if err != nil {
 		return nil, err
 	}
@@ -46,23 +48,29 @@ func (u *Usecase) getSessionsMatch(dto *dto.AgendaMatch) (map[string]*domain.Ses
 
 // getAgendaMatch returns the agenda based on the client and month
 func (u *Usecase) getAgendaMatch(dto *dto.AgendaMatch) (map[string]*domain.Agenda, error) {
-	mapAgendas := map[string]*domain.Agenda{}
-	agenda := dto.GetDomain()[0].(*domain.Agenda)
-	instructions := dto.GetInstructions()
-	agendas, _, err := u.Repo.Find(agenda, 0, instructions)
+	mapSessions := map[string]*domain.Agenda{}
+	s, inst, err := dto.GetMatchDomain("agenda")
+	if err != nil {
+		return nil, err
+	}
+	agendas, _, err := u.Repo.Find(s, 0, inst...)
 	if err != nil {
 		return nil, err
 	}
 	for _, agenda := range *agendas.(*[]domain.Agenda) {
-		key := fmt.Sprintf("%s-%s", agenda.ClientID, agenda.Kind)
-		mapAgendas[key] = &agenda
+		key := fmt.Sprintf("%s-%s-%s", agenda.ClientID, agenda.ServiceID, agenda.Start.Format("2006-01-02"))
+		mapSessions[key] = &agenda
 	}
-	return mapAgendas, nil
+	return mapSessions, nil
 }
 
 // matchAgendaSession matches the agenda with the session
 func (u *Usecase) matchAgendasSessions(sessions map[string]*domain.Session, agendas map[string]*domain.Agenda) error {
-	fmt.Println(sessions)
-	fmt.Println(agendas)
+	for key := range sessions {
+		fmt.Println(1, key)
+	}
+	for key := range agendas {
+		fmt.Println(2, key)
+	}
 	return nil
 }

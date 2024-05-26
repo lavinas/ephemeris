@@ -42,7 +42,7 @@ const (
 	AgendaKindRegular           = "regular"
 	AgendaKindRescheduled       = "rescheduled"
 	AgendaKindExtra             = "extra"
-	DefaultAgendaKind          = AgendaKindRegular
+	DefaultAgendaKind           = AgendaKindRegular
 	AgendaStatusOpen            = "open"
 	AgendaStatusDone            = "done"
 	AgendaStatusCanceled        = "canceled"
@@ -203,4 +203,5 @@ const (
 	ErrEmptyMessage             = "empty message"
 	ErrInvalidMessage           = "message should be informed"
 	ErrLongMessage255           = "message should have at most 255"
+	MatchDomainNotFound         = "domain not found for matching"
 )

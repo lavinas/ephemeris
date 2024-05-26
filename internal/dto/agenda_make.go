@@ -12,10 +12,10 @@ import (
 
 // AgendaMake represents the dto for making a agenda
 type AgendaMake struct {
-	Object     string `json:"-" command:"name:agenda;key;pos:2-"`
-	Action     string `json:"-" command:"name:make,program,prog;key;pos:2-"`
-	ClientID   string `json:"client_id" command:"name:client;pos:3+"`
-	Month      string `json:"month" command:"name:month;pos:3+"`
+	Object   string `json:"-" command:"name:agenda;key;pos:2-"`
+	Action   string `json:"-" command:"name:make,program,prog;key;pos:2-"`
+	ClientID string `json:"client_id" command:"name:client;pos:3+"`
+	Month    string `json:"month" command:"name:month;pos:3+"`
 }
 
 // AgendaMakeOut represents the dto for making a agenda on output
@@ -52,7 +52,7 @@ func (a *AgendaMake) GetCommand() string {
 func (a *AgendaMake) GetDomain() []port.Domain {
 	return []port.Domain{
 		&domain.Contract{
-			ClientID:  a.ClientID,
+			ClientID: a.ClientID,
 		},
 	}
 }

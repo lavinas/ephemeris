@@ -97,7 +97,7 @@ func (p *Package) TableName() string {
 // GetService is a method that returns the service of the package
 func (p *Package) GetServices(repo port.Repository) ([]*Service, []*float64, error) {
 	services := []*Service{}
-	prices := []*float64{}		
+	prices := []*float64{}
 	i, _, err := repo.Find(&PackageItem{PackageID: p.ID}, 999)
 	if err != nil {
 		return nil, nil, err

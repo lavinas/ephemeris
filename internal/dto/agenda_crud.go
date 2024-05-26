@@ -75,7 +75,7 @@ func (a *AgendaCrud) getDomain(one *AgendaCrud) port.Domain {
 	if one.Action == "add" && one.Status == "" {
 		one.Status = pkg.DefaultAgendaStatus
 	}
-	return domain.NewAgenda(one.ID, one.Date, one.ClientID, one.ServiceID, one.ContractID, 
+	return domain.NewAgenda(one.ID, one.Date, one.ClientID, one.ServiceID, one.ContractID,
 		one.Start, one.End, one.Price, one.Kind, one.Status, one.Bond, one.Billing)
 }
 
