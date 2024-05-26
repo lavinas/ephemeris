@@ -29,8 +29,8 @@ func (u *Usecase) AgendaMatch(dtoIn interface{}) error {
 }
 
 // getSessionsMatch returns the sessions based on the client and month
-func (u *Usecase) getSessionsMatch(dto *dto.AgendaMatch) (map[string]*domain.Session, error) {
-	mapSessions := map[string]*domain.Session{}
+func (u *Usecase) getSessionsMatch(dto *dto.AgendaMatch) (map[string][]*domain.Session, error) {
+	mapSessions := map[string][]*domain.Session{}
 	s, inst, err := dto.GetMatchDomain("session")
 	if err != nil {
 		return nil, err
@@ -41,14 +41,14 @@ func (u *Usecase) getSessionsMatch(dto *dto.AgendaMatch) (map[string]*domain.Ses
 	}
 	for _, session := range *sessions.(*[]domain.Session) {
 		key := fmt.Sprintf("%s-%s-%s", session.ClientID, session.ServiceID, session.At.Format("2006-01-02"))
-		mapSessions[key] = &session
+		mapSessions[key] = append(mapSessions[key], &session)
 	}
 	return mapSessions, nil
 }
 
 // getAgendaMatch returns the agenda based on the client and month
-func (u *Usecase) getAgendaMatch(dto *dto.AgendaMatch) (map[string]*domain.Agenda, error) {
-	mapSessions := map[string]*domain.Agenda{}
+func (u *Usecase) getAgendaMatch(dto *dto.AgendaMatch) (map[string][]*domain.Agenda, error) {
+	mapSessions := map[string][]*domain.Agenda{}
 	s, inst, err := dto.GetMatchDomain("agenda")
 	if err != nil {
 		return nil, err
@@ -59,13 +59,13 @@ func (u *Usecase) getAgendaMatch(dto *dto.AgendaMatch) (map[string]*domain.Agend
 	}
 	for _, agenda := range *agendas.(*[]domain.Agenda) {
 		key := fmt.Sprintf("%s-%s-%s", agenda.ClientID, agenda.ServiceID, agenda.Start.Format("2006-01-02"))
-		mapSessions[key] = &agenda
+		mapSessions[key] = append(mapSessions[key], &agenda)
 	}
 	return mapSessions, nil
 }
 
 // matchAgendaSession matches the agenda with the session
-func (u *Usecase) matchAgendasSessions(sessions map[string]*domain.Session, agendas map[string]*domain.Agenda) error {
+func (u *Usecase) matchAgendasSessions(sessions map[string][]*domain.Session, agendas map[string][]*domain.Agenda) error {
 	for key := range sessions {
 		fmt.Println(1, key)
 	}
