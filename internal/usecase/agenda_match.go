@@ -66,7 +66,7 @@ func (u *Usecase) getAgendaMatch(dto *dto.AgendaMatch) (map[string][]*domain.Age
 
 // matchAgendaSession matches the agenda with the session
 func (u *Usecase) matchAgendasSessions(sessions map[string][]*domain.Session, agendas map[string][]*domain.Agenda) error {
-	for key, _ := range sessions {
+	for key := range sessions {
 		if _, ok := agendas[key]; !ok {
 			fmt.Println(1, key)
 		} else {
