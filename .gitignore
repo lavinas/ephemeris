@@ -26,6 +26,7 @@ go.work
 
 # mysql data directory
 mysql/
+mysql2/
 
 # import files directory
 files/
