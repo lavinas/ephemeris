@@ -19,6 +19,7 @@ type RecurrenceCrud struct {
 	Csv    string `json:"csv" command:"name:csv;pos:3+;" csv:"file"`
 	ID     string `json:"id" command:"name:id;pos:3+;trans:id,string" csv:"id"`
 	Date   string `json:"date" command:"name:date;pos:3+;trans:date,time"  csv:"date"`
+	Name   string `json:"name" command:"name:name;pos:3+;trans:name,string" csv:"name"`
 	Cycle  string `json:"cycle" command:"name:cycle;pos:3+;trans:cycle,string" csv:"cycle"`
 	Length string `json:"quantity" command:"name:length;pos:3+;trans:length,numeric" csv:"length"`
 	Limit  string `json:"limit" command:"name:limit;pos:3+;trans:limit,numeric" csv:"limit"`
@@ -26,7 +27,7 @@ type RecurrenceCrud struct {
 
 // Validate is a method that validates the dto
 func (r *RecurrenceCrud) Validate(repo port.Repository) error {
-	if r.Csv != "" && (r.ID != "" || r.Date != "" || r.Cycle != "" || r.Length != "" || r.Limit != "") {
+	if r.Csv != "" && (r.ID != "" || r.Date != "" || r.Cycle != "" || r.Length != "" || r.Limit != "" || r.Name != "") {
 		return errors.New(pkg.ErrCsvAndParams)
 	}
 	return nil
@@ -68,7 +69,7 @@ func (r *RecurrenceCrud) getDomain(one *RecurrenceCrud) port.Domain {
 	if one.Action == "add" && one.Cycle == "" {
 		one.Cycle = pkg.DefaultRecurrenceCycle
 	}
-	return domain.NewRecurrence(one.ID, one.Date, one.Cycle, one.Length, one.Limit)
+	return domain.NewRecurrence(one.ID, one.Date, one.Name, one.Cycle, one.Length, one.Limit)
 }
 
 // GetOut is a method that returns the dto out
@@ -94,6 +95,7 @@ func (r *RecurrenceCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 			ret = append(ret, &RecurrenceCrud{
 				ID:     recurrence.ID,
 				Date:   recurrence.Date.Format(pkg.DateFormat),
+				Name:   recurrence.Name,
 				Cycle:  recurrence.Cycle,
 				Length: len,
 				Limit:  lim,

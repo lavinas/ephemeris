@@ -28,13 +28,14 @@ var (
 type Recurrence struct {
 	ID     string    `gorm:"type:varchar(50); primaryKey"`
 	Date   time.Time `gorm:"type:datetime; not null; index"`
+	Name   string    `gorm:"type:varchar(100); not null; index"`
 	Cycle  string    `gorm:"type:varchar(50); not null; index"`
 	Length *int64    `gorm:"type:numeric(10); null; index"`
 	Limits *int64    `gorm:"type:numeric(10); null; index"`
 }
 
 // NewRecurrence is a function that creates a new recurrence
-func NewRecurrence(id, date, cycle, length, limit string) *Recurrence {
+func NewRecurrence(id, date, name, cycle, length, limit string) *Recurrence {
 	date = strings.TrimSpace(date)
 	local, _ := time.LoadLocation(pkg.Location)
 	fdate := time.Time{}
@@ -55,6 +56,7 @@ func NewRecurrence(id, date, cycle, length, limit string) *Recurrence {
 	return &Recurrence{
 		ID:     id,
 		Date:   fdate,
+		Name:   name,
 		Cycle:  cycle,
 		Length: flen,
 		Limits: flim,
@@ -70,6 +72,9 @@ func (r *Recurrence) Format(repo port.Repository, args ...string) error {
 		msg += err.Error() + " | "
 	}
 	if err := r.formatDate(filled); err != nil {
+		msg += err.Error() + " | "
+	}
+	if err := r.formatName(filled); err != nil {
 		msg += err.Error() + " | "
 	}
 	if err := r.formatCycle(filled); err != nil {
@@ -158,6 +163,19 @@ func (r *Recurrence) formatDate(filled bool) error {
 			return nil
 		}
 		return fmt.Errorf(pkg.ErrInvalidDateFormat, pkg.DateFormat)
+	}
+	return nil
+}
+
+// formatName is a method that formats the recurrence name
+func (r *Recurrence) formatName(filled bool) error {
+	r.Name = r.formatString(r.Name)
+
+	if r.Name == "" {
+		if filled {
+			return nil
+		}
+		return fmt.Errorf(pkg.ErrEmptyName)
 	}
 	return nil
 }
