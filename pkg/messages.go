@@ -204,4 +204,5 @@ const (
 	ErrInvalidMessage           = "message should be informed"
 	ErrLongMessage255           = "message should have at most 255"
 	MatchDomainNotFound         = "domain not found for matching"
+	ErrUnitPackNotInformed      = "unit or pack value should be informed"
 )
