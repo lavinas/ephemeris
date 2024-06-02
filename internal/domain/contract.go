@@ -16,7 +16,7 @@ import (
 var (
 	// BillingTypes is a map that contains all billing types
 	billingTypes = []string{
-		"pre-paid", "pos-paid", "pos-session", "per-session",
+		pkg.BillingTypePrePaid, pkg.BillingTypePosPaid, pkg.BillingTypePosSession, pkg.BillingTypePerSession,
 	}
 )
 
