@@ -14,18 +14,19 @@ import (
 // PackageAddIn represents the input dto for adding a package usecase
 type PackageCrud struct {
 	Base
-	Object       string `json:"-" command:"name:package;key;pos:2-"`
-	Action       string `json:"-" command:"name:add,get,up;key;pos:2-"`
-	Sort         string `json:"sort" command:"name:sort;pos:3+"`
-	Csv          string `json:"csv" command:"name:csv;pos:3+;" csv:"file"`
-	ID           string `json:"id" command:"name:id;pos:3+;trans:id,string" csv:"id"`
-	Date         string `json:"date" command:"name:date;pos:3+;trans:date,time" csv:"date"`
-	RecurrenceID string `json:"recurrence" command:"name:recurrence;pos:3+;trans:recurrence_id,string" csv:"recurrence"`
-	ServiceID    string `json:"service" command:"name:service;pos:3+;trans:service_id,string" csv:"service"`
-	UnitValue    string `json:"unit" command:"name:unit;pos:3+;trans:price,numeric" csv:"unit"`
-	PackValue    string `json:"pack" command:"name:pack;pos:3+;trans:price,numeric" csv:"pack"`
-	Sequence     string `json:"seq" command:"name:seq;pos:3+;trans:sequence,numeric" csv:"sequence"`
-	SequenceUp   string `json:"sequp" command:"name:sequp;pos:3+;trans:sequence,numeric" csv:"sequp"`
+	Object           string `json:"-" command:"name:package;key;pos:2-"`
+	Action           string `json:"-" command:"name:add,get,up;key;pos:2-"`
+	Sort             string `json:"sort" command:"name:sort;pos:3+"`
+	Csv              string `json:"csv" command:"name:csv;pos:3+;" csv:"file"`
+	ID               string `json:"id" command:"name:id;pos:3+;trans:id,string" csv:"id"`
+	Date             string `json:"date" command:"name:date;pos:3+;trans:date,time" csv:"date"`
+	RecurrenceID     string `json:"recurrence" command:"name:recurrence;pos:3+;trans:recurrence_id,string" csv:"recurrence"`
+	ServiceID        string `json:"service" command:"name:service;pos:3+;trans:service_id,string" csv:"service"`
+	UnitValue        string `json:"unit" command:"name:unit;pos:3+;trans:price,numeric" csv:"unit"`
+	PackValue        string `json:"pack" command:"name:pack;pos:3+;trans:price,numeric" csv:"pack"`
+	Sequence         string `json:"seq" command:"name:seq;pos:3+;trans:sequence,numeric" csv:"sequence"`
+	SequenceUp       string `json:"sequp" command:"name:sequp;pos:3+;trans:sequence,numeric" csv:"sequp"`
+	ItemInstructions []string
 }
 
 // Validate is a method that validates the dto
@@ -90,7 +91,7 @@ func (x *PackageCrud) getDomain(one *PackageCrud) []port.Domain {
 		}
 	}
 	return []port.Domain{
-		domain.NewPackage(one.ID, one.Date, one.ServiceID, one.RecurrenceID, one.PackValue),
+		domain.NewPackage(one.ID, one.Date, one.RecurrenceID, one.PackValue),
 		domain.NewPackageItem(itemId, one.ID, one.ServiceID, seqUp, one.UnitValue),
 	}
 }
@@ -131,17 +132,5 @@ func (p *PackageCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 
 // Getinstructions is a method that returns the instructions of the dto for given domain
 func (p *PackageCrud) GetInstructions(domain port.Domain) (port.Domain, []interface{}, error) {
-	cmd, err := pkg.NewCommands().Transpose(p)
-	if err != nil {
-		return nil, nil, err
-	}
-	if len(cmd) > 0 {
-		d := p.GetDomain()
-		domain := d[0]
-		if fmt.Sprintf("%T", domain) != "*domain.Package" {
-			domain = d[1]
-		}
-		return domain, cmd, nil
-	}
-	return domain, cmd, nil
+	return domain, []interface{}{}, nil
 }

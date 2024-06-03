@@ -107,7 +107,7 @@ func (c *Commands) Unmarshal(data string, v interface{}) error {
 }
 
 // Transpose is a function that returns the transpose of a struct in a slice of strings
-// trabspose string, numeric and time fields with tag command and sub-tab transpose
+// transpose string, numeric and time fields with tag command and sub-tab transpose
 func (c *Commands) Transpose(v interface{}) ([]interface{}, error) {
 	trans := []interface{}{}
 	etype := reflect.TypeOf(v).Elem()
@@ -123,6 +123,9 @@ func (c *Commands) Transpose(v interface{}) ([]interface{}, error) {
 			return nil, err
 		}
 		param.value = val
+		if param.iskey {
+			param.name = param.value
+		}
 		params = append(params, param)
 		if trs != "" {
 			trans = append(trans, trs)
