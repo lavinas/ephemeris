@@ -20,6 +20,5 @@
 * Colocar formatacao no telefone no print
 * Permitir update do id no crud
 * Permitir volta a ser null no crud
-* Permitir get com like 
 * Validar conflito de agenda no horario de cadastro do contrato
-* Fazer importacao de csv para package
+* Implementar get com like em package
