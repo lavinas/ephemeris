@@ -26,12 +26,13 @@ type SessionCrud struct {
 	Discount  string `json:"discount" command:"name:discount;pos:3+;trans:discount,numeric" csv:"discount"`
 	Process   string `json:"process" command:"name:process;pos:3+;trans:process,string" csv:"process"`
 	Message   string `json:"message" command:"name:message;pos:3+;trans:message,string" csv:"message"`
+	Sequence  string `json:"seq" command:"name:seq;pos:3+;trans:sequence,int" csv:"seq"`
 }
 
 // Validate is a method that validates the dto
 func (s *SessionCrud) Validate(repo port.Repository) error {
-	if s.Csv != "" && (s.ID != "" || s.Date != "" || s.ClientID != "" || s.ServiceID != "" ||
-		s.At != "" || s.Discount != "" || s.Status != "" || s.Process != "" || s.Message != "") {
+	if s.Csv != "" && (s.ID != "" || s.Date != "" || s.ClientID != "" || s.ServiceID != "" || s.At != "" ||
+		s.Discount != "" || s.Status != "" || s.Process != "" || s.Message != "" || s.Sequence != "") {
 		return errors.New(pkg.ErrCsvAndParams)
 	}
 	return nil
@@ -82,13 +83,17 @@ func (s *SessionCrud) getDomain(one *SessionCrud) port.Domain {
 		if err == nil {
 			at = t.Format("2006-01-02-15-04")
 		}
-		one.ID = at + "_" + one.ClientID + "_" + one.ServiceID + "_" + one.Status + "_" + one.Discount
+		one.ID = at + "_" + one.ClientID + "_" + one.ServiceID + "_" + one.Sequence
+	}
+	if one.Action == "add" && one.Sequence == "" {
+		one.Sequence = pkg.DefaultSessionSequence
 	}
 	if one.Action == "add" {
 		one.Process = pkg.DefaultSessionProcess
 		one.Message = pkg.DefaultSessionMessage
 	}
-	return domain.NewSession(one.ID, one.Date, one.ClientID, one.ServiceID, one.At, one.Status, one.Discount, one.Process, one.Message)
+	return domain.NewSession(one.ID, one.Date, one.ClientID, one.ServiceID, one.At, one.Status,
+		one.Discount, one.Process, one.Message, one.Sequence)
 }
 
 // GetOut is a method that returns the output dto
@@ -107,7 +112,6 @@ func (s *SessionCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 			if se.Discount != nil {
 				discount = strconv.FormatFloat(*se.Discount, 'f', 4, 64)
 			}
-
 			ret = append(ret, &SessionCrud{
 				ID:        se.ID,
 				Date:      se.Date.Format(pkg.DateFormat),
@@ -118,6 +122,7 @@ func (s *SessionCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 				Discount:  discount,
 				Process:   se.Process,
 				Message:   se.Message,
+				Sequence:  strconv.Itoa(*se.Sequence),
 			})
 		}
 	}

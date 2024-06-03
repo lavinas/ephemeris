@@ -31,6 +31,7 @@ const (
 	RecurrenceCycleYear         = "year"
 	DefaultRecurrenceCycle      = RecurrenceCycleOnce
 	DefaultDueDay               = "10"
+	DefaultSessionSequence      = "0"
 	BillingTypePrePaid          = "pre-paid"
 	BillingTypePosPaid          = "pos-paid"
 	BillingTypePosSession       = "pos-session"

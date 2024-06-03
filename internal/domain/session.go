@@ -28,10 +28,11 @@ type Session struct {
 	Discount  *float64  `gorm:"type:decimal(5,4); not null"`
 	Process   string    `gorm:"type:varchar(50); not null; index"`
 	Message   string    `gorm:"type:varchar(255); not null"`
+	Sequence  *int      `gorm:"type:int; not null"`
 }
 
 // NewSession creates a new session domain entity
-func NewSession(id, date, clientID, serviceID, at, status string, discount, process, message string) *Session {
+func NewSession(id, date, clientID, serviceID, at, status string, discount, process, message, sequence string) *Session {
 	session := &Session{}
 	session.ID = id
 	session.ClientID = clientID
@@ -49,6 +50,9 @@ func NewSession(id, date, clientID, serviceID, at, status string, discount, proc
 	}
 	session.Process = process
 	session.Message = message
+	if seq, err := strconv.Atoi(sequence); err == nil {
+		session.Sequence = &seq
+	}
 	return session
 }
 
@@ -81,6 +85,9 @@ func (s *Session) Format(repo port.Repository, args ...string) error {
 		msg += err.Error() + " | "
 	}
 	if err := s.formatMessage(filled); err != nil {
+		msg += err.Error() + " | "
+	}
+	if err := s.formatSequence(filled); err != nil {
 		msg += err.Error() + " | "
 	}
 	if err := s.validateDuplicity(repo, slices.Contains(args, "noduplicity")); err != nil {
@@ -245,6 +252,20 @@ func (s *Session) formatMessage(filled bool) error {
 	}
 	if len(s.Message) > 255 {
 		return errors.New(pkg.ErrLongMessage255)
+	}
+	return nil
+}
+
+// FormatSequence is a method that formats the package item entity
+func (s *Session) formatSequence(filled bool) error {
+	if s.Sequence == nil {
+		if filled {
+			return nil
+		}
+		return errors.New(pkg.ErrInvalidSequence)
+	}
+	if *s.Sequence < 0 || *s.Sequence > 999 {
+		return errors.New(pkg.ErrInvalidSequence)
 	}
 	return nil
 }
