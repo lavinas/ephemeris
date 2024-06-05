@@ -16,10 +16,12 @@ func (u *Usecase) SessionTie(dtoIn interface{}) error {
 	}
 	// get and lock session
 	// get and lock agenda
-	// make process and massage
-	// save and unlock session
-	// save and unlock agenda
-	// resulta
+	// make status
+	// save sessionagenda
+	// save agenda
+	// save session
+	// unlock agenda
+	// unlock session
 	return nil
 }
 
@@ -36,9 +38,21 @@ func (u *Usecase) getLockAgendas(clientId string, serviceId string, At time.Time
 }
 
 // makeProcessAndMessage makes a process and message for the session
-func (u *Usecase) makeProcessAndMessage(session *domain.Session, agendas []*domain.Agenda) (string, string) {
+func (u *Usecase) makeStatus(session *domain.Session, agendas []*domain.Agenda) ([]*domain.SessionAgenda, error) {
 	// make process and message
-	return "", ""
+	return nil, nil
+}
+
+// saveSessionAgenda saves the session agenda
+func (u *Usecase) saveSessionAgenda(sessionAgendas []*domain.SessionAgenda) error {
+	// save sessionagenda
+	return nil
+}
+
+// saveAgenda saves the agenda
+func (u *Usecase) saveAgendas(agendas []*domain.Agenda) error {
+	// save agenda
+	return nil
 }
 
 
