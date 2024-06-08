@@ -5,10 +5,14 @@ import (
 	"slices"
 
 	"github.com/lavinas/ephemeris/internal/port"
+	"github.com/lavinas/ephemeris/pkg"
 )
 
 var (
-	statusSessionAgenda = []string{"linked", "preview", "to_confirm", "confirmed", "cancelled"}
+	statusSessionAgenda = []string{pkg.SessionAgendaStatusLinked,
+		pkg.SessionAgendaStatusConfirm,
+		pkg.SessionAgendaStatusConfirmed,
+		pkg.SessionAgendaStatusCancelled}
 )
 
 // SessionAgenda represents the domain for a session linked to agenda

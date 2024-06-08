@@ -29,6 +29,7 @@ type Session struct {
 	Process   string    `gorm:"type:varchar(50); not null; index"`
 	Message   string    `gorm:"type:varchar(255); not null"`
 	Sequence  *int      `gorm:"type:int; not null"`
+	Locked    *bool     `gorm:"type:boolean;null; index"`
 }
 
 // NewSession creates a new session domain entity
@@ -117,6 +118,43 @@ func (s *Session) Get() port.Domain {
 // GetEmpty is a method that returns an empty client with just id
 func (s *Session) GetEmpty() port.Domain {
 	return &Session{}
+}
+
+// Lock is a method that locks the contract
+func (s *Session) Lock(repo port.Repository) error {
+	var locked = true
+	s.Locked = &locked
+	if err := repo.Begin(); err != nil {
+		return err
+	}
+	defer repo.Rollback()
+	if err := repo.Save(s); err != nil {
+		return err
+	}
+	if err := repo.Commit(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// IsLocked is a method that checks if the contract is locked
+func (s *Session) IsLocked() bool {
+	return s.Locked != nil && *s.Locked
+}
+
+// Unlock is a method that unlocks the contract
+func (s *Session) Unlock(repo port.Repository) error {
+	s.Locked = nil
+	if err := repo.Begin(); err != nil {
+		return err
+	}
+	if err := repo.Save(s); err != nil {
+		return err
+	}
+	if err := repo.Commit(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // TableName returns the table name for database

@@ -32,6 +32,7 @@ type Agenda struct {
 	Status       string     `gorm:"type:varchar(50); not null; index"`
 	Bond         *string    `gorm:"type:varchar(50)"`
 	BillingMonth *time.Time `gorm:"type:datetime"`
+	Locked       *bool      `gorm:"type:boolean;null; index"`
 }
 
 // NewAgenda creates a new agenda domain entity
@@ -122,6 +123,24 @@ func (a *Agenda) Load(repo port.Repository) (bool, error) {
 	return repo.Get(a, a.ID)
 }
 
+// LoadRange loads agenda slices from a interval of dates
+func (a *Agenda) LoadRange(repo port.Repository, start, end time.Time) ([]*Agenda, error) {
+	st := fmt.Sprintf("Start >= %d-%02d-%02d %02d:%02d:%02d", start.Year(), start.Month(), start.Day(),
+		start.Hour(), start.Minute(), start.Second())
+	ed := fmt.Sprintf("Start <= %d-%02d-%02d %02d:%02d:%02d", end.Year(), end.Month(), end.Day(),
+		end.Hour(), end.Minute(), end.Second())
+	ret, _, err := repo.Find(a, 0, st, ed)
+	if err != nil {
+		return nil, err
+	}
+	r := ret.([]interface{})
+	agendas := make([]*Agenda, len(r))
+	for i, r := range ret.([]port.Domain) {
+		agendas[i] = r.(*Agenda)
+	}
+	return agendas, nil
+}
+
 // GetID is a method that returns the id of the client
 func (a *Agenda) GetID() string {
 	return a.ID
@@ -135,6 +154,43 @@ func (a *Agenda) Get() port.Domain {
 // GetEmpty is a method that returns an empty client with just id
 func (a *Agenda) GetEmpty() port.Domain {
 	return &Agenda{}
+}
+
+// Lock is a method that locks the contract
+func (a *Agenda) Lock(repo port.Repository) error {
+	var locked = true
+	a.Locked = &locked
+	if err := repo.Begin(); err != nil {
+		return err
+	}
+	defer repo.Rollback()
+	if err := repo.Save(a); err != nil {
+		return err
+	}
+	if err := repo.Commit(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// IsLocked is a method that checks if the contract is locked
+func (a *Agenda) IsLocked() bool {
+	return a.Locked != nil && *a.Locked
+}
+
+// Unlock is a method that unlocks the contract
+func (a *Agenda) Unlock(repo port.Repository) error {
+	a.Locked = nil
+	if err := repo.Begin(); err != nil {
+		return err
+	}
+	if err := repo.Save(a); err != nil {
+		return err
+	}
+	if err := repo.Commit(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // TableName returns the table name for database
