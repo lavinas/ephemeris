@@ -102,6 +102,8 @@ func (s *Session) Format(repo port.Repository, args ...string) error {
 
 // Exists is a function that checks if a agenda exists
 func (s *Session) Load(repo port.Repository) (bool, error) {
+	fmt.Println(1, repo)
+	fmt.Println(2, s)
 	return repo.Get(s, s.ID)
 }
 

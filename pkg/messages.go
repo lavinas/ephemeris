@@ -80,6 +80,8 @@ const (
 	ProcessStatusError           = "error"
 	DefaultSessionProcess        = ProcessStatusWait
 	DefaultSessionMessage        = ""
+	ProcessMessageSuccess        = "success"
+	ProcessMessageNoAgenda       = "no agenda found"
 	Location                     = "America/Sao_Paulo"
 	DateFormat                   = "02/01/2006"
 	MonthFormat                  = "01/2006"

@@ -23,6 +23,7 @@ func All() []interface{} {
 		&RecurrenceCrud{},
 		&ServiceCrud{},
 		&SessionCrud{},
+		&SessionTie{},
 	}
 }
 

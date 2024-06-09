@@ -1,8 +1,11 @@
 package dto
 
 import (
+	"errors"
+
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"
+	"github.com/lavinas/ephemeris/pkg"
 )
 
 // SessionTie represents the dto for tying a session
@@ -21,12 +24,24 @@ type SessionTieOut struct {
 
 // Validate is a method that validates the dto
 func (s *SessionTie) Validate(repo port.Repository) error {
+	if s.ID == "" {
+		return errors.New(pkg.ErrIdUninformed)
+	}
 	return nil
 }
 
 // GetCommand is a method that returns the command of the dto
 func (s *SessionTie) GetCommand() string {
 	return s.Action
+}
+
+// GetDomain is a method that returns a string representation of the agenda
+func (s *SessionTie) GetDomain() []port.Domain {
+	return []port.Domain{
+		&domain.Session{
+			ID: s.ID,
+		},
+	}
 }
 
 // GetOut is a method that returns the output dto
@@ -45,8 +60,8 @@ func (s *SessionTieOut) GetDTO(domainIn interface{}) []port.DTOOut {
 	return []port.DTOOut{
 		&SessionTieOut{
 			ID:      domain.ID,
-			Process: "ok",
-			Message: "session tied",
+			Process: domain.Process,
+			Message: domain.Message,
 		},
 	}
 }

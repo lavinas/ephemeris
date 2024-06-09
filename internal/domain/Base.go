@@ -13,5 +13,6 @@ func All() []interface{} {
 		&Invoice{},
 		&InvoiceItem{},
 		&Session{},
+		&SessionAgenda{},
 	}
 }
