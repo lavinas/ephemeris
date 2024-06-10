@@ -3,7 +3,6 @@ package usecase
 import (
 	"sort"
 	"time"
-	"fmt"
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/dto"
@@ -67,12 +66,19 @@ func (u *Usecase) matchSessionAgendas(session *domain.Session, agendas []*domain
 func (u *Usecase) getLockSession(dtoIn interface{}) (*domain.Session, error) {
 	dto := dtoIn.(*dto.SessionTie)
 	session := dto.GetDomain()[0].(*domain.Session)
-	fmt.Println(0, session)
+	if err := u.Repo.Begin(); err != nil {
+		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
+	}
+	defer u.Repo.Rollback()
 	if ok, err := session.Load(u.Repo); err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	} else if !ok {
 		return nil, u.error(pkg.ErrPrefBadRequest, pkg.ErrSessionNotFound, 0, 0)
 	}
+	if session.IsLocked() {
+		return nil, u.error(pkg.ErrPrefInternal, pkg.ErrSessionLocked, 0, 0)
+	}
+	u.Repo.Rollback()
 	if err := session.Lock(u.Repo); err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
@@ -84,6 +90,10 @@ func (u *Usecase) getLockAgendas(clientId string, serviceId string, At time.Time
 	ag := domain.Agenda{ClientID: clientId, ServiceID: serviceId, Status: pkg.AgendaStatusOpen}
 	st1 := At.Add(-time.Hour * 24 * 60)
 	st2 := At.Add(time.Minute * 24 * 60)
+	if err := u.Repo.Begin(); err != nil {
+		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
+	}
+	defer u.Repo.Rollback()
 	agendas, err := ag.LoadRange(u.Repo, st1, st2)
 	if err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
@@ -121,7 +131,7 @@ func (u *Usecase) findAgendas(session *domain.Session, agendas []*domain.Agenda)
 	} else {
 		agenda = agendas[idx+1]
 	}
-	return []*domain.Agenda{agenda}, nil 
+	return []*domain.Agenda{agenda}, nil
 }
 
 // saveSessionAgenda saves the session agenda
@@ -133,7 +143,7 @@ func (u *Usecase) addSessionAgenda(session *domain.Session, agendas []*domain.Ag
 	}
 	for _, ag := range agendas {
 		status := pkg.SessionAgendaStatusLinked
-		if session.At.Truncate(time.Hour * 24) != ag.Start.Truncate(time.Hour * 24) {
+		if session.At.Truncate(time.Hour*24) != ag.Start.Truncate(time.Hour*24) {
 			status = pkg.SessionAgendaStatusConfirm
 		}
 		sa := domain.SessionAgenda{SessionID: ag.ID, AgendaID: ag.ID, StatusID: status}

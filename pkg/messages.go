@@ -214,4 +214,5 @@ const (
 	ErrUnitPackNotInformed       = "unit or pack value should be informed"
 	ErrSessionNotFound           = "session not found"
 	ErrNoAgendasFound            = "no agendas found"
+	ErrSessionLocked             = "session is locked"
 )
