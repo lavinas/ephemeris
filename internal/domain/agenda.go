@@ -125,20 +125,23 @@ func (a *Agenda) Load(repo port.Repository) (bool, error) {
 
 // LoadRange loads agenda slices from a interval of dates
 func (a *Agenda) LoadRange(repo port.Repository, start, end time.Time) ([]*Agenda, error) {
-	st := fmt.Sprintf("Start >= %d-%02d-%02d %02d:%02d:%02d", start.Year(), start.Month(), start.Day(),
+	st := fmt.Sprintf("Start >= '%d-%02d-%02d %02d:%02d:%02d'", start.Year(), start.Month(), start.Day(),
 		start.Hour(), start.Minute(), start.Second())
-	ed := fmt.Sprintf("Start <= %d-%02d-%02d %02d:%02d:%02d", end.Year(), end.Month(), end.Day(),
+	ed := fmt.Sprintf("Start <= '%d-%02d-%02d %02d:%02d:%02d'", end.Year(), end.Month(), end.Day(),
 		end.Hour(), end.Minute(), end.Second())
-	ret, _, err := repo.Find(a, 0, st, ed)
+	agendas, _, err := repo.Find(a, 0, st, ed)
 	if err != nil {
 		return nil, err
 	}
-	r := ret.([]interface{})
-	agendas := make([]*Agenda, len(r))
-	for i, r := range ret.([]port.Domain) {
-		agendas[i] = r.(*Agenda)
+	if agendas == nil {
+		return nil, nil
 	}
-	return agendas, nil
+	ag := agendas.(*[]Agenda)
+	ret := make([]*Agenda, len(*ag))
+	for _, a := range *ag {
+		ret = append(ret, &a)
+	}
+	return ret, nil
 }
 
 // GetID is a method that returns the id of the client

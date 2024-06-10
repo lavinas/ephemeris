@@ -19,17 +19,13 @@ func (u *Usecase) SessionTie(dtoIn interface{}) error {
 	if err != nil {
 		return err
 	}
+	defer u.unlockSession(session)
 	agendas, err := u.getLockAgendas(session.ClientID, session.ServiceID, session.At)
 	if err != nil {
 		return err
 	}
+	defer u.unlockAgendas(agendas)
 	if err := u.matchSessionAgendas(session, agendas); err != nil {
-		return err
-	}
-	if err := u.unlockAgendas(agendas); err != nil {
-		return err
-	}
-	if err := u.unlockSession(session); err != nil {
 		return err
 	}
 	out := dtoSessionTie.GetOut()
@@ -82,7 +78,7 @@ func (u *Usecase) getLockSession(dtoIn interface{}) (*domain.Session, error) {
 	if err := session.Lock(u.Repo); err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
-	return nil, nil
+	return session, nil
 }
 
 // getLockAgenda gets a agenda based on session params and lock if
