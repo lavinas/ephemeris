@@ -3,6 +3,7 @@ package usecase
 import (
 	"sort"
 	"time"
+	"fmt"
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/dto"
@@ -20,11 +21,20 @@ func (u *Usecase) SessionTie(dtoIn interface{}) error {
 		return err
 	}
 	defer u.unlockSession(session)
+	if err := u.untieSession(session); err != nil {
+		return err
+	}
 	if err := u.tieSession(session); err != nil {
 		return err
 	}
 	out := dtoSessionTie.GetOut()
 	u.Out = append(u.Out, out.GetDTO(session)...)
+	return nil
+}
+
+// untieSession unties a session from agendas
+func (u *Usecase) untieSession(session *domain.Session) error {
+	fmt.Println(session)
 	return nil
 }
 
@@ -40,7 +50,6 @@ func (u *Usecase) tieSession(session *domain.Session) error {
 	}
 	return nil
 }
-
 
 // matchSessionAgendas matchs session with agenda
 func (u *Usecase) matchSessionAgendas(session *domain.Session, agendas []*domain.Agenda) error {
@@ -200,7 +209,7 @@ func (u *Usecase) unlockSession(session *domain.Session) error {
 	return nil
 }
 
-// unlock agendas unlock slice of agendas
+// unlock agendas unlocks slice of agendas
 func (u *Usecase) unlockAgendas(agendas []*domain.Agenda) error {
 	if err := u.Repo.Begin(); err != nil {
 		return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
