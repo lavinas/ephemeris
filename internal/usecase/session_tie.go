@@ -20,6 +20,16 @@ func (u *Usecase) SessionTie(dtoIn interface{}) error {
 		return err
 	}
 	defer u.unlockSession(session)
+	if err := u.tieSession(session); err != nil {
+		return err
+	}
+	out := dtoSessionTie.GetOut()
+	u.Out = append(u.Out, out.GetDTO(session)...)
+	return nil
+}
+
+// tieSession ties session to agendas
+func (u *Usecase) tieSession(session *domain.Session) error {
 	agendas, err := u.getLockAgendas(session.ClientID, session.ServiceID, session.At)
 	if err != nil {
 		return err
@@ -28,10 +38,9 @@ func (u *Usecase) SessionTie(dtoIn interface{}) error {
 	if err := u.matchSessionAgendas(session, agendas); err != nil {
 		return err
 	}
-	out := dtoSessionTie.GetOut()
-	u.Out = append(u.Out, out.GetDTO(session)...)
 	return nil
 }
+
 
 // matchSessionAgendas matchs session with agenda
 func (u *Usecase) matchSessionAgendas(session *domain.Session, agendas []*domain.Agenda) error {
