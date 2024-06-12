@@ -124,14 +124,7 @@ func (s *Session) GetEmpty() port.Domain {
 func (s *Session) Lock(repo port.Repository) error {
 	var locked = true
 	s.Locked = &locked
-	if err := repo.Begin(); err != nil {
-		return err
-	}
-	defer repo.Rollback()
 	if err := repo.Save(s); err != nil {
-		return err
-	}
-	if err := repo.Commit(); err != nil {
 		return err
 	}
 	return nil
@@ -145,13 +138,7 @@ func (s *Session) IsLocked() bool {
 // Unlock is a method that unlocks the contract
 func (s *Session) Unlock(repo port.Repository) error {
 	s.Locked = nil
-	if err := repo.Begin(); err != nil {
-		return err
-	}
 	if err := repo.Save(s); err != nil {
-		return err
-	}
-	if err := repo.Commit(); err != nil {
 		return err
 	}
 	return nil

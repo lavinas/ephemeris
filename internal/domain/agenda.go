@@ -137,7 +137,7 @@ func (a *Agenda) LoadRange(repo port.Repository, start, end time.Time) ([]*Agend
 		return nil, nil
 	}
 	ag := agendas.(*[]Agenda)
-	ret := make([]*Agenda, len(*ag))
+	ret := make([]*Agenda, 0)
 	for _, a := range *ag {
 		ret = append(ret, &a)
 	}
@@ -161,16 +161,9 @@ func (a *Agenda) GetEmpty() port.Domain {
 
 // Lock is a method that locks the contract
 func (a *Agenda) Lock(repo port.Repository) error {
-	var locked = true
+	var locked bool = true
 	a.Locked = &locked
-	if err := repo.Begin(); err != nil {
-		return err
-	}
-	defer repo.Rollback()
 	if err := repo.Save(a); err != nil {
-		return err
-	}
-	if err := repo.Commit(); err != nil {
 		return err
 	}
 	return nil
@@ -184,13 +177,7 @@ func (a *Agenda) IsLocked() bool {
 // Unlock is a method that unlocks the contract
 func (a *Agenda) Unlock(repo port.Repository) error {
 	a.Locked = nil
-	if err := repo.Begin(); err != nil {
-		return err
-	}
 	if err := repo.Save(a); err != nil {
-		return err
-	}
-	if err := repo.Commit(); err != nil {
 		return err
 	}
 	return nil
