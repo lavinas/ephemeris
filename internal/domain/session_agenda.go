@@ -55,6 +55,11 @@ func (s *SessionAgenda) Format(repo port.Repository, args ...string) error {
 	return nil
 }
 
+// TableName returns the table name for database
+func (s *SessionAgenda) TableName() string {
+	return "session_agenda"
+}
+
 // validateSessionID validates the session id
 func (s *SessionAgenda) formatSessionID(repo port.Repository, filled bool) error {
 	if s.SessionID == "" {
