@@ -18,8 +18,8 @@ var (
 // SessionAgenda represents the domain for a session linked to agenda
 type SessionAgenda struct {
 	ID        string `gorm:"type:varchar(301); primaryKey"`
-	SessionID string `gorm:"type:varchar(150); primaryKey"`
-	AgendaID  string `gorm:"type:varchar(150); primaryKey"`
+	SessionID string `gorm:"type:varchar(150); not null; index"`
+	AgendaID  string `gorm:"type:varchar(150); not null; index"`
 	StatusID  string `gorm:"type:varchar(50); not null; index"`
 }
 
