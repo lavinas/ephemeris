@@ -3,7 +3,6 @@ package usecase
 import (
 	"sort"
 	"time"
-	"fmt"
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/dto"
@@ -34,7 +33,46 @@ func (u *Usecase) SessionTie(dtoIn interface{}) error {
 
 // untieSession unties a session from agendas
 func (u *Usecase) untieSession(session *domain.Session) error {
-	fmt.Println(session)
+	as := domain.SessionAgenda{SessionID: session.ID}
+	if err := u.Repo.Begin(); err != nil {
+		return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
+	}
+	defer u.Repo.Rollback()
+	agsi, _, err := u.Repo.Find(as, 0)
+	if err != nil {
+		return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
+	}
+	if err := u.untieAgendaSession(agsi.([]*domain.SessionAgenda)); err != nil {
+		return err
+	}
+	session.Process = pkg.ProcessStatusWait
+	session.Message = pkg.DefaultSessionMessage
+	if err := u.Repo.Save(session); err != nil {
+		return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
+	}
+	if err := u.Repo.Commit(); err != nil {
+		return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
+	}
+	return nil
+}
+
+// untieAgendaSession unties session from agendas
+func (u *Usecase) untieAgendaSession(ags []*domain.SessionAgenda) error {
+	for _, a := range ags {
+		ag := domain.Agenda{ID: a.AgendaID}
+		if ok, err := ag.Load(u.Repo); err != nil {
+			return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
+		} else if !ok {
+			return u.error(pkg.ErrPrefBadRequest, pkg.ErrAgendaNotFound, 0, 0)
+		}
+		ag.Status = pkg.AgendaStatusOpen
+		if err := u.Repo.Save(ag); err != nil {
+			return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
+		}
+		if err := u.Repo.Delete(a); err != nil {
+			return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
+		}
+	}
 	return nil
 }
 
@@ -80,10 +118,6 @@ func (u *Usecase) matchSessionAgendas(session *domain.Session, agendas []*domain
 func (u *Usecase) getLockSession(dtoIn interface{}) (*domain.Session, error) {
 	dto := dtoIn.(*dto.SessionTie)
 	session := dto.GetDomain()[0].(*domain.Session)
-	if err := u.Repo.Begin(); err != nil {
-		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
-	}
-	defer u.Repo.Rollback()
 	if ok, err := session.Load(u.Repo); err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	} else if !ok {
