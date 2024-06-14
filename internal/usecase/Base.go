@@ -9,6 +9,17 @@ import (
 	"github.com/lavinas/ephemeris/pkg"
 )
 
+var (
+	runMap = map[string]func(*Usecase, interface{}) error{
+		"add":  (*Usecase).Add,
+		"get":  (*Usecase).Get,
+		"up":   (*Usecase).Up,
+		"make": (*Usecase).AgendaMake,
+		"tie":  (*Usecase).SessionTie,
+		"untie": (*Usecase).SessionTie,
+	}
+)
+
 // Usecase is a struct that groups the crud usecase
 type Usecase struct {
 	Repo    port.Repository
@@ -30,22 +41,11 @@ func NewUsecase(repo port.Repository, log port.Logger) *Usecase {
 // Run is a method that runs the use case
 func (c *Usecase) Run(dto interface{}) error {
 	in := dto.(port.DTOIn)
-	switch in.GetCommand() {
-	case "add":
-		return c.Add(in)
-	case "get":
-		return c.Get(in)
-	case "up":
-		return c.Up(in)
-	case "make":
-		return c.AgendaMake(in)
-	case "tie":
-		return c.SessionTie(in)
-	case "untie":
-		return c.SessionUntie(in)
-	default:
+	cmd := in.GetCommand()
+	if runMap[cmd] == nil {
 		return c.error(pkg.ErrPrefBadRequest, pkg.ErrCommandNotFound, 0, 0)
 	}
+	return runMap[cmd](c, dto)
 }
 
 // Interface is a method that returns the output dto as an interface
