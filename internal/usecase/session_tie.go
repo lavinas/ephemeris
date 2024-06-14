@@ -3,7 +3,6 @@ package usecase
 import (
 	"sort"
 	"time"
-	"fmt"
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/dto"
@@ -12,7 +11,6 @@ import (
 
 // SessionTie ties a session to an agenda
 func (u *Usecase) SessionTie(dtoIn interface{}) error {
-	fmt.Println(1)
 	dtoSessionTie := dtoIn.(*dto.SessionTie)
 	if err := dtoSessionTie.Validate(u.Repo); err != nil {
 		return u.error(pkg.ErrPrefBadRequest, err.Error(), 0, 0)
