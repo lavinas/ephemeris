@@ -38,11 +38,14 @@ func (u *Usecase) untieSession(session *domain.Session) error {
 		return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
 	defer u.Repo.Rollback()
-	agsi, _, err := u.Repo.Find(as, 0)
+	agsi, _, err := u.Repo.Find(&as, 0)
 	if err != nil {
 		return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
-	if err := u.untieAgendaSession(agsi.([]*domain.SessionAgenda)); err != nil {
+	if agsi == nil {
+		return nil
+	}
+	if err := u.untieAgendaSession(agsi.(*[]domain.SessionAgenda)); err != nil {
 		return err
 	}
 	session.Process = pkg.ProcessStatusWait
@@ -57,8 +60,8 @@ func (u *Usecase) untieSession(session *domain.Session) error {
 }
 
 // untieAgendaSession unties session from agendas
-func (u *Usecase) untieAgendaSession(ags []*domain.SessionAgenda) error {
-	for _, a := range ags {
+func (u *Usecase) untieAgendaSession(ags *[]domain.SessionAgenda) error {
+	for _, a := range *ags {
 		ag := domain.Agenda{ID: a.AgendaID}
 		if ok, err := ag.Load(u.Repo); err != nil {
 			return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
@@ -69,7 +72,7 @@ func (u *Usecase) untieAgendaSession(ags []*domain.SessionAgenda) error {
 		if err := u.Repo.Save(ag); err != nil {
 			return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 		}
-		if err := u.Repo.Delete(a); err != nil {
+		if err := u.Repo.Delete(&a); err != nil {
 			return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 		}
 	}
@@ -118,6 +121,10 @@ func (u *Usecase) matchSessionAgendas(session *domain.Session, agendas []*domain
 func (u *Usecase) getLockSession(dtoIn interface{}) (*domain.Session, error) {
 	dto := dtoIn.(*dto.SessionTie)
 	session := dto.GetDomain()[0].(*domain.Session)
+	if err := u.Repo.Begin(); err != nil {
+		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
+	}
+	defer u.Repo.Rollback()
 	if ok, err := session.Load(u.Repo); err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	} else if !ok {
@@ -199,7 +206,7 @@ func (u *Usecase) addSessionAgenda(session *domain.Session, agendas []*domain.Ag
 		if session.At.Truncate(time.Hour*24) != ag.Start.Truncate(time.Hour*24) {
 			status = pkg.SessionAgendaStatusConfirm
 		}
-		sa := domain.SessionAgenda{SessionID: ag.ID, AgendaID: ag.ID, StatusID: status}
+		sa := domain.NewSessionAgenda(session.ID, ag.ID, status)
 		if err := u.Repo.Add(sa); err != nil {
 			return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 		}

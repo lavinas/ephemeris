@@ -36,7 +36,7 @@ func NewRepository(dns string) (*MySql, error) {
 // Begin starts a transaction
 func (r *MySql) Begin() error {
 	if r.Tx != nil {
-		return errors.New("transaction already started")
+		return errors.New(pkg.ErrRepoTransactionStarted)
 	}
 	r.Tx = r.Db.Begin()
 	if r.Tx.Error != nil {
@@ -48,7 +48,7 @@ func (r *MySql) Begin() error {
 // Commit commits the transaction
 func (r *MySql) Commit() error {
 	if r.Tx == nil {
-		return errors.New("no transaction started")
+		return errors.New(pkg.ErrRepoTransactionNotStarted)
 	}
 	r.Tx = r.Tx.Commit()
 	if r.Tx.Error != nil {
@@ -61,7 +61,7 @@ func (r *MySql) Commit() error {
 // Rollback rolls back the transaction
 func (r *MySql) Rollback() error {
 	if r.Tx == nil {
-		return errors.New("no transaction started")
+		return errors.New(pkg.ErrRepoTransactionNotStarted)
 	}
 	r.Tx = r.Tx.Rollback()
 	if r.Tx.Error != nil {
@@ -92,6 +92,9 @@ func (r *MySql) Migrate(domain []interface{}) error {
 
 // Add adds a object to the database
 func (r *MySql) Add(obj interface{}) error {
+	if r.Tx == nil {
+		return errors.New(pkg.ErrRepoTransactionNotStarted)
+	}
 	tx := r.Tx.Session(&gorm.Session{})
 	tx.Create(obj)
 	if tx.Error != nil {
@@ -102,6 +105,9 @@ func (r *MySql) Add(obj interface{}) error {
 
 // Get gets a object from the database by id
 func (r *MySql) Get(obj interface{}, id string) (bool, error) {
+	if r.Tx == nil {
+		return false, errors.New(pkg.ErrRepoTransactionNotStarted)
+	}
 	d := obj.(port.Domain)
 	name := d.TableName()
 	tx := r.Tx.Session(&gorm.Session{})
@@ -117,6 +123,9 @@ func (r *MySql) Get(obj interface{}, id string) (bool, error) {
 
 // Save saves a object to the database
 func (r *MySql) Save(obj interface{}) error {
+	if r.Tx == nil {
+		return errors.New(pkg.ErrRepoTransactionNotStarted)
+	}
 	tx := r.Tx.Session(&gorm.Session{})
 	tx = tx.Save(obj)
 	if tx.Error != nil {
@@ -127,6 +136,9 @@ func (r *MySql) Save(obj interface{}) error {
 
 // Delete deletes a object from the database by id
 func (r *MySql) Delete(obj interface{}, extras ...interface{}) error {
+	if r.Tx == nil {
+		return errors.New(pkg.ErrRepoTransactionNotStarted)
+	}
 	tx := r.Tx.Session(&gorm.Session{})
 	tx, err := r.where(tx, reflect.TypeOf(obj).Elem(), obj, extras...)
 	if err != nil {
@@ -144,6 +156,9 @@ func (r *MySql) Delete(obj interface{}, extras ...interface{}) error {
 // The function returns the objects, a boolean indicating if the limit was crossed and an error
 // Use -1 to cancel the limit
 func (r *MySql) Find(base interface{}, limit int, extras ...interface{}) (interface{}, bool, error) {
+	if r.Tx == nil {
+		return nil, false, errors.New(pkg.ErrRepoTransactionNotStarted)
+	}
 	sob := reflect.TypeOf(base).Elem()
 	result := reflect.New(reflect.SliceOf(sob)).Interface()
 	tx := r.Db.Session(&gorm.Session{})

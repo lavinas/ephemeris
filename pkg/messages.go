@@ -215,4 +215,6 @@ const (
 	ErrSessionNotFound           = "session not found"
 	ErrNoAgendasFound            = "no agendas found"
 	ErrSessionLocked             = "session is locked"
+	ErrRepoTransactionStarted    = "transaction already started"
+	ErrRepoTransactionNotStarted = "no transaction started"
 )
