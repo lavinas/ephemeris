@@ -180,9 +180,16 @@ func (u *Usecase) findAgendas(session *domain.Session, agendas []*domain.Agenda)
 	sort.Slice(agendas, func(i, j int) bool {
 		return agendas[i].Start.Before(agendas[j].Start)
 	})
-	idx := sort.Search(len(agendas), func(i int) bool {
-		return agendas[i].ID == ""
-	})
+	idx := -1
+	for i := 0; i < len(agendas); i++ {
+		if agendas[i].ID == "" {
+			idx = i
+			break
+		}
+	}
+	if idx == -1 {
+		return nil, u.error(pkg.ErrPrefInternal, pkg.ErrAgendaNotFound, 0, 0)
+	}
 	agenda := &domain.Agenda{}
 	if idx-1 < 0 {
 		agenda = agendas[idx+1]
