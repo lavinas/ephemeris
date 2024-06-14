@@ -11,7 +11,7 @@ import (
 // SessionTie represents the dto for tying a session
 type SessionTie struct {
 	Object string `json:"-" command:"name:session;key;pos:2-"`
-	Action string `json:"-" command:"name:tie;key;pos:2-"`
+	Action string `json:"-" command:"name:tie,untie;key;pos:2-"`
 	ID     string `json:"id" command:"name:id;pos:3+"`
 }
 

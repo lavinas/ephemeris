@@ -41,6 +41,8 @@ func (c *Usecase) Run(dto interface{}) error {
 		return c.AgendaMake(in)
 	case "tie":
 		return c.SessionTie(in)
+	case "untie":
+		return c.SessionUntie(in)
 	default:
 		return c.error(pkg.ErrPrefBadRequest, pkg.ErrCommandNotFound, 0, 0)
 	}
