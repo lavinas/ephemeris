@@ -3,6 +3,7 @@ package usecase
 import (
 	"sort"
 	"time"
+	"fmt"
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/dto"
@@ -79,18 +80,19 @@ func (u *Usecase) tieSession(session *domain.Session) error {
 func (u *Usecase) matchSessionAgendas(session *domain.Session, agendas []*domain.Agenda) error {
 	agenda, err := u.findAgendas(session, agendas)
 	if err != nil {
+		fmt.Println(1)
 		return err
 	}
-	u.addSessionAgenda(session,agenda)
+	u.addSessionAgenda(session, agenda)
 	if err := u.Repo.Begin(); err != nil {
 		return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
 	defer u.Repo.Rollback()
-	if err := u.saveAgendas(agendas); err != nil {
+	if err := u.Repo.Save(agenda); err != nil {
 		return err
 	}
-	if err := u.saveSession(session); err != nil {
-		return err
+	if err := u.Repo.Save(session); err != nil {
+		return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
 	if err := u.Repo.Commit(); err != nil {
 		return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
@@ -186,33 +188,15 @@ func (u *Usecase) findAgendas(session *domain.Session, agendas []*domain.Agenda)
 func (u *Usecase) addSessionAgenda(session *domain.Session, agenda *domain.Agenda) {
 	if agenda == nil {
 		session.Process = pkg.ProcessStatusUnfound
-	} else if session.At == agenda.Start {
+	} else if session.At.Format("2006-01-02") == agenda.Start.Format("2006-01-02") {
 		session.Process = pkg.ProcessStatusLinked
 		session.AgendaID = agenda.ID
 		agenda.Status = session.Status
 	} else {
 		session.Process = pkg.ProcessStatusUnconfirmed
 		session.AgendaID = agenda.ID
-		session.Status = pkg.AgendaStatusLocked
+		agenda.Status = pkg.AgendaStatusLocked
 	}
-}
-
-// saveAgenda saves the agenda
-func (u *Usecase) saveAgendas(agendas []*domain.Agenda) error {
-	for _, a := range agendas {
-		if err := u.Repo.Save(a); err != nil {
-			return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
-		}
-	}
-	return nil
-}
-
-// saveSession saves the session
-func (u *Usecase) saveSession(session *domain.Session) error {
-	if err := u.Repo.Save(session); err != nil {
-		return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
-	}
-	return nil
 }
 
 // unlock session unlocks session
