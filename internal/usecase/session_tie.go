@@ -65,7 +65,10 @@ func (u *Usecase) untieSession(session *domain.Session) error {
 
 // tieSession ties session to agendas
 func (u *Usecase) tieSession(session *domain.Session) error {
-	agendas, err := u.getLockAgenda(session.ClientID, session.ServiceID, session.At)
+	ag := domain.Agenda{ClientID: session.ClientID, ServiceID: session.ServiceID}
+	start := session.At.Add(-time.Hour * 24 * 60)
+	end := session.At.Add(time.Hour * 24 * 60)
+	agendas, err := u.getLockAgenda(&ag, start, end)
 	if err != nil {
 		return err
 	}
@@ -126,15 +129,12 @@ func (u *Usecase) getLockSession(dtoIn interface{}) (*domain.Session, error) {
 }
 
 // getLockAgenda gets a agenda based on session params and lock if
-func (u *Usecase) getLockAgenda(clientId string, serviceId string, At time.Time) ([]*domain.Agenda, error) {
-	ag := domain.Agenda{ClientID: clientId, ServiceID: serviceId, Status: pkg.AgendaStatusOpenned}
-	st1 := At.Add(-time.Hour * 24 * 60)
-	st2 := At.Add(time.Hour * 24 * 60)
+func (u *Usecase) getLockAgenda(agenda *domain.Agenda, start time.Time, end time.Time) ([]*domain.Agenda, error) {
 	if err := u.Repo.Begin(); err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
 	defer u.Repo.Rollback()
-	agendas, err := ag.LoadRange(u.Repo, st1, st2)
+	agendas, err := agenda.LoadRange(u.Repo, start, end)
 	if err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
