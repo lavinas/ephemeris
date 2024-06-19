@@ -35,23 +35,24 @@ func (u *Usecase) SessionTie(dtoIn interface{}) error {
 
 // untieSession unties a session from agendas
 func (u *Usecase) untieSession(session *domain.Session) error {
-	as := domain.SessionAgenda{SessionID: session.ID}
 	if err := u.Repo.Begin(); err != nil {
 		return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
 	defer u.Repo.Rollback()
-	agsi, _, err := u.Repo.Find(&as, 0)
-	if err != nil {
-		return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
+	if session.AgendaID != "" {
+		agenda := domain.Agenda{ID: session.AgendaID}
+		if ok, err := agenda.Load(u.Repo); err != nil {
+			return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
+		} else if !ok {
+			return u.error(pkg.ErrPrefBadRequest, pkg.ErrAgendaNotFound, 0, 0)
+		}
+		agenda.Status = pkg.AgendaStatusOpenned
+		if err := u.Repo.Save(&agenda); err != nil {
+			return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
+		}
+		session.AgendaID = ""
 	}
-	if agsi == nil {
-		return nil
-	}
-	if err := u.untieAgendaSession(agsi.(*[]domain.SessionAgenda)); err != nil {
-		return err
-	}
-	session.Process = pkg.ProcessStatusWait
-	session.Message = pkg.DefaultSessionMessage
+	session.Process = pkg.ProcessStatusOpenned
 	if err := u.Repo.Save(session); err != nil {
 		return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
@@ -61,29 +62,9 @@ func (u *Usecase) untieSession(session *domain.Session) error {
 	return nil
 }
 
-// untieAgendaSession unties session from agendas
-func (u *Usecase) untieAgendaSession(ags *[]domain.SessionAgenda) error {
-	for _, a := range *ags {
-		ag := domain.Agenda{ID: a.AgendaID}
-		if ok, err := ag.Load(u.Repo); err != nil {
-			return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
-		} else if !ok {
-			return u.error(pkg.ErrPrefBadRequest, pkg.ErrAgendaNotFound, 0, 0)
-		}
-		ag.Status = pkg.AgendaStatusOpen
-		if err := u.Repo.Save(ag); err != nil {
-			return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
-		}
-		if err := u.Repo.Delete(&a); err != nil {
-			return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
-		}
-	}
-	return nil
-}
-
 // tieSession ties session to agendas
 func (u *Usecase) tieSession(session *domain.Session) error {
-	agendas, err := u.getLockAgendas(session.ClientID, session.ServiceID, session.At)
+	agendas, err := u.getLockAgenda(session.ClientID, session.ServiceID, session.At)
 	if err != nil {
 		return err
 	}
@@ -96,17 +77,15 @@ func (u *Usecase) tieSession(session *domain.Session) error {
 
 // matchSessionAgendas matchs session with agenda
 func (u *Usecase) matchSessionAgendas(session *domain.Session, agendas []*domain.Agenda) error {
-	agendas, err := u.findAgendas(session, agendas)
+	agenda, err := u.findAgendas(session, agendas)
 	if err != nil {
 		return err
 	}
+	u.addSessionAgenda(session,agenda)
 	if err := u.Repo.Begin(); err != nil {
 		return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
 	defer u.Repo.Rollback()
-	if err := u.addSessionAgenda(session, agendas); err != nil {
-		return err
-	}
 	if err := u.saveAgendas(agendas); err != nil {
 		return err
 	}
@@ -145,8 +124,8 @@ func (u *Usecase) getLockSession(dtoIn interface{}) (*domain.Session, error) {
 }
 
 // getLockAgenda gets a agenda based on session params and lock if
-func (u *Usecase) getLockAgendas(clientId string, serviceId string, At time.Time) ([]*domain.Agenda, error) {
-	ag := domain.Agenda{ClientID: clientId, ServiceID: serviceId, Status: pkg.AgendaStatusOpen}
+func (u *Usecase) getLockAgenda(clientId string, serviceId string, At time.Time) ([]*domain.Agenda, error) {
+	ag := domain.Agenda{ClientID: clientId, ServiceID: serviceId, Status: pkg.AgendaStatusOpenned}
 	st1 := At.Add(-time.Hour * 24 * 60)
 	st2 := At.Add(time.Hour * 24 * 60)
 	if err := u.Repo.Begin(); err != nil {
@@ -172,7 +151,7 @@ func (u *Usecase) getLockAgendas(clientId string, serviceId string, At time.Time
 }
 
 // findAgendas finds agendas linked with session
-func (u *Usecase) findAgendas(session *domain.Session, agendas []*domain.Agenda) ([]*domain.Agenda, error) {
+func (u *Usecase) findAgendas(session *domain.Session, agendas []*domain.Agenda) (*domain.Agenda, error) {
 	if len(agendas) == 0 {
 		return nil, nil
 	}
@@ -193,37 +172,29 @@ func (u *Usecase) findAgendas(session *domain.Session, agendas []*domain.Agenda)
 	agenda := &domain.Agenda{}
 	if idx-1 < 0 {
 		agenda = agendas[idx+1]
-	} else if idx+1 > len(agendas) {
+	} else if idx+1 >= len(agendas) {
 		agenda = agendas[idx-1]
 	} else if session.At.Sub(agendas[idx-1].Start) < agendas[idx+1].Start.Sub(session.At) {
 		agenda = agendas[idx-1]
 	} else {
 		agenda = agendas[idx+1]
 	}
-	return []*domain.Agenda{agenda}, nil
+	return agenda, nil
 }
 
 // saveSessionAgenda saves the session agenda
-func (u *Usecase) addSessionAgenda(session *domain.Session, agendas []*domain.Agenda) error {
-	if len(agendas) == 0 {
-		session.Process = pkg.ProcessStatusError
-		session.Message = pkg.ProcessMessageNoAgenda
-		return nil
+func (u *Usecase) addSessionAgenda(session *domain.Session, agenda *domain.Agenda) {
+	if agenda == nil {
+		session.Process = pkg.ProcessStatusUnfound
+	} else if session.At == agenda.Start {
+		session.Process = pkg.ProcessStatusLinked
+		session.AgendaID = agenda.ID
+		agenda.Status = session.Status
+	} else {
+		session.Process = pkg.ProcessStatusUnconfirmed
+		session.AgendaID = agenda.ID
+		session.Status = pkg.AgendaStatusLocked
 	}
-	for _, ag := range agendas {
-		status := pkg.SessionAgendaStatusLinked
-		if session.At.Truncate(time.Hour*24) != ag.Start.Truncate(time.Hour*24) {
-			status = pkg.SessionAgendaStatusConfirm
-		}
-		sa := domain.NewSessionAgenda(session.ID, ag.ID, status)
-		if err := u.Repo.Add(sa); err != nil {
-			return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
-		}
-		ag.Status = pkg.AgendaStatusDone
-	}
-	session.Process = pkg.ProcessStatusSuccess
-	session.Message = pkg.ProcessMessageSuccess
-	return nil
 }
 
 // saveAgenda saves the agenda

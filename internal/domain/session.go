@@ -13,8 +13,18 @@ import (
 )
 
 var (
-	StatusSession = []string{pkg.SessionStatusDone, pkg.SessionStatusSaved, pkg.SessionStatusMissed}
-	StatusProcess = []string{pkg.ProcessStatusWait, pkg.ProcessStatusSuccess, pkg.ProcessStatusError}
+	StatusSession = []string{
+		pkg.SessionStatusDone, 
+		pkg.SessionStatusSaved, 
+		pkg.SessionStatusMissed,
+		pkg.SessionStatusCanceled,
+	}
+	StatusProcess = []string{
+		pkg.ProcessStatusOpenned,
+		pkg.ProcessStatusUnfound,
+		pkg.ProcessStatusLinked,
+		pkg.ProcessStatusUnconfirmed,
+	}
 )
 
 // Session represents the session entity
@@ -25,19 +35,19 @@ type Session struct {
 	ServiceID string    `gorm:"type:varchar(50); not null; index"`
 	At        time.Time `gorm:"type:datetime; not null"`
 	Status    string    `gorm:"type:varchar(50); not null; index"`
-	Discount  *float64  `gorm:"type:decimal(5,4); not null"`
 	Process   string    `gorm:"type:varchar(50); not null; index"`
-	Message   string    `gorm:"type:varchar(255); not null"`
 	Sequence  *int      `gorm:"type:int; not null"`
+	AgendaID  string    `gorm:"type:varchar(150);null,index"`
 	Locked    *bool     `gorm:"type:boolean;null; index"`
 }
 
 // NewSession creates a new session domain entity
-func NewSession(id, date, clientID, serviceID, at, status string, discount, process, message, sequence string) *Session {
+func NewSession(id, date, clientID, serviceID, at, status string, process, sequence, agendaID string) *Session {
 	session := &Session{}
 	session.ID = id
 	session.ClientID = clientID
 	session.ServiceID = serviceID
+	session.AgendaID = agendaID
 	local, _ := time.LoadLocation(pkg.Location)
 	session.Date, _ = time.ParseInLocation(pkg.DateFormat, date, local)
 	var err error
@@ -46,11 +56,7 @@ func NewSession(id, date, clientID, serviceID, at, status string, discount, proc
 		session.At, _ = time.ParseInLocation(pkg.DateFormat, at, local)
 	}
 	session.Status = status
-	if disc, err := strconv.ParseFloat(discount, 64); err == nil {
-		session.Discount = &disc
-	}
 	session.Process = process
-	session.Message = message
 	if seq, err := strconv.Atoi(sequence); err == nil {
 		session.Sequence = &seq
 	}
@@ -79,16 +85,13 @@ func (s *Session) Format(repo port.Repository, args ...string) error {
 	if err := s.formatStatus(filled); err != nil {
 		msg += err.Error() + " | "
 	}
-	if err := s.formatDiscount(filled); err != nil {
-		msg += err.Error() + " | "
-	}
 	if err := s.formatProcess(filled); err != nil {
 		msg += err.Error() + " | "
 	}
-	if err := s.formatMessage(filled); err != nil {
+	if err := s.formatSequence(filled); err != nil {
 		msg += err.Error() + " | "
 	}
-	if err := s.formatSequence(filled); err != nil {
+	if err := s.formatAgendaID(repo); err != nil {
 		msg += err.Error() + " | "
 	}
 	if err := s.validateDuplicity(repo, slices.Contains(args, "noduplicity")); err != nil {
@@ -238,20 +241,6 @@ func (s *Session) formatStatus(filled bool) error {
 	return nil
 }
 
-// formatDiscount is a method that validates the session discount
-func (s *Session) formatDiscount(filled bool) error {
-	if s.Discount == nil {
-		if filled {
-			return nil
-		}
-		return errors.New(pkg.ErrEmptyDiscount)
-	}
-	if *s.Discount < 0 || *s.Discount > 1 {
-		return errors.New(pkg.ErrInvalidDiscount)
-	}
-	return nil
-}
-
 // formatProcess is a method that validates the session process
 func (s *Session) formatProcess(filled bool) error {
 	if s.Process == "" {
@@ -267,20 +256,6 @@ func (s *Session) formatProcess(filled bool) error {
 	return nil
 }
 
-// formatMessage is a method that validates the session message
-func (s *Session) formatMessage(filled bool) error {
-	if s.Process == pkg.ProcessStatusError && s.Message == "" {
-		if filled {
-			return nil
-		}
-		return errors.New(pkg.ErrEmptyMessage)
-	}
-	if len(s.Message) > 255 {
-		return errors.New(pkg.ErrLongMessage255)
-	}
-	return nil
-}
-
 // FormatSequence is a method that formats the package item entity
 func (s *Session) formatSequence(filled bool) error {
 	if s.Sequence == nil {
@@ -291,6 +266,20 @@ func (s *Session) formatSequence(filled bool) error {
 	}
 	if *s.Sequence < 0 || *s.Sequence > 999 {
 		return errors.New(pkg.ErrInvalidSequence)
+	}
+	return nil
+}
+
+// formatAgendaID formats the agenda id
+func (s *Session) formatAgendaID(repo port.Repository) error {
+	if s.AgendaID == "" {
+		return nil
+	}
+	agenda := &Agenda{ID: s.AgendaID}
+	if ok, err := agenda.Load(repo); err != nil {
+		return err
+	} else if !ok {
+		return errors.New(pkg.ErrAgendaNotFound)
 	}
 	return nil
 }

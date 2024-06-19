@@ -19,7 +19,7 @@ type SessionTie struct {
 type SessionTieOut struct {
 	ID      string `json:"id" command:"name:id"`
 	Process string `json:"process" command:"name:process"`
-	Message string `json:"message" command:"name:message"`
+	AgendaID string `json:"message" command:"name:agenda"`
 }
 
 // Validate is a method that validates the dto
@@ -61,7 +61,7 @@ func (s *SessionTieOut) GetDTO(domainIn interface{}) []port.DTOOut {
 		&SessionTieOut{
 			ID:      domain.ID,
 			Process: domain.Process,
-			Message: domain.Message,
+			AgendaID: domain.AgendaID ,
 		},
 	}
 }
