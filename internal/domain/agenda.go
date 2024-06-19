@@ -14,14 +14,14 @@ import (
 )
 
 var (
-	kindAgenda   = []string{
-		pkg.AgendaKindRegular, 
-		pkg.AgendaKindRescheduled, 
+	kindAgenda = []string{
+		pkg.AgendaKindRegular,
+		pkg.AgendaKindRescheduled,
 		pkg.AgendaKindExtra,
 	}
 	statusAgenda = []string{
-		pkg.AgendaStatusOpenned, 
-		pkg.AgendaStatusDone, 
+		pkg.AgendaStatusOpenned,
+		pkg.AgendaStatusDone,
 		pkg.AgendaStatusSaved,
 		pkg.AgendaStatusMissed,
 		pkg.AgendaStatusCanceled,

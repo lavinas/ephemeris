@@ -17,8 +17,8 @@ type SessionTie struct {
 
 // SessionTieOut represents the dto for tying a session on output
 type SessionTieOut struct {
-	ID      string `json:"id" command:"name:id"`
-	Process string `json:"process" command:"name:process"`
+	ID       string `json:"id" command:"name:id"`
+	Process  string `json:"process" command:"name:process"`
 	AgendaID string `json:"message" command:"name:agenda"`
 }
 
@@ -59,9 +59,9 @@ func (s *SessionTieOut) GetDTO(domainIn interface{}) []port.DTOOut {
 	domain := domainIn.(*domain.Session)
 	return []port.DTOOut{
 		&SessionTieOut{
-			ID:      domain.ID,
-			Process: domain.Process,
-			AgendaID: domain.AgendaID ,
+			ID:       domain.ID,
+			Process:  domain.Process,
+			AgendaID: domain.AgendaID,
 		},
 	}
 }

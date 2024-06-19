@@ -14,8 +14,8 @@ import (
 
 var (
 	StatusSession = []string{
-		pkg.SessionStatusDone, 
-		pkg.SessionStatusSaved, 
+		pkg.SessionStatusDone,
+		pkg.SessionStatusSaved,
 		pkg.SessionStatusMissed,
 		pkg.SessionStatusCanceled,
 	}
