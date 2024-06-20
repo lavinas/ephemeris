@@ -30,19 +30,19 @@ var (
 // Session represents the session entity
 type Session struct {
 	ID        string    `gorm:"type:varchar(150); primaryKey"`
+	Sequence  *int      `gorm:"type:int; not null"`
 	Date      time.Time `gorm:"type:datetime; not null"`
 	ClientID  string    `gorm:"type:varchar(50); not null; index"`
 	ServiceID string    `gorm:"type:varchar(50); not null; index"`
 	At        time.Time `gorm:"type:datetime; not null"`
 	Status    string    `gorm:"type:varchar(50); not null; index"`
 	Process   string    `gorm:"type:varchar(50); not null; index"`
-	Sequence  *int      `gorm:"type:int; not null"`
 	AgendaID  string    `gorm:"type:varchar(150);null,index"`
 	Locked    *bool     `gorm:"type:boolean;null; index"`
 }
 
 // NewSession creates a new session domain entity
-func NewSession(id, date, clientID, serviceID, at, status string, process, sequence, agendaID string) *Session {
+func NewSession(id, sequence, date, clientID, serviceID, at, status string, process, agendaID string) *Session {
 	session := &Session{}
 	session.ID = id
 	session.ClientID = clientID
@@ -70,6 +70,9 @@ func (s *Session) Format(repo port.Repository, args ...string) error {
 	if err := s.formatID(filled); err != nil {
 		msg += err.Error() + " | "
 	}
+	if err := s.formatSequence(filled); err != nil {
+		msg += err.Error() + " | "
+	}
 	if err := s.formatDate(filled); err != nil {
 		msg += err.Error() + " | "
 	}
@@ -86,9 +89,6 @@ func (s *Session) Format(repo port.Repository, args ...string) error {
 		msg += err.Error() + " | "
 	}
 	if err := s.formatProcess(filled); err != nil {
-		msg += err.Error() + " | "
-	}
-	if err := s.formatSequence(filled); err != nil {
 		msg += err.Error() + " | "
 	}
 	if err := s.formatAgendaID(repo); err != nil {

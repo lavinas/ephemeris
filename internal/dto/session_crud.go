@@ -18,13 +18,13 @@ type SessionCrud struct {
 	Sort      string `json:"sort" command:"name:sort;pos:3+"`
 	Csv       string `json:"csv" command:"name:csv;pos:3+;" csv:"file"`
 	ID        string `json:"id" command:"name:id;pos:3+;trans:id,string" csv:"id"`
+	Sequence  string `json:"seq" command:"name:seq;pos:3+;trans:sequence,int" csv:"seq"`
 	Date      string `json:"date" command:"name:date;pos:3+;trans:date,time" csv:"date"`
 	ClientID  string `json:"client" command:"name:client;pos:3+;trans:client_id,string" csv:"client"`
 	ServiceID string `json:"service" command:"name:service;pos:3+;trans:service_id,string" csv:"service"`
 	At        string `json:"at" command:"name:at;pos:3+;trans:at,time" csv:"at"`
 	Status    string `json:"status" command:"name:status;pos:3+;trans:status,string" csv:"status"`
 	Process   string `json:"process" command:"name:process;pos:3+;trans:process,string" csv:"process"`
-	Sequence  string `json:"seq" command:"name:seq;pos:3+;trans:sequence,int" csv:"seq"`
 	AgendaID  string `json:"agenda" command:"name:agenda;pos:3+;trans:agenda_id,string" csv:"agenda"`
 }
 
@@ -87,8 +87,8 @@ func (s *SessionCrud) getDomain(one *SessionCrud) port.Domain {
 	if one.Action == "add" {
 		one.Process = pkg.DefaultSessionProcess
 	}
-	return domain.NewSession(one.ID, one.Date, one.ClientID, one.ServiceID, one.At, one.Status,
-		one.Process, one.Sequence, one.AgendaID)
+	return domain.NewSession(one.ID, one.Sequence, one.Date, one.ClientID, one.ServiceID, one.At, one.Status,
+		one.Process, one.AgendaID)
 }
 
 // GetOut is a method that returns the output dto
@@ -105,13 +105,13 @@ func (s *SessionCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 		for _, se := range *sessions {
 			ret = append(ret, &SessionCrud{
 				ID:        se.ID,
+				Sequence:  strconv.Itoa(*se.Sequence),
 				Date:      se.Date.Format(pkg.DateFormat),
 				ClientID:  se.ClientID,
 				ServiceID: se.ServiceID,
 				At:        se.At.Format(pkg.DateTimeFormat),
 				Status:    se.Status,
 				Process:   se.Process,
-				Sequence:  strconv.Itoa(*se.Sequence),
 				AgendaID:  se.AgendaID,
 			})
 		}
