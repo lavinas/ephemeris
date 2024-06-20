@@ -15,22 +15,66 @@ func (u *Usecase) SessionTie(dtoIn interface{}) error {
 	if err := dtoSessionTie.Validate(u.Repo); err != nil {
 		return u.error(pkg.ErrPrefBadRequest, err.Error(), 0, 0)
 	}
-	session, err := u.getLockSession(dtoIn)
+	sessions, err := u.findSessionsTie(dtoSessionTie)
 	if err != nil {
 		return err
 	}
-	defer u.unlockSession(session)
-	if err := u.untieSession(session); err != nil {
-		return err
-	}
-	if dtoSessionTie.GetCommand() == "tie" {
-		if err := u.tieSession(session); err != nil {
-			return err
+	command := dtoSessionTie.GetCommand()
+	result := []interface{}{}
+	for _, session := range *sessions {
+		s, err := u.sessionTieOne(session.ID, command)
+		if err != nil {
+			continue
 		}
+		result = append(result, s)
+	}
+	if len(result) == 0 {
+		return u.error(pkg.ErrPrefBadRequest, pkg.ErrNoSessionsProcessed, 0, 0)
 	}
 	out := dtoSessionTie.GetOut()
-	u.Out = append(u.Out, out.GetDTO(session)...)
+	u.Out = out.GetDTO(result)
 	return nil
+}
+
+// findSessionsTie finds a session to tie
+func (u *Usecase) findSessionsTie(dtoIn *dto.SessionTie) (*[]domain.Session, error) {
+	d, extras, err := dtoIn.GetInstructions(dtoIn.GetDomain()[0])
+	if err != nil {
+		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
+	}
+	if err := u.Repo.Begin(); err != nil {
+		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
+	}
+	defer u.Repo.Rollback()
+	if err := d.Format(u.Repo, "filled", "noduplicity"); err != nil {
+		return nil, u.error(pkg.ErrPrefBadRequest, err.Error(), 0, 0)
+	}
+	base, _, err := u.Repo.Find(d, -1, extras...)
+	if err != nil {
+		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
+	}
+	if base == nil {
+		return nil, u.error(pkg.ErrPrefBadRequest, pkg.ErrSessionNotFound, 0, 0)
+	}
+	return base.(*[]domain.Session), nil
+}
+
+// sessionTieOne ties a session to an agenda
+func (u *Usecase) sessionTieOne(id string, command string) (*domain.Session, error) {
+	session, err := u.getLockSession(id)
+	if err != nil {
+		return nil, err
+	}
+	defer u.unlockSession(session)
+	if err := u.untieSession(session); err != nil {
+		return nil, err
+	}
+	if command == "tie" {
+		if err := u.tieSession(session); err != nil {
+			return nil, err
+		}
+	}
+	return session, nil
 }
 
 // untieSession unties a session from agendas
@@ -107,9 +151,8 @@ func (u *Usecase) saveSessionAgenda(session *domain.Session, agenda *domain.Agen
 }
 
 // getLockSession gets a session domain for processing and lock it
-func (u *Usecase) getLockSession(dtoIn interface{}) (*domain.Session, error) {
-	dto := dtoIn.(*dto.SessionTie)
-	session := dto.GetDomain()[0].(*domain.Session)
+func (u *Usecase) getLockSession(id string) (*domain.Session, error) {
+	session := &domain.Session{ID: id}
 	if err := u.Repo.Begin(); err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
