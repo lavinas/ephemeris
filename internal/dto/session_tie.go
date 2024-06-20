@@ -10,9 +10,13 @@ import (
 
 // SessionTie represents the dto for tying a session
 type SessionTie struct {
-	Object string `json:"-" command:"name:session;key;pos:2-"`
-	Action string `json:"-" command:"name:tie,untie;key;pos:2-"`
-	ID     string `json:"id" command:"name:id;pos:3+"`
+	Object    string `json:"-" command:"name:session;key;pos:2-"`
+	Action    string `json:"-" command:"name:tie,untie;key;pos:2-"`
+	ID        string `json:"id" command:"name:id;pos:3+"`
+	ClientID  string `json:"client" command:"name:client;pos:3+;trans:client_id,string"`
+	ServiceID string `json:"service" command:"name:service;pos:3+;trans:service_id,string"`
+	At        string `json:"at" command:"name:at;pos:3+;trans:at,time"`
+	Status    string `json:"status" command:"name:status;pos:3+;trans:status,string"`
 }
 
 // SessionTieOut represents the dto for tying a session on output

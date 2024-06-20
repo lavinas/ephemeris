@@ -163,7 +163,7 @@ func (u *Usecase) findAgenda(session *domain.Session, agendas []*domain.Agenda) 
 	if session == nil || len(agendas) == 0 {
 		return nil, nil
 	}
-    ags, idx := u.getOrderedAgendas(session, agendas)
+	ags, idx := u.getOrderedAgendas(session, agendas)
 	agenda := &domain.Agenda{}
 	switch {
 	case idx == -1:
