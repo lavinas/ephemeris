@@ -24,6 +24,9 @@ func (u *Usecase) SessionTie(dtoIn interface{}) error {
 	for _, session := range *sessions {
 		s, err := u.sessionTieOne(session.ID, command)
 		if err != nil {
+			session.Process = pkg.ProcessStatusError
+			session.AgendaID = err.Error()
+			result = append(result, &session)
 			continue
 		}
 		result = append(result, s)
@@ -104,6 +107,9 @@ func (u *Usecase) restartLockAgenda(id string) (*domain.Agenda, error) {
 	if err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
+	if agendas == nil {
+		return nil, u.error(pkg.ErrPrefInternal, pkg.ErrAgendaNotFound, 0, 0)
+	}
 	agenda = agendas[0]
 	agenda.Status = pkg.AgendaStatusOpenned
 	return agenda, nil
@@ -115,6 +121,13 @@ func (u *Usecase) tieSession(session *domain.Session) error {
 	agendas, err := u.getLockAgenda(&ag, session.At.Add(-time.Hour*24*60), session.At.Add(time.Hour*24*60))
 	if err != nil {
 		return err
+	}
+	if agendas == nil {
+		session.Process = pkg.ProcessStatusUnfound
+		if err := u.saveSessionAgenda(session, nil); err != nil {
+			return err
+		}
+		return nil
 	}
 	defer u.unlockAgendas(agendas)
 	agenda, err := u.findAgenda(session, agendas)
@@ -185,7 +198,7 @@ func (u *Usecase) getLockAgenda(agenda *domain.Agenda, start time.Time, end time
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
 	if len(agendas) == 0 {
-		return nil, u.error(pkg.ErrPrefBadRequest, pkg.ErrNoAgendasFound, 0, 0)
+		return nil, nil
 	}
 	for _, a := range agendas {
 		if a.IsLocked() {

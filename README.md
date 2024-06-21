@@ -9,8 +9,20 @@
 * Fazer notificacao de agenda - OK
 * Fazer sessions - OK
 * CSV para todos os dtos - Ok
-* Conciliar agenda com sessoes - em andamento  
+* Conciliar agenda com sessoes - em andamento 
+* Session Tie:
+    - Mostrar erro no resultado
+    - Ver erro de algumas sessoes
+    - Colocar multi-thread
+    - Fazer validacao completa para evitar trazer todas ao errar parametro
+    - Permitir selecionar mes ou periodo na data
+    - Permitir range de datas
+    - Unconfirmed:
+        - Confirmar: criar nova agenda e linkar com a antiga;
+        - Mudar contrato: alterar contrato, regerar nova conciliação
 * Rever validacoes da agenda crude
+* Rever codigo de agenda make
+* Permitir configurar limite no get
 * Fazer invoice
 * Fazer envio de invoice por wapp
 * fazer envio de invoice por email
