@@ -254,9 +254,7 @@ func (c *Commands) transposeNumeric(data string, field string) (string, string, 
 
 // transposeTime is a function that returns the transpose of a time
 func (c *Commands) transposeTime(data string, field string) (string, string, error) {
-	fmt.Println(1, data, field)
 	d, ok := c.translateTime(data[:len(data)-1])
-	fmt.Println(2, d, ok)
 	if !ok {
 		return data, "", nil
 	}
