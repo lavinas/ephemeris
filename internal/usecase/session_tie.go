@@ -1,7 +1,7 @@
 package usecase
 
 import (
-	"sort"
+	"slices"
 	"time"
 
 	"github.com/lavinas/ephemeris/internal/domain"
@@ -39,6 +39,18 @@ func (u *Usecase) SessionTie(dtoIn interface{}) error {
 	return nil
 }
 
+// sessionSortFunc is a function to sort sessions
+func sessionSortFunc(a domain.Session, b domain.Session) int {
+	switch {
+	case a.At.Before(b.At):
+		return -1
+	case a.At.After(b.At):
+		return 1
+	default:
+		return 0
+	}
+}
+
 // findSessionsTie finds a session to tie
 func (u *Usecase) findSessionsTie(dtoIn *dto.SessionTie) (*[]domain.Session, error) {
 	d, extras, err := dtoIn.GetInstructions(dtoIn.GetDomain()[0])
@@ -59,7 +71,9 @@ func (u *Usecase) findSessionsTie(dtoIn *dto.SessionTie) (*[]domain.Session, err
 	if base == nil {
 		return nil, u.error(pkg.ErrPrefBadRequest, pkg.ErrSessionNotFound, 0, 0)
 	}
-	return base.(*[]domain.Session), nil
+	ret := base.(*[]domain.Session)
+	slices.SortFunc(*ret, sessionSortFunc)
+	return ret, nil
 }
 
 // sessionTieOne ties a session to an agenda
@@ -117,17 +131,10 @@ func (u *Usecase) restartLockAgenda(id string) (*domain.Agenda, error) {
 
 // tieSession ties session to agendas
 func (u *Usecase) tieSession(session *domain.Session) error {
-	ag := domain.Agenda{ClientID: session.ClientID, ServiceID: session.ServiceID}
+	ag := domain.Agenda{ClientID: session.ClientID, Status: pkg.AgendaStatusOpenned}
 	agendas, err := u.getLockAgenda(&ag, session.At.Add(-time.Hour*24*60), session.At.Add(time.Hour*24*60))
 	if err != nil {
 		return err
-	}
-	if agendas == nil {
-		session.Process = pkg.ProcessStatusUnfound
-		if err := u.saveSessionAgenda(session, nil); err != nil {
-			return err
-		}
-		return nil
 	}
 	defer u.unlockAgendas(agendas)
 	agenda, err := u.findAgenda(session, agendas)
@@ -200,13 +207,8 @@ func (u *Usecase) getLockAgenda(agenda *domain.Agenda, start time.Time, end time
 	if len(agendas) == 0 {
 		return nil, nil
 	}
-	for _, a := range agendas {
-		if a.IsLocked() {
-			return nil, u.error(pkg.ErrPrefInternal, pkg.ErrAgendaLocked, 0, 0)
-		}
-		if err := a.Lock(u.Repo); err != nil {
-			return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
-		}
+	if err := u.lockAgendas(agendas); err != nil {
+		return nil, err
 	}
 	if err := u.Repo.Commit(); err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
@@ -214,26 +216,57 @@ func (u *Usecase) getLockAgenda(agenda *domain.Agenda, start time.Time, end time
 	return agendas, nil
 }
 
+// lockagendas locks slice of agendas
+func (u *Usecase) lockAgendas(agendas []*domain.Agenda) error {
+	for _, a := range agendas {
+		if a.IsLocked() {
+			return u.error(pkg.ErrPrefInternal, pkg.ErrAgendaLocked, 0, 0)
+		}
+		if err := a.Lock(u.Repo); err != nil {
+			return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
+		}
+	}
+	return nil
+}
+
 // findAgendas finds agendas linked with session
 func (u *Usecase) findAgenda(session *domain.Session, agendas []*domain.Agenda) (*domain.Agenda, error) {
-	if session == nil || len(agendas) == 0 {
+	if session == nil || agendas == nil {
 		return nil, nil
 	}
-	ags, idx := u.getOrderedAgendas(session, agendas)
-	agenda := &domain.Agenda{}
-	switch {
-	case idx == -1:
+	ags := u.filterAgendas(session.ServiceID, agendas)
+	ags, idx := u.getOrderedAgendas(session, ags)
+	if idx == -1 {
 		return nil, u.error(pkg.ErrPrefInternal, pkg.ErrAgendaNotFound, 0, 0)
-	case idx-1 < 0:
-		agenda = ags[idx+1]
-	case idx+1 >= len(ags):
-		agenda = ags[idx-1]
-	case session.At.Sub(ags[idx-1].Start) < ags[idx+1].Start.Sub(session.At):
-		agenda = ags[idx-1]
-	default:
-		agenda = ags[idx+1]
 	}
+	agenda := u.getPosAgenda(ags, idx)
 	return agenda, nil
+}
+
+// filterAgendas filters agendas based on session params
+func (u *Usecase) filterAgendas(serviceid string, agendas []*domain.Agenda) []*domain.Agenda {
+	ags := []*domain.Agenda{}
+	for _, a := range agendas {
+		if a.ServiceID == serviceid {
+			ags = append(ags, a)
+		}
+	}
+	if len(ags) == 0 {
+		ags = agendas
+	}
+	return ags
+}
+
+// agendaSortFunc is a function to sort agendas
+func agendaSortFunc(a *domain.Agenda, b *domain.Agenda) int {
+	switch {
+	case a.Start.Before(b.Start):
+		return -1
+	case a.Start.After(b.Start):
+		return 1
+	default:
+		return 0
+	}
 }
 
 // getorederedAgendas gets ordered agendas
@@ -241,9 +274,7 @@ func (u *Usecase) getOrderedAgendas(session *domain.Session, agendas []*domain.A
 	ags := []*domain.Agenda{}
 	ags = append(ags, agendas...)
 	ags = append(ags, &domain.Agenda{ID: "**", Start: session.At})
-	sort.Slice(ags, func(i, j int) bool {
-		return ags[i].Start.Before(ags[j].Start)
-	})
+	slices.SortFunc(ags, agendaSortFunc)
 	idx := -1
 	for i, a := range ags {
 		if a.ID == "**" {
@@ -254,19 +285,37 @@ func (u *Usecase) getOrderedAgendas(session *domain.Session, agendas []*domain.A
 	return ags, idx
 }
 
+// getPosAgenda gets the agenda based on posisions
+func (u *Usecase) getPosAgenda(ags []*domain.Agenda, idx int) *domain.Agenda {
+	agenda := &domain.Agenda{}
+	switch {
+	case idx-1 < 0:
+		agenda = ags[idx+1]
+	case idx+1 >= len(ags):
+		agenda = ags[idx-1]
+	default:
+		agenda = ags[idx+1]
+	}
+	return agenda
+}
+
 // saveSessionAgenda saves the session agenda
 func (u *Usecase) matchSessionAgenda(session *domain.Session, agenda *domain.Agenda) {
 	switch {
 	case agenda == nil:
 		session.Process = pkg.ProcessStatusUnfound
-	case session.At.Format("2006-01-02") == agenda.Start.Format("2006-01-02"):
+	case session.At.Format("2006-01-02") != agenda.Start.Format("2006-01-02"):
+		session.Process = pkg.ProcessStatusUnconfirmed
+		session.AgendaID = agenda.ID
+		agenda.Status = pkg.AgendaStatusLocked
+	case session.ServiceID != agenda.ServiceID:
 		session.Process = pkg.ProcessStatusLinked
 		session.AgendaID = agenda.ID
 		agenda.Status = session.Status
 	default:
-		session.Process = pkg.ProcessStatusUnconfirmed
+		session.Process = pkg.ProcessStatusLinked
 		session.AgendaID = agenda.ID
-		agenda.Status = pkg.AgendaStatusLocked
+		agenda.Status = session.Status
 	}
 }
 
@@ -287,6 +336,9 @@ func (u *Usecase) unlockSession(session *domain.Session) error {
 
 // unlock agendas unlocks slice of agendas
 func (u *Usecase) unlockAgendas(agendas []*domain.Agenda) error {
+	if agendas == nil {
+		return nil
+	}
 	if err := u.Repo.Begin(); err != nil {
 		return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}

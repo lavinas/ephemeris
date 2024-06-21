@@ -2,6 +2,7 @@ package dto
 
 import (
 	"errors"
+	"time"
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"
@@ -19,6 +20,7 @@ type SessionTie struct {
 	ServiceID string `json:"service" command:"name:service;pos:3+;trans:service_id,string"`
 	At        string `json:"at" command:"name:at;pos:3+;trans:at,time"`
 	Status    string `json:"status" command:"name:status;pos:3+;trans:status,string"`
+	Process   string `json:"process" command:"name:process;pos:3;trans:process,string"`
 }
 
 // SessionTieOut represents the dto for tying a session on output
@@ -35,8 +37,30 @@ type SessionTieOut struct {
 
 // Validate is a method that validates the dto
 func (s *SessionTie) Validate(repo port.Repository) error {
-	if s.ID == "" && s.ClientID == "" && s.ServiceID == "" && s.At == "" && s.Status == "" {
+	if s.ID == "" && s.ClientID == "" && s.ServiceID == "" && s.At == "" &&
+		s.Status == "" && s.Process == "" {
 		return errors.New(pkg.ErrParamsNotInformed)
+	}
+	if err := s.validateAt(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// validateAt is a method that validates the at field
+func (s *SessionTie) validateAt() error {
+	sTest := &SessionTie{At: s.At}
+	_, err := pkg.NewCommands().Transpose(sTest)
+	if err != nil {
+		return errors.New(pkg.ErrInvalidAt)
+	}
+	if sTest.At == "" {
+		return nil
+	}
+	if _, err = time.Parse(pkg.DateTimeFormat, sTest.At); err != nil {
+		if _, err = time.Parse(pkg.DateFormat, sTest.At); err != nil {
+			return errors.New(pkg.ErrInvalidAt)
+		}
 	}
 	return nil
 }
@@ -49,7 +73,7 @@ func (s *SessionTie) GetCommand() string {
 // GetDomain is a method that returns a string representation of the agenda
 func (s *SessionTie) GetDomain() []port.Domain {
 	return []port.Domain{
-		domain.NewSession(s.ID, "", "", s.ClientID, s.ServiceID, s.At, s.Status, "", ""),
+		domain.NewSession(s.ID, "", "", s.ClientID, s.ServiceID, s.At, s.Status, s.Process, ""),
 	}
 }
 
@@ -70,13 +94,13 @@ func (s *SessionTieOut) GetDTO(domainIn interface{}) []port.DTOOut {
 	for _, slice := range slices {
 		domain := slice.(*domain.Session)
 		ret = append(ret, &SessionTieOut{
-			ID:       domain.ID,
-			ClientID: domain.ClientID,
+			ID:        domain.ID,
+			ClientID:  domain.ClientID,
 			ServiceID: domain.ServiceID,
-			At:       domain.At.Format(pkg.DateTimeFormat),
-			Status:   domain.Status,
-			Process:  domain.Process,
-			AgendaID: domain.AgendaID,
+			At:        domain.At.Format(pkg.DateTimeFormat),
+			Status:    domain.Status,
+			Process:   domain.Process,
+			AgendaID:  domain.AgendaID,
 		})
 	}
 	pkg.NewCommands().Sort(ret, s.Sort)

@@ -254,38 +254,49 @@ func (c *Commands) transposeNumeric(data string, field string) (string, string, 
 
 // transposeTime is a function that returns the transpose of a time
 func (c *Commands) transposeTime(data string, field string) (string, string, error) {
-	cmd := data[len(data)-1:]
-	switch cmd {
+	fmt.Println(1, data, field)
+	d, ok := c.translateTime(data[:len(data)-1])
+	fmt.Println(2, d, ok)
+	if !ok {
+		return data, "", nil
+	}
+	switch data[len(data)-1:] {
 	case "+":
-		data = data[:len(data)-1]
-		data = c.translateTime(data)
-		return "", fmt.Sprintf("%s >= '%s'", field, data), nil
+		return "", fmt.Sprintf("%s >= '%s'", field, d), nil
 	case "-":
-		data = data[:len(data)-1]
-		data = c.translateTime(data)
-		return "", fmt.Sprintf("%s <= '%s'", field, data), nil
-	case "*":
-		data = data[:len(data)-1]
-		data = c.translateTime(data)
-		return "", fmt.Sprintf("%s like '%s%%'", field, data), nil
+		return "", fmt.Sprintf("%s <= '%s'", field, d), nil
+	case "d":
+		start := d[:10] + " 00:00:00"
+		end := d[:10] + " 23:59:59"
+		return "", fmt.Sprintf("%s >= '%s'and %s <= '%s'", field, start, field, end), nil
+	case "m":
+		start := d[:8] + "01 00:00:00"
+		e, _ := time.Parse("2006-01-02 15:04:05", start)
+		e = e.AddDate(0, 1, 0)
+		d = e.Format("2006-01-02 15:04:05")
+		return "", fmt.Sprintf("%s >= '%s'and %s < '%s'", field, start, field, d), nil
 	default:
 		return data, "", nil
 	}
 }
 
 // translateTime is a function that translates a time string layout to a default time layout
-func (c *Commands) translateTime(data string) string {
-	d := strings.Split(data, " ")
-	t, err := time.Parse(DateFormat, d[0])
-	if err != nil || len(d) > 2 {
-		return data
+func (c *Commands) translateTime(data string) (string, bool) {
+	fSlice := []string{
+		DateTimeFormat,
+		DateHourFormat,
+		DateFormat,
+		MonthFormat,
 	}
-	data = t.Format("2006-01-02")
-	if len(d) > 1 {
-		data += " " + d[1]
+	for _, v := range fSlice {
+		t, err := time.Parse(v, data)
+		if err == nil {
+			return t.Format("2006-01-02 15:04:05"), true
+		}
 	}
-	return data
+	return "", false
 }
+
 
 // getInputSlice is a function that returns a slice of reflect.Values
 func (c *Commands) getInputSlice(v interface{}) []reflect.Value {

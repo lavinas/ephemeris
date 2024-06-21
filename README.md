@@ -9,11 +9,12 @@
 * Fazer notificacao de agenda - OK
 * Fazer sessions - OK
 * CSV para todos os dtos - Ok
-* Conciliar agenda com sessoes - em andamento 
+* Conciliar agenda com sessoes - em andamento - ok
 * Session Tie:
-    - Mostrar erro no resultado
-    - Ver erro de algumas sessoes
-    - Colocar multi-thread
+    - Mostrar erro no resultado - ok
+    - Ver erro de algumas sessoes - ok
+    - Conciliacao apenas o cliente sem a sessao
+    - Colocar multi-thread 
     - Fazer validacao completa para evitar trazer todas ao errar parametro
     - Permitir selecionar mes ou periodo na data
     - Permitir range de datas
