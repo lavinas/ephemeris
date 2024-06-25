@@ -135,18 +135,27 @@ func (a *Agenda) Load(repo port.Repository) (bool, error) {
 }
 
 // LoadRange loads agenda slices from a interval of dates
-func (a *Agenda) LoadRange(repo port.Repository, start, end time.Time) ([]*Agenda, error) {
+func (a *Agenda) LoadRange(repo port.Repository, start, end time.Time, status []string) ([]*Agenda, error) {
 	st := ""
 	ed := ""
+	extras := []interface{}{}
 	if !start.IsZero() {
 		st = fmt.Sprintf("Start >= '%d-%02d-%02d %02d:%02d:%02d'", start.Year(), start.Month(), start.Day(),
 			start.Hour(), start.Minute(), start.Second())
+		extras = append(extras, st)
 	}
 	if !end.IsZero() {
 		ed = fmt.Sprintf("Start <= '%d-%02d-%02d %02d:%02d:%02d'", end.Year(), end.Month(), end.Day(),
 			end.Hour(), end.Minute(), end.Second())
+		extras = append(extras, ed)
 	}
-	agendas, _, err := repo.Find(a, 0, st, ed)
+	for _, s := range status {
+		if !slices.Contains(statusAgenda, s) {
+			return nil, fmt.Errorf(pkg.ErrInvalidStatus, strings.Join(statusAgenda, ", "))
+		}
+		extras = append(extras, fmt.Sprintf("Status = '%s'", s))
+	}
+	agendas, _, err := repo.Find(a, 0, extras...)
 	if err != nil {
 		return nil, err
 	}

@@ -200,7 +200,8 @@ func (u *Usecase) getLockAgenda(agenda *domain.Agenda, start time.Time, end time
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
 	defer u.Repo.Rollback()
-	agendas, err := agenda.LoadRange(u.Repo, start, end)
+	status := []string{pkg.AgendaStatusOpenned, pkg.AgendaStatusLocked}
+	agendas, err := agenda.LoadRange(u.Repo, start, end, status)
 	if err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
@@ -239,7 +240,7 @@ func (u *Usecase) findAgenda(session *domain.Session, agendas []*domain.Agenda) 
 	if idx == -1 {
 		return nil, u.error(pkg.ErrPrefInternal, pkg.ErrAgendaNotFound, 0, 0)
 	}
-	agenda := u.getPosAgenda(ags, idx)
+	agenda := u.getAgendaLogic(ags, idx)
 	return agenda, nil
 }
 
@@ -286,7 +287,7 @@ func (u *Usecase) getOrderedAgendas(session *domain.Session, agendas []*domain.A
 }
 
 // getPosAgenda gets the agenda based on posisions
-func (u *Usecase) getPosAgenda(ags []*domain.Agenda, idx int) *domain.Agenda {
+func (u *Usecase) getAgendaLogic(ags []*domain.Agenda, idx int) *domain.Agenda {
 	agenda := &domain.Agenda{}
 	switch {
 	case idx-1 < 0:

@@ -13,10 +13,10 @@
 * Session Tie:
     - Mostrar erro no resultado - ok
     - Ver erro de algumas sessoes - ok
-    - Conciliacao apenas o cliente sem a sessao
+    - Conciliacao apenas o cliente sem a sessao - ok
+    - Conciliacao pelo mes e pelo dia - ok
     - Colocar multi-thread 
     - Fazer validacao completa para evitar trazer todas ao errar parametro
-    - Permitir selecionar mes ou periodo na data
     - Permitir range de datas
     - Unconfirmed:
         - Confirmar: criar nova agenda e linkar com a antiga;

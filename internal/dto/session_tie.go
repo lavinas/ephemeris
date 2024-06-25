@@ -37,10 +37,6 @@ type SessionTieOut struct {
 
 // Validate is a method that validates the dto
 func (s *SessionTie) Validate(repo port.Repository) error {
-	if s.ID == "" && s.ClientID == "" && s.ServiceID == "" && s.At == "" &&
-		s.Status == "" && s.Process == "" {
-		return errors.New(pkg.ErrParamsNotInformed)
-	}
 	if err := s.validateAt(); err != nil {
 		return err
 	}
@@ -49,6 +45,9 @@ func (s *SessionTie) Validate(repo port.Repository) error {
 
 // validateAt is a method that validates the at field
 func (s *SessionTie) validateAt() error {
+	if s.At == "" {
+		return nil
+	}
 	sTest := &SessionTie{At: s.At}
 	_, err := pkg.NewCommands().Transpose(sTest)
 	if err != nil {
