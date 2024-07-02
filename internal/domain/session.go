@@ -147,6 +147,11 @@ func (s *Session) Unlock(repo port.Repository) error {
 	return nil
 }
 
+// GetKey is a method that returns the key of the entity
+func (s *Session) GetKey() string {
+	return fmt.Sprintf("%s-%s-%s", s.ClientID, s.ServiceID, s.At.Format("2006-01-02 15:04"))
+}	
+
 // TableName returns the table name for database
 func (s *Session) TableName() string {
 	return "session"
