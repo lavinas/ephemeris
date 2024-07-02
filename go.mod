@@ -5,6 +5,7 @@ go 1.22.1
 require (
 	github.com/gocarina/gocsv v0.0.0-20240520201108-78e41c74b4b1
 	github.com/klassmann/cpfcnpj v0.0.0-20200907140233-a595c5fd8de1
+	github.com/masatana/go-textdistance v0.0.0-20191005053614-738b0edac985
 	github.com/nyaruka/phonenumbers v1.3.4
 	golang.org/x/text v0.14.0
 	gorm.io/driver/mysql v1.5.5
@@ -12,6 +13,7 @@ require (
 )
 
 require (
+	github.com/deckarep/golang-set v1.8.0 // indirect
 	github.com/go-sql-driver/mysql v1.7.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
