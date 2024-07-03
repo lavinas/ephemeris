@@ -117,7 +117,7 @@ func (u *Usecase) restartLockAgenda(id string) (*domain.Agenda, error) {
 		return nil, nil
 	}
 	agenda := &domain.Agenda{ID: id}
-	agendas, err := u.getLockAgenda(agenda, time.Time{}, time.Time{})
+	agendas, err := u.getLockAgenda(agenda, time.Time{}, time.Time{}, nil)
 	if err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
@@ -132,7 +132,10 @@ func (u *Usecase) restartLockAgenda(id string) (*domain.Agenda, error) {
 // tieSession ties session to agendas
 func (u *Usecase) tieSession(session *domain.Session) error {
 	ag := domain.Agenda{ClientID: session.ClientID, Status: pkg.AgendaStatusOpenned}
-	agendas, err := u.getLockAgenda(&ag, session.At.Add(-time.Hour*24*60), session.At.Add(time.Hour*24*60))
+	start := session.At.Add(-time.Hour * 24 * 60)
+	end := session.At.Add(time.Hour * 24 * 60)
+	status := []string{pkg.AgendaStatusOpenned, pkg.AgendaStatusLocked}
+	agendas, err := u.getLockAgenda(&ag, start, end, status)
 	if err != nil {
 		return err
 	}
@@ -195,12 +198,11 @@ func (u *Usecase) getLockSession(id string) (*domain.Session, error) {
 }
 
 // getLockAgenda gets a agenda based on session params and lock if
-func (u *Usecase) getLockAgenda(agenda *domain.Agenda, start time.Time, end time.Time) ([]*domain.Agenda, error) {
+func (u *Usecase) getLockAgenda(agenda *domain.Agenda, start time.Time, end time.Time, status []string) ([]*domain.Agenda, error) {
 	if err := u.Repo.Begin(); err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
 	defer u.Repo.Rollback()
-	status := []string{pkg.AgendaStatusOpenned, pkg.AgendaStatusLocked}
 	agendas, err := agenda.LoadRange(u.Repo, start, end, status)
 	if err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
@@ -232,6 +234,33 @@ func (u *Usecase) lockAgendas(agendas []*domain.Agenda) error {
 
 // findAgendas finds agendas linked with session
 func (u *Usecase) findAgenda(session *domain.Session, agendas []*domain.Agenda) (*domain.Agenda, error) {
+	if session == nil || agendas == nil {
+		return nil, nil
+	}
+	ag := &domain.Agenda{}
+	cmd := pkg.Commands{}
+	sKey := session.GetKey()
+	dist := -1.0
+	for _, a := range agendas {
+		aKey := a.GetKey()
+		idx, err := cmd.WeightedEuclidean(sKey, aKey, nil)
+		if err != nil {
+			return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
+		}
+		if a.Status == pkg.AgendaStatusLocked && a.Start.Format("2006-01-02") != session.At.Format("2006-01-02") {
+			continue
+		}
+		if dist != -1.0 && idx > dist {
+			continue
+		}
+		ag = a
+		dist = idx
+	}
+	return ag, nil
+}
+
+// findAgendas finds agendas linked with session
+func (u *Usecase) findAgenda2(session *domain.Session, agendas []*domain.Agenda) (*domain.Agenda, error) {
 	if session == nil || agendas == nil {
 		return nil, nil
 	}
