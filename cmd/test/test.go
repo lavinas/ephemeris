@@ -25,21 +25,25 @@ func main() {
 // starting in 1 and ending in 1/len(x)
 // returns the euclidean distance between x and y with weights w or an error
 func WeigthedEuclidean(x, y string, w []float64) (float64, error) {
-	if w == nil {
-		w = []float64{}
-		k := 1.00000000
-		z := 1 / float64(len(x))
-		for i := 0; i < len(x); i++ {
-			w = append(w, k)
-			k -= z		
-		}
+	if len(x) != len(y) {
+		return 0, fmt.Errorf("x, y must have the same length")
 	}
-	if len(x) != len(y) || len(x) != len(w) {
-		return 0, fmt.Errorf("x, y and w must have the same length")
+	if w != nil && len(w) < len(x) {
+		return 0, fmt.Errorf("w must be at least the same length as x")
 	}
+	k := 1.00000000
+	dec := 1 / float64(len(x))
 	z := 0.00000000
-	for i := 0; i < min(len(x), len(y), len(w)); i++ {
-		z += float64(x[i] - y[i]) * float64(x[i] - y[i]) * w[i]
+	for i := 0; i < len(x); i++ {
+		z1 := float64(x[i] - y[i])
+		z1 = z1 * z1
+		if w != nil {
+			z1 = z1 * w[i]
+		} else {
+			z1 = z1 * k
+			k -= dec
+		}
+		z += z1
 	}
 	return math.Sqrt(z), nil
 }
