@@ -239,18 +239,19 @@ func (u *Usecase) findAgenda(session *domain.Session, agendas []*domain.Agenda) 
 	}
 	ag := &domain.Agenda{}
 	cmd := pkg.Commands{}
-	sKey := session.GetKey()
+	sKeys := []interface{}{session.ClientID, session.At, session.ServiceID}
+	weights := []float64{100, 10, 1}
 	dist := -1.0
 	for _, a := range agendas {
-		aKey := a.GetKey()
-		idx, err := cmd.WeightedEuclidean(sKey, aKey, nil)
+		aKeys := []interface{}{a.ClientID, a.Start, a.ServiceID}
+		idx, err := cmd.WeightedDistance(sKeys, aKeys, weights)
 		if err != nil {
 			return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 		}
 		if a.Status == pkg.AgendaStatusLocked && a.Start.Format("2006-01-02") != session.At.Format("2006-01-02") {
 			continue
 		}
-		if dist != -1.0 && idx > dist {
+		if dist != -1.0 && idx >= dist {
 			continue
 		}
 		ag = a
@@ -259,75 +260,6 @@ func (u *Usecase) findAgenda(session *domain.Session, agendas []*domain.Agenda) 
 	return ag, nil
 }
 
-// findAgendas finds agendas linked with session
-func (u *Usecase) findAgenda2(session *domain.Session, agendas []*domain.Agenda) (*domain.Agenda, error) {
-	if session == nil || agendas == nil {
-		return nil, nil
-	}
-	ags := u.filterAgendas(session.ServiceID, agendas)
-	ags, idx := u.getOrderedAgendas(session, ags)
-	if idx == -1 {
-		return nil, u.error(pkg.ErrPrefInternal, pkg.ErrAgendaNotFound, 0, 0)
-	}
-	agenda := u.getAgendaLogic(ags, idx)
-	return agenda, nil
-}
-
-// filterAgendas filters agendas based on session params
-func (u *Usecase) filterAgendas(serviceid string, agendas []*domain.Agenda) []*domain.Agenda {
-	ags := []*domain.Agenda{}
-	for _, a := range agendas {
-		if a.ServiceID == serviceid {
-			ags = append(ags, a)
-		}
-	}
-	if len(ags) == 0 {
-		ags = agendas
-	}
-	return ags
-}
-
-// agendaSortFunc is a function to sort agendas
-func agendaSortFunc(a *domain.Agenda, b *domain.Agenda) int {
-	switch {
-	case a.Start.Before(b.Start):
-		return -1
-	case a.Start.After(b.Start):
-		return 1
-	default:
-		return 0
-	}
-}
-
-// getorederedAgendas gets ordered agendas
-func (u *Usecase) getOrderedAgendas(session *domain.Session, agendas []*domain.Agenda) ([]*domain.Agenda, int) {
-	ags := []*domain.Agenda{}
-	ags = append(ags, agendas...)
-	ags = append(ags, &domain.Agenda{ID: "**", Start: session.At})
-	slices.SortFunc(ags, agendaSortFunc)
-	idx := -1
-	for i, a := range ags {
-		if a.ID == "**" {
-			idx = i
-			break
-		}
-	}
-	return ags, idx
-}
-
-// getPosAgenda gets the agenda based on posisions
-func (u *Usecase) getAgendaLogic(ags []*domain.Agenda, idx int) *domain.Agenda {
-	agenda := &domain.Agenda{}
-	switch {
-	case idx-1 < 0:
-		agenda = ags[idx+1]
-	case idx+1 >= len(ags):
-		agenda = ags[idx-1]
-	default:
-		agenda = ags[idx+1]
-	}
-	return agenda
-}
 
 // saveSessionAgenda saves the session agenda
 func (u *Usecase) matchSessionAgenda(session *domain.Session, agenda *domain.Agenda) {

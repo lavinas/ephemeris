@@ -35,3 +35,8 @@
 * Permitir volta a ser null no crud
 * Validar conflito de agenda no horario de cadastro do contrato
 * Implementar get com like em package
+
+
+100 2024-05-01 00:00:00 -0300 -03 1714532400
+200 2024-04-16 18:00:00 -0300 -03 1713301200
+200 2024-04-30 18:00:00 -0300 -03 1714510800

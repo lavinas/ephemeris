@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/texttheater/golang-levenshtein/levenshtein"
 )
 
 // Command is a struct that represents a command
@@ -147,33 +149,39 @@ func (c *Commands) Sort(v interface{}, cmd string) {
 	c.sort(v, field, down)
 }
 
-// WeightedEuclidean returns the euclidean distance between x and y with weights w
-// and w is a slice of weights for each character in x and y
-// if w is nil, the weights are calculated as a decreasing sequence
-// starting in 1 and ending in 1/len(x)
-// returns the euclidean distance between x and y with weights w or an error
-func (c *Commands) WeightedEuclidean(x, y string, w []float64) (float64, error) {
-	if len(x) != len(y) {
-		return 0, fmt.Errorf("x, y must have the same length")
+
+// WeightedDistance calculates the distance between two slices of interfaces
+// interface{} can be any type of data, but implemented only for strings, time, int64 and float64
+// w is the weight for each field
+// returns the distance between the two sliceswhen 0 means that the two slices are equal
+func (c *Commands) WeightedDistance(x, y []interface{}, w []float64) (float64, error) {
+	if len(x) != len(y) || len(x) != len(w) {
+		return 0, fmt.Errorf("slices must have the same length")
 	}
-	if w != nil && len(w) < len(x) {
-		return 0, fmt.Errorf("w must be at least the same length as x")
-	}
-	k := 1.00000000
-	dec := 1 / float64(len(x))
-	z := 0.00000000
-	for i := 0; i < len(x); i++ {
-		z1 := float64(x[i] - y[i])
-		z1 = z1 * z1
-		if w != nil {
-			z1 = z1 * w[i]
-		} else {
-			z1 = z1 * k
-			k -= dec
+	z := 0.0
+	total := 0.0
+	for i := range x {
+		if reflect.TypeOf(x[i]) != reflect.TypeOf(y[i]) {
+			return 0, fmt.Errorf("slices must have the same types")
 		}
-		z += z1
+		z1 := 0.0
+		switch reflect.TypeOf(x[i]).String() {
+		case "string":
+			z1 = float64(levenshtein.DistanceForStrings([]rune(x[i].(string)), []rune(y[i].(string)), levenshtein.DefaultOptions))
+		case "int64":
+			z1 = float64(x[i].(int64) - y[i].(int64))
+		case "float64":
+			z1 = x[i].(float64) - y[i].(float64)
+		case "time.Time":
+			z1 = float64(x[i].(time.Time).Sub(y[i].(time.Time)).Seconds())
+		default:
+			fmt.Println(reflect.TypeOf(x[i]).String())
+			return 0, fmt.Errorf("type not implemented. Implemented: string, int64, float64, time.Time")
+		}
+		z += math.Abs(z1 * w[i])
+		total += w[i]
 	}
-	return math.Sqrt(z), nil
+	return z / total, nil
 }
 
 // sortParams is a function that returns the field and the direction of a command
