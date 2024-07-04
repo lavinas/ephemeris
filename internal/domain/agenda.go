@@ -191,12 +191,6 @@ func (a *Agenda) Unlock(repo port.Repository) error {
 	return nil
 }
 
-// GetKey is a method that returns the key of the domain
-func (c *Agenda) GetKey() string {
-	fmt.Println(200, c.Start, c.Start.Unix())
-	return fmt.Sprintf("%v-%v-%v", c.ClientID, c.Start.Unix(), c.ServiceID)
-}
-
 // TableName returns the table name for database
 func (a *Agenda) TableName() string {
 	return "agenda"
