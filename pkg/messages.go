@@ -90,7 +90,7 @@ const (
 	DateFormat                   = "02/01/2006"
 	MonthFormat                  = "01/2006"
 	DateTimeFormat               = "02/01/2006 15:04"
-	DateHourFormat				 = "02/01/2006 15"
+	DateHourFormat               = "02/01/2006 15"
 	DefaultDateFormat            = "2006-01-02"
 	ErrPrefBadRequest            = "bad request"
 	ErrPrefInternal              = "internal error"
@@ -225,5 +225,5 @@ const (
 	ErrRepoTransactionNotStarted = "no transaction started"
 	ProcessStatusError           = "error"
 	ErrNoSessionsProcessed       = "no sessions processed"
-	ErrInvalidAt 			     = "invalid at"
+	ErrInvalidAt                 = "invalid at"
 )

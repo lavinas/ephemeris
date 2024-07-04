@@ -260,7 +260,6 @@ func (u *Usecase) findAgenda(session *domain.Session, agendas []*domain.Agenda) 
 	return ag, nil
 }
 
-
 // saveSessionAgenda saves the session agenda
 func (u *Usecase) matchSessionAgenda(session *domain.Session, agenda *domain.Agenda) {
 	switch {

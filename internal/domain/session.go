@@ -151,7 +151,7 @@ func (s *Session) Unlock(repo port.Repository) error {
 func (s *Session) GetKey() string {
 	fmt.Println(100, s.At, s.At.Unix())
 	return fmt.Sprintf("%v-%v-%v", s.ClientID, s.At.Unix(), s.ServiceID)
-}	
+}
 
 // TableName returns the table name for database
 func (s *Session) TableName() string {

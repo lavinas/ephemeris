@@ -149,7 +149,6 @@ func (c *Commands) Sort(v interface{}, cmd string) {
 	c.sort(v, field, down)
 }
 
-
 // WeightedDistance calculates the distance between two slices of interfaces
 // interface{} can be any type of data, but implemented only for strings, time, int64 and float64
 // w is the weight for each field
@@ -331,7 +330,6 @@ func (c *Commands) translateTime(data string) (string, bool) {
 	}
 	return "", false
 }
-
 
 // getInputSlice is a function that returns a slice of reflect.Values
 func (c *Commands) getInputSlice(v interface{}) []reflect.Value {

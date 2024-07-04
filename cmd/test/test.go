@@ -22,6 +22,7 @@ var (
 		"piano_30",
 	}
 )
+
 // main is the entry point of the application
 func main() {
 	d, err := WeightedDistance(x, y, []float64{1, 1, 1, 1})
@@ -30,7 +31,6 @@ func main() {
 	}
 	fmt.Println(d)
 }
-
 
 // Distance calculates the distance between two slices of interfaces
 // interface{} can be any type of data, but implemented only for strings, time, int64 and float64
