@@ -3,6 +3,7 @@ package usecase
 import (
 	"slices"
 	"time"
+	"fmt"
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/dto"
@@ -87,8 +88,11 @@ func (u *Usecase) sessionTieOne(id string, command string) (*domain.Session, err
 		return nil, err
 	}
 	if command == "tie" {
-		if err := u.tieSession(session); err != nil {
-			return nil, err
+		s := session
+		for s != nil {
+			if s, err = u.tieSession(s); err != nil {
+				return nil, err
+			}
 		}
 	}
 	return session, nil
@@ -130,25 +134,33 @@ func (u *Usecase) restartLockAgenda(id string) (*domain.Agenda, error) {
 }
 
 // tieSession ties session to agendas
-func (u *Usecase) tieSession(session *domain.Session) error {
-	ag := domain.Agenda{ClientID: session.ClientID, Status: pkg.AgendaStatusOpenned}
+func (u *Usecase) tieSession(session *domain.Session) (*domain.Session, error) {
+	ag := domain.Agenda{ClientID: session.ClientID}
 	start := session.At.Add(-time.Hour * 24 * 60)
 	end := session.At.Add(time.Hour * 24 * 60)
 	status := []string{pkg.AgendaStatusOpenned, pkg.AgendaStatusLocked}
 	agendas, err := u.getLockAgenda(&ag, start, end, status)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer u.unlockAgendas(agendas)
+	for _, a := range agendas {
+		fmt.Println(1, a)
+	}
 	agenda, err := u.findAgenda(session, agendas)
 	if err != nil {
-		return err
+		return nil, err
+	}
+	fmt.Println(2, agenda)
+	over, err := u.getOverlappingSession(agenda)
+	if err != nil {
+		return nil, err
 	}
 	u.matchSessionAgenda(session, agenda)
 	if err := u.saveSessionAgenda(session, agenda); err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return over, nil
 }
 
 // saveSessionAgenda saves the session agenda
@@ -258,6 +270,28 @@ func (u *Usecase) findAgenda(session *domain.Session, agendas []*domain.Agenda) 
 		dist = idx
 	}
 	return ag, nil
+}
+
+// getOverlappingSession gets overlapping session matched with found agenda
+func (u *Usecase) getOverlappingSession(agenda *domain.Agenda) (*domain.Session, error) {
+	if agenda == nil {
+		return nil, nil
+	}
+	if agenda.Status != pkg.AgendaStatusLocked {
+		return nil, nil
+	}
+	session := &domain.Session{AgendaID: agenda.ID}
+	if err := u.Repo.Begin(); err != nil {
+		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
+	}
+	defer u.Repo.Rollback()
+	if ok, err := session.Load(u.Repo); err != nil {
+		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
+	} else if !ok {
+		fmt.Println(1)
+		return nil, u.error(pkg.ErrPrefBadRequest, pkg.ErrSessionNotFound, 0, 0)
+	}
+	return session, nil
 }
 
 // saveSessionAgenda saves the session agenda
