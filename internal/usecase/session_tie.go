@@ -3,7 +3,6 @@ package usecase
 import (
 	"slices"
 	"time"
-	"fmt"
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/dto"
@@ -135,10 +134,7 @@ func (u *Usecase) restartLockAgenda(id string) (*domain.Agenda, error) {
 
 // tieSession ties session to agendas
 func (u *Usecase) tieSession(session *domain.Session) (*domain.Session, error) {
-	ag := domain.Agenda{ClientID: session.ClientID}
-	start := session.At.Add(-time.Hour * 24 * 60)
-	end := session.At.Add(time.Hour * 24 * 60)
-	agendas, err := u.getLockAgenda(&ag, start, end, []string{pkg.AgendaStatusOpenned, pkg.AgendaStatusLocked})
+	agendas, err := u.searchLockAgendas(session)
 	if err != nil {
 		return nil, err
 	}
@@ -156,6 +152,26 @@ func (u *Usecase) tieSession(session *domain.Session) (*domain.Session, error) {
 		return nil, err
 	}
 	return over, nil
+}
+
+// searchLockAgendas searches agendas first for same day and then for a longer period
+func (u *Usecase) searchLockAgendas(session *domain.Session) ([]*domain.Agenda, error) {
+	ag := domain.Agenda{ClientID: session.ClientID}
+	start := time.Date(session.At.Year(), session.At.Month(), session.At.Day(), 0, 0, 0, 0, time.Local)
+	end := time.Date(session.At.Year(), session.At.Month(), session.At.Day(), 23, 59, 59, 0, time.Local)
+	agendas, err := u.getLockAgenda(&ag, start, end, []string{pkg.AgendaStatusOpenned})
+	if err != nil {
+		return nil, err
+	}
+	if agendas == nil {
+		start = session.At.Add(-time.Hour * 24 * 60)
+		end = session.At.Add(time.Hour * 24 * 60)	
+		agendas, err = u.getLockAgenda(&ag, start, end, []string{pkg.AgendaStatusOpenned, pkg.AgendaStatusLocked})
+		if err != nil {
+			return nil, err
+		}
+	}
+	return agendas, nil
 }
 
 // saveSessionAgenda saves the session agenda
@@ -269,13 +285,9 @@ func (u *Usecase) findAgenda(session *domain.Session, agendas []*domain.Agenda) 
 
 // getOverlappingSession gets overlapping session matched with found agenda
 func (u *Usecase) getOverlappingSession(agenda *domain.Agenda) (*domain.Session, error) {
-	if agenda == nil {
+	if agenda == nil || agenda.Status != pkg.AgendaStatusLocked {
 		return nil, nil
 	}
-	if agenda.Status != pkg.AgendaStatusLocked {
-		return nil, nil
-	}
-	fmt.Println(2, agenda.ID)
 	session := &domain.Session{AgendaID: agenda.ID}
 	if err := u.Repo.Begin(); err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
