@@ -138,20 +138,15 @@ func (u *Usecase) tieSession(session *domain.Session) (*domain.Session, error) {
 	ag := domain.Agenda{ClientID: session.ClientID}
 	start := session.At.Add(-time.Hour * 24 * 60)
 	end := session.At.Add(time.Hour * 24 * 60)
-	status := []string{pkg.AgendaStatusOpenned, pkg.AgendaStatusLocked}
-	agendas, err := u.getLockAgenda(&ag, start, end, status)
+	agendas, err := u.getLockAgenda(&ag, start, end, []string{pkg.AgendaStatusOpenned, pkg.AgendaStatusLocked})
 	if err != nil {
 		return nil, err
 	}
 	defer u.unlockAgendas(agendas)
-	for _, a := range agendas {
-		fmt.Println(1, a)
-	}
 	agenda, err := u.findAgenda(session, agendas)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(2, agenda)
 	over, err := u.getOverlappingSession(agenda)
 	if err != nil {
 		return nil, err
@@ -280,18 +275,24 @@ func (u *Usecase) getOverlappingSession(agenda *domain.Agenda) (*domain.Session,
 	if agenda.Status != pkg.AgendaStatusLocked {
 		return nil, nil
 	}
+	fmt.Println(2, agenda.ID)
 	session := &domain.Session{AgendaID: agenda.ID}
 	if err := u.Repo.Begin(); err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
 	defer u.Repo.Rollback()
-	if ok, err := session.Load(u.Repo); err != nil {
+	i, _, err := u.Repo.Find(session, -1)
+	if err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
-	} else if !ok {
-		fmt.Println(1)
-		return nil, u.error(pkg.ErrPrefBadRequest, pkg.ErrSessionNotFound, 0, 0)
 	}
-	return session, nil
+	ret := i.(*[]domain.Session)
+	if len(*ret) == 0 {
+		return nil, u.error(pkg.ErrPrefInternal, pkg.ErrSessionNotFound, 0, 0)
+	}
+	if len(*ret) > 1 {
+		return nil, u.error(pkg.ErrPrefInternal, pkg.ErrSessionMultiples, 0, 0)
+	}
+	return &(*ret)[0], nil
 }
 
 // saveSessionAgenda saves the session agenda

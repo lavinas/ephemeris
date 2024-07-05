@@ -226,4 +226,5 @@ const (
 	ProcessStatusError           = "error"
 	ErrNoSessionsProcessed       = "no sessions processed"
 	ErrInvalidAt                 = "invalid at"
+	ErrSessionMultiples          = "session multiples"
 )
