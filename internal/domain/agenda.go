@@ -44,7 +44,7 @@ type Agenda struct {
 	Status       string     `gorm:"type:varchar(50); not null; index"`
 	Bond         *string    `gorm:"type:varchar(50)"`
 	BillingMonth *time.Time `gorm:"type:datetime"`
-	Locked       *bool      `gorm:"type:boolean;null; index"`
+	Locked       *time.Time `gorm:"type:datetime;null; index"`
 }
 
 // NewAgenda creates a new agenda domain entity
@@ -173,8 +173,8 @@ func (a *Agenda) Lock(repo port.Repository, timeout int) error {
 	if a.IsLocked(repo, timeout) {
 		return errors.New(pkg.ErrAgendaLocked)
 	}
-	var locked bool = true
-	a.Locked = &locked
+	x := time.Now()
+	a.Locked = &x 
 	if err := repo.Save(a); err != nil {
 		return err
 	}
@@ -186,7 +186,7 @@ func (a *Agenda) IsLocked(repo port.Repository, timeout int) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
 	defer cancel()
 	for {
-		if a.Locked == nil || !*a.Locked {
+		if a.Locked == nil {
 			return false
 		}
 		select {
