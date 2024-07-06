@@ -14,6 +14,8 @@ type Repository interface {
 	Add(obj interface{}) error
 	// Get is a method that gets an object by its ID
 	Get(obj interface{}, id string) (bool, error)
+    // GetHot gets a object from the database by id in a distinct transaction
+	GetHot(obj interface{}, id string) (bool, error)
 	// Find is a method that finds an object by its base
 	// returns the object, a boolean that indicates if the object was limited and an error
 	Find(base interface{}, limit int, extras ...interface{}) (interface{}, bool, error)

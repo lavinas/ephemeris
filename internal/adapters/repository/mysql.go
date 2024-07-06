@@ -121,6 +121,22 @@ func (r *MySql) Get(obj interface{}, id string) (bool, error) {
 	return false, tx.Error
 }
 
+    // GetHot gets a object from the database by id in a distinct transaction
+func (r *MySql) GetHot(obj interface{}, id string) (bool, error) {
+	tx := r.Db.Session(&gorm.Session{})
+	defer tx.Rollback()
+	d := obj.(port.Domain)
+	name := d.TableName()
+	tx = tx.Table(name).First(obj, "ID = ?", id)
+	if tx.Error == nil {
+		return true, nil
+	}
+	if errors.Is(tx.Error, gorm.ErrRecordNotFound) {
+		return false, nil
+	}
+	return false, tx.Error
+}
+
 // Save saves a object to the database
 func (r *MySql) Save(obj interface{}) error {
 	if r.Tx == nil {

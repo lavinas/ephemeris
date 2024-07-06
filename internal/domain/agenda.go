@@ -183,23 +183,19 @@ func (a *Agenda) Lock(repo port.Repository, timeout int) error {
 
 // IsLocked is a method that checks if the contract is locked
 func (a *Agenda) IsLocked(repo port.Repository, timeout int) bool {
-	fmt.Println(0)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
 	defer cancel()
 	for {
 		if a.Locked == nil || !*a.Locked {
-			fmt.Println(1)
 			return false
 		}
 		select {
 		case <-ctx.Done():
-			fmt.Println(2)
 			return true
 		default:
-			fmt.Println(3)
 			time.Sleep(1 * time.Second)
 			x := &Agenda{ID: a.ID}
-			if ok, err := x.Load(repo); err != nil || !ok {
+			if ok, err := repo.GetHot(x, a.ID); err != nil || !ok {
 				return true
 			}
 			a.Locked = x.Locked
