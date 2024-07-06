@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"context"
 
 	"github.com/lavinas/ephemeris/internal/port"
 	"github.com/lavinas/ephemeris/pkg"
@@ -168,7 +169,10 @@ func (a *Agenda) GetEmpty() port.Domain {
 }
 
 // Lock is a method that locks the contract
-func (a *Agenda) Lock(repo port.Repository) error {
+func (a *Agenda) Lock(repo port.Repository, timeout int) error {
+	if a.IsLocked(repo, timeout) {
+		return errors.New(pkg.ErrAgendaLocked)
+	}
 	var locked bool = true
 	a.Locked = &locked
 	if err := repo.Save(a); err != nil {
@@ -178,8 +182,29 @@ func (a *Agenda) Lock(repo port.Repository) error {
 }
 
 // IsLocked is a method that checks if the contract is locked
-func (a *Agenda) IsLocked() bool {
-	return a.Locked != nil && *a.Locked
+func (a *Agenda) IsLocked(repo port.Repository, timeout int) bool {
+	fmt.Println(0)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
+	defer cancel()
+	for {
+		if a.Locked == nil || !*a.Locked {
+			fmt.Println(1)
+			return false
+		}
+		select {
+		case <-ctx.Done():
+			fmt.Println(2)
+			return true
+		default:
+			fmt.Println(3)
+			time.Sleep(1 * time.Second)
+			x := &Agenda{ID: a.ID}
+			if ok, err := x.Load(repo); err != nil || !ok {
+				return true
+			}
+			a.Locked = x.Locked
+		}
+	}
 }
 
 // Unlock is a method that unlocks the contract

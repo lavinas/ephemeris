@@ -245,10 +245,7 @@ func (u *Usecase) getLockAgenda(agenda *domain.Agenda, start time.Time, end time
 // lockagendas locks slice of agendas
 func (u *Usecase) lockAgendas(agendas []*domain.Agenda) error {
 	for _, a := range agendas {
-		if a.IsLocked() {
-			return u.error(pkg.ErrPrefInternal, pkg.ErrAgendaLocked, 0, 0)
-		}
-		if err := a.Lock(u.Repo); err != nil {
+		if err := a.Lock(u.Repo, 10); err != nil {
 			return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 		}
 	}
