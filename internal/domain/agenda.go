@@ -132,13 +132,13 @@ func (a *Agenda) Format(repo port.Repository, args ...string) error {
 
 // Exists is a function that checks if a agenda exists
 func (a *Agenda) Load(repo port.Repository) (bool, error) {
-	return repo.Get(a, a.ID)
+	return repo.Get(a, a.ID, "")
 }
 
 // LoadRange loads agenda slices from a interval of dates
 func (a *Agenda) LoadRange(repo port.Repository, start, end time.Time, status []string) ([]*Agenda, error) {
 	extras := a.loadRangeExtras(start, end, status)
-	agendas, _, err := repo.Find(a, 0, extras...)
+	agendas, _, err := repo.Find(a, 0, "", extras...)
 	if err != nil {
 		return nil, err
 	}
@@ -175,7 +175,7 @@ func (a *Agenda) Lock(repo port.Repository, timeout int) error {
 	}
 	x := time.Now()
 	a.Locked = &x 
-	if err := repo.Save(a); err != nil {
+	if err := repo.Save(a, ""); err != nil {
 		return err
 	}
 	return nil
@@ -194,19 +194,35 @@ func (a *Agenda) IsLocked(repo port.Repository, timeout int) bool {
 			return true
 		default:
 			time.Sleep(1 * time.Second)
-			x := &Agenda{ID: a.ID}
-			if ok, err := repo.GetHot(x, a.ID); err != nil || !ok {
+			ag, error := a.getHotAgenda(repo)
+			if error != nil {
 				return true
 			}
-			a.Locked = x.Locked
+			a.Locked = ag.Locked
 		}
 	}
+}
+
+// getHot gets the agenda out of default transaction
+func (a *Agenda) getHotAgenda(repo port.Repository) (*Agenda, error) {
+	tx := repo.NewTransaction()
+	if err := repo.Begin(tx); err != nil {
+		return nil, err
+	}
+	defer repo.Rollback(tx)
+	x := &Agenda{ID: a.ID}
+	if ok, err := repo.Get(x, a.ID, tx); err != nil {
+		return nil, err
+	} else if !ok {
+		return nil, errors.New(pkg.ErrAgendaNotFound)
+	}
+	return x, nil
 }
 
 // Unlock is a method that unlocks the contract
 func (a *Agenda) Unlock(repo port.Repository) error {
 	a.Locked = nil
-	if err := repo.Save(a); err != nil {
+	if err := repo.Save(a, ""); err != nil {
 		return err
 	}
 	return nil
@@ -441,7 +457,7 @@ func (c *Agenda) validateDuplicity(repo port.Repository, noduplicity bool) error
 	if noduplicity {
 		return nil
 	}
-	ok, err := repo.Get(&Agenda{}, c.ID)
+	ok, err := repo.Get(&Agenda{}, c.ID, "")
 	if err != nil {
 		return err
 	}

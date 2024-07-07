@@ -8,6 +8,7 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+	"github.com/google/uuid"
 
 	"github.com/lavinas/ephemeris/internal/port"
 	"github.com/lavinas/ephemeris/pkg"
@@ -21,7 +22,7 @@ const (
 // RepoMySql is the repository handler for the application
 type MySql struct {
 	Db *gorm.DB
-	Tx *gorm.DB
+	Tx map[string]*gorm.DB
 }
 
 // NewRepository creates a new repository handler
@@ -30,45 +31,8 @@ func NewRepository(dns string) (*MySql, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &MySql{Db: db}, nil
-}
-
-// Begin starts a transaction
-func (r *MySql) Begin() error {
-	if r.Tx != nil {
-		return errors.New(pkg.ErrRepoTransactionStarted)
-	}
-	r.Tx = r.Db.Begin()
-	if r.Tx.Error != nil {
-		return r.Tx.Error
-	}
-	return nil
-}
-
-// Commit commits the transaction
-func (r *MySql) Commit() error {
-	if r.Tx == nil {
-		return errors.New(pkg.ErrRepoTransactionNotStarted)
-	}
-	r.Tx = r.Tx.Commit()
-	if r.Tx.Error != nil {
-		return r.Tx.Error
-	}
-	r.Tx = nil
-	return nil
-}
-
-// Rollback rolls back the transaction
-func (r *MySql) Rollback() error {
-	if r.Tx == nil {
-		return errors.New(pkg.ErrRepoTransactionNotStarted)
-	}
-	r.Tx = r.Tx.Rollback()
-	if r.Tx.Error != nil {
-		return r.Tx.Error
-	}
-	r.Tx = nil
-	return nil
+	tx := make(map[string]*gorm.DB)
+	return &MySql{Db: db, Tx: tx}, nil
 }
 
 // Close closes the database connection
@@ -81,6 +45,7 @@ func (r *MySql) Close() {
 }
 
 // Migrate migrates the database
+// it receives a slice of interfaces that represents the domain
 func (r *MySql) Migrate(domain []interface{}) error {
 	for _, d := range domain {
 		if err := r.Db.AutoMigrate(d); err != nil {
@@ -90,104 +55,107 @@ func (r *MySql) Migrate(domain []interface{}) error {
 	return nil
 }
 
-// Add adds a object to the database
-func (r *MySql) Add(obj interface{}) error {
-	if r.Tx == nil {
+// NewTransaction creates a new transaction
+func (r *MySql) NewTransaction() string {
+	return uuid.New().String()
+}
+
+// Begin is a method that starts a transaction
+// it receives a string that represents the transaction name
+func (r *MySql) Begin(tx string) error {
+	if _, ok := r.Tx[tx]; ok {
+		return errors.New(pkg.ErrRepoTransactionStarted)
+	}
+	r.Tx[tx] = r.Db.Begin()
+	return nil
+}
+
+// Commit commits the transaction
+// it receives a string that represents the transaction name
+func (r *MySql) Commit(tx string) error {
+	if _, ok := r.Tx[tx]; !ok {
 		return errors.New(pkg.ErrRepoTransactionNotStarted)
 	}
-	tx := r.Tx.Session(&gorm.Session{})
-	tx.Create(obj)
-	if tx.Error != nil {
-		return tx.Error
+	r.Tx[tx] = r.Tx[tx].Commit()
+	if r.Tx[tx].Error != nil {
+		return r.Tx[tx].Error
+	}
+	delete(r.Tx, tx)
+	return nil
+}
+
+// Rollback rolls back the transaction
+// it receives a string that represents the transaction name
+func (r *MySql) Rollback(tx string) error {
+	if _, ok := r.Tx[tx]; !ok {
+		return errors.New(pkg.ErrRepoTransactionNotStarted)
+	}
+	r.Tx[tx] = r.Tx[tx].Rollback()
+	if r.Tx[tx].Error != nil {
+		return r.Tx[tx].Error
+	}
+	delete(r.Tx, tx)
+	return nil
+}
+
+// Add adds a object to the database
+// it receives the object and the transaction name
+// transaction have to be started before calling this method
+func (r *MySql) Add(obj interface{}, tx string) error {
+	if _, ok := r.Tx[tx]; !ok {
+		return errors.New(pkg.ErrRepoTransactionNotStarted)
+	}
+	stx := r.Tx[tx].Session(&gorm.Session{})
+	stx.Create(obj)
+	if stx.Error != nil {
+		return stx.Error
 	}
 	return nil
 }
 
 // Get gets a object from the database by id
-func (r *MySql) Get(obj interface{}, id string) (bool, error) {
-	if r.Tx == nil {
+// it receives the object, the id and the transaction name
+// transaction have to be started before calling this method
+func (r *MySql) Get(obj interface{}, id string, tx string) (bool, error) {
+	if _, ok := r.Tx[tx]; !ok {
 		return false, errors.New(pkg.ErrRepoTransactionNotStarted)
 	}
 	d := obj.(port.Domain)
 	name := d.TableName()
-	tx := r.Tx.Session(&gorm.Session{})
-	tx = tx.Table(name).First(obj, "ID = ?", id)
-	if tx.Error == nil {
+	stx := r.Tx[tx].Session(&gorm.Session{})
+	stx = stx.Table(name).First(obj, "ID = ?", id)
+	if stx.Error == nil {
 		return true, nil
 	}
-	if errors.Is(tx.Error, gorm.ErrRecordNotFound) {
+	if errors.Is(stx.Error, gorm.ErrRecordNotFound) {
 		return false, nil
 	}
-	return false, tx.Error
-}
-
-    // GetHot gets a object from the database by id in a distinct transaction
-func (r *MySql) GetHot(obj interface{}, id string) (bool, error) {
-	tx := r.Db.Session(&gorm.Session{})
-	defer tx.Rollback()
-	d := obj.(port.Domain)
-	name := d.TableName()
-	tx = tx.Table(name).First(obj, "ID = ?", id)
-	if tx.Error == nil {
-		return true, nil
-	}
-	if errors.Is(tx.Error, gorm.ErrRecordNotFound) {
-		return false, nil
-	}
-	return false, tx.Error
-}
-
-// Save saves a object to the database
-func (r *MySql) Save(obj interface{}) error {
-	if r.Tx == nil {
-		return errors.New(pkg.ErrRepoTransactionNotStarted)
-	}
-	tx := r.Tx.Session(&gorm.Session{})
-	tx = tx.Save(obj)
-	if tx.Error != nil {
-		return tx.Error
-	}
-	return nil
-}
-
-// Delete deletes a object from the database by id
-func (r *MySql) Delete(obj interface{}, extras ...interface{}) error {
-	if r.Tx == nil {
-		return errors.New(pkg.ErrRepoTransactionNotStarted)
-	}
-	tx := r.Tx.Session(&gorm.Session{})
-	tx, err := r.where(tx, reflect.TypeOf(obj).Elem(), obj, extras...)
-	if err != nil {
-		return err
-	}
-	tx = tx.Delete(obj)
-	if tx.Error != nil {
-		return tx.Error
-	}
-	return nil
+	return false, stx.Error
 }
 
 // Find gets all objects from the database matching the object
 // Base represents a base object to filter the query and limit is the maximum number of objects to return
+// Tx is the transaction name and extras are extra filters commands to the query
+// transaction have to be started before calling this method
 // The function returns the objects, a boolean indicating if the limit was crossed and an error
 // Use -1 to cancel the limit
-func (r *MySql) Find(base interface{}, limit int, extras ...interface{}) (interface{}, bool, error) {
-	if r.Tx == nil {
+func (r *MySql) Find(base interface{}, limit int, tx string, extras ...interface{}) (interface{}, bool, error) {
+	if _, ok := r.Tx[tx]; !ok {
 		return nil, false, errors.New(pkg.ErrRepoTransactionNotStarted)
 	}
 	sob := reflect.TypeOf(base).Elem()
 	result := reflect.New(reflect.SliceOf(sob)).Interface()
-	tx := r.Db.Session(&gorm.Session{})
+	stx := r.Tx[tx].Session(&gorm.Session{})
 	var err error
-	tx, err = r.where(tx, sob, base, extras...)
+	stx, err = r.where(stx, sob, base, extras...)
 	if err != nil {
 		return nil, false, err
 	}
 	if limit > 0 {
-		tx = tx.Limit(limit + 1)
+		stx = stx.Limit(limit + 1)
 	}
-	if tx = tx.Find(result); tx.Error != nil {
-		return nil, false, tx.Error
+	if stx = stx.Find(result); stx.Error != nil {
+		return nil, false, stx.Error
 	}
 	if reflect.ValueOf(result).Elem().Len() == 0 {
 		return nil, false, nil
@@ -198,6 +166,41 @@ func (r *MySql) Find(base interface{}, limit int, extras ...interface{}) (interf
 		crossLimit = true
 	}
 	return result, crossLimit, nil
+}
+
+// Save saves a object to the database
+// it receives the object and the transaction name
+// transaction have to be started before calling this method
+func (r *MySql) Save(obj interface{}, tx string) error {
+	if _, ok := r.Tx[tx]; !ok {
+		return errors.New(pkg.ErrRepoTransactionNotStarted)
+	}
+	stx := r.Tx[tx].Session(&gorm.Session{})
+	stx = stx.Save(obj)
+	if stx.Error != nil {
+		return stx.Error
+	}
+	return nil
+}
+
+// Delete deletes a object from the database by id
+// it receives the object, the id and the transaction name
+// Tx is the transaction name and extras are extra filters commands to the query
+// transaction have to be started before calling this method
+func (r *MySql) Delete(obj interface{}, tx string, extras ...interface{}) error {
+	if _, ok := r.Tx[tx]; !ok {
+		return errors.New(pkg.ErrRepoTransactionNotStarted)
+	}
+	stx := r.Tx[tx].Session(&gorm.Session{})
+	stx, err := r.where(stx, reflect.TypeOf(obj).Elem(), obj, extras...)
+	if err != nil {
+		return err
+	}
+	stx = stx.Delete(obj)
+	if stx.Error != nil {
+		return stx.Error
+	}
+	return nil
 }
 
 // where is a method that filters the query

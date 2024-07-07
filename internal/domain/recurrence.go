@@ -97,7 +97,7 @@ func (r *Recurrence) Format(repo port.Repository, args ...string) error {
 
 // Exists is a method that checks if the recurrence exists
 func (r *Recurrence) Load(repo port.Repository) (bool, error) {
-	return repo.Get(r, r.ID)
+	return repo.Get(r, r.ID, "")
 }
 
 // GetID is a method that returns the id of the recurrence
@@ -233,7 +233,7 @@ func (r *Recurrence) validateDuplicity(repo port.Repository, noduplicity bool) e
 	if noduplicity {
 		return nil
 	}
-	ok, err := repo.Get(&Recurrence{}, r.ID)
+	ok, err := repo.Get(&Recurrence{}, r.ID, "")
 	if err != nil {
 		return err
 	}

@@ -223,6 +223,7 @@ const (
 	ErrAgendaLocked              = "agenda is locked"
 	ErrRepoTransactionStarted    = "transaction already started"
 	ErrRepoTransactionNotStarted = "no transaction started"
+	ErrRepoTransactionDefault    = "default transaction name is not allowed"
 	ProcessStatusError           = "error"
 	ErrNoSessionsProcessed       = "no sessions processed"
 	ErrInvalidAt                 = "invalid at"

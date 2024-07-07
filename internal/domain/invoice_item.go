@@ -70,7 +70,7 @@ func (i *InvoiceItem) Format(repo port.Repository, args ...string) error {
 
 // Exists is a function that checks if a client exists
 func (c *InvoiceItem) Load(repo port.Repository) (bool, error) {
-	return repo.Get(c, c.ID)
+	return repo.Get(c, c.ID, "")
 }
 
 // GetID is a method that returns the id of the client
@@ -172,7 +172,7 @@ func (c *InvoiceItem) validateDuplicity(repo port.Repository, noduplicity bool) 
 	if noduplicity {
 		return nil
 	}
-	ok, err := repo.Get(&InvoiceItem{}, c.ID)
+	ok, err := repo.Get(&InvoiceItem{}, c.ID, "")
 	if err != nil {
 		return err
 	}

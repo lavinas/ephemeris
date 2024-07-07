@@ -107,7 +107,7 @@ func (c *Contract) Format(repo port.Repository, args ...string) error {
 
 // Exists is a method that checks if the contract exists
 func (c *Contract) Load(repo port.Repository) (bool, error) {
-	return repo.Get(c, c.ID)
+	return repo.Get(c, c.ID, "")
 }
 
 // GetID is a method that returns the id of the contract
@@ -143,14 +143,14 @@ func (c *Contract) GetBond(repo port.Repository) (*Contract, error) {
 func (c *Contract) Lock(repo port.Repository) error {
 	var locked = true
 	c.Locked = &locked
-	if err := repo.Begin(); err != nil {
+	if err := repo.Begin(""); err != nil {
 		return err
 	}
-	defer repo.Rollback()
-	if err := repo.Save(c); err != nil {
+	defer repo.Rollback("")
+	if err := repo.Save(c, ""); err != nil {
 		return err
 	}
-	if err := repo.Commit(); err != nil {
+	if err := repo.Commit(""); err != nil {
 		return err
 	}
 	return nil
@@ -164,13 +164,13 @@ func (c *Contract) IsLocked() bool {
 // Unlock is a method that unlocks the contract
 func (c *Contract) Unlock(repo port.Repository) error {
 	c.Locked = nil
-	if err := repo.Begin(); err != nil {
+	if err := repo.Begin(""); err != nil {
 		return err
 	}
-	if err := repo.Save(c); err != nil {
+	if err := repo.Save(c, ""); err != nil {
 		return err
 	}
-	if err := repo.Commit(); err != nil {
+	if err := repo.Commit(""); err != nil {
 		return err
 	}
 	return nil
@@ -350,7 +350,7 @@ func (c *Contract) validateDuplicity(repo port.Repository, noduplicity bool) err
 	if noduplicity {
 		return nil
 	}
-	ok, err := repo.Get(&Contract{}, c.ID)
+	ok, err := repo.Get(&Contract{}, c.ID, "")
 	if err != nil {
 		return err
 	}

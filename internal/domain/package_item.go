@@ -70,7 +70,7 @@ func (p *PackageItem) Format(repo port.Repository, args ...string) error {
 
 // Exists is a method that checks if the contract exists
 func (p *PackageItem) Load(repo port.Repository) (bool, error) {
-	return repo.Get(p, p.ID)
+	return repo.Get(p, p.ID, "")
 }
 
 // GetID is a method that returns the id of the contract
@@ -192,7 +192,7 @@ func (p *PackageItem) validateDuplicity(repo port.Repository, noduplicity bool) 
 	if noduplicity {
 		return nil
 	}
-	ok, err := repo.Get(&PackageItem{}, p.ID)
+	ok, err := repo.Get(&PackageItem{}, p.ID, "")
 	if err != nil {
 		return err
 	}

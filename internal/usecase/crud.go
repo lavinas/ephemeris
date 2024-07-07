@@ -11,10 +11,10 @@ func (c *Usecase) Add(dtoIn interface{}) error {
 	if err := in.Validate(c.Repo); err != nil {
 		return c.error(pkg.ErrPrefBadRequest, err.Error(), 0, 0)
 	}
-	if err := c.Repo.Begin(); err != nil {
+	if err := c.Repo.Begin(""); err != nil {
 		return c.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
-	defer c.Repo.Rollback()
+	defer c.Repo.Rollback("")
 	domains := in.GetDomain()
 	result := []interface{}{}
 	count := 1
@@ -22,13 +22,13 @@ func (c *Usecase) Add(dtoIn interface{}) error {
 		if err := domain.Format(c.Repo); err != nil {
 			return c.error(pkg.ErrPrefBadRequest, err.Error(), count, len(domains))
 		}
-		if err := c.Repo.Add(domain); err != nil {
+		if err := c.Repo.Add(domain, ""); err != nil {
 			return c.error(pkg.ErrPrefInternal, err.Error(), count, len(domains))
 		}
 		result = append(result, c.sliceOf(domain))
 		count++
 	}
-	if err := c.Repo.Commit(); err != nil {
+	if err := c.Repo.Commit(""); err != nil {
 		return c.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
 	out := in.GetOut()
@@ -42,10 +42,10 @@ func (c *Usecase) Get(dtoIn interface{}) error {
 	if err := in.Validate(c.Repo); err != nil {
 		return c.error(pkg.ErrPrefBadRequest, err.Error(), 0, 0)
 	}
-	if err := c.Repo.Begin(); err != nil {
+	if err := c.Repo.Begin(""); err != nil {
 		return c.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
-	defer c.Repo.Rollback()
+	defer c.Repo.Rollback("")
 	domains := in.GetDomain()
 	result := []interface{}{}
 	limited := false
@@ -58,7 +58,7 @@ func (c *Usecase) Get(dtoIn interface{}) error {
 		if err := domain.Format(c.Repo, "filled", "noduplicity"); err != nil {
 			return c.error(pkg.ErrPrefBadRequest, err.Error(), count, len(domains))
 		}
-		base, lim, err := c.Repo.Find(domain, pkg.ResultLimit, extras...)
+		base, lim, err := c.Repo.Find(domain, pkg.ResultLimit, "", extras...)
 		limited = lim
 		if err != nil {
 			return c.error(pkg.ErrPrefInternal, err.Error(), count, len(domains))
@@ -83,17 +83,17 @@ func (c *Usecase) Up(dtoIn interface{}) error {
 	}
 	domains := in.GetDomain()
 	result := []interface{}{}
-	if err := c.Repo.Begin(); err != nil {
+	if err := c.Repo.Begin(""); err != nil {
 		return c.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
-	defer c.Repo.Rollback()
+	defer c.Repo.Rollback("")
 	count := 1
 	for _, source := range domains {
 		if err := source.Format(c.Repo, "filled", "noduplicity"); err != nil {
 			return c.error(pkg.ErrPrefBadRequest, err.Error(), count, len(domains))
 		}
 		target := source.GetEmpty()
-		if f, err := c.Repo.Get(target, source.GetID()); err != nil {
+		if f, err := c.Repo.Get(target, source.GetID(), ""); err != nil {
 			return c.error(pkg.ErrPrefInternal, err.Error(), count, len(domains))
 		} else if !f {
 			return c.error(pkg.ErrPrefBadRequest, pkg.ErrUnfound, count, len(domains))
@@ -104,13 +104,13 @@ func (c *Usecase) Up(dtoIn interface{}) error {
 		if err := target.Format(c.Repo, "noduplicity"); err != nil {
 			return c.error(pkg.ErrPrefInternal, err.Error(), count, len(domains))
 		}
-		if err := c.Repo.Save(target); err != nil {
+		if err := c.Repo.Save(target, ""); err != nil {
 			return c.error(pkg.ErrPrefInternal, err.Error(), count, len(domains))
 		}
 		result = append(result, c.sliceOf(target))
 		count++
 	}
-	if err := c.Repo.Commit(); err != nil {
+	if err := c.Repo.Commit(""); err != nil {
 		return c.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
 	out := in.GetOut()

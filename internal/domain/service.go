@@ -69,7 +69,7 @@ func (s *Service) Format(repo port.Repository, args ...string) error {
 
 // Exists is a method that checks if a service exists
 func (s *Service) Load(repo port.Repository) (bool, error) {
-	return repo.Get(s, s.ID)
+	return repo.Get(s, s.ID, "")
 }
 
 // GetID is a method that returns the id of the client
@@ -146,7 +146,7 @@ func (c *Service) validateDuplicity(repo port.Repository, noduplicity bool) erro
 	if noduplicity {
 		return nil
 	}
-	ok, err := repo.Get(&Service{}, c.ID)
+	ok, err := repo.Get(&Service{}, c.ID, "")
 	if err != nil {
 		return err
 	}

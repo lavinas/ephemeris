@@ -105,7 +105,7 @@ func (s *Session) Format(repo port.Repository, args ...string) error {
 
 // Exists is a function that checks if a agenda exists
 func (s *Session) Load(repo port.Repository) (bool, error) {
-	return repo.Get(s, s.ID)
+	return repo.Get(s, s.ID, "")
 }
 
 // GetID is a method that returns the id of the client
@@ -127,7 +127,7 @@ func (s *Session) GetEmpty() port.Domain {
 func (s *Session) Lock(repo port.Repository) error {
 	var locked = true
 	s.Locked = &locked
-	if err := repo.Save(s); err != nil {
+	if err := repo.Save(s, ""); err != nil {
 		return err
 	}
 	return nil
@@ -141,7 +141,7 @@ func (s *Session) IsLocked() bool {
 // Unlock is a method that unlocks the contract
 func (s *Session) Unlock(repo port.Repository) error {
 	s.Locked = nil
-	if err := repo.Save(s); err != nil {
+	if err := repo.Save(s, ""); err != nil {
 		return err
 	}
 	return nil
@@ -289,7 +289,7 @@ func (s *Session) validateDuplicity(repo port.Repository, noduplicity bool) erro
 	if noduplicity {
 		return nil
 	}
-	ok, err := repo.Get(&Session{}, s.ID)
+	ok, err := repo.Get(&Session{}, s.ID, "")
 	if err != nil {
 		return err
 	}
