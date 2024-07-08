@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"regexp"
@@ -8,7 +9,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"context"
 
 	"github.com/lavinas/ephemeris/internal/port"
 	"github.com/lavinas/ephemeris/pkg"
@@ -174,7 +174,7 @@ func (a *Agenda) Lock(repo port.Repository, timeout int) error {
 		return errors.New(pkg.ErrAgendaLocked)
 	}
 	x := time.Now()
-	a.Locked = &x 
+	a.Locked = &x
 	if err := repo.Save(a, ""); err != nil {
 		return err
 	}

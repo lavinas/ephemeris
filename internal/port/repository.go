@@ -8,7 +8,7 @@ type Repository interface {
 	// Close is a method that closes the repository
 	Close()
 	// NewTransaction is a method that creates a new transaction uuid name
-	NewTransaction() string 
+	NewTransaction() string
 	// Begin is a method that starts a transaction
 	// it receives a string that represents the transaction name
 	// if the transaction name is empty, it will be a default transaction

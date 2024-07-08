@@ -228,4 +228,5 @@ const (
 	ErrNoSessionsProcessed       = "no sessions processed"
 	ErrInvalidAt                 = "invalid at"
 	ErrSessionMultiples          = "session multiples"
+	ErrInvalidParameters         = "almost one parameter should be informed"
 )

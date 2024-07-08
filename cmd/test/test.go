@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func numeros(v chan <- int) {
+func numeros(v chan<- int) {
 	for i := 0; i < 10; i++ {
 		v <- i
 		fmt.Println("Enviando: ", i)
@@ -22,7 +22,7 @@ func cancel(cf context.CancelFunc) {
 */
 
 func main() {
-	ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	c := make(chan int)
 	go numeros(c)
