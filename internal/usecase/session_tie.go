@@ -30,17 +30,6 @@ func (u *Usecase) SessionTie(dtoIn interface{}) error {
 	return nil
 }
 
-// sessionSortFunc is a function to sort sessions
-func (u *Usecase) sessionSortFunc(a domain.Session, b domain.Session) int {
-	switch {
-	case a.At.Before(b.At):
-		return -1
-	case a.At.After(b.At):
-		return 1
-	default:
-		return 0
-	}
-}
 
 // findSessionsTie finds a session to tie
 func (u *Usecase) findSessionsTie(dtoIn *dto.SessionTie) (*[]domain.Session, error) {
@@ -67,6 +56,18 @@ func (u *Usecase) findSessionsTie(dtoIn *dto.SessionTie) (*[]domain.Session, err
 	return ret, nil
 }
 
+// sessionSortFunc is a function to sort sessions
+func (u *Usecase) sessionSortFunc(a domain.Session, b domain.Session) int {
+	switch {
+	case a.At.Before(b.At):
+		return -1
+	case a.At.After(b.At):
+		return 1
+	default:
+		return 0
+	}
+}
+
 // sessionTieLoop process multiple sessions
 func (u *Usecase) sessionTieLoop(command string, sessions *[]domain.Session) []interface{} {
 	start := time.Now()
@@ -86,40 +87,42 @@ func (u *Usecase) sessionTieLoop(command string, sessions *[]domain.Session) []i
 	return result
 }
 
-// sessionTieJob is a job to tie a session in parallel
-func (u *Usecase) sessionTieJob(command string, jobs <-chan domain.Session, result chan<- interface{}) {
-	for s := range jobs {
-		s, err := u.sessionTieOne(s.ID, command)
-		if err != nil {
-			s.Process = pkg.ProcessStatusError
-			s.AgendaID = err.Error()
-			result <- &s
-			continue
-		}
-		result <- s
-	}
-}
 
 // sessionTieLoop2 process multiple sessions
 func (u *Usecase) sessionTieLoop2(command string, sessions *[]domain.Session) []interface{} {
 	start := time.Now()
-	jobs := make(chan domain.Session, len(*sessions))
+	jobs := make(chan *domain.Session, len(*sessions))
 	result := make(chan interface{}, len(*sessions))
-	for _, session := range *sessions {
-		jobs <- session
-	}
-	close(jobs)
-	for w := 1; w <= 3; w++ {
+	for w := 1; w <= 5; w++ {
 		go u.sessionTieJob(command, jobs, result)
 	}
+	for _, session := range *sessions {
+		jobs <- &session
+	}
+	close(jobs)
 	ret := []interface{}{}
-	for r := range result {
+	for i := 0; i < len(*sessions); i++ {
+		r := <-result
 		ret = append(ret, r)
 	}
 	close(result)
 	end := time.Now()
 	fmt.Println("SessionTieLoop", "Duration", end.Sub(start).String())
 	return ret
+}
+
+// sessionTieJob is a job to tie a session in parallel
+func (u *Usecase) sessionTieJob(command string, jobs <-chan *domain.Session, result chan <- interface{}) {
+	for s := range jobs {
+		ss, err := u.sessionTieOne(s.ID, command)
+		if err != nil {
+			s.Process = pkg.ProcessStatusError
+			s.AgendaID = err.Error()
+			result <- s
+			continue
+		}
+		result <- ss
+	}
 }
 
 // sessionTieOne ties a session to an agenda
