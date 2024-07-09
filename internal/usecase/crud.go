@@ -1,6 +1,7 @@
 package usecase
 
 import (
+
 	"github.com/lavinas/ephemeris/internal/port"
 	"github.com/lavinas/ephemeris/pkg"
 )
@@ -19,7 +20,7 @@ func (c *Usecase) Add(dtoIn interface{}) error {
 	result := []interface{}{}
 	count := 1
 	for _, domain := range domains {
-		if err := domain.Format(c.Repo); err != nil {
+		if err := domain.Format(c.Repo, ""); err != nil {
 			return c.error(pkg.ErrPrefBadRequest, err.Error(), count, len(domains))
 		}
 		if err := c.Repo.Add(domain, ""); err != nil {
@@ -55,7 +56,7 @@ func (c *Usecase) Get(dtoIn interface{}) error {
 		if err != nil {
 			return c.error(pkg.ErrPrefInternal, err.Error(), count, len(domains))
 		}
-		if err := domain.Format(c.Repo, "filled", "noduplicity"); err != nil {
+		if err := domain.Format(c.Repo, "", "filled", "noduplicity"); err != nil {
 			return c.error(pkg.ErrPrefBadRequest, err.Error(), count, len(domains))
 		}
 		base, lim, err := c.Repo.Find(domain, pkg.ResultLimit, "", extras...)
@@ -89,7 +90,7 @@ func (c *Usecase) Up(dtoIn interface{}) error {
 	defer c.Repo.Rollback("")
 	count := 1
 	for _, source := range domains {
-		if err := source.Format(c.Repo, "filled", "noduplicity"); err != nil {
+		if err := source.Format(c.Repo, "", "filled", "noduplicity"); err != nil {
 			return c.error(pkg.ErrPrefBadRequest, err.Error(), count, len(domains))
 		}
 		target := source.GetEmpty()
@@ -101,7 +102,7 @@ func (c *Usecase) Up(dtoIn interface{}) error {
 		if err := c.merge(source, target); err != nil {
 			return c.error(pkg.ErrPrefInternal, err.Error(), count, len(domains))
 		}
-		if err := target.Format(c.Repo, "noduplicity"); err != nil {
+		if err := target.Format(c.Repo, "", "noduplicity"); err != nil {
 			return c.error(pkg.ErrPrefInternal, err.Error(), count, len(domains))
 		}
 		if err := c.Repo.Save(target, ""); err != nil {

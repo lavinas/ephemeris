@@ -52,10 +52,10 @@ func (u *Usecase) AgendaContractMake(dtoIn port.DTOIn, contract domain.Contract,
 			Start: pkg.Locked, End: pkg.Locked, Kind: pkg.Locked, Status: pkg.Locked}
 		return []port.DTOOut{&ret}, nil
 	}
-	if err := contract.Lock(u.Repo); err != nil {
+	if err := contract.Lock(u.Repo, ""); err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
-	defer contract.Unlock(u.Repo)
+	defer contract.Unlock(u.Repo, "")
 	if err := u.DeleteAgenda(&contract, month); err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
@@ -201,17 +201,17 @@ func (u *Usecase) getBound(contract *domain.Contract, month time.Time) (time.Tim
 // getPackageParams returns the recurrence struct and serviice minutes of the package
 func (u *Usecase) getPackageParams(packId string) (*domain.Recurrence, []*domain.Service, []*float64, error) {
 	pack := domain.Package{ID: packId}
-	if ok, err := pack.Load(u.Repo); err != nil {
+	if ok, err := pack.Load(u.Repo, ""); err != nil {
 		return nil, nil, nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	} else if !ok {
 		return nil, nil, nil, u.error(pkg.ErrPrefInternal, pkg.ErrPackageNotFound, 0, 0)
 	}
 	var err error
-	recur, err := pack.GetRecurrence(u.Repo)
+	recur, err := pack.GetRecurrence(u.Repo, "")
 	if err != nil {
 		return nil, nil, nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
-	services, prices, err := pack.GetServices(u.Repo)
+	services, prices, err := pack.GetServices(u.Repo, "")
 	if err != nil {
 		return nil, nil, nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
@@ -231,7 +231,7 @@ func (u *Usecase) getServicePrice(services []*domain.Service, prices []*float64,
 
 // delBound deletes the bound of the contract
 func (u *Usecase) delBound(contract *domain.Contract, month time.Time, items []*agendaItem) ([]*agendaItem, error) {
-	bond, err := contract.GetBond(u.Repo)
+	bond, err := contract.GetBond(u.Repo, "")
 	if err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
@@ -272,7 +272,7 @@ func (u *Usecase) setAgenda(agenda *domain.Agenda, contract *domain.Contract, it
 	agenda.ServiceID = item.serviceId
 	agenda.Price = item.Price
 	agenda.ID = fmt.Sprintf(idFormat, item.start.Format(idDateFormat), contract.ClientID)
-	if err := agenda.Format(u.Repo); err != nil {
+	if err := agenda.Format(u.Repo, ""); err != nil {
 		return err
 	}
 	return nil

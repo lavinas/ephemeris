@@ -64,7 +64,7 @@ func NewSession(id, sequence, date, clientID, serviceID, at, status string, proc
 }
 
 // Validate is a method that validates the session entity
-func (s *Session) Format(repo port.Repository, args ...string) error {
+func (s *Session) Format(repo port.Repository, tx string, args ...string) error {
 	filled := slices.Contains(args, "filled")
 	msg := ""
 	if err := s.formatID(filled); err != nil {
@@ -76,10 +76,10 @@ func (s *Session) Format(repo port.Repository, args ...string) error {
 	if err := s.formatDate(filled); err != nil {
 		msg += err.Error() + " | "
 	}
-	if err := s.formatClientID(repo, filled); err != nil {
+	if err := s.formatClientID(repo, tx, filled); err != nil {
 		msg += err.Error() + " | "
 	}
-	if err := s.formatServiceID(repo, filled); err != nil {
+	if err := s.formatServiceID(repo, tx, filled); err != nil {
 		msg += err.Error() + " | "
 	}
 	if err := s.formatAt(filled); err != nil {
@@ -91,10 +91,10 @@ func (s *Session) Format(repo port.Repository, args ...string) error {
 	if err := s.formatProcess(filled); err != nil {
 		msg += err.Error() + " | "
 	}
-	if err := s.formatAgendaID(repo); err != nil {
+	if err := s.formatAgendaID(repo, tx); err != nil {
 		msg += err.Error() + " | "
 	}
-	if err := s.validateDuplicity(repo, slices.Contains(args, "noduplicity")); err != nil {
+	if err := s.validateDuplicity(repo, tx, slices.Contains(args, "noduplicity")); err != nil {
 		msg += err.Error() + " | "
 	}
 	if msg != "" {
@@ -104,8 +104,8 @@ func (s *Session) Format(repo port.Repository, args ...string) error {
 }
 
 // Exists is a function that checks if a agenda exists
-func (s *Session) Load(repo port.Repository) (bool, error) {
-	return repo.Get(s, s.ID, "")
+func (s *Session) Load(repo port.Repository, tx string) (bool, error) {
+	return repo.Get(s, s.ID, tx)
 }
 
 // GetID is a method that returns the id of the client
@@ -124,10 +124,10 @@ func (s *Session) GetEmpty() port.Domain {
 }
 
 // Lock is a method that locks the contract
-func (s *Session) Lock(repo port.Repository) error {
+func (s *Session) Lock(repo port.Repository, tx string) error {
 	var locked = true
 	s.Locked = &locked
-	if err := repo.Save(s, ""); err != nil {
+	if err := repo.Save(s, tx); err != nil {
 		return err
 	}
 	return nil
@@ -139,9 +139,9 @@ func (s *Session) IsLocked() bool {
 }
 
 // Unlock is a method that unlocks the contract
-func (s *Session) Unlock(repo port.Repository) error {
+func (s *Session) Unlock(repo port.Repository, tx string) error {
 	s.Locked = nil
-	if err := repo.Save(s, ""); err != nil {
+	if err := repo.Save(s, tx); err != nil {
 		return err
 	}
 	return nil
@@ -182,7 +182,7 @@ func (s *Session) formatDate(filled bool) error {
 }
 
 // validateClientID is a method that validates the session client id
-func (s *Session) formatClientID(repo port.Repository, filled bool) error {
+func (s *Session) formatClientID(repo port.Repository, tx string, filled bool) error {
 	if s.ClientID == "" {
 		if filled {
 			return nil
@@ -190,7 +190,7 @@ func (s *Session) formatClientID(repo port.Repository, filled bool) error {
 		return errors.New(pkg.ErrEmptyClientID)
 	}
 	client := &Client{ID: s.ClientID}
-	if ok, err := client.Load(repo); err != nil {
+	if ok, err := client.Load(repo, tx); err != nil {
 		return err
 	} else if !ok {
 		return errors.New(pkg.ErrClientNotFound)
@@ -199,7 +199,7 @@ func (s *Session) formatClientID(repo port.Repository, filled bool) error {
 }
 
 // formatServiceID is a method that validates the session service id
-func (s *Session) formatServiceID(repo port.Repository, filled bool) error {
+func (s *Session) formatServiceID(repo port.Repository, tx string, filled bool) error {
 	if s.ServiceID == "" {
 		if filled {
 			return nil
@@ -207,7 +207,7 @@ func (s *Session) formatServiceID(repo port.Repository, filled bool) error {
 		return errors.New(pkg.ErrEmptyServiceID)
 	}
 	service := &Service{ID: s.ServiceID}
-	if ok, err := service.Load(repo); err != nil {
+	if ok, err := service.Load(repo, tx); err != nil {
 		return err
 	} else if !ok {
 		return errors.New(pkg.ErrServiceNotFound)
@@ -271,12 +271,12 @@ func (s *Session) formatSequence(filled bool) error {
 }
 
 // formatAgendaID formats the agenda id
-func (s *Session) formatAgendaID(repo port.Repository) error {
+func (s *Session) formatAgendaID(repo port.Repository, tx string) error {
 	if s.AgendaID == "" {
 		return nil
 	}
 	agenda := &Agenda{ID: s.AgendaID}
-	if ok, err := agenda.Load(repo); err != nil {
+	if ok, err := agenda.Load(repo, tx); err != nil {
 		return err
 	} else if !ok {
 		return errors.New(pkg.ErrAgendaNotFound)
@@ -285,11 +285,11 @@ func (s *Session) formatAgendaID(repo port.Repository) error {
 }
 
 // validateDuplicity is a method that validates the duplicity of a client
-func (s *Session) validateDuplicity(repo port.Repository, noduplicity bool) error {
+func (s *Session) validateDuplicity(repo port.Repository, tx string, noduplicity bool) error {
 	if noduplicity {
 		return nil
 	}
-	ok, err := repo.Get(&Session{}, s.ID, "")
+	ok, err := repo.Get(&Session{}, s.ID, tx)
 	if err != nil {
 		return err
 	}

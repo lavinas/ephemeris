@@ -45,7 +45,7 @@ func NewService(id, date, name, minutes string) *Service {
 }
 
 // Format is a method that formats the service
-func (s *Service) Format(repo port.Repository, args ...string) error {
+func (s *Service) Format(repo port.Repository, tx string, args ...string) error {
 	filled := slices.Contains(args, "filled")
 	noduplicity := slices.Contains(args, "noduplicity")
 	msg := ""
@@ -58,7 +58,7 @@ func (s *Service) Format(repo port.Repository, args ...string) error {
 	if err := s.formatName(filled); err != nil {
 		msg += err.Error() + " | "
 	}
-	if err := s.validateDuplicity(repo, noduplicity); err != nil {
+	if err := s.validateDuplicity(repo, tx, noduplicity); err != nil {
 		msg += err.Error() + " | "
 	}
 	if msg != "" {
@@ -68,8 +68,8 @@ func (s *Service) Format(repo port.Repository, args ...string) error {
 }
 
 // Exists is a method that checks if a service exists
-func (s *Service) Load(repo port.Repository) (bool, error) {
-	return repo.Get(s, s.ID, "")
+func (s *Service) Load(repo port.Repository, tx string) (bool, error) {
+	return repo.Get(s, s.ID, tx)
 }
 
 // GetID is a method that returns the id of the client
@@ -142,11 +142,11 @@ func (s *Service) formatString(str string) string {
 }
 
 // validateDuplicity is a method that validates the duplicity of a client
-func (c *Service) validateDuplicity(repo port.Repository, noduplicity bool) error {
+func (c *Service) validateDuplicity(repo port.Repository, tx string, noduplicity bool) error {
 	if noduplicity {
 		return nil
 	}
-	ok, err := repo.Get(&Service{}, c.ID, "")
+	ok, err := repo.Get(&Service{}, c.ID, tx)
 	if err != nil {
 		return err
 	}

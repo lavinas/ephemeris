@@ -32,6 +32,7 @@ type Client struct {
 	Phone    string    `gorm:"type:varchar(20); not null; index"`
 	Contact  string    `gorm:"type:varchar(20); not null; index"`
 	Document *string   `gorm:"type:varchar(20); null; index"`
+	Lock     *time.Time `gorm:"type:datetime; null"`
 }
 
 // NewClient is a function that creates a new client
@@ -61,7 +62,7 @@ func NewClient(id, date, name, email, phone, document, contact string) *Client {
 }
 
 // Format is a method that formats the client
-func (c *Client) Format(repo port.Repository, args ...string) error {
+func (c *Client) Format(repo port.Repository, tx string, args ...string) error {
 	filled := slices.Contains(args, "filled")
 	noduplicity := slices.Contains(args, "noduplicity")
 	formatMap := []func(filled bool) error{
@@ -79,7 +80,7 @@ func (c *Client) Format(repo port.Repository, args ...string) error {
 			message += err.Error() + " | "
 		}
 	}
-	if err := c.validateDuplicity(repo, noduplicity); err != nil {
+	if err := c.validateDuplicity(repo, tx, noduplicity); err != nil {
 		message += err.Error() + " | "
 	}
 	if message != "" {
@@ -89,8 +90,8 @@ func (c *Client) Format(repo port.Repository, args ...string) error {
 }
 
 // Exists is a function that checks if a client exists
-func (c *Client) Load(repo port.Repository) (bool, error) {
-	return repo.Get(c, c.ID, "")
+func (c *Client) Load(repo port.Repository, tx string) (bool, error) {
+	return repo.Get(c, c.ID, tx)
 }
 
 // GetID is a method that returns the id of the client
@@ -265,11 +266,11 @@ func (c *Client) formatString(str string) string {
 }
 
 // validateDuplicity is a method that validates the duplicity of a client
-func (c *Client) validateDuplicity(repo port.Repository, noduplicity bool) error {
+func (c *Client) validateDuplicity(repo port.Repository, tx string, noduplicity bool) error {
 	if noduplicity {
 		return nil
 	}
-	ok, err := repo.Get(&Client{}, c.ID, "")
+	ok, err := repo.Get(&Client{}, c.ID, tx)
 	if err != nil {
 		return err
 	}
