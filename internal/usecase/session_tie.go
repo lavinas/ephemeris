@@ -86,14 +86,14 @@ func (u *Usecase) sessionTieLoop2(command string, sessions *[]domain.Session) []
 	fmt.Println("SessionTieLoop", "Duration", end.Sub(start).String())
 	return result
 }
-*/
+	*/
 
 // sessionTieLoop2 process multiple sessions
 func (u *Usecase) sessionTieLoop(command string, sessions *[]domain.Session) []interface{} {
 	start := time.Now()
 	jobs := make(chan *domain.Session, len(*sessions))
 	result := make(chan interface{}, len(*sessions))
-	for w := 1; w <= 2; w++ {
+	for w := 1; w <= 1; w++ {
 		trans := u.Repo.NewTransaction()	
 		go u.sessionTieJob(trans, command, jobs, result)
 	}
