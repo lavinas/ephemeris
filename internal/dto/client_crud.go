@@ -26,7 +26,7 @@ type ClientCrud struct {
 }
 
 // Validate is a method that validates the dto
-func (c *ClientCrud) Validate(repo port.Repository) error {
+func (c *ClientCrud) Validate() error {
 	if c.Csv != "" && (c.ID != "" || c.Date != "" || c.Name != "" || c.Email != "" || c.Phone != "" || c.Document != "" || c.Contact != "") {
 		return errors.New(pkg.ErrCsvAndParams)
 	}

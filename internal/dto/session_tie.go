@@ -36,7 +36,7 @@ type SessionTieOut struct {
 }
 
 // Validate is a method that validates the dto
-func (s *SessionTie) Validate(repo port.Repository) error {
+func (s *SessionTie) Validate() error {
 	if s.ID == "" && s.ClientID == "" && s.ServiceID == "" && s.At == "" && s.Status == "" &&
 		s.Process == "" {
 		return errors.New(pkg.ErrInvalidParameters)

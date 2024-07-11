@@ -64,7 +64,7 @@ func NewSession(id, sequence, date, clientID, serviceID, at, status string, proc
 }
 
 // Validate is a method that validates the session entity
-func (s *Session) Format(repo port.Repository, tx string, args ...string) error {
+func (s *Session) Format(repo port.Repository, tx interface{}, args ...string) error {
 	filled := slices.Contains(args, "filled")
 	msg := ""
 	if err := s.formatID(filled); err != nil {
@@ -104,8 +104,8 @@ func (s *Session) Format(repo port.Repository, tx string, args ...string) error 
 }
 
 // Exists is a function that checks if a agenda exists
-func (s *Session) Load(repo port.Repository, tx string) (bool, error) {
-	return repo.Get(s, s.ID, tx)
+func (s *Session) Load(repo port.Repository, tx interface{}) (bool, error) {
+	return repo.Get(tx, s, s.ID)
 }
 
 // GetID is a method that returns the id of the client
@@ -124,7 +124,7 @@ func (s *Session) GetEmpty() port.Domain {
 }
 
 // Lock is a method that locks the contract
-func (s *Session) Lock(repo port.Repository, tx string) error {
+func (s *Session) Lock(repo port.Repository, tx interface{}) error {
 	var locked = true
 	s.Locked = &locked
 	if err := repo.Save(s, tx); err != nil {
@@ -139,7 +139,7 @@ func (s *Session) IsLocked() bool {
 }
 
 // Unlock is a method that unlocks the contract
-func (s *Session) Unlock(repo port.Repository, tx string) error {
+func (s *Session) Unlock(repo port.Repository, tx interface{}) error {
 	s.Locked = nil
 	if err := repo.Save(s, tx); err != nil {
 		return err
@@ -182,7 +182,7 @@ func (s *Session) formatDate(filled bool) error {
 }
 
 // validateClientID is a method that validates the session client id
-func (s *Session) formatClientID(repo port.Repository, tx string, filled bool) error {
+func (s *Session) formatClientID(repo port.Repository, tx interface{}, filled bool) error {
 	if s.ClientID == "" {
 		if filled {
 			return nil
@@ -199,7 +199,7 @@ func (s *Session) formatClientID(repo port.Repository, tx string, filled bool) e
 }
 
 // formatServiceID is a method that validates the session service id
-func (s *Session) formatServiceID(repo port.Repository, tx string, filled bool) error {
+func (s *Session) formatServiceID(repo port.Repository, tx interface{}, filled bool) error {
 	if s.ServiceID == "" {
 		if filled {
 			return nil
@@ -271,7 +271,7 @@ func (s *Session) formatSequence(filled bool) error {
 }
 
 // formatAgendaID formats the agenda id
-func (s *Session) formatAgendaID(repo port.Repository, tx string) error {
+func (s *Session) formatAgendaID(repo port.Repository, tx interface{}) error {
 	if s.AgendaID == "" {
 		return nil
 	}
@@ -285,11 +285,11 @@ func (s *Session) formatAgendaID(repo port.Repository, tx string) error {
 }
 
 // validateDuplicity is a method that validates the duplicity of a client
-func (s *Session) validateDuplicity(repo port.Repository, tx string, noduplicity bool) error {
+func (s *Session) validateDuplicity(repo port.Repository, tx interface{}, noduplicity bool) error {
 	if noduplicity {
 		return nil
 	}
-	ok, err := repo.Get(&Session{}, s.ID, tx)
+	ok, err := repo.Get(tx, &Session{}, s.ID)
 	if err != nil {
 		return err
 	}

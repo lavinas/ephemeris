@@ -24,7 +24,7 @@ type ServiceCrud struct {
 }
 
 // Validate is a method that validates the dto
-func (s *ServiceCrud) Validate(repo port.Repository) error {
+func (s *ServiceCrud) Validate() error {
 	if s.Csv != "" && (s.ID != "" || s.Date != "" || s.Name != "" || s.Minutes != "") {
 		return errors.New(pkg.ErrCsvAndParams)
 	}

@@ -7,25 +7,23 @@ type Repository interface {
 	Migrate(domain []interface{}) error
 	// Close is a method that closes the repository
 	Close()
-	// NewTransaction is a method that creates a new transaction uuid name
-	NewTransaction() string
 	// Begin is a method that starts a transaction
 	// it receives a string that represents the transaction name
 	// if the transaction name is empty, it will be a default transaction
-	Begin(tx string) error
+	Begin() interface{}
 	// Commit is a method that commits a transaction
-	Commit(tx string) error
+	Commit(tx interface{}) error
 	// Rollback is a method that rolls back a transaction
-	Rollback(tx string) error
+	Rollback(tx interface{}) error
 	// Add is a method that adds a new object
-	Add(obj interface{}, tx string) error
+	Add(tx interface{}, obj interface{}) error
 	// Get is a method that gets an object by its ID
-	Get(obj interface{}, id string, tx string) (bool, error)
+	Get(tx interface{}, obj interface{}, id string) (bool, error)
 	// Find is a method that finds an object by its base
 	// returns the object, a boolean that indicates if the object was limited and an error
-	Find(base interface{}, limit int, tx string, extras ...interface{}) (interface{}, bool, error)
+	Find(tx interface{}, obj interface{}, limit int, extras ...interface{}) (interface{}, bool, error)
 	// Save is a method that saves an object
-	Save(obj interface{}, tx string) error
+	Save(tx interface{}, obj interface{}) error
 	// Delete is a method that deletes an object by filled fields
-	Delete(obj interface{}, tx string, extras ...interface{}) error
+	Delete(tx interface{}, obj interface{}, extras ...interface{}) error
 }

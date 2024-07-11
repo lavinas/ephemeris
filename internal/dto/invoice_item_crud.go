@@ -23,7 +23,7 @@ type InvoiceItemCrud struct {
 }
 
 // Validate is a method that validates the dto
-func (i *InvoiceItemCrud) Validate(repo port.Repository) error {
+func (i *InvoiceItemCrud) Validate() error {
 	if i.Csv != "" && (i.ID != "" || i.InvoiceID != "" || i.AgendaID != "" || i.Value != "" || i.Description != "") {
 		return errors.New(pkg.ErrCsvAndParams)
 	}

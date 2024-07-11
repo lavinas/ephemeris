@@ -58,7 +58,7 @@ func NewInvoice(id, clientID, date, value, status, sendstatus, paymentstatus str
 }
 
 // Format formats the invoice
-func (i *Invoice) Format(repo port.Repository, tx string, args ...string) error {
+func (i *Invoice) Format(repo port.Repository, tx interface{}, args ...string) error {
 	filled := slices.Contains(args, "filled")
 	noduplicity := slices.Contains(args, "noduplicity")
 	msg := ""
@@ -93,8 +93,8 @@ func (i *Invoice) Format(repo port.Repository, tx string, args ...string) error 
 }
 
 // Exists is a function that checks if a client exists
-func (c *Invoice) Load(repo port.Repository, tx string) (bool, error) {
-	return repo.Get(c, c.ID, tx)
+func (c *Invoice) Load(repo port.Repository, tx interface{}) (bool, error) {
+	return repo.Get(tx, c, c.ID)
 }
 
 // GetID is a method that returns the id of the client
@@ -148,7 +148,7 @@ func (c *Invoice) formatDate(filled bool) error {
 }
 
 // formatClientID is a method that formats the client id of the contract
-func (c *Invoice) formatClientID(repo port.Repository, tx string, filled bool) error {
+func (c *Invoice) formatClientID(repo port.Repository, tx interface{}, filled bool) error {
 	c.ClientID = c.formatString(c.ClientID)
 	if c.ClientID == "" {
 		if filled {
@@ -231,11 +231,11 @@ func (c *Invoice) formatString(str string) string {
 }
 
 // validateDuplicity is a method that validates the duplicity of a client
-func (c *Invoice) validateDuplicity(repo port.Repository, tx string, noduplicity bool) error {
+func (c *Invoice) validateDuplicity(repo port.Repository, tx interface{}, noduplicity bool) error {
 	if noduplicity {
 		return nil
 	}
-	ok, err := repo.Get(&Invoice{}, c.ID, tx)
+	ok, err := repo.Get(tx, &Invoice{}, c.ID)
 	if err != nil {
 		return err
 	}

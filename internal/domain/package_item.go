@@ -41,7 +41,7 @@ func NewPackageItem(id, packageID, serviceID, sequence, price string) *PackageIt
 }
 
 // Format is a method that formats the package item entity
-func (p *PackageItem) Format(repo port.Repository, tx string, args ...string) error {
+func (p *PackageItem) Format(repo port.Repository, tx interface{}, args ...string) error {
 	msg := ""
 	filled := slices.Contains(args, "filled")
 	if err := p.formatID(filled); err != nil {
@@ -69,8 +69,8 @@ func (p *PackageItem) Format(repo port.Repository, tx string, args ...string) er
 }
 
 // Exists is a method that checks if the contract exists
-func (p *PackageItem) Load(repo port.Repository, tx string) (bool, error) {
-	return repo.Get(p, p.ID, tx)
+func (p *PackageItem) Load(repo port.Repository, tx interface{}) (bool, error) {
+	return repo.Get(tx, p, p.ID)
 }
 
 // GetID is a method that returns the id of the contract
@@ -89,7 +89,7 @@ func (p *PackageItem) GetEmpty() port.Domain {
 }
 
 // GetService is a method that returns the service of the package item
-func (p *PackageItem) GetService(repo port.Repository, tx string) (*Service, error) {
+func (p *PackageItem) GetService(repo port.Repository, tx interface{}) (*Service, error) {
 	service := &Service{ID: p.ServiceID}
 	if exists, err := service.Load(repo, tx); err != nil {
 		return nil, err
@@ -124,7 +124,7 @@ func (p *PackageItem) formatID(filled bool) error {
 }
 
 // FormatPackageID is a method that formats the package item entity
-func (p *PackageItem) formatPackageID(repo port.Repository, tx string, filled bool) error {
+func (p *PackageItem) formatPackageID(repo port.Repository, tx interface{}, filled bool) error {
 	if p.PackageID == "" {
 		if filled {
 			return nil
@@ -141,7 +141,7 @@ func (p *PackageItem) formatPackageID(repo port.Repository, tx string, filled bo
 }
 
 // FormatServiceID is a method that formats the package item entity
-func (p *PackageItem) formatServiceID(repo port.Repository, tx string, filled bool) error {
+func (p *PackageItem) formatServiceID(repo port.Repository, tx interface{}, filled bool) error {
 	serviceID := p.formatString(p.ServiceID)
 	if serviceID == "" {
 		if filled {
@@ -188,11 +188,11 @@ func (p *PackageItem) formatPrice(filled bool) error {
 }
 
 // ValidateDuplicity is a method that validates the duplicity of the package item entity
-func (p *PackageItem) validateDuplicity(repo port.Repository, tx string, noduplicity bool) error {
+func (p *PackageItem) validateDuplicity(repo port.Repository, tx interface{}, noduplicity bool) error {
 	if noduplicity {
 		return nil
 	}
-	ok, err := repo.Get(&PackageItem{}, p.ID, tx)
+	ok, err := repo.Get(tx, &PackageItem{}, p.ID)
 	if err != nil {
 		return err
 	}

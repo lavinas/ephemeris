@@ -64,7 +64,7 @@ func NewRecurrence(id, date, name, cycle, length, limit string) *Recurrence {
 }
 
 // Format is a method that formats the recurrence
-func (r *Recurrence) Format(repo port.Repository, tx string, args ...string) error {
+func (r *Recurrence) Format(repo port.Repository, tx interface{}, args ...string) error {
 	filled := slices.Contains(args, "filled")
 	noduplicity := slices.Contains(args, "noduplicity")
 	msg := ""
@@ -96,8 +96,8 @@ func (r *Recurrence) Format(repo port.Repository, tx string, args ...string) err
 }
 
 // Exists is a method that checks if the recurrence exists
-func (r *Recurrence) Load(repo port.Repository, tx string) (bool, error) {
-	return repo.Get(r, r.ID, tx)
+func (r *Recurrence) Load(repo port.Repository, tx interface{}) (bool, error) {
+	return repo.Get(tx, r, r.ID)
 }
 
 // GetID is a method that returns the id of the recurrence
@@ -229,11 +229,11 @@ func (r *Recurrence) formatString(str string) string {
 }
 
 // validateDuplicity is a method that validates the duplicity of a recurrence
-func (r *Recurrence) validateDuplicity(repo port.Repository, tx string, noduplicity bool) error {
+func (r *Recurrence) validateDuplicity(repo port.Repository, tx interface{}, noduplicity bool) error {
 	if noduplicity {
 		return nil
 	}
-	ok, err := repo.Get(&Recurrence{}, r.ID, tx)
+	ok, err := repo.Get(tx, &Recurrence{}, r.ID)
 	if err != nil {
 		return err
 	}

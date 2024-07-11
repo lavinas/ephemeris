@@ -26,7 +26,7 @@ type RecurrenceCrud struct {
 }
 
 // Validate is a method that validates the dto
-func (r *RecurrenceCrud) Validate(repo port.Repository) error {
+func (r *RecurrenceCrud) Validate() error {
 	if r.Csv != "" && (r.ID != "" || r.Date != "" || r.Cycle != "" || r.Length != "" || r.Limit != "" || r.Name != "") {
 		return errors.New(pkg.ErrCsvAndParams)
 	}

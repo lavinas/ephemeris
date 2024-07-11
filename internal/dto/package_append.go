@@ -24,7 +24,7 @@ type PackageAppend struct {
 }
 
 // Validate is a method that validates the dto
-func (p *PackageAppend) Validate(repo port.Repository) error {
+func (p *PackageAppend) Validate() error {
 	if p.Csv != "" && (p.ID != "" || p.ServiceID != "" || p.UnitValue != "" || p.Sequence != "") {
 		return errors.New(pkg.ErrCsvAndParams)
 	}

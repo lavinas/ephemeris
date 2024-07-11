@@ -5,7 +5,6 @@ import (
 	"reflect"
 	"unicode"
 
-	"github.com/google/uuid"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -22,7 +21,6 @@ const (
 // RepoMySql is the repository handler for the application
 type MySql struct {
 	Db *gorm.DB
-	Tx map[string]*gorm.DB
 }
 
 // NewRepository creates a new repository handler
@@ -31,8 +29,7 @@ func NewRepository(dns string) (*MySql, error) {
 	if err != nil {
 		return nil, err
 	}
-	tx := make(map[string]*gorm.DB)
-	return &MySql{Db: db, Tx: tx}, nil
+	return &MySql{Db: db}, nil
 }
 
 // Close closes the database connection
@@ -55,57 +52,55 @@ func (r *MySql) Migrate(domain []interface{}) error {
 	return nil
 }
 
-// NewTransaction creates a new transaction
-func (r *MySql) NewTransaction() string {
-	return uuid.New().String()
-}
-
 // Begin is a method that starts a transaction
-// it receives a string that represents the transaction name
-func (r *MySql) Begin(tx string) error {
-	if _, ok := r.Tx[tx]; ok {
-		return errors.New(pkg.ErrRepoTransactionStarted)
-	}
-	r.Tx[tx] = r.Db.Begin()
-	return nil
+// it returns an object that represents a transaction to be used in others methods
+func (r *MySql) Begin() interface{} {
+	return r.Db.Begin()
 }
 
 // Commit commits the transaction
 // it receives a string that represents the transaction name
-func (r *MySql) Commit(tx string) error {
-	if _, ok := r.Tx[tx]; !ok {
-		return errors.New(pkg.ErrRepoTransactionNotStarted)
+func (r *MySql) Commit(tx interface{}) error {
+	if tx == nil {
+		return errors.New(pkg.ErrRepoNilTx)
 	}
-	r.Tx[tx] = r.Tx[tx].Commit()
-	if r.Tx[tx].Error != nil {
-		return r.Tx[tx].Error
+	stx, ok := tx.(*gorm.DB)
+	if !ok {
+		return errors.New(pkg.ErrRepoInvalidTX)
 	}
-	delete(r.Tx, tx)
+	stx = stx.Commit()
+	if stx.Error != nil {
+		return stx.Error
+	}
 	return nil
 }
 
 // Rollback rolls back the transaction
-// it receives a string that represents the transaction name
-func (r *MySql) Rollback(tx string) error {
-	if _, ok := r.Tx[tx]; !ok {
-		return errors.New(pkg.ErrRepoTransactionNotStarted)
+// it receives a transaction generate by Begin method
+func (r *MySql) Rollback(tx interface{}) error {
+	if tx == nil {
+		return errors.New(pkg.ErrRepoNilTx)
 	}
-	r.Tx[tx] = r.Tx[tx].Rollback()
-	if r.Tx[tx].Error != nil {
-		return r.Tx[tx].Error
+	stx, ok := tx.(*gorm.DB)
+	if !ok {
+		return errors.New(pkg.ErrRepoInvalidTX)
 	}
-	delete(r.Tx, tx)
+	stx = stx.Rollback()
+	if stx.Error != nil {
+		return stx.Error
+	}
 	return nil
 }
 
 // Add adds a object to the database
-// it receives the object and the transaction name
+// it receives the object and the transaction
 // transaction have to be started before calling this method
-func (r *MySql) Add(obj interface{}, tx string) error {
-	if _, ok := r.Tx[tx]; !ok {
-		return errors.New(pkg.ErrRepoTransactionNotStarted)
+func (r *MySql) Add(tx interface{}, obj interface{}) error {
+	stx, err := r.format(tx, obj)
+	if err != nil {
+		return err
 	}
-	stx := r.Tx[tx].Session(&gorm.Session{})
+	stx = stx.Session(&gorm.Session{})
 	stx.Create(obj)
 	if stx.Error != nil {
 		return stx.Error
@@ -114,16 +109,15 @@ func (r *MySql) Add(obj interface{}, tx string) error {
 }
 
 // Get gets a object from the database by id
-// it receives the object, the id and the transaction name
+// it receives the object, the id and the transaction
 // transaction have to be started before calling this method
-func (r *MySql) Get(obj interface{}, id string, tx string) (bool, error) {
-	if _, ok := r.Tx[tx]; !ok {
-		return false, errors.New(pkg.ErrRepoTransactionNotStarted)
+func (r *MySql) Get(tx interface{}, obj interface{}, id string) (bool, error) {
+	stx, err := r.format(tx, obj)
+	if err != nil {
+		return false, err
 	}
-	d := obj.(port.Domain)
-	name := d.TableName()
-	stx := r.Tx[tx].Session(&gorm.Session{})
-	stx = stx.Table(name).First(obj, "ID = ?", id)
+	stx = stx.Session(&gorm.Session{})
+	stx = stx.Table(obj.(port.Domain).TableName()).First(obj, "ID = ?", id)
 	if stx.Error == nil {
 		return true, nil
 	}
@@ -134,28 +128,19 @@ func (r *MySql) Get(obj interface{}, id string, tx string) (bool, error) {
 }
 
 // Find gets all objects from the database matching the object
-// Base represents a base object to filter the query and limit is the maximum number of objects to return
+// obj represents an object to filter the query and limit is the maximum number of objects to return
 // Tx is the transaction name and extras are extra filters commands to the query
 // transaction have to be started before calling this method
 // The function returns the objects, a boolean indicating if the limit was crossed and an error
 // Use -1 to cancel the limit
-func (r *MySql) Find(base interface{}, limit int, tx string, extras ...interface{}) (interface{}, bool, error) {
-	if _, ok := r.Tx[tx]; !ok {
-		return nil, false, errors.New(pkg.ErrRepoTransactionNotStarted)
-	}
-	sob := reflect.TypeOf(base).Elem()
-	result := reflect.New(reflect.SliceOf(sob)).Interface()
-	stx := r.Tx[tx].Session(&gorm.Session{})
-	var err error
-	stx, err = r.where(stx, sob, base, extras...)
+func (r *MySql) Find(tx interface{}, obj interface{}, limit int, extras ...interface{}) (interface{}, bool, error) {
+	stx, err := r.format(tx, obj)
 	if err != nil {
 		return nil, false, err
 	}
-	if limit > 0 {
-		stx = stx.Limit(limit + 1)
-	}
-	if stx = stx.Find(result); stx.Error != nil {
-		return nil, false, stx.Error
+	result, err := r.find(stx, obj, limit, extras...)
+	if err != nil {
+		return nil, false, err
 	}
 	if reflect.ValueOf(result).Elem().Len() == 0 {
 		return nil, false, nil
@@ -169,13 +154,14 @@ func (r *MySql) Find(base interface{}, limit int, tx string, extras ...interface
 }
 
 // Save saves a object to the database
-// it receives the object and the transaction name
+// it receives the object and the transaction
 // transaction have to be started before calling this method
-func (r *MySql) Save(obj interface{}, tx string) error {
-	if _, ok := r.Tx[tx]; !ok {
-		return errors.New(pkg.ErrRepoTransactionNotStarted)
+func (r *MySql) Save(tx interface{}, obj interface{}) error {
+	stx, err := r.format(tx, obj)
+	if err != nil {
+		return err
 	}
-	stx := r.Tx[tx].Session(&gorm.Session{})
+	stx = stx.Session(&gorm.Session{})
 	stx = stx.Save(obj)
 	if stx.Error != nil {
 		return stx.Error
@@ -187,12 +173,13 @@ func (r *MySql) Save(obj interface{}, tx string) error {
 // it receives the object, the id and the transaction name
 // Tx is the transaction name and extras are extra filters commands to the query
 // transaction have to be started before calling this method
-func (r *MySql) Delete(obj interface{}, tx string, extras ...interface{}) error {
-	if _, ok := r.Tx[tx]; !ok {
-		return errors.New(pkg.ErrRepoTransactionNotStarted)
+func (r *MySql) Delete(tx interface{}, obj interface{}, extras ...interface{}) error {
+	stx, err := r.format(tx, obj)
+	if err != nil {
+		return err
 	}
-	stx := r.Tx[tx].Session(&gorm.Session{})
-	stx, err := r.where(stx, reflect.TypeOf(obj).Elem(), obj, extras...)
+	stx = stx.Session(&gorm.Session{})
+	stx, err = r.where(stx, reflect.TypeOf(obj).Elem(), obj, extras...)
 	if err != nil {
 		return err
 	}
@@ -201,6 +188,43 @@ func (r *MySql) Delete(obj interface{}, tx string, extras ...interface{}) error 
 		return stx.Error
 	}
 	return nil
+}
+
+// find finds object based on obj, limit and extras params
+func (r *MySql) find(stx *gorm.DB, obj interface{}, limit int, extras ...interface{}) (interface{}, error) {
+	stx = stx.Session(&gorm.Session{})
+	sob := reflect.TypeOf(obj).Elem()
+	var err error
+	stx, err = r.where(stx, sob, obj, extras...)
+	if err != nil {
+		return nil, err
+	}
+	if limit > 0 {
+		stx = stx.Limit(limit + 1)
+	}
+	result := reflect.New(reflect.SliceOf(sob)).Interface()
+	if stx = stx.Find(result); stx.Error != nil {
+		return nil, stx.Error
+	}
+	return result, nil
+}
+
+// format formats input parameters
+func (r *MySql) format(tx interface{}, obj interface{}) (*gorm.DB, error) {
+	if tx == nil {
+		return nil, errors.New(pkg.ErrRepoNilTx)
+	}
+	if obj == nil {
+		return nil, errors.New(pkg.ErrRepoNilObject)
+	}
+	stx, ok := tx.(*gorm.DB)
+	if !ok {
+		return nil, errors.New(pkg.ErrRepoInvalidTX)
+	}
+	if _, ok := obj.(port.Domain); !ok {
+		return nil, errors.New(pkg.ErrRepoInvalidObject)
+	}
+	return stx, nil
 }
 
 // where is a method that filters the query

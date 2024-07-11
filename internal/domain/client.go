@@ -25,13 +25,13 @@ var (
 
 // Client represents the client entity
 type Client struct {
-	ID       string    `gorm:"type:varchar(50); primaryKey"`
-	Date     time.Time `gorm:"type:datetime; not null; index"`
-	Name     string    `gorm:"type:varchar(100); not null; index"`
-	Email    string    `gorm:"type:varchar(100); not null; index"`
-	Phone    string    `gorm:"type:varchar(20); not null; index"`
-	Contact  string    `gorm:"type:varchar(20); not null; index"`
-	Document *string   `gorm:"type:varchar(20); null; index"`
+	ID       string     `gorm:"type:varchar(50); primaryKey"`
+	Date     time.Time  `gorm:"type:datetime; not null; index"`
+	Name     string     `gorm:"type:varchar(100); not null; index"`
+	Email    string     `gorm:"type:varchar(100); not null; index"`
+	Phone    string     `gorm:"type:varchar(20); not null; index"`
+	Contact  string     `gorm:"type:varchar(20); not null; index"`
+	Document *string    `gorm:"type:varchar(20); null; index"`
 	Lock     *time.Time `gorm:"type:datetime; null"`
 }
 
@@ -62,7 +62,7 @@ func NewClient(id, date, name, email, phone, document, contact string) *Client {
 }
 
 // Format is a method that formats the client
-func (c *Client) Format(repo port.Repository, tx string, args ...string) error {
+func (c *Client) Format(repo port.Repository, tx interface{}, args ...string) error {
 	filled := slices.Contains(args, "filled")
 	noduplicity := slices.Contains(args, "noduplicity")
 	formatMap := []func(filled bool) error{
@@ -90,8 +90,8 @@ func (c *Client) Format(repo port.Repository, tx string, args ...string) error {
 }
 
 // Exists is a function that checks if a client exists
-func (c *Client) Load(repo port.Repository, tx string) (bool, error) {
-	return repo.Get(c, c.ID, tx)
+func (c *Client) Load(repo port.Repository, tx interface{}) (bool, error) {
+	return repo.Get(tx, c, c.ID)
 }
 
 // GetID is a method that returns the id of the client
@@ -266,11 +266,11 @@ func (c *Client) formatString(str string) string {
 }
 
 // validateDuplicity is a method that validates the duplicity of a client
-func (c *Client) validateDuplicity(repo port.Repository, tx string, noduplicity bool) error {
+func (c *Client) validateDuplicity(repo port.Repository, tx interface{}, noduplicity bool) error {
 	if noduplicity {
 		return nil
 	}
-	ok, err := repo.Get(&Client{}, c.ID, tx)
+	ok, err := repo.Get(tx, &Client{}, c.ID)
 	if err != nil {
 		return err
 	}

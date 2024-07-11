@@ -25,7 +25,7 @@ type agendaItem struct {
 // AgendaMake makes a preview of the agenda based on the client, contract and month
 func (u *Usecase) AgendaMake(dtoIn interface{}) error {
 	dtoAgenda := dtoIn.(*dto.AgendaMake)
-	if err := dtoAgenda.Validate(u.Repo); err != nil {
+	if err := dtoAgenda.Validate(); err != nil {
 		return u.error(pkg.ErrPrefBadRequest, err.Error(), 0, 0)
 	}
 	month, _ := time.Parse(pkg.MonthFormat, dtoAgenda.Month)
@@ -52,10 +52,10 @@ func (u *Usecase) AgendaContractMake(dtoIn port.DTOIn, contract domain.Contract,
 			Start: pkg.Locked, End: pkg.Locked, Kind: pkg.Locked, Status: pkg.Locked}
 		return []port.DTOOut{&ret}, nil
 	}
-	if err := contract.Lock(u.Repo, ""); err != nil {
+	if err := contract.Lock(u.Repo); err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
-	defer contract.Unlock(u.Repo, "")
+	defer contract.Unlock(u.Repo)
 	if err := u.DeleteAgenda(&contract, month); err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
@@ -70,17 +70,15 @@ func (u *Usecase) AgendaContractMake(dtoIn port.DTOIn, contract domain.Contract,
 func (u *Usecase) DeleteAgenda(contract *domain.Contract, month time.Time) error {
 	firstday := time.Date(month.Year(), month.Month(), 1, 0, 0, 0, 0, time.Local)
 	lastday := firstday.AddDate(0, 1, 0).Add(time.Nanosecond * -1)
-	if err := u.Repo.Begin(""); err != nil {
-		return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
-	}
-	defer u.Repo.Rollback("")
+	tx := u.Repo.Begin()
+	defer u.Repo.Rollback(tx)
 	agenda := &domain.Agenda{ContractID: &contract.ID}
 	p1 := fmt.Sprintf("start >= '%s'", firstday.Format("2006-01-02 15:04:05"))
 	p2 := fmt.Sprintf("start <= '%s'", lastday.Format("2006-01-02 15:04:05"))
-	if err := u.Repo.Delete(agenda, p1, p2); err != nil {
+	if err := u.Repo.Delete(tx, agenda, p1, p2); err != nil {
 		return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
-	if err := u.Repo.Commit(""); err != nil {
+	if err := u.Repo.Commit(tx); err != nil {
 		return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
 	return nil
@@ -88,19 +86,17 @@ func (u *Usecase) DeleteAgenda(contract *domain.Contract, month time.Time) error
 
 // generateAgenda generates the agenda based on the contract
 func (u *Usecase) GenerateAgenda(dtoIn port.DTOIn, contract *domain.Contract, month time.Time) ([]port.DTOOut, error) {
-	if err := u.Repo.Begin(""); err != nil {
-		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
-	}
-	defer u.Repo.Rollback("")
-	items, err := u.getItems(contract, month)
+	tx := u.Repo.Begin()
+	defer u.Repo.Rollback(tx)
+	items, err := u.getItems(tx, contract, month)
 	if err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
-	dtosOut, err := u.saveAgenda(dtoIn, contract, items)
+	dtosOut, err := u.saveAgenda(tx, dtoIn, contract, items)
 	if err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
-	if err := u.Repo.Commit(""); err != nil {
+	if err := u.Repo.Commit(tx); err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
 	return dtosOut, nil
@@ -113,11 +109,9 @@ func (u *Usecase) getContracts(dtoAgenda *dto.AgendaMake) (*[]domain.Contract, e
 	if err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
-	if err := u.Repo.Begin(""); err != nil {
-		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
-	}
-	defer u.Repo.Rollback("")
-	ret, _, err := u.Repo.Find(contract, 0, "", inst...)
+	tx := u.Repo.Begin()
+	defer u.Repo.Rollback(tx)
+	ret, _, err := u.Repo.Find(tx, contract, 0, inst...)
 	if err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
@@ -128,7 +122,7 @@ func (u *Usecase) getContracts(dtoAgenda *dto.AgendaMake) (*[]domain.Contract, e
 }
 
 // saveAgenda saves the agenda based on the contract, items and dto
-func (u *Usecase) saveAgenda(dtoIn port.DTOIn, contract *domain.Contract, items []*agendaItem) ([]port.DTOOut, error) {
+func (u *Usecase) saveAgenda(tx interface{}, dtoIn port.DTOIn, contract *domain.Contract, items []*agendaItem) ([]port.DTOOut, error) {
 	ret := []port.DTOOut{}
 	agenda := domain.Agenda{}
 	agenda.Date = time.Now()
@@ -137,10 +131,10 @@ func (u *Usecase) saveAgenda(dtoIn port.DTOIn, contract *domain.Contract, items 
 	dtoOut := dtoIn.GetOut()
 	count := 1
 	for i := 0; i < len(items); i++ {
-		if err := u.setAgenda(&agenda, contract, items[i]); err != nil {
+		if err := u.setAgenda(tx, &agenda, contract, items[i]); err != nil {
 			return nil, u.error(pkg.ErrPrefInternal, err.Error(), count, len(items))
 		}
-		if err := u.Repo.Add(agenda, ""); err != nil {
+		if err := u.Repo.Add(tx, agenda); err != nil {
 			return nil, u.error(pkg.ErrPrefInternal, err.Error(), count, len(items))
 		}
 		ret = append(ret, dtoOut.GetDTO(&agenda)...)
@@ -150,12 +144,12 @@ func (u *Usecase) saveAgenda(dtoIn port.DTOIn, contract *domain.Contract, items 
 }
 
 // getItems returns the items of the agenda based on contract and the month
-func (u *Usecase) getItems(contract *domain.Contract, month time.Time) ([]*agendaItem, error) {
-	items, err := u.mountItems(contract, month)
+func (u *Usecase) getItems(tx interface{}, contract *domain.Contract, month time.Time) ([]*agendaItem, error) {
+	items, err := u.mountItems(tx, contract, month)
 	if err != nil {
 		return nil, err
 	}
-	items, err = u.delBound(contract, month, items)
+	items, err = u.delBound(tx, contract, month, items)
 	if err != nil {
 		return nil, err
 	}
@@ -163,9 +157,9 @@ func (u *Usecase) getItems(contract *domain.Contract, month time.Time) ([]*agend
 }
 
 // mounItems mounts the agenda items based on the contract and month
-func (u *Usecase) mountItems(contract *domain.Contract, month time.Time) ([]*agendaItem, error) {
+func (u *Usecase) mountItems(tx interface{}, contract *domain.Contract, month time.Time) ([]*agendaItem, error) {
 	beginMonth, endMonth := u.getBound(contract, month)
-	recur, services, prices, err := u.getPackageParams(contract.PackageID)
+	recur, services, prices, err := u.getPackageParams(tx, contract.PackageID)
 	if err != nil {
 		return nil, err
 	}
@@ -199,19 +193,19 @@ func (u *Usecase) getBound(contract *domain.Contract, month time.Time) (time.Tim
 }
 
 // getPackageParams returns the recurrence struct and serviice minutes of the package
-func (u *Usecase) getPackageParams(packId string) (*domain.Recurrence, []*domain.Service, []*float64, error) {
+func (u *Usecase) getPackageParams(tx interface{}, packId string) (*domain.Recurrence, []*domain.Service, []*float64, error) {
 	pack := domain.Package{ID: packId}
-	if ok, err := pack.Load(u.Repo, ""); err != nil {
+	if ok, err := pack.Load(u.Repo, tx); err != nil {
 		return nil, nil, nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	} else if !ok {
 		return nil, nil, nil, u.error(pkg.ErrPrefInternal, pkg.ErrPackageNotFound, 0, 0)
 	}
 	var err error
-	recur, err := pack.GetRecurrence(u.Repo, "")
+	recur, err := pack.GetRecurrence(u.Repo, tx)
 	if err != nil {
 		return nil, nil, nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
-	services, prices, err := pack.GetServices(u.Repo, "")
+	services, prices, err := pack.GetServices(u.Repo, tx)
 	if err != nil {
 		return nil, nil, nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
@@ -230,15 +224,15 @@ func (u *Usecase) getServicePrice(services []*domain.Service, prices []*float64,
 }
 
 // delBound deletes the bound of the contract
-func (u *Usecase) delBound(contract *domain.Contract, month time.Time, items []*agendaItem) ([]*agendaItem, error) {
-	bond, err := contract.GetBond(u.Repo, "")
+func (u *Usecase) delBound(tx interface{}, contract *domain.Contract, month time.Time, items []*agendaItem) ([]*agendaItem, error) {
+	bond, err := contract.GetBond(u.Repo, tx)
 	if err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
 	if bond == nil {
 		return items, nil
 	}
-	delItems, err := u.getItems(bond, month)
+	delItems, err := u.getItems(tx, bond, month)
 	if err != nil {
 		return nil, err
 	}
@@ -264,7 +258,7 @@ func (u *Usecase) minus(subtracted []*agendaItem, subtractor []*agendaItem) []*a
 }
 
 // setAgenda sets the agenda based on the contract
-func (u *Usecase) setAgenda(agenda *domain.Agenda, contract *domain.Contract, item *agendaItem) error {
+func (u *Usecase) setAgenda(tx interface{}, agenda *domain.Agenda, contract *domain.Contract, item *agendaItem) error {
 	agenda.ContractID = &contract.ID
 	agenda.ClientID = contract.ClientID
 	agenda.Start = item.start
@@ -272,7 +266,7 @@ func (u *Usecase) setAgenda(agenda *domain.Agenda, contract *domain.Contract, it
 	agenda.ServiceID = item.serviceId
 	agenda.Price = item.Price
 	agenda.ID = fmt.Sprintf(idFormat, item.start.Format(idDateFormat), contract.ClientID)
-	if err := agenda.Format(u.Repo, ""); err != nil {
+	if err := agenda.Format(u.Repo, tx); err != nil {
 		return err
 	}
 	return nil

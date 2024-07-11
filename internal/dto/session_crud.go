@@ -29,7 +29,7 @@ type SessionCrud struct {
 }
 
 // Validate is a method that validates the dto
-func (s *SessionCrud) Validate(repo port.Repository) error {
+func (s *SessionCrud) Validate() error {
 	if s.Csv != "" && (s.ID != "" || s.Date != "" || s.ClientID != "" || s.ServiceID != "" || s.At != "" ||
 		s.Status != "" || s.Process != "" || s.Sequence != "" || s.AgendaID != "") {
 		return errors.New(pkg.ErrCsvAndParams)

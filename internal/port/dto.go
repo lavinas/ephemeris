@@ -2,7 +2,7 @@ package port
 
 type DTOIn interface {
 	// Validate is a method that validates the DTOIn
-	Validate(repo Repository) error
+	Validate() error
 	// GetCommand is a method that returns the command of the DTOIn
 	GetCommand() string
 	// GetDomain is a method that returns the domain of the DTOIn

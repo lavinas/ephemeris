@@ -45,7 +45,7 @@ func NewPackage(id, date, recurrenceID, packValue string) *Package {
 }
 
 // Validate is a method that validates the package entity
-func (p *Package) Format(repo port.Repository, tx string, args ...string) error {
+func (p *Package) Format(repo port.Repository, tx interface{}, args ...string) error {
 	filled := slices.Contains(args, "filled")
 	msg := ""
 	if err := p.formatID(filled); err != nil {
@@ -70,8 +70,8 @@ func (p *Package) Format(repo port.Repository, tx string, args ...string) error 
 }
 
 // Exists is a method that checks if the contract exists
-func (p *Package) Load(repo port.Repository, tx string) (bool, error) {
-	return repo.Get(p, p.ID, tx)
+func (p *Package) Load(repo port.Repository, tx interface{}) (bool, error) {
+	return repo.Get(tx, p, p.ID)
 }
 
 // GetID is a method that returns the id of the contract
@@ -95,10 +95,10 @@ func (p *Package) TableName() string {
 }
 
 // GetService is a method that returns the service of the package
-func (p *Package) GetServices(repo port.Repository, tx string) ([]*Service, []*float64, error) {
+func (p *Package) GetServices(repo port.Repository, tx interface{}) ([]*Service, []*float64, error) {
 	services := []*Service{}
 	prices := []*float64{}
-	i, _, err := repo.Find(&PackageItem{PackageID: p.ID}, -1, tx)
+	i, _, err := repo.Find(tx, &PackageItem{PackageID: p.ID}, -1)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -122,7 +122,7 @@ func (p *Package) GetServices(repo port.Repository, tx string) ([]*Service, []*f
 }
 
 // GetRecurrence is a method that returns the recurrence of the package
-func (p *Package) GetRecurrence(repo port.Repository, tx string) (*Recurrence, error) {
+func (p *Package) GetRecurrence(repo port.Repository, tx interface{}) (*Recurrence, error) {
 	if p.RecurrenceID == "" {
 		if ok, err := p.Load(repo, tx); err != nil {
 			return nil, err
@@ -170,7 +170,7 @@ func (p *Package) formatDate(filled bool) error {
 }
 
 // formatRecurrenceID is a method that formats the recurrence id of the contract
-func (p *Package) formatRecurrenceID(repo port.Repository, tx string, filled bool) error {
+func (p *Package) formatRecurrenceID(repo port.Repository, tx interface{}, filled bool) error {
 	recurrenceID := p.formatString(p.RecurrenceID)
 	if recurrenceID == "" {
 		if filled {
@@ -211,11 +211,11 @@ func (c *Package) formatString(str string) string {
 }
 
 // validateDuplicity is a method that validates the duplicity of a client
-func (c *Package) validateDuplicity(repo port.Repository, tx string, noduplicity bool) error {
+func (c *Package) validateDuplicity(repo port.Repository, tx interface{}, noduplicity bool) error {
 	if noduplicity {
 		return nil
 	}
-	ok, err := repo.Get(&Package{}, c.ID, tx)
+	ok, err := repo.Get(tx, &Package{}, c.ID)
 	if err != nil {
 		return err
 	}

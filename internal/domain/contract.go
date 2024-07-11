@@ -62,7 +62,7 @@ func NewContract(id, date, clientID, SponsorID, packageID, billingType, dueDay, 
 }
 
 // Format is a method that formats the contract
-func (c *Contract) Format(repo port.Repository, tx string, args ...string) error {
+func (c *Contract) Format(repo port.Repository, tx interface{}, args ...string) error {
 	filled := slices.Contains(args, "filled")
 	noduplicity := slices.Contains(args, "noduplicity")
 	msg := ""
@@ -106,8 +106,8 @@ func (c *Contract) Format(repo port.Repository, tx string, args ...string) error
 }
 
 // Exists is a method that checks if the contract exists
-func (c *Contract) Load(repo port.Repository, tx string) (bool, error) {
-	return repo.Get(c, c.ID, tx)
+func (c *Contract) Load(repo port.Repository, tx interface{}) (bool, error) {
+	return repo.Get(tx, c, c.ID)
 }
 
 // GetID is a method that returns the id of the contract
@@ -126,7 +126,7 @@ func (c *Contract) GetEmpty() port.Domain {
 }
 
 // GetBond is a method that returns the bond contract of the contract
-func (c *Contract) GetBond(repo port.Repository, tx string) (*Contract, error) {
+func (c *Contract) GetBond(repo port.Repository, tx interface{}) (*Contract, error) {
 	if c.Bond == nil {
 		return nil, nil
 	}
@@ -140,12 +140,10 @@ func (c *Contract) GetBond(repo port.Repository, tx string) (*Contract, error) {
 }
 
 // Lock is a method that locks the contract
-func (c *Contract) Lock(repo port.Repository, tx string) error {
+func (c *Contract) Lock(repo port.Repository) error {
 	var locked = true
 	c.Locked = &locked
-	if err := repo.Begin(tx); err != nil {
-		return err
-	}
+	tx := repo.Begin()
 	defer repo.Rollback(tx)
 	if err := repo.Save(c, tx); err != nil {
 		return err
@@ -162,11 +160,10 @@ func (c *Contract) IsLocked() bool {
 }
 
 // Unlock is a method that unlocks the contract
-func (c *Contract) Unlock(repo port.Repository, tx string) error {
+func (c *Contract) Unlock(repo port.Repository) error {
 	c.Locked = nil
-	if err := repo.Begin(tx); err != nil {
-		return err
-	}
+	tx := repo.Begin()
+	defer repo.Rollback(tx)
 	if err := repo.Save(c, tx); err != nil {
 		return err
 	}
@@ -212,7 +209,7 @@ func (c *Contract) formatDate(filled bool) error {
 }
 
 // formatClientID is a method that formats the client id of the contract
-func (c *Contract) formatClientID(repo port.Repository, tx string, filled bool) error {
+func (c *Contract) formatClientID(repo port.Repository, tx interface{}, filled bool) error {
 	clientID := c.formatString(c.ClientID)
 	if clientID == "" {
 		if filled {
@@ -231,7 +228,7 @@ func (c *Contract) formatClientID(repo port.Repository, tx string, filled bool) 
 }
 
 // formatSponsorID is a method that formats the sponsor id of the contract
-func (c *Contract) formatSponsorID(repo port.Repository, tx string) error {
+func (c *Contract) formatSponsorID(repo port.Repository, tx interface{}) error {
 	if c.SponsorID == nil {
 		return nil
 	}
@@ -246,7 +243,7 @@ func (c *Contract) formatSponsorID(repo port.Repository, tx string) error {
 }
 
 // formatServiceID is a method that formats the service id of the contract
-func (c *Contract) formatPackageID(repo port.Repository, tx string, filled bool) error {
+func (c *Contract) formatPackageID(repo port.Repository, tx interface{}, filled bool) error {
 	packageID := c.formatString(c.PackageID)
 	if packageID == "" {
 		if filled {
@@ -323,7 +320,7 @@ func (c *Contract) formatEnd() error {
 }
 
 // formatBond is a method that formats the bond of the contract
-func (c *Contract) formatBond(repo port.Repository, tx string) error {
+func (c *Contract) formatBond(repo port.Repository, tx interface{}) error {
 	if c.Bond == nil {
 		return nil
 	}
@@ -346,11 +343,11 @@ func (c *Contract) formatString(str string) string {
 }
 
 // validateDuplicity is a method that validates the duplicity of a client
-func (c *Contract) validateDuplicity(repo port.Repository, tx string, noduplicity bool) error {
+func (c *Contract) validateDuplicity(repo port.Repository, tx interface{}, noduplicity bool) error {
 	if noduplicity {
 		return nil
 	}
-	ok, err := repo.Get(&Contract{}, c.ID, tx)
+	ok, err := repo.Get(tx, &Contract{}, c.ID)
 	if err != nil {
 		return err
 	}

@@ -32,7 +32,7 @@ type AgendaCrud struct {
 }
 
 // Validate is a method that validates the dto
-func (a *AgendaCrud) Validate(repo port.Repository) error {
+func (a *AgendaCrud) Validate() error {
 	if a.Csv != "" && (a.ID != "" || a.Date != "" || a.ClientID != "" || a.ContractID != "" || a.Start != "" || a.End != "" ||
 		a.Kind != "" || a.Status != "" || a.Bond != "" || a.Billing != "" || a.Price != "" || a.ServiceID != "") {
 		return errors.New(pkg.ErrCsvAndParams)

@@ -40,7 +40,7 @@ func NewInvoiceItem(id, invoiceID, agendaID, value, description string) *Invoice
 }
 
 // Format formats the invoice item
-func (i *InvoiceItem) Format(repo port.Repository, tx string, args ...string) error {
+func (i *InvoiceItem) Format(repo port.Repository, tx interface{}, args ...string) error {
 	filled := slices.Contains(args, "filled")
 	noduplicity := slices.Contains(args, "noduplicity")
 	msg := ""
@@ -69,8 +69,8 @@ func (i *InvoiceItem) Format(repo port.Repository, tx string, args ...string) er
 }
 
 // Exists is a function that checks if a client exists
-func (c *InvoiceItem) Load(repo port.Repository, tx string) (bool, error) {
-	return repo.Get(c, c.ID, tx)
+func (c *InvoiceItem) Load(repo port.Repository, tx interface{}) (bool, error) {
+	return repo.Get(tx, c, c.ID)
 }
 
 // GetID is a method that returns the id of the client
@@ -113,7 +113,7 @@ func (c *InvoiceItem) formatID(filled bool) error {
 }
 
 // formatInvoiceID is a method that formats the invoice id
-func (c *InvoiceItem) formatInvoiceID(repo port.Repository, tx string, filled bool) error {
+func (c *InvoiceItem) formatInvoiceID(repo port.Repository, tx interface{}, filled bool) error {
 	c.InvoiceID = c.formatString(c.InvoiceID)
 	if c.InvoiceID == "" {
 		if filled {
@@ -131,7 +131,7 @@ func (c *InvoiceItem) formatInvoiceID(repo port.Repository, tx string, filled bo
 }
 
 // formatAgendaID is a method that formats the agenda id
-func (c *InvoiceItem) formatAgendaID(repo port.Repository, tx string) error {
+func (c *InvoiceItem) formatAgendaID(repo port.Repository, tx interface{}) error {
 	if c.AgendaID == nil {
 		return nil
 	}
@@ -168,11 +168,11 @@ func (c *InvoiceItem) formatDescription(filled bool) error {
 }
 
 // validateDuplicity is a method that validates the duplicity of a client
-func (c *InvoiceItem) validateDuplicity(repo port.Repository, tx string, noduplicity bool) error {
+func (c *InvoiceItem) validateDuplicity(repo port.Repository, tx interface{}, noduplicity bool) error {
 	if noduplicity {
 		return nil
 	}
-	ok, err := repo.Get(&InvoiceItem{}, c.ID, tx)
+	ok, err := repo.Get(tx, &InvoiceItem{}, c.ID)
 	if err != nil {
 		return err
 	}

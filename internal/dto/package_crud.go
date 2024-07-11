@@ -30,7 +30,7 @@ type PackageCrud struct {
 }
 
 // Validate is a method that validates the dto
-func (p *PackageCrud) Validate(repo port.Repository) error {
+func (p *PackageCrud) Validate() error {
 	if p.Csv != "" && (p.ID != "" || p.Date != "" || p.RecurrenceID != "" || p.ServiceID != "" ||
 		p.UnitValue != "" || p.PackValue != "" || p.Sequence != "" || p.SequenceUp != "") {
 		return errors.New(pkg.ErrCsvAndParams)

@@ -31,7 +31,7 @@ type ContractCrud struct {
 }
 
 // Validate is a method that validates the dto
-func (c *ContractCrud) Validate(repo port.Repository) error {
+func (c *ContractCrud) Validate() error {
 	if c.Csv != "" && (c.ID != "" || c.Date != "" || c.ClientID != "" || c.SponsorID != "" || c.PackageID != "" ||
 		c.BillingType != "" || c.DueDay != "" || c.Start != "" || c.End != "" || c.Bond != "" || c.Locked != "") {
 		return errors.New(pkg.ErrCsvAndParams)

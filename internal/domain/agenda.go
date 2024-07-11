@@ -81,7 +81,7 @@ func NewAgenda(id, date, clientID, serviceID, contractID, start, end, price, kin
 }
 
 // Format formats the agenda
-func (a *Agenda) Format(repo port.Repository, tx string, args ...string) error {
+func (a *Agenda) Format(repo port.Repository, tx interface{}, args ...string) error {
 	filled := slices.Contains(args, "filled")
 	noduplicity := slices.Contains(args, "noduplicity")
 	msg := ""
@@ -131,14 +131,14 @@ func (a *Agenda) Format(repo port.Repository, tx string, args ...string) error {
 }
 
 // Exists is a function that checks if a agenda exists
-func (a *Agenda) Load(repo port.Repository, tx string) (bool, error) {
-	return repo.Get(a, a.ID, tx)
+func (a *Agenda) Load(repo port.Repository, tx interface{}) (bool, error) {
+	return repo.Get(tx, a, a.ID)
 }
 
 // LoadRange loads agenda slices from a interval of dates
-func (a *Agenda) LoadRange(repo port.Repository, tx string, start, end time.Time, status []string) ([]*Agenda, error) {
+func (a *Agenda) LoadRange(repo port.Repository, tx interface{}, start, end time.Time, status []string) ([]*Agenda, error) {
 	extras := a.loadRangeExtras(start, end, status)
-	agendas, _, err := repo.Find(a, 0, tx, extras...)
+	agendas, _, err := repo.Find(tx, a, 0, extras...)
 	if err != nil {
 		return nil, err
 	}
@@ -169,7 +169,7 @@ func (a *Agenda) GetEmpty() port.Domain {
 }
 
 // Lock is a method that locks the contract
-func (a *Agenda) Lock(repo port.Repository, tx string, timeout int) error {
+func (a *Agenda) Lock(repo port.Repository, tx interface{}, timeout int) error {
 	if a.IsLocked(repo, tx, timeout) {
 		return errors.New(pkg.ErrAgendaLocked)
 	}
@@ -182,7 +182,7 @@ func (a *Agenda) Lock(repo port.Repository, tx string, timeout int) error {
 }
 
 // IsLocked is a method that checks if the contract is locked
-func (a *Agenda) IsLocked(repo port.Repository, tx string, timeout int) bool {
+func (a *Agenda) IsLocked(repo port.Repository, tx interface{}, timeout int) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
 	defer cancel()
 	for {
@@ -205,22 +205,19 @@ func (a *Agenda) IsLocked(repo port.Repository, tx string, timeout int) bool {
 
 // getHot gets the agenda out of default transaction
 func (a *Agenda) getHotAgenda(repo port.Repository) (*Agenda, error) {
-	tx := repo.NewTransaction()
-	if err := repo.Begin(tx); err != nil {
-		return nil, err
-	}
+	tx := repo.Begin()
 	defer repo.Rollback(tx)
-	x := &Agenda{ID: a.ID}
-	if ok, err := repo.Get(x, a.ID, tx); err != nil {
+	ag := &Agenda{ID: a.ID}
+	if ok, err := repo.Get(tx, ag, a.ID); err != nil {
 		return nil, err
 	} else if !ok {
 		return nil, errors.New(pkg.ErrAgendaNotFound)
 	}
-	return x, nil
+	return ag, nil
 }
 
 // Unlock is a method that unlocks the contract
-func (a *Agenda) Unlock(repo port.Repository, tx string) error {
+func (a *Agenda) Unlock(repo port.Repository, tx interface{}) error {
 	a.Locked = nil
 	if err := repo.Save(a, tx); err != nil {
 		return err
@@ -293,7 +290,7 @@ func (c *Agenda) formatDate(filled bool) error {
 }
 
 // formatClientID is a method that formats the client id
-func (c *Agenda) formatClientID(repo port.Repository, tx string, filled bool) error {
+func (c *Agenda) formatClientID(repo port.Repository, tx interface{}, filled bool) error {
 	clientID := c.formatString(c.ClientID)
 	if clientID == "" {
 		if filled {
@@ -311,7 +308,7 @@ func (c *Agenda) formatClientID(repo port.Repository, tx string, filled bool) er
 }
 
 // formarServiceID is a method that formats the service id
-func (c *Agenda) formatServiceID(repo port.Repository, tx string, filled bool) error {
+func (c *Agenda) formatServiceID(repo port.Repository, tx interface{}, filled bool) error {
 	serviceID := c.formatString(c.ServiceID)
 	if serviceID == "" {
 		if filled {
@@ -329,7 +326,7 @@ func (c *Agenda) formatServiceID(repo port.Repository, tx string, filled bool) e
 }
 
 // formatContractID is a method that formats the contract id
-func (c *Agenda) formatContractID(repo port.Repository, tx string, filled bool) error {
+func (c *Agenda) formatContractID(repo port.Repository, tx interface{}, filled bool) error {
 	if c.ContractID == nil {
 		if c.Price != nil {
 			if filled {
@@ -428,7 +425,7 @@ func (c *Agenda) formatStatus(filled bool) error {
 }
 
 // formatBond is a method that formats the bond of the agenda
-func (c *Agenda) formatBond(repo port.Repository, tx string) error {
+func (c *Agenda) formatBond(repo port.Repository, tx interface{}) error {
 	if c.Bond == nil {
 		return nil
 	}
@@ -453,11 +450,11 @@ func (c *Agenda) formatBillingMonth() error {
 }
 
 // validateDuplicity is a method that validates the duplicity of a client
-func (c *Agenda) validateDuplicity(repo port.Repository, tx string, noduplicity bool) error {
+func (c *Agenda) validateDuplicity(repo port.Repository, tx interface{}, noduplicity bool) error {
 	if noduplicity {
 		return nil
 	}
-	ok, err := repo.Get(&Agenda{}, c.ID, tx)
+	ok, err := repo.Get(tx, &Agenda{}, c.ID)
 	if err != nil {
 		return err
 	}
