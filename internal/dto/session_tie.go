@@ -13,7 +13,7 @@ import (
 type SessionTie struct {
 	Base
 	Object    string `json:"-" command:"name:session;key;pos:2-"`
-	Action    string `json:"-" command:"name:tie,untie;key;pos:2-"`
+	Action    string `json:"-" command:"name:tie,untie,confirm;key;pos:2-"`
 	Sort      string `json:"sort" command:"name:sort;pos:3+"`
 	ID        string `json:"id" command:"name:id;pos:3+"`
 	ClientID  string `json:"client" command:"name:client;pos:3+;trans:client_id,string"`

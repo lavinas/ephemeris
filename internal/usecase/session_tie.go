@@ -65,34 +65,12 @@ func (u *Usecase) sessionSortFunc(a domain.Session, b domain.Session) int {
 	}
 }
 
-
-/*
-// sessionTieLoop process multiple sessions
-func (u *Usecase) sessionTieLoop2(command string, sessions *[]domain.Session) []interface{} {
-	start := time.Now()
-	result := []interface{}{}
-	for _, session := range *sessions {
-		s, err := u.sessionTieOne(session.ID, command)
-		if err != nil {
-			session.Process = pkg.ProcessStatusError
-			session.AgendaID = err.Error()
-			result = append(result, &session)
-			continue
-		}
-		result = append(result, s)
-	}
-	end := time.Now()
-	fmt.Println("SessionTieLoop", "Duration", end.Sub(start).String())
-	return result
-}
-*/
-
 // sessionTieLoop2 process multiple sessions
 func (u *Usecase) sessionTieLoop(command string, sessions *[]domain.Session) []interface{} {
 	start := time.Now()
 	jobs := make(chan *domain.Session, len(*sessions))
 	result := make(chan interface{}, len(*sessions))
-	for w := 1; w <= 5; w++ {
+	for w := 0; w < 3; w++ {
 		go u.sessionTieJob(command, jobs, result)
 	}
 	for _, session := range *sessions {
@@ -131,18 +109,34 @@ func (u *Usecase) sessionTieOne(id string, command string) (*domain.Session, err
 		return nil, err
 	}
 	defer u.unlockSession(session)
-	if err := u.untieSession(session); err != nil {
-		return nil, err
+	cmdMap := map[string]func(*domain.Session) error{
+		"tie":  u.tieCommand,
+		"untie": u.untieCommand,
 	}
-	if command == "tie" {
-		s := session
-		for s != nil {
-			if s, err = u.tieSession(s); err != nil {
-				return nil, err
-			}
+	if cmdMap[command] == nil {
+		return nil, u.error(pkg.ErrPrefBadRequest, pkg.ErrCommandImplemented, 0, 0)
+	}
+	return session, cmdMap[command](session)
+}
+	
+// tieCommand implements command "tie" 
+func (u *Usecase) tieCommand(session *domain.Session) error {
+	if err := u.untieSession(session); err != nil {
+		return err
+	}
+	s := session
+	var err error
+	for s != nil {
+		if s, err = u.tieSession(s); err != nil {
+			return err
 		}
 	}
-	return session, nil
+	return nil
+}
+
+// untieCommand implements command "untie"
+func (u *Usecase) untieCommand(session *domain.Session) error {
+	return u.untieSession(session)
 }
 
 // untieSession unties a session from agendas
