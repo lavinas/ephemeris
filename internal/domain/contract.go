@@ -145,7 +145,7 @@ func (c *Contract) Lock(repo port.Repository) error {
 	c.Locked = &locked
 	tx := repo.Begin()
 	defer repo.Rollback(tx)
-	if err := repo.Save(c, tx); err != nil {
+	if err := repo.Save(tx, c); err != nil {
 		return err
 	}
 	if err := repo.Commit(tx); err != nil {
@@ -164,7 +164,7 @@ func (c *Contract) Unlock(repo port.Repository) error {
 	c.Locked = nil
 	tx := repo.Begin()
 	defer repo.Rollback(tx)
-	if err := repo.Save(c, tx); err != nil {
+	if err := repo.Save(tx, c); err != nil {
 		return err
 	}
 	if err := repo.Commit(tx); err != nil {

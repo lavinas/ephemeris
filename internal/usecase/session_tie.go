@@ -65,13 +65,14 @@ func (u *Usecase) sessionSortFunc(a domain.Session, b domain.Session) int {
 	}
 }
 
+
 /*
 // sessionTieLoop process multiple sessions
 func (u *Usecase) sessionTieLoop2(command string, sessions *[]domain.Session) []interface{} {
 	start := time.Now()
 	result := []interface{}{}
 	for _, session := range *sessions {
-		s, err := u.sessionTieOne("", session.ID, command)
+		s, err := u.sessionTieOne(session.ID, command)
 		if err != nil {
 			session.Process = pkg.ProcessStatusError
 			session.AgendaID = err.Error()
@@ -91,7 +92,7 @@ func (u *Usecase) sessionTieLoop(command string, sessions *[]domain.Session) []i
 	start := time.Now()
 	jobs := make(chan *domain.Session, len(*sessions))
 	result := make(chan interface{}, len(*sessions))
-	for w := 1; w <= 1; w++ {
+	for w := 1; w <= 5; w++ {
 		go u.sessionTieJob(command, jobs, result)
 	}
 	for _, session := range *sessions {
@@ -226,12 +227,12 @@ func (u *Usecase) saveSessionAgenda(session *domain.Session, agenda *domain.Agen
 	tx := u.Repo.Begin()
 	defer u.Repo.Rollback(tx)
 	if agenda != nil {
-		if err := u.Repo.Save(agenda, tx); err != nil {
+		if err := u.Repo.Save(tx, agenda); err != nil {
 			return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 		}
 	}
 	if session != nil {
-		if err := u.Repo.Save(session, tx); err != nil {
+		if err := u.Repo.Save(tx, session); err != nil {
 			return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 		}
 	}

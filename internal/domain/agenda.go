@@ -175,7 +175,7 @@ func (a *Agenda) Lock(repo port.Repository, tx interface{}, timeout int) error {
 	}
 	x := time.Now()
 	a.Locked = &x
-	if err := repo.Save(a, tx); err != nil {
+	if err := repo.Save(tx, a); err != nil {
 		return err
 	}
 	return nil
@@ -219,7 +219,7 @@ func (a *Agenda) getHotAgenda(repo port.Repository) (*Agenda, error) {
 // Unlock is a method that unlocks the contract
 func (a *Agenda) Unlock(repo port.Repository, tx interface{}) error {
 	a.Locked = nil
-	if err := repo.Save(a, tx); err != nil {
+	if err := repo.Save(tx, a); err != nil {
 		return err
 	}
 	return nil
