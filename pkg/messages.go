@@ -235,4 +235,5 @@ const (
 	ErrInvalidParameters         = "almost one parameter should be informed"
 	ErrCommandImplemented        = "command not implemented"
 	ErrSessionNotUnconfirmed     = "session is not confirmed"
+	ErrAgendaMultiple            = "multiples agendas found"
 )
