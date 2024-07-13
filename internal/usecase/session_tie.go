@@ -1,7 +1,7 @@
 package usecase
 
 import (
-	"fmt"
+	"errors"
 	"slices"
 	"time"
 
@@ -67,7 +67,6 @@ func (u *Usecase) sessionSortFunc(a domain.Session, b domain.Session) int {
 
 // sessionTieLoop2 process multiple sessions
 func (u *Usecase) sessionTieLoop(command string, sessions *[]domain.Session) []interface{} {
-	start := time.Now()
 	jobs := make(chan *domain.Session, len(*sessions))
 	result := make(chan interface{}, len(*sessions))
 	for w := 0; w < 3; w++ {
@@ -83,8 +82,6 @@ func (u *Usecase) sessionTieLoop(command string, sessions *[]domain.Session) []i
 		ret = append(ret, r)
 	}
 	close(result)
-	end := time.Now()
-	fmt.Println("SessionTieLoop", "Duration", end.Sub(start).String())
 	return ret
 }
 
@@ -110,16 +107,17 @@ func (u *Usecase) sessionTieOne(id string, command string) (*domain.Session, err
 	}
 	defer u.unlockSession(session)
 	cmdMap := map[string]func(*domain.Session) error{
-		"tie":  u.tieCommand,
-		"untie": u.untieCommand,
+		"tie":     u.tieCommand,
+		"untie":   u.untieCommand,
+		"confirm": u.confirmCommand,
 	}
 	if cmdMap[command] == nil {
 		return nil, u.error(pkg.ErrPrefBadRequest, pkg.ErrCommandImplemented, 0, 0)
 	}
 	return session, cmdMap[command](session)
 }
-	
-// tieCommand implements command "tie" 
+
+// tieCommand implements command "tie"
 func (u *Usecase) tieCommand(session *domain.Session) error {
 	if err := u.untieSession(session); err != nil {
 		return err
@@ -137,6 +135,27 @@ func (u *Usecase) tieCommand(session *domain.Session) error {
 // untieCommand implements command "untie"
 func (u *Usecase) untieCommand(session *domain.Session) error {
 	return u.untieSession(session)
+}
+
+// confirmCommand implements command "confirm"
+func (u *Usecase) confirmCommand(session *domain.Session) error {
+	if session.Process != pkg.ProcessStatusUnconfirmed {
+		return errors.New(pkg.ErrSessionNotUnconfirmed)
+	}
+	agenda, err := u.restartLockAgenda(session.AgendaID)
+	if err != nil {
+		return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
+	}
+	if agenda == nil {
+		return u.error(pkg.ErrPrefInternal, pkg.ErrEmptyAgenda, 0, 0)
+	}
+	defer u.unlockAgendas([]*domain.Agenda{agenda})
+	session.Process = pkg.ProcessStatusLinked
+	agenda.Status = session.Status
+	if err := u.saveSessionAgenda(session, agenda); err != nil {
+		return err
+	}
+	return nil
 }
 
 // untieSession unties a session from agendas

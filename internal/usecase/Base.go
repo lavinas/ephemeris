@@ -11,12 +11,13 @@ import (
 
 var (
 	runMap = map[string]func(*Usecase, interface{}) error{
-		"add":   (*Usecase).Add,
-		"get":   (*Usecase).Get,
-		"up":    (*Usecase).Up,
-		"make":  (*Usecase).AgendaMake,
-		"tie":   (*Usecase).SessionTie,
-		"untie": (*Usecase).SessionTie,
+		"add":     (*Usecase).Add,
+		"get":     (*Usecase).Get,
+		"up":      (*Usecase).Up,
+		"make":    (*Usecase).AgendaMake,
+		"tie":     (*Usecase).SessionTie,
+		"untie":   (*Usecase).SessionTie,
+		"confirm": (*Usecase).SessionTie,
 	}
 )
 
