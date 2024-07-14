@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"time"
+	"fmt"
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/dto"
@@ -15,31 +16,32 @@ func (u *Usecase) SessionForce(dtoIn interface{}) error {
 		return u.error(pkg.ErrPrefBadRequest, err.Error(), 0, 0)
 	}
 	domains := dIn.GetDomain()
+	ret := []interface{}{}
 	for _, d := range domains {
 		s := d.(*domain.Session)
-		if err := u.sessionForce(s); err != nil {
-			return err
-		}
-		if err := u.reprocessLinkedSession(s.ID); err != nil {
-			return err
-		}
+		u.sessionForce(s, &ret)
+		u.reprocessLinkedSession(s.ID, &ret)
 	}
+	u.Out = dIn.GetOut().GetDTO(ret)
 	return nil
 }
 
 // sessionForce links session to a agenda
-func (u *Usecase) sessionForce(s *domain.Session) error {
+func (u *Usecase) sessionForce(s *domain.Session, ret *[]interface{}) {
 	session, agenda, err := u.getLinkSessionAgenda(s)
 	if err != nil {
-		return err
+		s.Process = fmt.Sprintf("Error: %s", err.Error())
+		*ret = append(*ret, s)
+		return 
 	}
 	defer u.unlockSession(session)
 	defer u.unlockAgendas([]*domain.Agenda{agenda})
-
 	if err := u.saveLinkedSessionAgenda(session, agenda); err != nil {
-		return err
+		s.Process = fmt.Sprintf("Error: %s", err.Error())
+		*ret = append(*ret, s)
+		return 
 	}
-	return nil
+	*ret = append(*ret, session)
 }
 
 // GetLinkSessionAgenda is a method that returns the session and agenda to be linked
@@ -73,22 +75,21 @@ func (u *Usecase) saveLinkedSessionAgenda(session *domain.Session, agenda *domai
 }
 
 // reprocessLinkedSession is a method that reprocesses the linked session
-func (u *Usecase) reprocessLinkedSession(sessionID string) error {
+func (u *Usecase) reprocessLinkedSession(sessionID string, ret *[]interface{}) {
 	tx := u.Repo.Begin()
 	defer u.Repo.Rollback(tx)
 	sl, _, err := u.Repo.Find(tx, &domain.Session{AgendaID: sessionID}, 0)
-	if err != nil {
-		return err
+	if err != nil || sl == nil {
+		return
 	}
-	if sl == nil {
-		return nil
+	s := sl.([]*domain.Session)[0]
+	if s.ID == sessionID {
+		return
 	}
-	s2 := sl.([]*domain.Session)
-	if s2[0].ID == sessionID {
-		return nil
+	if err := u.tieCommand(s); err != nil {
+		s.Process = fmt.Sprintf("Error: %s", err.Error())
+		*ret = append(*ret, s)
+		return
 	}
-	if err := u.tieCommand(s2[0]); err != nil {
-		return err
-	}
-	return nil
+	*ret = append(*ret, s)
 }
