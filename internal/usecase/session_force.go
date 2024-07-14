@@ -1,8 +1,8 @@
 package usecase
 
 import (
-	"time"
 	"fmt"
+	"time"
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/dto"
@@ -19,29 +19,32 @@ func (u *Usecase) SessionForce(dtoIn interface{}) error {
 	ret := []interface{}{}
 	for _, d := range domains {
 		s := d.(*domain.Session)
-		u.sessionForce(s, &ret)
-		u.reprocessLinkedSession(s.ID, &ret)
+		a := u.sessionForce(s, &ret)
+		if a != nil {
+			u.reprocessLinkedSession(s.ID, *a, &ret)
+		}
 	}
 	u.Out = dIn.GetOut().GetDTO(ret)
 	return nil
 }
 
 // sessionForce links session to a agenda
-func (u *Usecase) sessionForce(s *domain.Session, ret *[]interface{}) {
+func (u *Usecase) sessionForce(s *domain.Session, ret *[]interface{}) *string {
 	session, agenda, err := u.getLinkSessionAgenda(s)
 	if err != nil {
 		s.Process = fmt.Sprintf("Error: %s", err.Error())
 		*ret = append(*ret, s)
-		return 
+		return nil
 	}
 	defer u.unlockSession(session)
 	defer u.unlockAgendas([]*domain.Agenda{agenda})
 	if err := u.saveLinkedSessionAgenda(session, agenda); err != nil {
 		s.Process = fmt.Sprintf("Error: %s", err.Error())
 		*ret = append(*ret, s)
-		return 
+		return nil
 	}
 	*ret = append(*ret, session)
+	return &agenda.ID
 }
 
 // GetLinkSessionAgenda is a method that returns the session and agenda to be linked
@@ -56,6 +59,9 @@ func (u *Usecase) getLinkSessionAgenda(s *domain.Session) (*domain.Session, *dom
 	}
 	if len(agendas) == 0 {
 		return nil, nil, u.error(pkg.ErrPrefBadRequest, pkg.ErrAgendaNotFound, 0, 0)
+	}
+	if len(agendas) > 1 {
+		return nil, nil, u.error(pkg.ErrPrefInternal, pkg.ErrAgendaMultiple, 0, 0)
 	}
 	return session, agendas[0], nil
 }
@@ -75,21 +81,27 @@ func (u *Usecase) saveLinkedSessionAgenda(session *domain.Session, agenda *domai
 }
 
 // reprocessLinkedSession is a method that reprocesses the linked session
-func (u *Usecase) reprocessLinkedSession(sessionID string, ret *[]interface{}) {
+func (u *Usecase) reprocessLinkedSession(sessionID string, agendaID string, ret *[]interface{}) {
+	fmt.Println(1, sessionID, agendaID)
 	tx := u.Repo.Begin()
 	defer u.Repo.Rollback(tx)
-	sl, _, err := u.Repo.Find(tx, &domain.Session{AgendaID: sessionID}, 0)
+	add := fmt.Sprintf("id != '%s'", sessionID)
+	sl, _, err := u.Repo.Find(tx, &domain.Session{AgendaID: agendaID}, -1, add)
 	if err != nil || sl == nil {
+		fmt.Println(2)
 		return
 	}
-	s := sl.([]*domain.Session)[0]
-	if s.ID == sessionID {
+	sessions := *sl.(*[]domain.Session)
+	session := sessions[0]
+	session.Process = pkg.ProcessStatusOpenned
+	session.AgendaID = ""
+	fmt.Println(3, session)
+	if err := u.tieCommand(&session); err != nil {
+		fmt.Println(4)
+		session.Process = fmt.Sprintf("Error: %s", err.Error())
+		*ret = append(*ret, &session)
 		return
 	}
-	if err := u.tieCommand(s); err != nil {
-		s.Process = fmt.Sprintf("Error: %s", err.Error())
-		*ret = append(*ret, s)
-		return
-	}
-	*ret = append(*ret, s)
+	fmt.Println(5, session)
+	*ret = append(*ret, &session)
 }
