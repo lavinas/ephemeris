@@ -18,6 +18,7 @@ var (
 		"tie":     (*Usecase).SessionTie,
 		"untie":   (*Usecase).SessionTie,
 		"confirm": (*Usecase).SessionTie,
+		"force":   (*Usecase).SessionForce,
 	}
 )
 

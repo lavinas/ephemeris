@@ -24,6 +24,7 @@ func All() []interface{} {
 		&ServiceCrud{},
 		&SessionCrud{},
 		&SessionTie{},
+		&SessionForce{},
 	}
 }
 
