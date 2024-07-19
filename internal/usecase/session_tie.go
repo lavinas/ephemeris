@@ -10,6 +10,11 @@ import (
 	"github.com/lavinas/ephemeris/pkg"
 )
 
+const (
+	session_tie_jobs = 1
+)
+
+
 // SessionTie ties a session to an agenda
 func (u *Usecase) SessionTie(dtoIn interface{}) error {
 	dtoSessionTie := dtoIn.(*dto.SessionTie)
@@ -69,7 +74,7 @@ func (u *Usecase) sessionSortFunc(a domain.Session, b domain.Session) int {
 func (u *Usecase) sessionTieLoop(command string, sessions *[]domain.Session) []interface{} {
 	jobs := make(chan *domain.Session, len(*sessions))
 	result := make(chan interface{}, len(*sessions))
-	for w := 0; w < 3; w++ {
+	for w := 0; w < session_tie_jobs; w++ {
 		go u.sessionTieJob(command, jobs, result)
 	}
 	for _, session := range *sessions {

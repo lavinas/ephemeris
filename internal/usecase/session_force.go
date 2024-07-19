@@ -82,26 +82,21 @@ func (u *Usecase) saveLinkedSessionAgenda(session *domain.Session, agenda *domai
 
 // reprocessLinkedSession is a method that reprocesses the linked session
 func (u *Usecase) reprocessLinkedSession(sessionID string, agendaID string, ret *[]interface{}) {
-	fmt.Println(1, sessionID, agendaID)
 	tx := u.Repo.Begin()
 	defer u.Repo.Rollback(tx)
 	add := fmt.Sprintf("id != '%s'", sessionID)
 	sl, _, err := u.Repo.Find(tx, &domain.Session{AgendaID: agendaID}, -1, add)
 	if err != nil || sl == nil {
-		fmt.Println(2)
 		return
 	}
 	sessions := *sl.(*[]domain.Session)
 	session := sessions[0]
 	session.Process = pkg.ProcessStatusOpenned
 	session.AgendaID = ""
-	fmt.Println(3, session)
 	if err := u.tieCommand(&session); err != nil {
-		fmt.Println(4)
 		session.Process = fmt.Sprintf("Error: %s", err.Error())
 		*ret = append(*ret, &session)
 		return
 	}
-	fmt.Println(5, session)
 	*ret = append(*ret, &session)
 }
