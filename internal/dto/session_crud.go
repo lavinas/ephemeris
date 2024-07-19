@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strconv"
 	"time"
+	"strings"
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"
@@ -61,35 +62,6 @@ func (s *SessionCrud) GetDomain() []port.Domain {
 	}
 }
 
-// getDomain is a method that returns the domain of one object
-func (s *SessionCrud) getDomain(one *SessionCrud) port.Domain {
-	if one.Action == "add" && one.Date == "" {
-		time.Local, _ = time.LoadLocation(pkg.Location)
-		one.Date = time.Now().Format(pkg.DateFormat)
-	}
-	if one.Action == "add" && one.Status == "" {
-		one.Status = pkg.DefaultSessionStatus
-	}
-	if one.Action == "add" && one.ID == "" {
-		at := time.Now().Format("2006-01-02-15-04")
-		t, err := time.Parse(pkg.DateTimeFormat, one.At)
-		if err != nil {
-			t, err = time.Parse(pkg.DateFormat, one.At)
-		}
-		if err == nil {
-			at = t.Format("2006-01-02-15-04")
-		}
-		one.ID = at + "_" + one.ClientID + "_" + one.ServiceID + "_" + one.Sequence
-	}
-	if one.Action == "add" && one.Sequence == "" {
-		one.Sequence = pkg.DefaultSessionSequence
-	}
-	if one.Action == "add" {
-		one.Process = pkg.DefaultSessionProcess
-	}
-	return domain.NewSession(one.ID, one.Sequence, one.Date, one.ClientID, one.ServiceID, one.At, one.Status,
-		one.Process, one.AgendaID)
-}
 
 // GetOut is a method that returns the output dto
 func (s *SessionCrud) GetOut() port.DTOOut {
@@ -123,4 +95,48 @@ func (s *SessionCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 // Getinstructions is a method that returns the instructions of the dto for given domain
 func (s *SessionCrud) GetInstructions(domain port.Domain) (port.Domain, []interface{}, error) {
 	return s.getInstructions(s, domain)
+}
+
+// getDomain is a method that returns the domain of one object
+func (s *SessionCrud) getDomain(one *SessionCrud) port.Domain {
+	if one.Action == "add" && one.Date == "" {
+		time.Local, _ = time.LoadLocation(pkg.Location)
+		one.Date = time.Now().Format(pkg.DateFormat)
+	}
+	if one.Action == "add" && one.Status == "" {
+		one.Status = pkg.DefaultSessionStatus
+	}
+	if one.Action == "add" && one.ID == "" {
+		at := time.Now().Format("2006-01-02-15-04")
+		t, err := time.Parse(pkg.DateTimeFormat, one.At)
+		if err != nil {
+			t, err = time.Parse(pkg.DateFormat, one.At)
+		}
+		if err == nil {
+			at = t.Format("2006-01-02-15-04")
+		}
+		one.ID = at + "_" + one.ClientID + "_" + one.ServiceID + "_" + one.Sequence
+	}
+	if one.Action == "add" && one.Sequence == "" {
+		one.Sequence = pkg.DefaultSessionSequence
+	}
+	if one.Action == "add" {
+		one.Process = pkg.DefaultSessionProcess
+	}
+	one.trim()
+	return domain.NewSession(one.ID, one.Sequence, one.Date, one.ClientID, one.ServiceID, one.At, one.Status,
+		one.Process, one.AgendaID)
+}
+
+// trim is a method that trims the dto
+func (s *SessionCrud) trim() {
+	s.ID = strings.TrimSpace(s.ID)
+	s.Sequence = strings.TrimSpace(s.Sequence)
+	s.Date = strings.TrimSpace(s.Date)
+	s.ClientID = strings.TrimSpace(s.ClientID)
+	s.ServiceID = strings.TrimSpace(s.ServiceID)
+	s.At = strings.TrimSpace(s.At)
+	s.Status = strings.TrimSpace(s.Status)
+	s.Process = strings.TrimSpace(s.Process)
+	s.AgendaID = strings.TrimSpace(s.AgendaID)
 }

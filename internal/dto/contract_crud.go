@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strconv"
 	"time"
+	"strings"
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"
@@ -60,24 +61,6 @@ func (c *ContractCrud) GetDomain() []port.Domain {
 	return []port.Domain{c.getDomain(c)}
 }
 
-// getDomain is a method that returns a string representation of the contract
-func (c *ContractCrud) getDomain(one *ContractCrud) port.Domain {
-	if one.Action == "add" && one.Date == "" {
-		time.Local, _ = time.LoadLocation(pkg.Location)
-		one.Date = time.Now().Format(pkg.DateFormat)
-	}
-	if one.Action == "add" && one.Start == "" {
-		one.Start = time.Now().Format(pkg.DateTimeFormat)
-	}
-	if one.Action == "add" && one.DueDay == "" && one.BillingType != pkg.BillingTypePerSession {
-		one.DueDay = pkg.DefaultDueDay
-	}
-	if one.Action == "add" && one.BillingType == "" {
-		one.BillingType = pkg.DefaultBillingType
-	}
-	return domain.NewContract(one.ID, one.Date, one.ClientID, one.SponsorID, one.PackageID, one.BillingType, one.DueDay, one.Start, one.End, one.Bond)
-}
-
 // GetOut is a method that returns the dto out
 func (c *ContractCrud) GetOut() port.DTOOut {
 	return c
@@ -132,4 +115,37 @@ func (c *ContractCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 // Getinstructions is a method that returns the instructions of the dto for given domain
 func (c *ContractCrud) GetInstructions(domain port.Domain) (port.Domain, []interface{}, error) {
 	return c.getInstructions(c, domain)
+}
+
+// getDomain is a method that returns a string representation of the contract
+func (c *ContractCrud) getDomain(one *ContractCrud) port.Domain {
+	if one.Action == "add" && one.Date == "" {
+		time.Local, _ = time.LoadLocation(pkg.Location)
+		one.Date = time.Now().Format(pkg.DateFormat)
+	}
+	if one.Action == "add" && one.Start == "" {
+		one.Start = time.Now().Format(pkg.DateTimeFormat)
+	}
+	if one.Action == "add" && one.DueDay == "" && one.BillingType != pkg.BillingTypePerSession {
+		one.DueDay = pkg.DefaultDueDay
+	}
+	if one.Action == "add" && one.BillingType == "" {
+		one.BillingType = pkg.DefaultBillingType
+	}
+	one.trim()
+	return domain.NewContract(one.ID, one.Date, one.ClientID, one.SponsorID, one.PackageID, one.BillingType, one.DueDay, one.Start, one.End, one.Bond)
+}
+
+func (c *ContractCrud) trim() {
+	c.ID = strings.TrimSpace(c.ID)
+	c.Date = strings.TrimSpace(c.Date)
+	c.ClientID = strings.TrimSpace(c.ClientID)
+	c.SponsorID = strings.TrimSpace(c.SponsorID)
+	c.PackageID = strings.TrimSpace(c.PackageID)
+	c.BillingType = strings.TrimSpace(c.BillingType)
+	c.DueDay = strings.TrimSpace(c.DueDay)
+	c.Start = strings.TrimSpace(c.Start)
+	c.End = strings.TrimSpace(c.End)
+	c.Bond = strings.TrimSpace(c.Bond)
+	c.Locked = strings.TrimSpace(c.Locked)
 }

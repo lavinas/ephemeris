@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strconv"
 	"time"
+	"strings"
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"
@@ -52,18 +53,6 @@ func (s *ServiceCrud) GetDomain() []port.Domain {
 	return []port.Domain{s.getDomain(s)}
 }
 
-// getDomain is a method that returns a string representation of the service
-func (s *ServiceCrud) getDomain(one *ServiceCrud) port.Domain {
-	if one.Action == "add" && one.Date == "" {
-		time.Local, _ = time.LoadLocation(pkg.Location)
-		one.Date = time.Now().Format(pkg.DateFormat)
-	}
-	if one.Action == "add" && one.Minutes == "" {
-		one.Minutes = "0"
-	}
-	return domain.NewService(one.ID, one.Date, one.Name, one.Minutes)
-}
-
 // GetOut is a method that returns the output dto
 func (s *ServiceCrud) GetOut() port.DTOOut {
 	return s
@@ -96,4 +85,25 @@ func (s *ServiceCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 // Getinstructions is a method that returns the instructions of the dto for given domain
 func (s *ServiceCrud) GetInstructions(domain port.Domain) (port.Domain, []interface{}, error) {
 	return s.getInstructions(s, domain)
+}
+
+// getDomain is a method that returns a string representation of the service
+func (s *ServiceCrud) getDomain(one *ServiceCrud) port.Domain {
+	if one.Action == "add" && one.Date == "" {
+		time.Local, _ = time.LoadLocation(pkg.Location)
+		one.Date = time.Now().Format(pkg.DateFormat)
+	}
+	if one.Action == "add" && one.Minutes == "" {
+		one.Minutes = "0"
+	}
+	one.trim()
+	return domain.NewService(one.ID, one.Date, one.Name, one.Minutes)
+}
+
+// trim is a method that trims the dto
+func (s *ServiceCrud) trim() {
+	s.ID = strings.TrimSpace(s.ID)
+	s.Date = strings.TrimSpace(s.Date)
+	s.Name = strings.TrimSpace(s.Name)
+	s.Minutes = strings.TrimSpace(s.Minutes)
 }

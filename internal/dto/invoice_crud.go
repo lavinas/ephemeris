@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strconv"
 	"time"
+	"strings"
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"
@@ -54,24 +55,6 @@ func (i *InvoiceCrud) GetDomain() []port.Domain {
 	return []port.Domain{i.getDomain(i)}
 }
 
-// getDomain is a method that returns a string representation of the invoice
-func (i *InvoiceCrud) getDomain(one *InvoiceCrud) port.Domain {
-	if one.Action == "add" && one.Date == "" {
-		time.Local, _ = time.LoadLocation(pkg.Location)
-		one.Date = time.Now().Format(pkg.DateFormat)
-	}
-	if one.Action == "add" && one.Status == "" {
-		one.Status = pkg.DefaultInvoiceStatus
-	}
-	if one.Action == "add" && one.SendStatus == "" {
-		one.SendStatus = pkg.DefaultInvoiceSendStatus
-	}
-	if one.Action == "add" && one.PaymentStatus == "" {
-		one.PaymentStatus = pkg.DefaultInvoicePaymentStatus
-	}
-	return domain.NewInvoice(one.ID, one.ClientID, one.Date, one.Value, one.Status, one.SendStatus, one.PaymentStatus)
-}
-
 // GetOut is a method that returns the output dto
 func (i *InvoiceCrud) GetOut() port.DTOOut {
 	return i
@@ -102,4 +85,34 @@ func (i *InvoiceCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 // Getinstructions is a method that returns the instructions of the dto for given domain
 func (i *InvoiceCrud) GetInstructions(domain port.Domain) (port.Domain, []interface{}, error) {
 	return i.getInstructions(i, domain)
+}
+
+// getDomain is a method that returns a string representation of the invoice
+func (i *InvoiceCrud) getDomain(one *InvoiceCrud) port.Domain {
+	if one.Action == "add" && one.Date == "" {
+		time.Local, _ = time.LoadLocation(pkg.Location)
+		one.Date = time.Now().Format(pkg.DateFormat)
+	}
+	if one.Action == "add" && one.Status == "" {
+		one.Status = pkg.DefaultInvoiceStatus
+	}
+	if one.Action == "add" && one.SendStatus == "" {
+		one.SendStatus = pkg.DefaultInvoiceSendStatus
+	}
+	if one.Action == "add" && one.PaymentStatus == "" {
+		one.PaymentStatus = pkg.DefaultInvoicePaymentStatus
+	}
+	one.trim()
+	return domain.NewInvoice(one.ID, one.ClientID, one.Date, one.Value, one.Status, one.SendStatus, one.PaymentStatus)
+}
+
+// trim is a method that trims the dto
+func (i *InvoiceCrud) trim() {
+	i.ID = strings.TrimSpace(i.ID)
+	i.Date = strings.TrimSpace(i.Date)
+	i.ClientID = strings.TrimSpace(i.ClientID)
+	i.Value = strings.TrimSpace(i.Value)
+	i.Status = strings.TrimSpace(i.Status)
+	i.SendStatus = strings.TrimSpace(i.SendStatus)
+	i.PaymentStatus = strings.TrimSpace(i.PaymentStatus)
 }

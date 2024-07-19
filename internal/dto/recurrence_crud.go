@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strconv"
 	"time"
+	"strings"
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"
@@ -54,24 +55,6 @@ func (r *RecurrenceCrud) GetDomain() []port.Domain {
 	return []port.Domain{r.getDomain(r)}
 }
 
-// getDomain is a method that returns the domain of the dto
-func (r *RecurrenceCrud) getDomain(one *RecurrenceCrud) port.Domain {
-	if one.Action == "add" && one.Date == "" {
-		time.Local, _ = time.LoadLocation(pkg.Location)
-		one.Date = time.Now().Format(pkg.DateFormat)
-	}
-	if one.Action == "add" && one.Length == "" {
-		one.Length = "0"
-	}
-	if one.Action == "add" && one.Limit == "" {
-		one.Limit = "0"
-	}
-	if one.Action == "add" && one.Cycle == "" {
-		one.Cycle = pkg.DefaultRecurrenceCycle
-	}
-	return domain.NewRecurrence(one.ID, one.Date, one.Name, one.Cycle, one.Length, one.Limit)
-}
-
 // GetOut is a method that returns the dto out
 func (r *RecurrenceCrud) GetOut() port.DTOOut {
 	return r
@@ -109,4 +92,33 @@ func (r *RecurrenceCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 // Getinstructions is a method that returns the instructions of the dto for given domain
 func (r *RecurrenceCrud) GetInstructions(domain port.Domain) (port.Domain, []interface{}, error) {
 	return r.getInstructions(r, domain)
+}
+
+// getDomain is a method that returns the domain of the dto
+func (r *RecurrenceCrud) getDomain(one *RecurrenceCrud) port.Domain {
+	if one.Action == "add" && one.Date == "" {
+		time.Local, _ = time.LoadLocation(pkg.Location)
+		one.Date = time.Now().Format(pkg.DateFormat)
+	}
+	if one.Action == "add" && one.Length == "" {
+		one.Length = "0"
+	}
+	if one.Action == "add" && one.Limit == "" {
+		one.Limit = "0"
+	}
+	if one.Action == "add" && one.Cycle == "" {
+		one.Cycle = pkg.DefaultRecurrenceCycle
+	}
+	one.trim()
+	return domain.NewRecurrence(one.ID, one.Date, one.Name, one.Cycle, one.Length, one.Limit)
+}
+
+// trim is a method that trims the dto
+func (r *RecurrenceCrud) trim() {
+	r.ID = strings.TrimSpace(r.ID)
+	r.Date = strings.TrimSpace(r.Date)
+	r.Name = strings.TrimSpace(r.Name)
+	r.Cycle = strings.TrimSpace(r.Cycle)
+	r.Length = strings.TrimSpace(r.Length)
+	r.Limit = strings.TrimSpace(r.Limit)
 }

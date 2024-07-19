@@ -62,7 +62,7 @@ func NewClient(id, date, name, email, phone, document, contact string) *Client {
 }
 
 // Format is a method that formats the client
-func (c *Client) Format(repo port.Repository, tx interface{}, args ...string) error {
+func (c *Client) Format(repo port.Repository, args ...string) error {
 	filled := slices.Contains(args, "filled")
 	noduplicity := slices.Contains(args, "noduplicity")
 	formatMap := []func(filled bool) error{
@@ -80,6 +80,8 @@ func (c *Client) Format(repo port.Repository, tx interface{}, args ...string) er
 			message += err.Error() + " | "
 		}
 	}
+	tx := repo.Begin()
+	defer repo.Rollback(tx)
 	if err := c.validateDuplicity(repo, tx, noduplicity); err != nil {
 		message += err.Error() + " | "
 	}
@@ -90,7 +92,9 @@ func (c *Client) Format(repo port.Repository, tx interface{}, args ...string) er
 }
 
 // Exists is a function that checks if a client exists
-func (c *Client) Load(repo port.Repository, tx interface{}) (bool, error) {
+func (c *Client) Load(repo port.Repository) (bool, error) {
+	tx := repo.Begin()
+	defer repo.Rollback(tx)
 	return repo.Get(tx, c, c.ID)
 }
 

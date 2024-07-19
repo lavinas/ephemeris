@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"time"
+	"strings"
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"
@@ -59,42 +60,6 @@ func (p *PackageCrud) GetDomain() []port.Domain {
 	return p.getDomain(p)
 }
 
-// getDomain is a method that returns a domain representation of the package dto
-func (x *PackageCrud) getDomain(one *PackageCrud) []port.Domain {
-	itemId := ""
-	if one.Action == "add" {
-		if one.Date == "" {
-			time.Local, _ = time.LoadLocation(pkg.Location)
-			one.Date = time.Now().Format(pkg.DateFormat)
-		}
-		if one.UnitValue == "" {
-			one.UnitValue = "0"
-		}
-		if one.PackValue == "" {
-			one.PackValue = "0"
-		}
-		if one.Sequence == "" {
-			one.Sequence = "0"
-		}
-		seq, _ := strconv.Atoi(one.Sequence)
-		itemId = fmt.Sprintf("%s_%03d", one.ID, seq)
-	}
-	seqUp := one.Sequence
-	if one.Action == "up" {
-		if one.Sequence == "" {
-			one.Sequence = "0"
-		}
-		seq, _ := strconv.Atoi(one.Sequence)
-		itemId = fmt.Sprintf("%s_%03d", one.ID, seq)
-		if one.SequenceUp != "" {
-			seqUp = one.SequenceUp
-		}
-	}
-	return []port.Domain{
-		domain.NewPackage(one.ID, one.Date, one.RecurrenceID, one.PackValue),
-		domain.NewPackageItem(itemId, one.ID, one.ServiceID, seqUp, one.UnitValue),
-	}
-}
 
 // GetOut is a method that returns the output dto
 func (p *PackageCrud) GetOut() port.DTOOut {
@@ -133,4 +98,54 @@ func (p *PackageCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 // Getinstructions is a method that returns the instructions of the dto for given domain
 func (p *PackageCrud) GetInstructions(domain port.Domain) (port.Domain, []interface{}, error) {
 	return domain, []interface{}{}, nil
+}
+
+// getDomain is a method that returns a domain representation of the package dto
+func (x *PackageCrud) getDomain(one *PackageCrud) []port.Domain {
+	itemId := ""
+	if one.Action == "add" {
+		if one.Date == "" {
+			time.Local, _ = time.LoadLocation(pkg.Location)
+			one.Date = time.Now().Format(pkg.DateFormat)
+		}
+		if one.UnitValue == "" {
+			one.UnitValue = "0"
+		}
+		if one.PackValue == "" {
+			one.PackValue = "0"
+		}
+		if one.Sequence == "" {
+			one.Sequence = "0"
+		}
+		seq, _ := strconv.Atoi(one.Sequence)
+		itemId = fmt.Sprintf("%s_%03d", one.ID, seq)
+	}
+	seqUp := one.Sequence
+	if one.Action == "up" {
+		if one.Sequence == "" {
+			one.Sequence = "0"
+		}
+		seq, _ := strconv.Atoi(one.Sequence)
+		itemId = fmt.Sprintf("%s_%03d", one.ID, seq)
+		if one.SequenceUp != "" {
+			seqUp = one.SequenceUp
+		}
+	}
+	one.trim()
+	return []port.Domain{
+		domain.NewPackage(one.ID, one.Date, one.RecurrenceID, one.PackValue),
+		domain.NewPackageItem(itemId, one.ID, one.ServiceID, seqUp, one.UnitValue),
+	}
+}
+
+// trim is a method that trims the fields of the dto
+func (p *PackageCrud) trim() {
+	p.ID = strings.TrimSpace(p.ID)
+	p.Date = strings.TrimSpace(p.Date)
+	p.RecurrenceID = strings.TrimSpace(p.RecurrenceID)
+	p.ServiceID = strings.TrimSpace(p.ServiceID)
+	p.UnitValue = strings.TrimSpace(p.UnitValue)
+	p.PackValue = strings.TrimSpace(p.PackValue)
+	p.Sequence = strings.TrimSpace(p.Sequence)
+	p.SequenceUp = strings.TrimSpace(p.SequenceUp)
 }

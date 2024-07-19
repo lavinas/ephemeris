@@ -30,6 +30,12 @@ func (u *Usecase) SessionForce(dtoIn interface{}) error {
 
 // sessionForce links session to a agenda
 func (u *Usecase) sessionForce(s *domain.Session, ret *[]interface{}) *string {
+	if s.ID == "" ||  s.AgendaID == "" {
+		s.Process = fmt.Sprintf("Error: %s", pkg.ErrIdOrAgendaNotFound)
+		*ret = append(*ret, s)
+		return nil
+	
+	}
 	session, agenda, err := u.getLinkSessionAgenda(s)
 	if err != nil {
 		s.Process = fmt.Sprintf("Error: %s", err.Error())
@@ -49,8 +55,10 @@ func (u *Usecase) sessionForce(s *domain.Session, ret *[]interface{}) *string {
 
 // GetLinkSessionAgenda is a method that returns the session and agenda to be linked
 func (u *Usecase) getLinkSessionAgenda(s *domain.Session) (*domain.Session, *domain.Agenda, error) {
+	fmt.Println(1, s)
 	session, err := u.getLockSession(s.ID)
 	if err != nil {
+		fmt.Println(2, s.ID, err.Error())
 		return nil, nil, err
 	}
 	agendas, err := u.getLockAgenda(&domain.Agenda{ID: s.AgendaID}, time.Time{}, time.Time{}, nil)

@@ -45,7 +45,7 @@ func NewService(id, date, name, minutes string) *Service {
 }
 
 // Format is a method that formats the service
-func (s *Service) Format(repo port.Repository, tx interface{}, args ...string) error {
+func (s *Service) Format(repo port.Repository, args ...string) error {
 	filled := slices.Contains(args, "filled")
 	noduplicity := slices.Contains(args, "noduplicity")
 	msg := ""
@@ -58,6 +58,8 @@ func (s *Service) Format(repo port.Repository, tx interface{}, args ...string) e
 	if err := s.formatName(filled); err != nil {
 		msg += err.Error() + " | "
 	}
+	tx := repo.Begin()
+	defer repo.Rollback(tx)
 	if err := s.validateDuplicity(repo, tx, noduplicity); err != nil {
 		msg += err.Error() + " | "
 	}
@@ -68,7 +70,9 @@ func (s *Service) Format(repo port.Repository, tx interface{}, args ...string) e
 }
 
 // Exists is a method that checks if a service exists
-func (s *Service) Load(repo port.Repository, tx interface{}) (bool, error) {
+func (s *Service) Load(repo port.Repository) (bool, error) {
+	tx := repo.Begin()
+	defer repo.Rollback(tx)
 	return repo.Get(tx, s, s.ID)
 }
 

@@ -41,11 +41,11 @@ func (u *Usecase) findSessionsTie(dtoIn *dto.SessionTie) (*[]domain.Session, err
 	if err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
-	tx := u.Repo.Begin()
-	defer u.Repo.Rollback(tx)
-	if err := d.Format(u.Repo, tx, "filled", "noduplicity"); err != nil {
+	if err := d.Format(u.Repo, "filled", "noduplicity"); err != nil {
 		return nil, u.error(pkg.ErrPrefBadRequest, err.Error(), 0, 0)
 	}
+	tx := u.Repo.Begin()
+	defer u.Repo.Rollback(tx)
 	base, _, err := u.Repo.Find(tx, d, -1, extras...)
 	if err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
@@ -263,9 +263,7 @@ func (u *Usecase) saveSessionAgenda(session *domain.Session, agenda *domain.Agen
 // getLockSession gets a session domain for processing and lock it
 func (u *Usecase) getLockSession(id string) (*domain.Session, error) {
 	session := &domain.Session{ID: id}
-	tx := u.Repo.Begin()
-	defer u.Repo.Rollback(tx)
-	if ok, err := session.Load(u.Repo, tx); err != nil {
+	if ok, err := session.Load(u.Repo); err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	} else if !ok {
 		return nil, u.error(pkg.ErrPrefBadRequest, pkg.ErrSessionNotFound, 0, 0)
@@ -273,10 +271,7 @@ func (u *Usecase) getLockSession(id string) (*domain.Session, error) {
 	if session.IsLocked() {
 		return nil, u.error(pkg.ErrPrefInternal, pkg.ErrSessionLocked, 0, 0)
 	}
-	if err := session.Lock(u.Repo, tx); err != nil {
-		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
-	}
-	if err := u.Repo.Commit(tx); err != nil {
+	if err := session.Lock(u.Repo); err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
 	return session, nil
@@ -284,28 +279,23 @@ func (u *Usecase) getLockSession(id string) (*domain.Session, error) {
 
 // getLockAgenda gets a agenda based on session params and lock if
 func (u *Usecase) getLockAgenda(agenda *domain.Agenda, start time.Time, end time.Time, status []string) ([]*domain.Agenda, error) {
-	tx := u.Repo.Begin()
-	defer u.Repo.Rollback(tx)
-	agendas, err := agenda.LoadRange(u.Repo, tx, start, end, status)
+	agendas, err := agenda.LoadRange(u.Repo, start, end, status)
 	if err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
 	if len(agendas) == 0 {
 		return nil, nil
 	}
-	if err := u.lockAgendas(tx, agendas); err != nil {
+	if err := u.lockAgendas(agendas); err != nil {
 		return nil, err
-	}
-	if err := u.Repo.Commit(tx); err != nil {
-		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
 	return agendas, nil
 }
 
 // lockagendas locks slice of agendas
-func (u *Usecase) lockAgendas(tx interface{}, agendas []*domain.Agenda) error {
+func (u *Usecase) lockAgendas(agendas []*domain.Agenda) error {
 	for _, a := range agendas {
-		if err := a.Lock(u.Repo, tx, 2); err != nil {
+		if err := a.Lock(u.Repo, 2); err != nil {
 			return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 		}
 	}
@@ -384,12 +374,7 @@ func (u *Usecase) matchSessionAgenda(session *domain.Session, agenda *domain.Age
 
 // unlock session unlocks session
 func (u *Usecase) unlockSession(session *domain.Session) error {
-	tx := u.Repo.Begin()
-	defer u.Repo.Rollback(tx)
-	if err := session.Unlock(u.Repo, tx); err != nil {
-		return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
-	}
-	if err := u.Repo.Commit(tx); err != nil {
+	if err := session.Unlock(u.Repo); err != nil {
 		return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
 	return nil
@@ -400,15 +385,10 @@ func (u *Usecase) unlockAgendas(agendas []*domain.Agenda) error {
 	if agendas == nil {
 		return nil
 	}
-	tx := u.Repo.Begin()
-	defer u.Repo.Rollback(tx)
 	for _, a := range agendas {
-		if err := a.Unlock(u.Repo, tx); err != nil {
+		if err := a.Unlock(u.Repo); err != nil {
 			return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 		}
-	}
-	if err := u.Repo.Commit(tx); err != nil {
-		return u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
 	return nil
 }

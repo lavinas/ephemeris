@@ -237,4 +237,5 @@ const (
 	ErrSessionNotUnconfirmed     = "session is not confirmed"
 	ErrAgendaMultiple            = "multiples agendas found"
 	ErrAgendaClientMismatch      = "session and agenda client mismatch"
+	ErrIdOrAgendaNotFound        = "id or agenda not found"
 )

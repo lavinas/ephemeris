@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"
@@ -52,16 +53,6 @@ func (p *PackageAppend) GetDomain() []port.Domain {
 	return []port.Domain{p.getDomain(p)}
 }
 
-// getDomain is a method that returns a domain representation of the package dto
-func (p *PackageAppend) getDomain(one *PackageAppend) port.Domain {
-	if one.Action == "add" && one.UnitValue == "" {
-		one.UnitValue = "0"
-	}
-	seq, _ := strconv.Atoi(one.Sequence)
-	itemId := fmt.Sprintf("%s_%03d", one.ID, seq)
-	return domain.NewPackageItem(itemId, one.ID, one.ServiceID, one.Sequence, one.UnitValue)
-}
-
 // GetOut is a method that returns the dto out
 func (p *PackageAppend) GetOut() port.DTOOut {
 	return p
@@ -93,4 +84,23 @@ func (p *PackageAppend) GetDTO(domainIn interface{}) []port.DTOOut {
 // Getinstructions is a method that returns the instructions of the dto for given domain
 func (p *PackageAppend) GetInstructions(domain port.Domain) (port.Domain, []interface{}, error) {
 	return p.getInstructions(p, domain)
+}
+
+// getDomain is a method that returns a domain representation of the package dto
+func (p *PackageAppend) getDomain(one *PackageAppend) port.Domain {
+	if one.Action == "add" && one.UnitValue == "" {
+		one.UnitValue = "0"
+	}
+	seq, _ := strconv.Atoi(one.Sequence)
+	itemId := fmt.Sprintf("%s_%03d", one.ID, seq)
+	one.trim()
+	return domain.NewPackageItem(itemId, one.ID, one.ServiceID, one.Sequence, one.UnitValue)
+}
+
+// trim is a method that trims the dto
+func (p *PackageAppend) trim() {
+	p.ID = strings.TrimSpace(p.ID)
+	p.ServiceID = strings.TrimSpace(p.ServiceID)
+	p.UnitValue = strings.TrimSpace(p.UnitValue)
+	p.Sequence = strings.TrimSpace(p.Sequence)
 }

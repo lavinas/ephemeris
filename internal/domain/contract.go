@@ -62,7 +62,7 @@ func NewContract(id, date, clientID, SponsorID, packageID, billingType, dueDay, 
 }
 
 // Format is a method that formats the contract
-func (c *Contract) Format(repo port.Repository, tx interface{}, args ...string) error {
+func (c *Contract) Format(repo port.Repository, args ...string) error {
 	filled := slices.Contains(args, "filled")
 	noduplicity := slices.Contains(args, "noduplicity")
 	msg := ""
@@ -72,13 +72,13 @@ func (c *Contract) Format(repo port.Repository, tx interface{}, args ...string) 
 	if err := c.formatDate(filled); err != nil {
 		msg += err.Error() + " | "
 	}
-	if err := c.formatClientID(repo, tx, filled); err != nil {
+	if err := c.formatClientID(repo, filled); err != nil {
 		msg += err.Error() + " | "
 	}
-	if err := c.formatSponsorID(repo, tx); err != nil {
+	if err := c.formatSponsorID(repo); err != nil {
 		msg += err.Error() + " | "
 	}
-	if err := c.formatPackageID(repo, tx, filled); err != nil {
+	if err := c.formatPackageID(repo, filled); err != nil {
 		msg += err.Error() + " | "
 	}
 	if err := c.formatBillingType(filled); err != nil {
@@ -93,9 +93,11 @@ func (c *Contract) Format(repo port.Repository, tx interface{}, args ...string) 
 	if err := c.formatEnd(); err != nil {
 		msg += err.Error() + " | "
 	}
-	if err := c.formatBond(repo, tx); err != nil {
+	if err := c.formatBond(repo); err != nil {
 		msg += err.Error() + " | "
 	}
+	tx := repo.Begin()
+	defer repo.Rollback(tx)
 	if err := c.validateDuplicity(repo, tx, noduplicity); err != nil {
 		msg += err.Error() + " | "
 	}
@@ -106,7 +108,9 @@ func (c *Contract) Format(repo port.Repository, tx interface{}, args ...string) 
 }
 
 // Exists is a method that checks if the contract exists
-func (c *Contract) Load(repo port.Repository, tx interface{}) (bool, error) {
+func (c *Contract) Load(repo port.Repository) (bool, error) {
+	tx := repo.Begin()
+	defer repo.Rollback(tx)
 	return repo.Get(tx, c, c.ID)
 }
 
@@ -126,12 +130,12 @@ func (c *Contract) GetEmpty() port.Domain {
 }
 
 // GetBond is a method that returns the bond contract of the contract
-func (c *Contract) GetBond(repo port.Repository, tx interface{}) (*Contract, error) {
+func (c *Contract) GetBond(repo port.Repository) (*Contract, error) {
 	if c.Bond == nil {
 		return nil, nil
 	}
 	bond := &Contract{ID: *c.Bond}
-	if exists, err := bond.Load(repo, tx); err != nil {
+	if exists, err := bond.Load(repo); err != nil {
 		return nil, err
 	} else if !exists {
 		return nil, errors.New(pkg.ErrBondNotFound)
@@ -209,7 +213,7 @@ func (c *Contract) formatDate(filled bool) error {
 }
 
 // formatClientID is a method that formats the client id of the contract
-func (c *Contract) formatClientID(repo port.Repository, tx interface{}, filled bool) error {
+func (c *Contract) formatClientID(repo port.Repository, filled bool) error {
 	clientID := c.formatString(c.ClientID)
 	if clientID == "" {
 		if filled {
@@ -218,8 +222,8 @@ func (c *Contract) formatClientID(repo port.Repository, tx interface{}, filled b
 		return errors.New(pkg.ErrClientIDNotProvided)
 	}
 	client := &Client{ID: c.ClientID}
-	client.Format(repo, tx, "filled")
-	if exists, err := client.Load(repo, tx); err != nil {
+	client.Format(repo, "filled")
+	if exists, err := client.Load(repo); err != nil {
 		return err
 	} else if !exists {
 		return errors.New(pkg.ErrClientNotFound)
@@ -228,13 +232,13 @@ func (c *Contract) formatClientID(repo port.Repository, tx interface{}, filled b
 }
 
 // formatSponsorID is a method that formats the sponsor id of the contract
-func (c *Contract) formatSponsorID(repo port.Repository, tx interface{}) error {
+func (c *Contract) formatSponsorID(repo port.Repository) error {
 	if c.SponsorID == nil {
 		return nil
 	}
 	client := &Client{ID: c.formatString(*c.SponsorID)}
-	client.Format(repo, tx, "filled")
-	if exists, err := client.Load(repo, tx); err != nil {
+	client.Format(repo, "filled")
+	if exists, err := client.Load(repo); err != nil {
 		return err
 	} else if !exists {
 		return errors.New(pkg.ErrSponsorNotFound)
@@ -243,7 +247,7 @@ func (c *Contract) formatSponsorID(repo port.Repository, tx interface{}) error {
 }
 
 // formatServiceID is a method that formats the service id of the contract
-func (c *Contract) formatPackageID(repo port.Repository, tx interface{}, filled bool) error {
+func (c *Contract) formatPackageID(repo port.Repository, filled bool) error {
 	packageID := c.formatString(c.PackageID)
 	if packageID == "" {
 		if filled {
@@ -252,8 +256,8 @@ func (c *Contract) formatPackageID(repo port.Repository, tx interface{}, filled 
 		return errors.New(pkg.ErrPackageIDNotProvided)
 	}
 	pack := &Package{ID: c.PackageID}
-	pack.Format(repo, tx, "filled")
-	if exists, err := pack.Load(repo, tx); err != nil {
+	pack.Format(repo, "filled")
+	if exists, err := pack.Load(repo); err != nil {
 		return err
 	} else if !exists {
 		return errors.New(pkg.ErrPackageNotFound)
@@ -320,13 +324,13 @@ func (c *Contract) formatEnd() error {
 }
 
 // formatBond is a method that formats the bond of the contract
-func (c *Contract) formatBond(repo port.Repository, tx interface{}) error {
+func (c *Contract) formatBond(repo port.Repository) error {
 	if c.Bond == nil {
 		return nil
 	}
 	linkContract := &Contract{ID: *c.Bond}
-	linkContract.Format(repo, tx, "filled")
-	if exists, err := linkContract.Load(repo, tx); err != nil {
+	linkContract.Format(repo, "filled")
+	if exists, err := linkContract.Load(repo); err != nil {
 		return err
 	} else if !exists {
 		return errors.New(pkg.ErrBondNotFound)

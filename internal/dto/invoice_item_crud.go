@@ -3,6 +3,7 @@ package dto
 import (
 	"errors"
 	"strconv"
+	"strings"
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"
@@ -51,11 +52,6 @@ func (i *InvoiceItemCrud) GetDomain() []port.Domain {
 	return []port.Domain{i.getDomain(i)}
 }
 
-// getDomain is a method that returns a string representation of the invoice item
-func (i *InvoiceItemCrud) getDomain(one *InvoiceItemCrud) port.Domain {
-	return domain.NewInvoiceItem(one.ID, one.InvoiceID, one.AgendaID, one.Value, one.Description)
-}
-
 // GetOut is a method that returns the output dto
 func (i *InvoiceItemCrud) GetOut() port.DTOOut {
 	return i
@@ -88,4 +84,19 @@ func (i *InvoiceItemCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 // Getinstructions is a method that returns the instructions of the dto for given domain
 func (i *InvoiceItemCrud) GetInstructions(domain port.Domain) (port.Domain, []interface{}, error) {
 	return i.getInstructions(i, domain)
+}
+
+// getDomain is a method that returns a string representation of the invoice item
+func (i *InvoiceItemCrud) getDomain(one *InvoiceItemCrud) port.Domain {
+	i.trim()
+	return domain.NewInvoiceItem(one.ID, one.InvoiceID, one.AgendaID, one.Value, one.Description)
+}
+
+// trim is a method that trims the dto
+func (i *InvoiceItemCrud) trim() {
+	i.ID = strings.TrimSpace(i.ID)
+	i.InvoiceID = strings.TrimSpace(i.InvoiceID)
+	i.AgendaID = strings.TrimSpace(i.AgendaID)
+	i.Value = strings.TrimSpace(i.Value)
+	i.Description = strings.TrimSpace(i.Description)
 }

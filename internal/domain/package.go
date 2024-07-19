@@ -45,7 +45,7 @@ func NewPackage(id, date, recurrenceID, packValue string) *Package {
 }
 
 // Validate is a method that validates the package entity
-func (p *Package) Format(repo port.Repository, tx interface{}, args ...string) error {
+func (p *Package) Format(repo port.Repository, args ...string) error {
 	filled := slices.Contains(args, "filled")
 	msg := ""
 	if err := p.formatID(filled); err != nil {
@@ -54,12 +54,14 @@ func (p *Package) Format(repo port.Repository, tx interface{}, args ...string) e
 	if err := p.formatDate(filled); err != nil {
 		msg += err.Error() + " | "
 	}
-	if err := p.formatRecurrenceID(repo, tx, filled); err != nil {
+	if err := p.formatRecurrenceID(repo, filled); err != nil {
 		msg += err.Error() + " | "
 	}
 	if err := p.formatPrice(filled); err != nil {
 		msg += err.Error() + " | "
 	}
+	tx := repo.Begin()
+	defer repo.Rollback(tx)
 	if err := p.validateDuplicity(repo, tx, slices.Contains(args, "noduplicity")); err != nil {
 		msg += err.Error() + " | "
 	}
@@ -70,7 +72,9 @@ func (p *Package) Format(repo port.Repository, tx interface{}, args ...string) e
 }
 
 // Exists is a method that checks if the contract exists
-func (p *Package) Load(repo port.Repository, tx interface{}) (bool, error) {
+func (p *Package) Load(repo port.Repository) (bool, error) {
+	tx := repo.Begin()
+	defer repo.Rollback(tx)
 	return repo.Get(tx, p, p.ID)
 }
 
@@ -95,9 +99,11 @@ func (p *Package) TableName() string {
 }
 
 // GetService is a method that returns the service of the package
-func (p *Package) GetServices(repo port.Repository, tx interface{}) ([]*Service, []*float64, error) {
+func (p *Package) GetServices(repo port.Repository) ([]*Service, []*float64, error) {
 	services := []*Service{}
 	prices := []*float64{}
+	tx := repo.Begin()
+	defer repo.Rollback(tx)
 	i, _, err := repo.Find(tx, &PackageItem{PackageID: p.ID}, -1)
 	if err != nil {
 		return nil, nil, err
@@ -107,7 +113,7 @@ func (p *Package) GetServices(repo port.Repository, tx interface{}) ([]*Service,
 		return nil, nil, errors.New(pkg.ErrServiceNotFound)
 	}
 	for _, item := range *items {
-		service, error := item.GetService(repo, tx)
+		service, error := item.GetService(repo)
 		if error != nil {
 			return nil, nil, error
 		}
@@ -122,16 +128,16 @@ func (p *Package) GetServices(repo port.Repository, tx interface{}) ([]*Service,
 }
 
 // GetRecurrence is a method that returns the recurrence of the package
-func (p *Package) GetRecurrence(repo port.Repository, tx interface{}) (*Recurrence, error) {
+func (p *Package) GetRecurrence(repo port.Repository) (*Recurrence, error) {
 	if p.RecurrenceID == "" {
-		if ok, err := p.Load(repo, tx); err != nil {
+		if ok, err := p.Load(repo); err != nil {
 			return nil, err
 		} else if !ok {
 			return nil, errors.New(pkg.ErrPackageNotFound)
 		}
 	}
 	recurrence := &Recurrence{ID: p.RecurrenceID}
-	if ok, err := recurrence.Load(repo, tx); err != nil {
+	if ok, err := recurrence.Load(repo); err != nil {
 		return nil, err
 	} else if !ok {
 		return nil, errors.New(pkg.ErrRecurrenceNotFound)
@@ -170,7 +176,7 @@ func (p *Package) formatDate(filled bool) error {
 }
 
 // formatRecurrenceID is a method that formats the recurrence id of the contract
-func (p *Package) formatRecurrenceID(repo port.Repository, tx interface{}, filled bool) error {
+func (p *Package) formatRecurrenceID(repo port.Repository, filled bool) error {
 	recurrenceID := p.formatString(p.RecurrenceID)
 	if recurrenceID == "" {
 		if filled {
@@ -179,8 +185,8 @@ func (p *Package) formatRecurrenceID(repo port.Repository, tx interface{}, fille
 		return errors.New(pkg.ErrRecurrenceIDNotProvided)
 	}
 	recurrence := &Recurrence{ID: p.RecurrenceID}
-	recurrence.Format(repo, tx, "filled")
-	if exists, err := recurrence.Load(repo, tx); err != nil {
+	recurrence.Format(repo, "filled")
+	if exists, err := recurrence.Load(repo); err != nil {
 		return err
 	} else if !exists {
 		return errors.New(pkg.ErrRecurrenceNotFound)

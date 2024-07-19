@@ -41,16 +41,16 @@ func NewPackageItem(id, packageID, serviceID, sequence, price string) *PackageIt
 }
 
 // Format is a method that formats the package item entity
-func (p *PackageItem) Format(repo port.Repository, tx interface{}, args ...string) error {
+func (p *PackageItem) Format(repo port.Repository, args ...string) error {
 	msg := ""
 	filled := slices.Contains(args, "filled")
 	if err := p.formatID(filled); err != nil {
 		msg = err.Error() + " | "
 	}
-	if err := p.formatPackageID(repo, tx, filled); err != nil {
+	if err := p.formatPackageID(repo, filled); err != nil {
 		msg += err.Error() + " | "
 	}
-	if err := p.formatServiceID(repo, tx, filled); err != nil {
+	if err := p.formatServiceID(repo, filled); err != nil {
 		msg += err.Error() + " | "
 	}
 	if err := p.formatPrice(filled); err != nil {
@@ -59,6 +59,8 @@ func (p *PackageItem) Format(repo port.Repository, tx interface{}, args ...strin
 	if err := p.formatSequence(filled); err != nil {
 		msg += err.Error() + " | "
 	}
+	tx := repo.Begin()
+	defer repo.Rollback(tx)
 	if err := p.validateDuplicity(repo, tx, slices.Contains(args, "noduplicity")); err != nil {
 		msg += err.Error() + " | "
 	}
@@ -69,7 +71,9 @@ func (p *PackageItem) Format(repo port.Repository, tx interface{}, args ...strin
 }
 
 // Exists is a method that checks if the contract exists
-func (p *PackageItem) Load(repo port.Repository, tx interface{}) (bool, error) {
+func (p *PackageItem) Load(repo port.Repository) (bool, error) {
+	tx := repo.Begin()
+	defer repo.Rollback(tx)
 	return repo.Get(tx, p, p.ID)
 }
 
@@ -89,9 +93,9 @@ func (p *PackageItem) GetEmpty() port.Domain {
 }
 
 // GetService is a method that returns the service of the package item
-func (p *PackageItem) GetService(repo port.Repository, tx interface{}) (*Service, error) {
+func (p *PackageItem) GetService(repo port.Repository) (*Service, error) {
 	service := &Service{ID: p.ServiceID}
-	if exists, err := service.Load(repo, tx); err != nil {
+	if exists, err := service.Load(repo); err != nil {
 		return nil, err
 	} else if !exists {
 		return nil, errors.New(pkg.ErrServiceNotFound)
@@ -124,7 +128,7 @@ func (p *PackageItem) formatID(filled bool) error {
 }
 
 // FormatPackageID is a method that formats the package item entity
-func (p *PackageItem) formatPackageID(repo port.Repository, tx interface{}, filled bool) error {
+func (p *PackageItem) formatPackageID(repo port.Repository, filled bool) error {
 	if p.PackageID == "" {
 		if filled {
 			return nil
@@ -132,7 +136,7 @@ func (p *PackageItem) formatPackageID(repo port.Repository, tx interface{}, fill
 		return errors.New(pkg.ErrEmptyPackageID)
 	}
 	pack := &Package{ID: p.PackageID}
-	if exists, err := pack.Load(repo, tx); err != nil {
+	if exists, err := pack.Load(repo); err != nil {
 		return err
 	} else if !exists {
 		return errors.New(pkg.ErrPackageNotFound)
@@ -141,7 +145,7 @@ func (p *PackageItem) formatPackageID(repo port.Repository, tx interface{}, fill
 }
 
 // FormatServiceID is a method that formats the package item entity
-func (p *PackageItem) formatServiceID(repo port.Repository, tx interface{}, filled bool) error {
+func (p *PackageItem) formatServiceID(repo port.Repository, filled bool) error {
 	serviceID := p.formatString(p.ServiceID)
 	if serviceID == "" {
 		if filled {
@@ -150,8 +154,8 @@ func (p *PackageItem) formatServiceID(repo port.Repository, tx interface{}, fill
 		return errors.New(pkg.ErrServiceIDNotProvided)
 	}
 	service := &Service{ID: p.ServiceID}
-	service.Format(repo, tx, "filled")
-	if exists, err := service.Load(repo, tx); err != nil {
+	service.Format(repo, "filled")
+	if exists, err := service.Load(repo); err != nil {
 		return err
 	} else if !exists {
 		return errors.New(pkg.ErrServiceNotFound)

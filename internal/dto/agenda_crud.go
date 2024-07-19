@@ -3,6 +3,7 @@ package dto
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/lavinas/ephemeris/internal/domain"
@@ -63,22 +64,6 @@ func (a *AgendaCrud) GetDomain() []port.Domain {
 	}
 }
 
-// getDomain is a method that returns the domain of one object
-func (a *AgendaCrud) getDomain(one *AgendaCrud) port.Domain {
-	if one.Action == "add" && one.Date == "" {
-		time.Local, _ = time.LoadLocation(pkg.Location)
-		one.Date = time.Now().Format(pkg.DateFormat)
-	}
-	if one.Action == "add" && one.Kind == "" {
-		one.Kind = pkg.DefaultAgendaKind
-	}
-	if one.Action == "add" && one.Status == "" {
-		one.Status = pkg.DefaultAgendaStatus
-	}
-	return domain.NewAgenda(one.ID, one.Date, one.ClientID, one.ServiceID, one.ContractID,
-		one.Start, one.End, one.Price, one.Kind, one.Status, one.Bond, one.Billing)
-}
-
 // GetOut is a method that returns the output dto
 func (a *AgendaCrud) GetOut() port.DTOOut {
 	return a
@@ -130,4 +115,37 @@ func (a *AgendaCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 // Getinstructions is a method that returns the instructions of the dto for given domain
 func (a *AgendaCrud) GetInstructions(domain port.Domain) (port.Domain, []interface{}, error) {
 	return a.getInstructions(a, domain)
+}
+
+// getDomain is a method that returns the domain of one object
+func (a *AgendaCrud) getDomain(one *AgendaCrud) port.Domain {
+	if one.Action == "add" && one.Date == "" {
+		time.Local, _ = time.LoadLocation(pkg.Location)
+		one.Date = time.Now().Format(pkg.DateFormat)
+	}
+	if one.Action == "add" && one.Kind == "" {
+		one.Kind = pkg.DefaultAgendaKind
+	}
+	if one.Action == "add" && one.Status == "" {
+		one.Status = pkg.DefaultAgendaStatus
+	}
+	a.trim()
+	return domain.NewAgenda(one.ID, one.Date, one.ClientID, one.ServiceID, one.ContractID,
+		one.Start, one.End, one.Price, one.Kind, one.Status, one.Bond, one.Billing)
+}
+
+// trim is a method that trims the fields of the dto
+func (a *AgendaCrud) trim() {
+	a.ID = strings.TrimSpace(a.ID)
+	a.Date = strings.TrimSpace(a.Date)
+	a.ClientID = strings.TrimSpace(a.ClientID)
+	a.ServiceID = strings.TrimSpace(a.ServiceID)
+	a.ContractID = strings.TrimSpace(a.ContractID)
+	a.Start = strings.TrimSpace(a.Start)
+	a.End = strings.TrimSpace(a.End)
+	a.Price = strings.TrimSpace(a.Price)
+	a.Kind = strings.TrimSpace(a.Kind)
+	a.Status = strings.TrimSpace(a.Status)
+	a.Bond = strings.TrimSpace(a.Bond)
+	a.Billing = strings.TrimSpace(a.Billing)
 }

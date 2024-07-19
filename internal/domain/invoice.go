@@ -58,7 +58,7 @@ func NewInvoice(id, clientID, date, value, status, sendstatus, paymentstatus str
 }
 
 // Format formats the invoice
-func (i *Invoice) Format(repo port.Repository, tx interface{}, args ...string) error {
+func (i *Invoice) Format(repo port.Repository, args ...string) error {
 	filled := slices.Contains(args, "filled")
 	noduplicity := slices.Contains(args, "noduplicity")
 	msg := ""
@@ -68,7 +68,7 @@ func (i *Invoice) Format(repo port.Repository, tx interface{}, args ...string) e
 	if err := i.formatDate(filled); err != nil {
 		msg += err.Error() + " | "
 	}
-	if err := i.formatClientID(repo, tx, filled); err != nil {
+	if err := i.formatClientID(repo, filled); err != nil {
 		msg += err.Error() + " | "
 	}
 	if err := i.formatValue(filled); err != nil {
@@ -83,6 +83,8 @@ func (i *Invoice) Format(repo port.Repository, tx interface{}, args ...string) e
 	if err := i.formatPaymentStatus(filled); err != nil {
 		msg += err.Error() + " | "
 	}
+	tx := repo.Begin()
+	defer repo.Rollback(tx)
 	if err := i.validateDuplicity(repo, tx, noduplicity); err != nil {
 		msg += err.Error() + " | "
 	}
@@ -93,7 +95,9 @@ func (i *Invoice) Format(repo port.Repository, tx interface{}, args ...string) e
 }
 
 // Exists is a function that checks if a client exists
-func (c *Invoice) Load(repo port.Repository, tx interface{}) (bool, error) {
+func (c *Invoice) Load(repo port.Repository) (bool, error) {
+	tx := repo.Begin()
+	defer repo.Rollback(tx)
 	return repo.Get(tx, c, c.ID)
 }
 
@@ -148,7 +152,7 @@ func (c *Invoice) formatDate(filled bool) error {
 }
 
 // formatClientID is a method that formats the client id of the contract
-func (c *Invoice) formatClientID(repo port.Repository, tx interface{}, filled bool) error {
+func (c *Invoice) formatClientID(repo port.Repository, filled bool) error {
 	c.ClientID = c.formatString(c.ClientID)
 	if c.ClientID == "" {
 		if filled {
@@ -157,7 +161,7 @@ func (c *Invoice) formatClientID(repo port.Repository, tx interface{}, filled bo
 		return errors.New(pkg.ErrEmptyClientID)
 	}
 	client := &Client{ID: c.ClientID}
-	if exists, err := client.Load(repo, tx); err != nil {
+	if exists, err := client.Load(repo); err != nil {
 		return err
 	} else if !exists {
 		return errors.New(pkg.ErrClientNotFound)

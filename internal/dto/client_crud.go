@@ -3,6 +3,7 @@ package dto
 import (
 	"errors"
 	"time"
+	"strings"
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"
@@ -54,17 +55,6 @@ func (c *ClientCrud) GetDomain() []port.Domain {
 	return []port.Domain{c.getDomain(c)}
 }
 
-// getDomain is a method that returns a string representation of the agenda
-func (c *ClientCrud) getDomain(one *ClientCrud) port.Domain {
-	if one.Action == "add" && one.Date == "" {
-		time.Local, _ = time.LoadLocation(pkg.Location)
-		one.Date = time.Now().Format(pkg.DateFormat)
-	}
-	if one.Action == "add" && one.Contact == "" {
-		one.Contact = pkg.DefaultContact
-	}
-	return domain.NewClient(one.ID, one.Date, one.Name, one.Email, one.Phone, one.Document, one.Contact)
-}
 
 // GetOut is a method that returns the output dto
 func (c *ClientCrud) GetOut() port.DTOOut {
@@ -102,3 +92,28 @@ func (c *ClientCrud) GetDTO(domainIn interface{}) []port.DTOOut {
 func (c *ClientCrud) GetInstructions(domain port.Domain) (port.Domain, []interface{}, error) {
 	return c.getInstructions(c, domain)
 }
+
+// getDomain is a method that returns a string representation of the agenda
+func (c *ClientCrud) getDomain(one *ClientCrud) port.Domain {
+	if one.Action == "add" && one.Date == "" {
+		time.Local, _ = time.LoadLocation(pkg.Location)
+		one.Date = time.Now().Format(pkg.DateFormat)
+	}
+	if one.Action == "add" && one.Contact == "" {
+		one.Contact = pkg.DefaultContact
+	}
+	one.trim()
+	return domain.NewClient(one.ID, one.Date, one.Name, one.Email, one.Phone, one.Document, one.Contact)
+}
+
+// trim is a method that trims the fields of the dto
+func (c *ClientCrud) trim() {
+	c.ID = strings.TrimSpace(c.ID)
+	c.Date = strings.TrimSpace(c.Date)
+	c.Name = strings.TrimSpace(c.Name)
+	c.Email = strings.TrimSpace(c.Email)
+	c.Phone = strings.TrimSpace(c.Phone)
+	c.Document = strings.TrimSpace(c.Document)
+	c.Contact = strings.TrimSpace(c.Contact)
+}
+

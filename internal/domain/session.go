@@ -64,7 +64,7 @@ func NewSession(id, sequence, date, clientID, serviceID, at, status string, proc
 }
 
 // Validate is a method that validates the session entity
-func (s *Session) Format(repo port.Repository, tx interface{}, args ...string) error {
+func (s *Session) Format(repo port.Repository, args ...string) error {
 	filled := slices.Contains(args, "filled")
 	msg := ""
 	if err := s.formatID(filled); err != nil {
@@ -76,10 +76,10 @@ func (s *Session) Format(repo port.Repository, tx interface{}, args ...string) e
 	if err := s.formatDate(filled); err != nil {
 		msg += err.Error() + " | "
 	}
-	if err := s.formatClientID(repo, tx, filled); err != nil {
+	if err := s.formatClientID(repo, filled); err != nil {
 		msg += err.Error() + " | "
 	}
-	if err := s.formatServiceID(repo, tx, filled); err != nil {
+	if err := s.formatServiceID(repo, filled); err != nil {
 		msg += err.Error() + " | "
 	}
 	if err := s.formatAt(filled); err != nil {
@@ -91,9 +91,11 @@ func (s *Session) Format(repo port.Repository, tx interface{}, args ...string) e
 	if err := s.formatProcess(filled); err != nil {
 		msg += err.Error() + " | "
 	}
-	if err := s.formatAgendaID(repo, tx); err != nil {
+	if err := s.formatAgendaID(repo); err != nil {
 		msg += err.Error() + " | "
 	}
+	tx := repo.Begin()
+	defer repo.Rollback(tx)
 	if err := s.validateDuplicity(repo, tx, slices.Contains(args, "noduplicity")); err != nil {
 		msg += err.Error() + " | "
 	}
@@ -104,7 +106,9 @@ func (s *Session) Format(repo port.Repository, tx interface{}, args ...string) e
 }
 
 // Exists is a function that checks if a agenda exists
-func (s *Session) Load(repo port.Repository, tx interface{}) (bool, error) {
+func (s *Session) Load(repo port.Repository) (bool, error) {
+	tx := repo.Begin()
+	defer repo.Rollback(tx)	
 	return repo.Get(tx, s, s.ID)
 }
 
@@ -124,10 +128,15 @@ func (s *Session) GetEmpty() port.Domain {
 }
 
 // Lock is a method that locks the contract
-func (s *Session) Lock(repo port.Repository, tx interface{}) error {
+func (s *Session) Lock(repo port.Repository) error {
 	var locked = true
 	s.Locked = &locked
+	tx := repo.Begin()
+	defer repo.Rollback(tx)
 	if err := repo.Save(tx, s); err != nil {
+		return err
+	}
+	if err := repo.Commit(tx); err != nil {
 		return err
 	}
 	return nil
@@ -139,9 +148,14 @@ func (s *Session) IsLocked() bool {
 }
 
 // Unlock is a method that unlocks the contract
-func (s *Session) Unlock(repo port.Repository, tx interface{}) error {
+func (s *Session) Unlock(repo port.Repository) error {
 	s.Locked = nil
+	tx := repo.Begin()
+	defer repo.Rollback(tx)
 	if err := repo.Save(tx, s); err != nil {
+		return err
+	}
+	if err := repo.Commit(tx); err != nil {
 		return err
 	}
 	return nil
@@ -182,7 +196,7 @@ func (s *Session) formatDate(filled bool) error {
 }
 
 // validateClientID is a method that validates the session client id
-func (s *Session) formatClientID(repo port.Repository, tx interface{}, filled bool) error {
+func (s *Session) formatClientID(repo port.Repository, filled bool) error {
 	if s.ClientID == "" {
 		if filled {
 			return nil
@@ -190,7 +204,7 @@ func (s *Session) formatClientID(repo port.Repository, tx interface{}, filled bo
 		return errors.New(pkg.ErrEmptyClientID)
 	}
 	client := &Client{ID: s.ClientID}
-	if ok, err := client.Load(repo, tx); err != nil {
+	if ok, err := client.Load(repo); err != nil {
 		return err
 	} else if !ok {
 		return errors.New(pkg.ErrClientNotFound)
@@ -199,7 +213,7 @@ func (s *Session) formatClientID(repo port.Repository, tx interface{}, filled bo
 }
 
 // formatServiceID is a method that validates the session service id
-func (s *Session) formatServiceID(repo port.Repository, tx interface{}, filled bool) error {
+func (s *Session) formatServiceID(repo port.Repository, filled bool) error {
 	if s.ServiceID == "" {
 		if filled {
 			return nil
@@ -207,7 +221,7 @@ func (s *Session) formatServiceID(repo port.Repository, tx interface{}, filled b
 		return errors.New(pkg.ErrEmptyServiceID)
 	}
 	service := &Service{ID: s.ServiceID}
-	if ok, err := service.Load(repo, tx); err != nil {
+	if ok, err := service.Load(repo); err != nil {
 		return err
 	} else if !ok {
 		return errors.New(pkg.ErrServiceNotFound)
@@ -271,12 +285,12 @@ func (s *Session) formatSequence(filled bool) error {
 }
 
 // formatAgendaID formats the agenda id
-func (s *Session) formatAgendaID(repo port.Repository, tx interface{}) error {
+func (s *Session) formatAgendaID(repo port.Repository) error {
 	if s.AgendaID == "" {
 		return nil
 	}
 	agenda := &Agenda{ID: s.AgendaID}
-	if ok, err := agenda.Load(repo, tx); err != nil {
+	if ok, err := agenda.Load(repo); err != nil {
 		return err
 	} else if !ok {
 		return errors.New(pkg.ErrAgendaNotFound)

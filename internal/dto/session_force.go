@@ -2,6 +2,7 @@ package dto
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"
@@ -15,8 +16,8 @@ type SessionForce struct {
 	Action   string `json:"-" command:"name:force;key;pos:2-"`
 	Sort     string `json:"sort" command:"name:sort;pos:3+"`
 	Csv      string `json:"csv" command:"name:csv;pos:3+;" csv:"file"`
-	ID       string `json:"id" command:"name:id;pos:3+"`
-	AgendaID string `json:"agenda" command:"name:agenda;pos:3+"`
+	ID       string `json:"id" command:"name:id;pos:3+;" csv:"id"`
+	AgendaID string `json:"agenda" command:"name:agenda;pos:3+" csv:"agenda"`
 }
 
 // SessionForceOut represents the dto for linking a session with agenda on output
@@ -49,10 +50,14 @@ func (s *SessionForce) GetDomain() []port.Domain {
 		for _, session := range sessions {
 			session.Action = s.Action
 			session.Object = s.Object
+			session.ID = strings.TrimSpace(session.ID)
+			session.AgendaID = strings.TrimSpace(session.AgendaID)
 			domains = append(domains, &domain.Session{ID: session.ID, AgendaID: session.AgendaID})
 		}
 		return domains
 	}
+	s.ID = strings.TrimSpace(s.ID)
+	s.AgendaID = strings.TrimSpace(s.AgendaID)
 	return []port.Domain{&domain.Session{ID: s.ID, AgendaID: s.AgendaID}}
 }
 
