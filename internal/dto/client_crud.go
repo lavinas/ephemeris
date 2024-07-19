@@ -2,8 +2,8 @@ package dto
 
 import (
 	"errors"
-	"time"
 	"strings"
+	"time"
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"
@@ -54,7 +54,6 @@ func (c *ClientCrud) GetDomain() []port.Domain {
 	}
 	return []port.Domain{c.getDomain(c)}
 }
-
 
 // GetOut is a method that returns the output dto
 func (c *ClientCrud) GetOut() port.DTOOut {
@@ -116,4 +115,3 @@ func (c *ClientCrud) trim() {
 	c.Document = strings.TrimSpace(c.Document)
 	c.Contact = strings.TrimSpace(c.Contact)
 }
-

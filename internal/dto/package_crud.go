@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"time"
 	"strings"
+	"time"
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"
@@ -59,7 +59,6 @@ func (p *PackageCrud) GetDomain() []port.Domain {
 	}
 	return p.getDomain(p)
 }
-
 
 // GetOut is a method that returns the output dto
 func (p *PackageCrud) GetOut() port.DTOOut {

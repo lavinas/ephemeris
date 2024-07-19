@@ -14,7 +14,6 @@ const (
 	session_tie_jobs = 1
 )
 
-
 // SessionTie ties a session to an agenda
 func (u *Usecase) SessionTie(dtoIn interface{}) error {
 	dtoSessionTie := dtoIn.(*dto.SessionTie)

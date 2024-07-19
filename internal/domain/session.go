@@ -108,7 +108,7 @@ func (s *Session) Format(repo port.Repository, args ...string) error {
 // Exists is a function that checks if a agenda exists
 func (s *Session) Load(repo port.Repository) (bool, error) {
 	tx := repo.Begin()
-	defer repo.Rollback(tx)	
+	defer repo.Rollback(tx)
 	return repo.Get(tx, s, s.ID)
 }
 

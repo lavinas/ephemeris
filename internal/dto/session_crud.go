@@ -3,8 +3,8 @@ package dto
 import (
 	"errors"
 	"strconv"
-	"time"
 	"strings"
+	"time"
 
 	"github.com/lavinas/ephemeris/internal/domain"
 	"github.com/lavinas/ephemeris/internal/port"
@@ -61,7 +61,6 @@ func (s *SessionCrud) GetDomain() []port.Domain {
 		s.getDomain(s),
 	}
 }
-
 
 // GetOut is a method that returns the output dto
 func (s *SessionCrud) GetOut() port.DTOOut {

@@ -30,11 +30,11 @@ func (u *Usecase) SessionForce(dtoIn interface{}) error {
 
 // sessionForce links session to a agenda
 func (u *Usecase) sessionForce(s *domain.Session, ret *[]interface{}) *string {
-	if s.ID == "" ||  s.AgendaID == "" {
+	if s.ID == "" || s.AgendaID == "" {
 		s.Process = fmt.Sprintf("Error: %s", pkg.ErrIdOrAgendaNotFound)
 		*ret = append(*ret, s)
 		return nil
-	
+
 	}
 	session, agenda, err := u.getLinkSessionAgenda(s)
 	if err != nil {
