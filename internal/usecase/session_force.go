@@ -55,10 +55,8 @@ func (u *Usecase) sessionForce(s *domain.Session, ret *[]interface{}) *string {
 
 // GetLinkSessionAgenda is a method that returns the session and agenda to be linked
 func (u *Usecase) getLinkSessionAgenda(s *domain.Session) (*domain.Session, *domain.Agenda, error) {
-	fmt.Println(1, s)
 	session, err := u.getLockSession(s.ID)
 	if err != nil {
-		fmt.Println(2, s.ID, err.Error())
 		return nil, nil, err
 	}
 	agendas, err := u.getLockAgenda(&domain.Agenda{ID: s.AgendaID}, time.Time{}, time.Time{}, nil)
@@ -93,7 +91,7 @@ func (u *Usecase) reprocessLinkedSession(sessionID string, agendaID string, ret 
 	tx := u.Repo.Begin()
 	defer u.Repo.Rollback(tx)
 	add := fmt.Sprintf("id != '%s'", sessionID)
-	sl, _, err := u.Repo.Find(tx, &domain.Session{AgendaID: agendaID}, -1, add)
+	sl, _, err := u.Repo.Find(tx, &domain.Session{AgendaID: agendaID}, -1, false, add)
 	if err != nil || sl == nil {
 		return
 	}

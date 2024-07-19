@@ -54,7 +54,7 @@ func (c *Usecase) Get(dtoIn interface{}) error {
 		if err := domain.Format(c.Repo, "filled", "noduplicity"); err != nil {
 			return c.error(pkg.ErrPrefBadRequest, err.Error(), count, len(domains))
 		}
-		base, lim, err := c.Repo.Find(tx, domain, pkg.ResultLimit, extras...)
+		base, lim, err := c.Repo.Find(tx, domain, pkg.ResultLimit, false, extras...)
 		limited = lim
 		if err != nil {
 			return c.error(pkg.ErrPrefInternal, err.Error(), count, len(domains))
@@ -87,7 +87,7 @@ func (c *Usecase) Up(dtoIn interface{}) error {
 			return c.error(pkg.ErrPrefBadRequest, err.Error(), count, len(domains))
 		}
 		target := source.GetEmpty()
-		if f, err := c.Repo.Get(tx, target, source.GetID()); err != nil {
+		if f, err := c.Repo.Get(tx, target, source.GetID(), false); err != nil {
 			return c.error(pkg.ErrPrefInternal, err.Error(), count, len(domains))
 		} else if !f {
 			return c.error(pkg.ErrPrefBadRequest, pkg.ErrUnfound, count, len(domains))

@@ -45,7 +45,7 @@ func (u *Usecase) findSessionsTie(dtoIn *dto.SessionTie) (*[]domain.Session, err
 	}
 	tx := u.Repo.Begin()
 	defer u.Repo.Rollback(tx)
-	base, _, err := u.Repo.Find(tx, d, -1, extras...)
+	base, _, err := u.Repo.Find(tx, d, -1, false, extras...)
 	if err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}
@@ -337,7 +337,7 @@ func (u *Usecase) getOverlappingSession(agenda *domain.Agenda) (*domain.Session,
 	session := &domain.Session{AgendaID: agenda.ID}
 	tx := u.Repo.Begin()
 	defer u.Repo.Rollback(tx)
-	i, _, err := u.Repo.Find(tx, session, -1)
+	i, _, err := u.Repo.Find(tx, session, -1, false)
 	if err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}

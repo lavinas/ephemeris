@@ -7,6 +7,7 @@ import (
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
 
 	"github.com/lavinas/ephemeris/internal/port"
@@ -111,12 +112,17 @@ func (r *MySql) Add(tx interface{}, obj interface{}) error {
 // Get gets a object from the database by id
 // it receives the object, the id and the transaction
 // transaction have to be started before calling this method
-func (r *MySql) Get(tx interface{}, obj interface{}, id string) (bool, error) {
+func (r *MySql) Get(tx interface{}, obj interface{}, id string, lock bool) (bool, error) {
 	stx, err := r.format(tx, obj)
 	if err != nil {
 		return false, err
 	}
 	stx = stx.Session(&gorm.Session{})
+	if lock {
+		if stx = stx.Clauses(clause.Locking{Strength: "UPDATE"}); stx.Error != nil {
+			return false, stx.Error
+		}
+	}
 	stx = stx.Table(obj.(port.Domain).TableName()).First(obj, "ID = ?", id)
 	if stx.Error == nil {
 		return true, nil
@@ -133,12 +139,12 @@ func (r *MySql) Get(tx interface{}, obj interface{}, id string) (bool, error) {
 // transaction have to be started before calling this method
 // The function returns the objects, a boolean indicating if the limit was crossed and an error
 // Use -1 to cancel the limit
-func (r *MySql) Find(tx interface{}, obj interface{}, limit int, extras ...interface{}) (interface{}, bool, error) {
+func (r *MySql) Find(tx interface{}, obj interface{}, limit int, lock bool, extras ...interface{}) (interface{}, bool, error) {
 	stx, err := r.format(tx, obj)
 	if err != nil {
 		return nil, false, err
 	}
-	result, err := r.find(stx, obj, limit, extras...)
+	result, err := r.find(stx, obj, limit, lock, extras...)
 	if err != nil {
 		return nil, false, err
 	}
@@ -191,7 +197,7 @@ func (r *MySql) Delete(tx interface{}, obj interface{}, extras ...interface{}) e
 }
 
 // find finds object based on obj, limit and extras params
-func (r *MySql) find(stx *gorm.DB, obj interface{}, limit int, extras ...interface{}) (interface{}, error) {
+func (r *MySql) find(stx *gorm.DB, obj interface{}, limit int, lock bool, extras ...interface{}) (interface{}, error) {
 	stx = stx.Session(&gorm.Session{})
 	sob := reflect.TypeOf(obj).Elem()
 	var err error
@@ -203,6 +209,11 @@ func (r *MySql) find(stx *gorm.DB, obj interface{}, limit int, extras ...interfa
 		stx = stx.Limit(limit + 1)
 	}
 	result := reflect.New(reflect.SliceOf(sob)).Interface()
+	if lock {
+		if stx = stx.Clauses(clause.Locking{Strength: "UPDATE"}); stx.Error != nil {
+			return nil, err
+		}
+	}
 	if stx = stx.Find(result); stx.Error != nil {
 		return nil, stx.Error
 	}

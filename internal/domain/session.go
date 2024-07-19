@@ -109,7 +109,7 @@ func (s *Session) Format(repo port.Repository, args ...string) error {
 func (s *Session) Load(repo port.Repository) (bool, error) {
 	tx := repo.Begin()
 	defer repo.Rollback(tx)
-	return repo.Get(tx, s, s.ID)
+	return repo.Get(tx, s, s.ID, false)
 }
 
 // GetID is a method that returns the id of the client
@@ -303,7 +303,7 @@ func (s *Session) validateDuplicity(repo port.Repository, tx interface{}, nodupl
 	if noduplicity {
 		return nil
 	}
-	ok, err := repo.Get(tx, &Session{}, s.ID)
+	ok, err := repo.Get(tx, &Session{}, s.ID, false)
 	if err != nil {
 		return err
 	}

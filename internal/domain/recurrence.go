@@ -101,7 +101,7 @@ func (r *Recurrence) Format(repo port.Repository, args ...string) error {
 func (r *Recurrence) Load(repo port.Repository) (bool, error) {
 	tx := repo.Begin()
 	defer repo.Rollback(tx)
-	return repo.Get(tx, r, r.ID)
+	return repo.Get(tx, r, r.ID, false)
 }
 
 // GetID is a method that returns the id of the recurrence
@@ -237,7 +237,7 @@ func (r *Recurrence) validateDuplicity(repo port.Repository, tx interface{}, nod
 	if noduplicity {
 		return nil
 	}
-	ok, err := repo.Get(tx, &Recurrence{}, r.ID)
+	ok, err := repo.Get(tx, &Recurrence{}, r.ID, false)
 	if err != nil {
 		return err
 	}

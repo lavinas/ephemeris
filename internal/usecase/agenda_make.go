@@ -111,7 +111,7 @@ func (u *Usecase) getContracts(dtoAgenda *dto.AgendaMake) (*[]domain.Contract, e
 	}
 	tx := u.Repo.Begin()
 	defer u.Repo.Rollback(tx)
-	ret, _, err := u.Repo.Find(tx, contract, 0, inst...)
+	ret, _, err := u.Repo.Find(tx, contract, 0, false, inst...)
 	if err != nil {
 		return nil, u.error(pkg.ErrPrefInternal, err.Error(), 0, 0)
 	}

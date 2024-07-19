@@ -136,7 +136,7 @@ func (a *Agenda) Format(repo port.Repository, args ...string) error {
 func (a *Agenda) Load(repo port.Repository) (bool, error) {
 	tx := repo.Begin()
 	defer repo.Rollback(tx)
-	return repo.Get(tx, a, a.ID)
+	return repo.Get(tx, a, a.ID, false)
 }
 
 // LoadRange loads agenda slices from a interval of dates
@@ -144,7 +144,7 @@ func (a *Agenda) LoadRange(repo port.Repository, start, end time.Time, status []
 	extras := a.loadRangeExtras(start, end, status)
 	tx := repo.Begin()
 	defer repo.Rollback(tx)
-	agendas, _, err := repo.Find(tx, a, 0, extras...)
+	agendas, _, err := repo.Find(tx, a, 0, false, extras...)
 	if err != nil {
 		return nil, err
 	}
@@ -217,7 +217,7 @@ func (a *Agenda) IsLocked(repo port.Repository, tx interface{}, timeout int) boo
 // getHot gets the agenda out of default transaction
 func (a *Agenda) getHotAgenda(repo port.Repository, tx interface{}) (*Agenda, error) {
 	ag := &Agenda{ID: a.ID}
-	if ok, err := repo.Get(tx, ag, a.ID); err != nil {
+	if ok, err := repo.Get(tx, ag, a.ID, false); err != nil {
 		return nil, err
 	} else if !ok {
 		return nil, errors.New(pkg.ErrAgendaNotFound)
@@ -468,7 +468,7 @@ func (c *Agenda) validateDuplicity(repo port.Repository, tx interface{}, nodupli
 	if noduplicity {
 		return nil
 	}
-	ok, err := repo.Get(tx, &Agenda{}, c.ID)
+	ok, err := repo.Get(tx, &Agenda{}, c.ID, false)
 	if err != nil {
 		return err
 	}

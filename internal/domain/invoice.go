@@ -98,7 +98,7 @@ func (i *Invoice) Format(repo port.Repository, args ...string) error {
 func (c *Invoice) Load(repo port.Repository) (bool, error) {
 	tx := repo.Begin()
 	defer repo.Rollback(tx)
-	return repo.Get(tx, c, c.ID)
+	return repo.Get(tx, c, c.ID, false)
 }
 
 // GetID is a method that returns the id of the client
@@ -239,7 +239,7 @@ func (c *Invoice) validateDuplicity(repo port.Repository, tx interface{}, nodupl
 	if noduplicity {
 		return nil
 	}
-	ok, err := repo.Get(tx, &Invoice{}, c.ID)
+	ok, err := repo.Get(tx, &Invoice{}, c.ID, false)
 	if err != nil {
 		return err
 	}

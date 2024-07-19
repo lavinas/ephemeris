@@ -73,7 +73,7 @@ func (s *Service) Format(repo port.Repository, args ...string) error {
 func (s *Service) Load(repo port.Repository) (bool, error) {
 	tx := repo.Begin()
 	defer repo.Rollback(tx)
-	return repo.Get(tx, s, s.ID)
+	return repo.Get(tx, s, s.ID, false)
 }
 
 // GetID is a method that returns the id of the client
@@ -150,7 +150,7 @@ func (c *Service) validateDuplicity(repo port.Repository, tx interface{}, nodupl
 	if noduplicity {
 		return nil
 	}
-	ok, err := repo.Get(tx, &Service{}, c.ID)
+	ok, err := repo.Get(tx, &Service{}, c.ID, false)
 	if err != nil {
 		return err
 	}

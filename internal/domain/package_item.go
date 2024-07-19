@@ -74,7 +74,7 @@ func (p *PackageItem) Format(repo port.Repository, args ...string) error {
 func (p *PackageItem) Load(repo port.Repository) (bool, error) {
 	tx := repo.Begin()
 	defer repo.Rollback(tx)
-	return repo.Get(tx, p, p.ID)
+	return repo.Get(tx, p, p.ID, false)
 }
 
 // GetID is a method that returns the id of the contract
@@ -196,7 +196,7 @@ func (p *PackageItem) validateDuplicity(repo port.Repository, tx interface{}, no
 	if noduplicity {
 		return nil
 	}
-	ok, err := repo.Get(tx, &PackageItem{}, p.ID)
+	ok, err := repo.Get(tx, &PackageItem{}, p.ID, false)
 	if err != nil {
 		return err
 	}
