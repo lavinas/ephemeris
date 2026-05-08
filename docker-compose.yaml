@@ -1,0 +1,14 @@
+services:
+  db:
+    image: postgres:latest
+    container_name: postgres_ephemeris
+    restart: always
+    environment:
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_DB=ephemeris
+      - PGDATA=/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./db:/var/lib/postgresql
