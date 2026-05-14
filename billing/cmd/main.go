@@ -10,7 +10,6 @@ import (
 )
 
 func main() {
-	fmt.Println("Starting Billing Service...")
 	// Initialize the logger
 	logger, err := adapter.NewSimpleLogger("stdout", 1)
 	if err != nil {
@@ -49,7 +48,7 @@ func main() {
 		CustomerWhatsapp: "+1234567890",
 		CustomerDocument: "123456789",
 		Notes:            "Sample invoice",
-		InvoiceItems:     []dto.CreateInvoiceItemDTO{*invoiceItemDTO},
+		InvoiceItems:     []dto.CreateInvoiceItemDTO{*invoiceItemDTO, *invoiceItemDTO},
 	}
 	response := service.CreateInvoice(*invoiceDTO)
 	fmt.Printf("Create Invoice Response: %+v\n", response)

@@ -25,8 +25,19 @@ func (s *CreateInvoiceService) CreateInvoice(request dto.CreateInvoiceRequest) d
 	s.logger.IPrintf(1, "Creating invoice for customer: %s", request.CustomerName)
 	invoice := domain.NewInvoice(request.CustomerName, request.CustomerEmail, request.CustomerWhatsapp, request.CustomerDocument, request.Notes,
 		createItems(request.InvoiceItems))
-	err := s.repo.Save(invoice)
-	if err != nil {
+	// validate input
+	if err := request.Validate(); err != nil {
+		s.logger.IPrintf(1, "Erros validation %v", err)
+		return dto.CreateInvoiceResponse{
+			ResponseBase: dto.ResponseBase{
+				HttpCode: 400,
+				Status:   "Bad Request",
+				Message:  "Failed to create invoice",
+			},
+		}
+	}
+	// save invoice
+	if err := s.repo.Save(invoice); err != nil {
 		s.logger.IPrintf(1, "Error creating invoice: %v", err)
 		return dto.CreateInvoiceResponse{
 			ResponseBase: dto.ResponseBase{
@@ -36,6 +47,7 @@ func (s *CreateInvoiceService) CreateInvoice(request dto.CreateInvoiceRequest) d
 			},
 		}
 	}
+	// return ok
 	s.logger.IPrintf(1, "Invoice created successfully")
 	return dto.CreateInvoiceResponse{
 		ResponseBase: dto.ResponseBase{
