@@ -12,11 +12,11 @@ type CreateInvoiceRequest struct {
 	CustomerWhatsapp string        `json:"customer_whatsapp" validate:"required"`
 	CustomerDocument string        `json:"customer_document" validate:"required"`
 	Notes            string        `json:"notes"`
-	InvoiceItems     []InvoiceItem `json:"invoice_items" validate:"required,dive,required"`
+	InvoiceItems     []CreateInvoiceItemDTO `json:"invoice_items" validate:"required,dive,required"`
 }
 
-// InvoiceItem represents an item in the invoice with description, quantity, and unit price.
-type InvoiceItem struct {
+// CreateInvoiceItemDTO represents an item in the invoice with description, quantity, and unit price.
+type CreateInvoiceItemDTO struct {
 	Description string  `json:"description" validate:"required"`
 	Quantity    int     `json:"quantity" validate:"required,gt=0"`
 	UnitPrice   float64 `json:"unit_price" validate:"required,gt=0"`

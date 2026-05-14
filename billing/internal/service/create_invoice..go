@@ -47,8 +47,8 @@ func (s *CreateInvoiceService) CreateInvoice(request dto.CreateInvoiceRequest) d
 	}
 }
 
-// createItems converts a slice of InvoiceItem DTOs to a slice of domain InvoiceItems.
-func createItems(items []dto.InvoiceItem) []domain.InvoiceItem {
+// createItems converts a slice of CreateInvoiceItemDTOs to a slice of domain InvoiceItems.
+func createItems(items []dto.CreateInvoiceItemDTO) []domain.InvoiceItem {
 	invoiceItems := make([]domain.InvoiceItem, 0, len(items))
 	for _, item := range items {
 		invoiceItems = append(invoiceItems, domain.InvoiceItem{

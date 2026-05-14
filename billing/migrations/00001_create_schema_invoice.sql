@@ -1,7 +1,7 @@
 -- Active: 1778275768971@@127.0.0.1@5432@ephemeris
 
-create SCHEMA if not exists invoice;
-set search_path to invoice;
+create SCHEMA if not exists billing;
+set search_path to billing;
 
 drop Table if exists invoice cascade;
 create table invoice (

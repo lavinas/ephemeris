@@ -19,10 +19,11 @@ type PostgresRepository struct {
 }
 
 // NewPostgresRepository creates a new instance of PostgresRepository
-func NewPostgresRepository(host, user, password, dbname, sslmode, timezone string, port, connect_timeout int, ctx *context.Context) (*PostgresRepository, error) {
+func NewPostgresRepository(host, user, password, dbname, sslmode, timezone string, port, connect_timeout int,
+	billing_schema string, ctx *context.Context) (*PostgresRepository, error) {
 	rep := &PostgresRepository{DB: nil, ctx: ctx}
-	dns := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s TimeZone=%s connect_timeout=%d",
-		host, port, user, password, dbname, sslmode, timezone, connect_timeout)
+	dns := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s TimeZone=%s search_path=%s connect_timeout=%d",
+		host, port, user, password, dbname, sslmode, timezone, billing_schema, connect_timeout)
 	if err := rep.Connect(dns); err != nil {
 		return nil, err
 	}

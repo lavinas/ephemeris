@@ -13,18 +13,15 @@ type JsonConfig struct {
 
 // DBConfig represents the database configuration structure
 type JsonDBConfig struct {
-	Host               string `json:"host"`
-	Port               int    `json:"port"`
-	User               string `json:"user"`
-	Password           string `json:"password"`
-	DBName             string `json:"dbname"`
-	SSLMode            string `json:"sslmode"`
-	TimeZone           string `json:"timezone"`
-	ConnectTimeout     int    `json:"connect_timeout"`
-	RawDataSchema      string `json:"rawdata_schema"`
-	TransactionSchema  string `json:"transaction_schema"`
-	BinSchema          string `json:"bin_schema"`
-	ConsolidatorSchema string `json:"consolidator_schema"`
+	Host           string `json:"host"`
+	Port           int    `json:"port"`
+	User           string `json:"user"`
+	Password       string `json:"password"`
+	DBName         string `json:"dbname"`
+	SSLMode        string `json:"sslmode"`
+	TimeZone       string `json:"timezone"`
+	ConnectTimeout int    `json:"connect_timeout"`
+	BillingSchema  string `json:"billing_schema"`
 }
 
 // LogConfig represents the logging configuration structure
@@ -50,8 +47,9 @@ func NewConfig(path string) (*JsonConfig, error) {
 }
 
 // GetDBData returns the database configuration data as a JsonDBConfig struct
-func (v *JsonConfig) GetDBData() (host string, port int, user string, password string, dbname string, sslmode string, timezone string, connect_timeout int) {
-	return v.DB.Host, v.DB.Port, v.DB.User, v.DB.Password, v.DB.DBName, v.DB.SSLMode, v.DB.TimeZone, v.DB.ConnectTimeout
+func (v *JsonConfig) GetDBData() (host string, port int, user string, password string, dbname string, sslmode string, timezone string,
+	connect_timeout int, billing_schema string) {
+	return v.DB.Host, v.DB.Port, v.DB.User, v.DB.Password, v.DB.DBName, v.DB.SSLMode, v.DB.TimeZone, v.DB.ConnectTimeout, v.DB.BillingSchema
 }
 
 // GetDBTimeZone returns the database time zone from the configuration

@@ -47,11 +47,11 @@ func (i *Invoice) CalculateTotalAmount() {
 
 // InvoiceItem represents an item in an invoice with description, quantity, and unit price.
 type InvoiceItem struct {
-	ID          int64   `json:"id" gorm:"primaryKey"`
-	InvoiceID   int64   `json:"invoice_id" gorm:"not null"`
-	Description string  `json:"description" gorm:"not null"`
-	Quantity    int     `json:"quantity" gorm:"not null"`
-	UnitPrice   float64 `json:"unit_price" gorm:"not null"`
+	ID          int64     `json:"id" gorm:"primaryKey"`
+	InvoiceID   int64     `json:"invoice_id" gorm:"not null"`
+	Description string    `json:"description" gorm:"not null"`
+	Quantity    int       `json:"quantity" gorm:"not null"`
+	UnitPrice   float64   `json:"unit_price" gorm:"not null"`
 	CreatedAt   time.Time `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt   time.Time `json:"updated_at" gorm:"autoUpdateTime"`
 }
