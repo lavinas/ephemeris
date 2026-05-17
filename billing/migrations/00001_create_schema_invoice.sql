@@ -3,6 +3,40 @@
 create SCHEMA if not exists billing;
 set search_path to billing;
 
+# business table
+drop table if exists business cascade;
+create table business (
+    id bigserial primary key,
+    legal_name varchar(150) not null,
+    trade_name varchar(150),
+    document varchar(50),
+    account_bank varchar(100),
+    account_agency varchar(20),
+    account_number varchar(50),
+    pix_token varchar(255),
+    created_at timestamp with time zone default now(),
+    updated_at timestamp with time zone default now()
+);
+# main business
+insert into business (legal_name, trade_name, document, account_bank, account_agency, account_number, pix_token, created_at, updated_at) values
+('Cardoso e Barbosa Servicos Musicais e Tecnologia LTDA', 'Estudio Amelia Cardoso', '27.928.875/0001-04', 'Santander (033)', '0985', '13001001-4', 'CNPJ: 27.928.875/0001-04', now(), now());
+
+# customer table
+drop table if exists customer cascade;
+create table customer (
+    id bigserial primary key,
+    name varchar(150) not null,
+        document varchar(50),
+
+    email varchar(150),
+    whatsapp varchar(20),
+    created_at timestamp with time zone default now(),
+    updated_at timestamp with time zone default now()
+);
+
+
+
+
 drop Table if exists invoice cascade;
 create table invoice (
     id serial primary key,
