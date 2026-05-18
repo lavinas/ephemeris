@@ -2,8 +2,8 @@ package service
 
 import (
 	"fmt"
-	"io"
 	"os"
+	"encoding/csv"
 
 	"billing/internal/domain"
 	"billing/internal/dto"
@@ -60,6 +60,7 @@ func (s *CreateCustomerService) Run(request dto.CreateCustomerRequest) dto.Creat
 	}
 }
 
+// melhorar
 // RunCSV processes the CSV file and creates customers based on the data.
 func (s *CreateCustomerService) RunCSV(filePath string) error {
 	file, err := os.Open(filePath)
@@ -67,21 +68,37 @@ func (s *CreateCustomerService) RunCSV(filePath string) error {
 		return err
 	}
 	defer file.Close()
-	for {
-		var name, nickname, email, whatsapp, document string
-		_, err := fmt.Fscanf(file, "%s,%s,%s,%s,%s\n", &name, &nickname, &email, &whatsapp, &document)
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			return err
+	reader := csv.NewReader(file)
+	header, err := reader.Read()
+	if err != nil {
+		return err
+	}
+	if len(header) < 5 {
+		return fmt.Errorf("invalid CSV header: %v", header)
+	}
+	if header[0] != "name" || header[1] != "nickname" || header[2] != "document" || header[3] != "email" || header[4] != "whatsapp" {
+		return fmt.Errorf("invalid CSV header: %v", header)
+	}
+	records, err := reader.ReadAll()
+	if err != nil {
+		return err
+	}
+	for _, record := range records {
+		if len(record) < 5 {
+			s.logger.IPrintf(1, "Skipping invalid record: %v", record)
+			continue
 		}
+		name := record[0]
+		nickname := record[1]
+		document := record[2]
+		email := record[3]
+		whatsapp := record[4]
 		request := dto.CreateCustomerRequest{
 			Name:     name,
 			Nickname: nickname,
+			Document: document,
 			Email:    email,
 			Whatsapp: whatsapp,
-			Document: document,
 		}
 		response := s.Run(request)
 		s.logger.IPrintf(1, "Create Customer Response: %+v", response)

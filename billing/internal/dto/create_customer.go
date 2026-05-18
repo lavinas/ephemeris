@@ -9,9 +9,9 @@ import (
 type CreateCustomerRequest struct {
 	Name     string `json:"name" validate:"required"`
 	Nickname string `json:"nickname" validate:"required"`
+	Document string `json:"document" validate:"required"`
 	Email    string `json:"email" validate:"required,email"`
 	Whatsapp string `json:"whatsapp" validate:"required"`
-	Document string `json:"document" validate:"required"`
 }
 
 // CreateCustomerResponse represents the response payload after creating a new customer.
@@ -27,15 +27,6 @@ func (r *CreateCustomerRequest) Validate() error {
 	}
 	if r.Nickname == "" {
 		errs = append(errs, fmt.Errorf("nickname is required"))
-	}
-	if r.Email == "" {
-		errs = append(errs, fmt.Errorf("email is required"))
-	}
-	if r.Whatsapp == "" {
-		errs = append(errs, fmt.Errorf("whatsapp is required"))
-	}
-	if r.Document == "" {
-		errs = append(errs, fmt.Errorf("document is required"))
 	}
 	return errors.Join(errs...)
 }
