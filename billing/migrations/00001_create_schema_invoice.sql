@@ -15,7 +15,8 @@ create table business (
     account_number varchar(50),
     pix_token varchar(255),
     created_at timestamp with time zone default now(),
-    updated_at timestamp with time zone default now()
+    updated_at timestamp with time zone default now(),
+    constraint unique_document unique(document)
 );
 # main business
 insert into business (legal_name, trade_name, document, account_bank, account_agency, account_number, pix_token, created_at, updated_at) values
@@ -26,15 +27,16 @@ drop table if exists customer cascade;
 create table customer (
     id bigserial primary key,
     name varchar(150) not null,
-        document varchar(50),
-
+    nickname varchar(150),
+    status int not null default 1,
+    document varchar(50),
     email varchar(150),
     whatsapp varchar(20),
     created_at timestamp with time zone default now(),
-    updated_at timestamp with time zone default now()
+    updated_at timestamp with time zone default now(),
+    constraint unique_document unique(document),
+    constraint unique_nickname unique(nickname)
 );
-
-
 
 
 drop Table if exists invoice cascade;

@@ -8,20 +8,18 @@ import (
 
 // CreateInvoiceService is responsible for handling the business logic of creating invoices.
 type CreateInvoiceService struct {
-	repo   port.Repository
-	logger port.Logger
+	Base
 }
 
 // NewCreateInvoiceService creates a new instance of CreateInvoiceService.
 func NewCreateInvoiceService(repo port.Repository, logger port.Logger) *CreateInvoiceService {
 	return &CreateInvoiceService{
-		repo:   repo,
-		logger: logger,
+		Base: *NewBase(repo, logger),
 	}
 }
 
 // CreateInvoice creates a new invoice using the provided details and saves it to the repository.
-func (s *CreateInvoiceService) CreateInvoice(request dto.CreateInvoiceRequest) dto.CreateInvoiceResponse {
+func (s *CreateInvoiceService) Run(request dto.CreateInvoiceRequest) dto.CreateInvoiceResponse {
 	s.logger.IPrintf(1, "Creating invoice for customer: %s", request.CustomerName)
 	invoice := domain.NewInvoice(request.CustomerName, request.CustomerEmail, request.CustomerWhatsapp, request.CustomerDocument, request.Notes,
 		createItems(request.InvoiceItems))

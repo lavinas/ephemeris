@@ -3,15 +3,15 @@ package main
 import (
 	"context"
 
-	"billing/internal/adapter"
-	"billing/internal/service"
+	"billing/internal/adapter/driven"
 	"billing/internal/dto"
+	"billing/internal/service"
 	"fmt"
 )
 
 func main() {
 	// Initialize the logger
-	logger, err := adapter.NewSimpleLogger("stdout", 1)
+	logger, err := driven.NewSimpleLogger("stdout", 1)
 	if err != nil {
 		fmt.Printf("Error initializing logger: %v\n", err)
 		return
@@ -19,7 +19,7 @@ func main() {
 	}
 	defer logger.Close()
 	// Initialize Config
-	cfg, err := adapter.NewConfig("billing.json")
+	cfg, err := driven.NewConfig("billing.json")
 	if err != nil {
 		fmt.Printf("Error loading config: %v\n", err)
 		return
@@ -27,7 +27,7 @@ func main() {
 	// Initialize Repository
 	host, port, user, password, dbname, sslmode, timezone, timeout, schema := cfg.GetDBData()
 	ctx := context.Background()
-	repo, err := adapter.NewPostgresRepository(host, user, password, dbname, sslmode, timezone, port, timeout, schema, &ctx)
+	repo, err := driven.NewPostgresRepository(host, user, password, dbname, sslmode, timezone, port, timeout, schema, &ctx)
 	if err != nil {
 		fmt.Printf("Error initializing repository: %v\n", err)
 		return
@@ -50,6 +50,6 @@ func main() {
 		Notes:            "Sample invoice",
 		InvoiceItems:     []dto.CreateInvoiceItemDTO{*invoiceItemDTO, *invoiceItemDTO},
 	}
-	response := service.CreateInvoice(*invoiceDTO)
+	response := service.Run(*invoiceDTO)
 	fmt.Printf("Create Invoice Response: %+v\n", response)
 }

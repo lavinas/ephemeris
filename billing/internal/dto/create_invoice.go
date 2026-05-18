@@ -7,11 +7,11 @@ import (
 
 // CreateInvoiceRequest represents the data transfer object for creating a new invoice.
 type CreateInvoiceRequest struct {
-	CustomerName     string        `json:"customer_name" validate:"required"`
-	CustomerEmail    string        `json:"customer_email" validate:"required,email"`
-	CustomerWhatsapp string        `json:"customer_whatsapp" validate:"required"`
-	CustomerDocument string        `json:"customer_document" validate:"required"`
-	Notes            string        `json:"notes"`
+	CustomerName     string                 `json:"customer_name" validate:"required"`
+	CustomerEmail    string                 `json:"customer_email" validate:"required,email"`
+	CustomerWhatsapp string                 `json:"customer_whatsapp" validate:"required"`
+	CustomerDocument string                 `json:"customer_document" validate:"required"`
+	Notes            string                 `json:"notes"`
 	InvoiceItems     []CreateInvoiceItemDTO `json:"invoice_items" validate:"required,dive,required"`
 }
 
