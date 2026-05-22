@@ -30,7 +30,7 @@ create table customer (
     id bigserial primary key,
     name varchar(150) not null,
     nickname varchar(150),
-    status int not null default 1,
+    status VARCHAR(50) not null default 'active',
     document varchar(50),
     email varchar(150),
     whatsapp varchar(20),
