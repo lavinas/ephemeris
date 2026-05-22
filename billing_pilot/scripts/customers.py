@@ -24,7 +24,8 @@ def find_active_customers() -> pd.DataFrame:
     try:
         repo = repository.Repository()
         customers = repo.find_active_customers()
-        return pd.DataFrame(customers, columns=['id', 'nome', 'apelido', 'documento', 'email', 'whatsapp'])
+        return pd.DataFrame(customers, columns=['id', 'nome', 'apelido', 
+                                                'documento', 'email', 'whatsapp'])
     except Exception as e:
         return f"Erro ao buscar clientes ativos: {e}"
     finally:

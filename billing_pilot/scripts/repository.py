@@ -45,6 +45,8 @@ class Repository:
         """, (document,))
         return cursor.fetchone()
     # find a customer by nickname and return the result
+    # return a tuple with the customer data: id, name, nickname, 
+    # status, email, whatsapp, created_at, updated_at
     def find_customer_by_nickname(self, nickname) -> tuple[str, str, str, str, str, str, str, str]:
         if self.connection is None:
             raise Exception("Database connection is not established")
@@ -56,6 +58,8 @@ class Repository:
         """, (nickname,))
         return cursor.fetchone()
     # find all active customers and return the result
+    # return a list of tuples with the customer data
+    # name, nickname, document, email, whatsapp
     def find_active_customers(self) -> list[tuple[str, str, str, str, str]]:
         if self.connection is None:
             raise Exception("Database connection is not established")
