@@ -1,4 +1,4 @@
-import repository
+from . import repository
 import pandas as pd
 
 # Script to create customers in the database
