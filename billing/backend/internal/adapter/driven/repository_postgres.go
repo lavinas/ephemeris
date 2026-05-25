@@ -1,7 +1,6 @@
 package driven
 
 import (
-	"context"
 	"fmt"
 
 	"gorm.io/driver/postgres"
@@ -14,16 +13,16 @@ const batchSizeInsertTransaction = 100
 
 // PostgresRepository is an adapter for GORM database operations
 type PostgresRepository struct {
-	DB  *gorm.DB
-	ctx *context.Context
+	DB *gorm.DB
+	Tx *gorm.DB
 }
 
 // NewPostgresRepository creates a new instance of PostgresRepository
-func NewPostgresRepository(host, user, password, dbname, sslmode, timezone string, port, connect_timeout int,
-	billing_schema string, ctx *context.Context) (*PostgresRepository, error) {
-	rep := &PostgresRepository{DB: nil, ctx: ctx}
-	dns := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s TimeZone=%s search_path=%s connect_timeout=%d",
-		host, port, user, password, dbname, sslmode, timezone, billing_schema, connect_timeout)
+func NewPostgresRepository(host, user, password, dbname, sslmode, timezone string, port,
+	timeout int, schema string) (*PostgresRepository, error) {
+	rep := &PostgresRepository{DB: nil}
+	dns := "postgres://%s:%s@%s:%d/%s?sslmode=%s&TimeZone=%s&search_path=%s&connect_timeout=%d"
+	dns = fmt.Sprintf(dns, user, password, host, port, dbname, sslmode, timezone, schema, timeout)
 	if err := rep.Connect(dns); err != nil {
 		return nil, err
 	}
@@ -52,7 +51,7 @@ func (a *PostgresRepository) Ping() error {
 	if err != nil {
 		return err
 	}
-	return db.PingContext(*a.ctx)
+	return db.Ping()
 }
 
 // Close closes the database connection
@@ -64,9 +63,50 @@ func (a *PostgresRepository) Close() error {
 	return db.Close()
 }
 
+// BeginTransaction starts a new database transaction
+func (a *PostgresRepository) BeginTransaction() error {
+	if a.Tx != nil {
+		return fmt.Errorf("transaction already in progress")
+	}
+	tx := a.DB.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+	a.Tx = tx
+	return nil
+}
+
+// CommitTransaction commits the given transaction
+func (a *PostgresRepository) CommitTransaction() error {
+	if a.Tx == nil {
+		return fmt.Errorf("no transaction in progress")
+	}
+	if err := a.Tx.Commit().Error; err != nil {
+		return err
+	}
+	a.Tx = nil
+	return nil
+}
+
+// RollbackTransaction rolls back the given transaction
+func (a *PostgresRepository) RollbackTransaction() error {
+	if a.Tx == nil {
+		return fmt.Errorf("no transaction in progress")
+	}
+	if err := a.Tx.Rollback().Error; err != nil {
+		return err
+	}
+	a.Tx = nil
+	return nil
+}
+
 // GeneralSave is a helper function to save records to the database with conflict handling
 func (a *PostgresRepository) Save(model interface{}) error {
-	return a.DB.WithContext(*a.ctx).Clauses(clause.OnConflict{
+	db := a.DB
+	if a.Tx != nil {
+		db = a.Tx
+	}
+	return db.Clauses(clause.OnConflict{
 		UpdateAll: true,
 	}).CreateInBatches(model, batchSizeInsertTransaction).Error
 }

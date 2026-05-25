@@ -17,9 +17,15 @@ type CreateCustomerRequest struct {
 // CreateCustomerResponse represents the response payload after creating a new customer.
 type CreateCustomerResponse struct {
 	ResponseBase
-	ID int64 `json:"id"`
 }
 
+func NewCreateCustomerResponse(httpCode int16, status, message string) CreateCustomerResponse {
+	return CreateCustomerResponse{
+		ResponseBase: NewResponseBase(httpCode, status, message),
+	}
+}
+
+// Validate checks if the CreateCustomerRequest has all required fields and valid data.
 func (r *CreateCustomerRequest) Validate() error {
 	errs := make([]error, 0)
 	if r.Name == "" {

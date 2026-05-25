@@ -1,8 +1,6 @@
 package main
 
 import (
-	"context"
-
 	"billing/internal/adapter/driven"
 	"billing/internal/dto"
 	"billing/internal/service"
@@ -26,8 +24,8 @@ func main() {
 	}
 	// Initialize Repository
 	host, port, user, password, dbname, sslmode, timezone, timeout, schema := cfg.GetDBData()
-	ctx := context.Background()
-	repo, err := driven.NewPostgresRepository(host, user, password, dbname, sslmode, timezone, port, timeout, schema, &ctx)
+	repo, err := driven.NewPostgresRepository(host, user, password, dbname, sslmode, timezone,
+		port, timeout, schema)
 	if err != nil {
 		fmt.Printf("Error initializing repository: %v\n", err)
 		return

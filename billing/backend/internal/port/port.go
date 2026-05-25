@@ -8,6 +8,10 @@ import (
 type Repository interface {
 	// Save saves a new invoice to the database and returns the created invoice with its ID.
 	Save(model interface{}) error
+	BeginTransaction() error
+	CommitTransaction() error
+	RollbackTransaction() error
+	Close() error
 }
 
 // Logger defines the interface for logging messages with different levels of severity.

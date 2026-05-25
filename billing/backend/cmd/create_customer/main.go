@@ -1,10 +1,8 @@
 package main
 
 import (
-	"context"
-
 	"billing/internal/adapter/driven"
-	"billing/internal/adapter/driver"
+	"billing/internal/dto"
 	"billing/internal/service"
 	"fmt"
 )
@@ -26,22 +24,28 @@ func main() {
 	}
 	// Initialize Repository
 	host, port, user, password, dbname, sslmode, timezone, timeout, schema := cfg.GetDBData()
-	ctx := context.Background()
-	repo, err := driven.NewPostgresRepository(host, user, password, dbname, sslmode, timezone, port, timeout, schema, &ctx)
+	repo, err := driven.NewPostgresRepository(host, user, password, dbname, sslmode,
+		timezone, port, timeout, schema)
 	if err != nil {
 		fmt.Printf("Error initializing repository: %v\n", err)
 		return
 	}
 	defer repo.Close()
+
 	// Initialize Service
 	service := service.NewCreateCustomerService(repo, logger)
 
-	// Initialize Driver
-	driver := driver.NewCreateCustomerCsv(*service)
-
-	// Run the driver
-	if err := driver.Run(); err != nil {
-		fmt.Printf("Error running driver: %v\n", err)
-		return
+	customer := dto.CreateCustomerRequest{
+		Name:     "John Doe",
+		Nickname: "Johnny",
+		Document: "123456789",
+		Email:    "john.doe@example.com",
+		Whatsapp: "+1234567890",
 	}
+	response := service.Run([]dto.CreateCustomerRequest{customer})
+	fmt.Printf("Create Customer Response: %+v\n", response)
+
+	// Code here to initialize the service and run the create customer logic, e.g.:
+	//
+
 }
