@@ -1,9 +1,5 @@
 package port
 
-import (
-	"billing/internal/dto"
-)
-
 // Repository defines the interface for interacting with the data storage layer for invoices.
 type Repository interface {
 	// Save saves a new invoice to the database and returns the created invoice with its ID.
@@ -23,10 +19,4 @@ type Logger interface {
 	Close()
 }
 
-// Service defines the interface for the business logic layer of the application.
-type Service interface {
-	// CreateInvoice handles the business logic for creating a new invoice based on the provided request data.
-	CreateInvoice(request dto.CreateInvoiceRequest) dto.CreateInvoiceResponse
-	// Close closes the service and releases any resources it holds.
-	Close()
-}
+

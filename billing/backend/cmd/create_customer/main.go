@@ -45,7 +45,4 @@ func main() {
 	response := service.Run([]dto.CreateCustomerRequest{customer})
 	fmt.Printf("Create Customer Response: %+v\n", response)
 
-	// Code here to initialize the service and run the create customer logic, e.g.:
-	//
-
 }
