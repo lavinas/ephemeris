@@ -45,13 +45,13 @@ func main() {
 	}
 	customer2 := dto.CreateCustomerRequestItem{
 		Name:     "John Doe",
-		Nickname: "Johnny",
-		Document: "123456789",
+		Nickname: "Johnny1",
+		Document: "1234567891",
 		Email:    "john.doe@example.com",
 		Whatsapp: "(11)91234-5678",
 	}
 
-	response := service.Run(dto.CreateCustomerRequest{Items: []dto.CreateCustomerRequestItem{customer1, customer2}})
+	response := service.Run(&dto.CreateCustomerRequest{Items: []dto.CreateCustomerRequestItem{customer1, customer2}})
 
 	responseJSON, err := json.MarshalIndent(response, "", "  ")
 	if err != nil {

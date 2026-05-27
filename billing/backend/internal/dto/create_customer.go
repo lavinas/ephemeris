@@ -36,6 +36,29 @@ type CreateCustomerResponse struct {
 	ResponseBase
 }
 
+// NewCreateCustomerRequest creates a new instance of CreateCustomerRequest from a map.
+func NewCreateCustomerRequest(request map[string]interface{}) CreateCustomerRequest {
+	itemsData, ok := request["items"].([]interface{})
+	if !ok {
+		return CreateCustomerRequest{}
+	}
+	items := make([]CreateCustomerRequestItem, len(itemsData))
+	for i, itemData := range itemsData {
+		itemMap, ok := itemData.(map[string]interface{})
+		if !ok {
+			return CreateCustomerRequest{}
+		}
+		items[i] = CreateCustomerRequestItem{
+			Name:     itemMap["name"].(string),
+			Nickname: itemMap["nickname"].(string),
+			Document: itemMap["document"].(string),
+			Email:    itemMap["email"].(string),
+			Whatsapp: itemMap["whatsapp"].(string),
+		}
+	}
+	return CreateCustomerRequest{Items: items}
+}
+
 // NewCreateCustomerResponse creates a new instance of CreateCustomerResponse 
 func NewCreateCustomerResponse(httpCode int16, status, message string) CreateCustomerResponse {
 	return CreateCustomerResponse{
@@ -95,7 +118,7 @@ func (r *CreateCustomerRequestItem) Validate(repo port.Repository) error {
 	if err := r.validateEmail(); err != nil {
 		errs = append(errs, err)
 	}
-	if err := r.validateWhatsapp(repo); err != nil {
+	if err := r.validateWhatsapp(); err != nil {
 		errs = append(errs, err)
 	}
 	if len(errs) > 0 {
@@ -106,12 +129,12 @@ func (r *CreateCustomerRequestItem) Validate(repo port.Repository) error {
 }
 
 // GetDomain converts the CreateCustomerRequest to a slice of domain.Customer entities.
-func (r *CreateCustomerRequest) GetDomain() []*domain.Customer {
-	customers := make([]*domain.Customer, len(r.Items))
+func (r *CreateCustomerRequest) GetDomain() interface{} {
+	customers := make([]domain.Customer, len(r.Items))
 	for i, item := range r.Items {
-		customers[i] = item.GetDomain()
+		customers[i] = *item.GetDomain()
 	}
-	return customers
+	return &customers
 }
 
 // GetDomain converts the CreateCustomerRequestItem to a domain.Customer entity.
@@ -170,7 +193,7 @@ func (r *CreateCustomerRequestItem) validateEmail() error {
 }
 
 // validateWhatsapp checks if the provided WhatsApp number is valid and not already in use.
-func (r *CreateCustomerRequestItem) validateWhatsapp(repo port.Repository) error {
+func (r *CreateCustomerRequestItem) validateWhatsapp() error {
 	if r.Whatsapp == "" {
 		return nil
 	}

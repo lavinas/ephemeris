@@ -19,8 +19,12 @@ func NewCreateCustomerService(repo port.Repository, logger port.Logger) *CreateC
 }
 
 // Run processes a batch of customer creation requests and returns the responses.
-func (s *CreateCustomerService) Run(in dto.CreateCustomerRequest) dto.CreateCustomerResponse {
-	s.logger.IPrintf(1, "Processing %d customer creation requests", len(in.Items))
+func (s *CreateCustomerService) Run(inDTO port.InDTO) port.OutDTO {
+	in, ok := inDTO.(*dto.CreateCustomerRequest)
+	if !ok {
+		s.logger.IPrintf(2, "Invalid input type: expected CreateCustomerRequest")
+		return dto.NewCreateCustomerResponse(400, "bad request", "Invalid input type")
+	}
 	// Validate input
 	if err := in.Validate(s.repo); err != nil {
 		s.logger.IPrintf(2, "Validation failed: %v", err)
