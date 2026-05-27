@@ -5,6 +5,7 @@ import (
 	"billing/internal/dto"
 	"billing/internal/service"
 	"fmt"
+	"encoding/json"
 )
 
 func main() {
@@ -35,14 +36,28 @@ func main() {
 	// Initialize Service
 	service := service.NewCreateCustomerService(repo, logger)
 
-	customer := dto.CreateCustomerRequest{
+	customer1 := dto.CreateCustomerRequestItem{
 		Name:     "John Doe",
 		Nickname: "Johnny",
 		Document: "123456789",
 		Email:    "john.doe@example.com",
-		Whatsapp: "+1234567890",
+		Whatsapp: "(11)91234-5678",
 	}
-	response := service.Run([]dto.CreateCustomerRequest{customer})
-	fmt.Printf("Create Customer Response: %+v\n", response)
+	customer2 := dto.CreateCustomerRequestItem{
+		Name:     "John Doe",
+		Nickname: "Johnny",
+		Document: "123456789",
+		Email:    "john.doe@example.com",
+		Whatsapp: "(11)91234-5678",
+	}
+
+	response := service.Run(dto.CreateCustomerRequest{Items: []dto.CreateCustomerRequestItem{customer1, customer2}})
+
+	responseJSON, err := json.MarshalIndent(response, "", "  ")
+	if err != nil {
+		fmt.Printf("Error marshalling response: %v\n", err)
+		return
+	}
+	fmt.Printf("Create Customer Response: %s\n", responseJSON)
 
 }

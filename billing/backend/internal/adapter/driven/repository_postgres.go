@@ -7,6 +7,8 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
+
+	"billing/internal/domain"
 )
 
 const batchSizeInsertTransaction = 100
@@ -109,4 +111,30 @@ func (a *PostgresRepository) Save(model interface{}) error {
 	return db.Clauses(clause.OnConflict{
 		UpdateAll: true,
 	}).CreateInBatches(model, batchSizeInsertTransaction).Error
+}
+
+// GetCustomerByNickname retrieves a customer by their nickname
+func (a *PostgresRepository) GetCustomerByNickname(nickname string) (*domain.Customer, error) {
+	var customer domain.Customer
+	result := a.DB.Where("nickname = ?", nickname).First(&customer)
+	if result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			return nil, nil // No record found, return nil without error
+		}
+		return nil, result.Error
+	}
+	return &customer, nil
+}
+
+// GetCustomerByDocument retrieves a customer by their document
+func (a *PostgresRepository) GetCustomerByDocument(document string) (*domain.Customer, error) {
+	var customer domain.Customer
+	result := a.DB.Where("document = ?", document).First(&customer)
+	if result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			return nil, nil // No record found, return nil without error
+		}
+		return nil, result.Error
+	}
+	return &customer, nil
 }

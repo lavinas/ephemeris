@@ -1,5 +1,7 @@
 package port
 
+import "billing/internal/domain"
+
 // Repository defines the interface for interacting with the data storage layer for invoices.
 type Repository interface {
 	// Save saves a new invoice to the database and returns the created invoice with its ID.
@@ -7,6 +9,8 @@ type Repository interface {
 	BeginTransaction() error
 	CommitTransaction() error
 	RollbackTransaction() error
+	GetCustomerByNickname(nickname string) (*domain.Customer, error)
+	GetCustomerByDocument(document string) (*domain.Customer, error)
 	Close() error
 }
 
