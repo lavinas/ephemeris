@@ -19,14 +19,15 @@ func NewCreateInvoiceService(repo port.Repository, logger port.Logger) *CreateIn
 }
 
 // CreateInvoice creates a new invoice using the provided details and saves it to the repository.
-func (s *CreateInvoiceService) Run(request dto.CreateInvoiceRequest) dto.CreateInvoiceResponse {
+func (s *CreateInvoiceService) Run(request *dto.CreateInvoiceRequest) *dto.CreateInvoiceResponse {
 	s.logger.IPrintf(1, "Creating invoice for customer: %s", request.CustomerName)
-	invoice := domain.NewInvoice(request.CustomerName, request.CustomerEmail, request.CustomerWhatsapp, request.CustomerDocument, request.Notes,
+	invoice := domain.NewInvoice(request.CustomerName, request.CustomerEmail,
+		request.CustomerWhatsapp, request.CustomerDocument, request.Notes,
 		createItems(request.InvoiceItems))
 	// validate input
 	if err := request.Validate(); err != nil {
 		s.logger.IPrintf(1, "Erros validation %v", err)
-		return dto.CreateInvoiceResponse{
+		return &dto.CreateInvoiceResponse{
 			ResponseBase: dto.ResponseBase{
 				HttpCode: 400,
 				Status:   "Bad Request",
@@ -37,7 +38,7 @@ func (s *CreateInvoiceService) Run(request dto.CreateInvoiceRequest) dto.CreateI
 	// save invoice
 	if err := s.repo.Save(invoice); err != nil {
 		s.logger.IPrintf(1, "Error creating invoice: %v", err)
-		return dto.CreateInvoiceResponse{
+		return &dto.CreateInvoiceResponse{
 			ResponseBase: dto.ResponseBase{
 				HttpCode: 500,
 				Status:   "error",
@@ -47,7 +48,7 @@ func (s *CreateInvoiceService) Run(request dto.CreateInvoiceRequest) dto.CreateI
 	}
 	// return ok
 	s.logger.IPrintf(1, "Invoice created successfully")
-	return dto.CreateInvoiceResponse{
+	return &dto.CreateInvoiceResponse{
 		ResponseBase: dto.ResponseBase{
 			HttpCode: 200,
 			Status:   "success",

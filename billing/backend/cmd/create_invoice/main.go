@@ -48,6 +48,6 @@ func main() {
 		Notes:            "Sample invoice",
 		InvoiceItems:     []dto.CreateInvoiceItemDTO{*invoiceItemDTO, *invoiceItemDTO},
 	}
-	response := service.Run(*invoiceDTO)
+	response := service.Run(invoiceDTO)
 	fmt.Printf("Create Invoice Response: %+v\n", response)
 }

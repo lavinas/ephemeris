@@ -3,7 +3,7 @@ package main
 import (
 	"billing/internal/adapter/driven"
 	"billing/internal/adapter/driver"
-	"billing/internal/service"
+
 	"fmt"
 )
 
@@ -15,14 +15,12 @@ func main() {
 		return
 	}
 	defer logger.Close()
-
 	// Initialize Config
 	cfg, err := driven.NewConfig("billing.json")
 	if err != nil {
 		fmt.Printf("Error loading config: %v\n", err)
 		return
 	}
-
 	// Initialize Repository
 	host, port, user, password, dbname, sslmode, timezone, timeout, schema := cfg.GetDBData()
 	repo, err := driven.NewPostgresRepository(host, user, password, dbname, sslmode,
@@ -32,13 +30,7 @@ func main() {
 		return
 	}
 	defer repo.Close()
-
-	// Initialize Service
-	service := service.NewCreateCustomerService(repo, logger)
-
 	// Initialize API Handler
-	apiHandler := driver.NewAPIHandler(service, logger)
-
-	// Start the API server
+	apiHandler := driver.NewAPIHandler(":8080", logger, repo)
 	apiHandler.Run(":8080")
 }

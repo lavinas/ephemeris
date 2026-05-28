@@ -7,36 +7,53 @@ import (
 
 	"billing/internal/dto"
 	"billing/internal/port"
+	"billing/internal/service"
 )
 
-// APIHandler is an HTTP handler for the API
-type APIHandler struct {
-	logger  port.Logger
+// mapping defines the structure for API endpoint mapping
+type handleService struct {
+	method  string
+	dto     port.InDTO
 	service port.Service
 }
 
-// NewAPIHandler creates a new instance of APIHandler
-func NewAPIHandler(service port.Service, logger port.Logger) *APIHandler {
-	return &APIHandler{
+// newMapping creates a new instance of mapping with the provided endpoint, method, DTO, and service.
+func newHandleService(method string, dto port.InDTO, service port.Service) *handleService {
+	return &handleService{
+		method:  method,
+		dto:     dto,
 		service: service,
-		logger:  logger,
 	}
+}
+
+// APIHandler is an HTTP handler for the API
+type APIHandler struct {
+	logger   port.Logger
+	repo     port.Repository
+	services map[string]handleService
+}
+
+// NewAPIHandler creates a new instance of APIHandler
+func NewAPIHandler(addr string, logger port.Logger, repo port.Repository) *APIHandler {
+	api := &APIHandler{
+		logger: logger,
+		repo:   repo,
+	}
+	api.services = map[string]handleService{
+		"/create-customer": *newHandleService(http.MethodPost, &dto.CreateCustomerRequest{},
+			service.NewCreateCustomerService(repo, logger)),
+		"/ping": *newHandleService(http.MethodGet, nil, service.NewPingService(logger)),
+	}
+	return api
 }
 
 // Run starts the API server
 func (h *APIHandler) Run(addr string) {
 	http.Handle("/", h)
-	h.route()
 	h.logger.IPrintf(1, "Starting API server on %s", addr)
 	if err := http.ListenAndServe(addr, nil); err != nil {
 		h.logger.IPrintf(1, "API server failed: %v", err)
 	}
-}
-
-// Mapping of API endpoints to service methods would be implemented here. This is a placeholder for the actual routing logic.
-func (h *APIHandler) route() {
-	http.HandleFunc("/create-customer", h.handleCreateCustomer)
-	http.HandleFunc("/ping", h.Ping)
 }
 
 // Ping is a simple endpoint to check if the API is running
@@ -47,39 +64,40 @@ func (h *APIHandler) Ping(w http.ResponseWriter, r *http.Request) {
 
 // ServeHTTP handles incoming HTTP requests and routes them to the appropriate service methods
 func (h *APIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// This is a placeholder for routing logic.
-	switch r.URL.Path {
-	case "/create-customer":
-		h.handleCreateCustomer(w, r)
-	default:
+	h.logger.IPrintf(1, "Received request: %s %s", r.Method, r.URL.Path)
+	// Check if the requested path is registered in the services map
+	service, exists := h.services[r.URL.Path]
+	if !exists {
+		h.logger.IPrintf(1, "Service not found for path: %s", r.URL.Path)
 		http.NotFound(w, r)
+		return
 	}
-}
-
-// handleCreateCustomer is a place for the actual implementation of the create customer endpoint
-func (h *APIHandler) handleCreateCustomer(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
+	// Check HTTP method
+	if r.Method != service.method {
+		h.logger.IPrintf(1, "Method not allowed: %s for path: %s", r.Method, r.URL.Path)
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	// Placeholder for request parsing and service invocation
-	var requestData dto.CreateCustomerRequest
-	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
-		h.logger.IPrintf(1, "Failed to decode request body: %v", err)
-		http.Error(w, fmt.Sprintf("Invalid request body: %v", err), http.StatusBadRequest)
-		return
+	// Decode request body into the appropriate DTO
+	if service.dto != nil {
+		if err := json.NewDecoder(r.Body).Decode(service.dto); err != nil {
+			h.logger.IPrintf(1, "Failed to decode request body: %v", err)
+			http.Error(w, fmt.Sprintf("Invalid request body: %v", err), http.StatusBadRequest)
+			return
+		}
 	}
-	response := h.service.Run(&requestData)
+	// Call the service method and get the response
+	response := service.service.Run(service.dto)
 	responseJSON, err := json.MarshalIndent(response, "", "  ")
 	if err != nil {
 		h.logger.IPrintf(1, "Failed to marshal response: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
+	// Write the response back to the client
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(responseJSON)
-
-	h.logger.IPrintf(1, "Handled create customer request: %v", requestData)
-
+	// Log the handled request
+	h.logger.IPrintf(1, "Handled request for %s %s", r.Method, r.URL.Path)
 }

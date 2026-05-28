@@ -20,7 +20,7 @@ func NewCreateCustomerService(repo port.Repository, logger port.Logger) *CreateC
 
 // Run processes a batch of customer creation requests and returns the responses.
 func (s *CreateCustomerService) Run(inDTO port.InDTO) port.OutDTO {
-	s.logger.IPrintf(1, "Received create customer request: %v", inDTO)
+	s.logger.IPrintf(2, "Processing create customer request: %v", inDTO)
 	in, ok := inDTO.(*dto.CreateCustomerRequest)
 	if !ok {
 		s.logger.IPrintf(2, "Invalid input type: expected CreateCustomerRequest")
