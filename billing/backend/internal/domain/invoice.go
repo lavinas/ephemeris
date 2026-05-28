@@ -17,13 +17,13 @@ type Invoice struct {
 }
 
 // NewInvoice creates a new Invoice instance with the provided details and calculates the total amount.
-func NewInvoice(customerName, customerEmail, customerWhatsapp, customerDocument, notes string, items []InvoiceItem) *Invoice {
+func NewInvoice(name, email, whatsapp, document, notes string, items []InvoiceItem) *Invoice {
 	invoice := &Invoice{
 		ID:               0,
-		CustomerName:     customerName,
-		CustomerEmail:    customerEmail,
-		CustomerWhatsapp: customerWhatsapp,
-		CustomerDocument: customerDocument,
+		CustomerName:     name,
+		CustomerEmail:    email,
+		CustomerWhatsapp: whatsapp,
+		CustomerDocument: document,
 		Notes:            notes,
 		InvoiceItems:     items,
 	}
