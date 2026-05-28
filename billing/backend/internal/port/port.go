@@ -24,7 +24,7 @@ type Logger interface {
 }
 
 // InDTO represents a generic data transfer object for input of service methods.
-type InDTO interface{
+type InDTO interface {
 	Validate(repo Repository) error
 	GetDomain() interface{}
 }
@@ -35,5 +35,3 @@ type OutDTO interface{}
 type Service interface {
 	Run(in InDTO) (out OutDTO)
 }
-
-

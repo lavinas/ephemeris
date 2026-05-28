@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	// requestLimit defines the maximum number of customer creation 
+	// requestLimit defines the maximum number of customer creation
 	// 	requests that can be processed in a single batch.
 	requestLimit = 100
 )
@@ -36,30 +36,7 @@ type CreateCustomerResponse struct {
 	ResponseBase
 }
 
-// NewCreateCustomerRequest creates a new instance of CreateCustomerRequest from a map.
-func NewCreateCustomerRequest(request map[string]interface{}) CreateCustomerRequest {
-	itemsData, ok := request["items"].([]interface{})
-	if !ok {
-		return CreateCustomerRequest{}
-	}
-	items := make([]CreateCustomerRequestItem, len(itemsData))
-	for i, itemData := range itemsData {
-		itemMap, ok := itemData.(map[string]interface{})
-		if !ok {
-			return CreateCustomerRequest{}
-		}
-		items[i] = CreateCustomerRequestItem{
-			Name:     itemMap["name"].(string),
-			Nickname: itemMap["nickname"].(string),
-			Document: itemMap["document"].(string),
-			Email:    itemMap["email"].(string),
-			Whatsapp: itemMap["whatsapp"].(string),
-		}
-	}
-	return CreateCustomerRequest{Items: items}
-}
-
-// NewCreateCustomerResponse creates a new instance of CreateCustomerResponse 
+// NewCreateCustomerResponse creates a new instance of CreateCustomerResponse
 func NewCreateCustomerResponse(httpCode int16, status, message string) CreateCustomerResponse {
 	return CreateCustomerResponse{
 		ResponseBase: NewResponseBase(httpCode, status, message),
@@ -98,7 +75,7 @@ func (r *CreateCustomerRequest) validateItems(repo port.Repository) []error {
 			errs = append(errs, fmt.Errorf("item %d: duplicate nickname '%s'", i, item.Nickname))
 		}
 		documents[item.Document] = true
-		nicknames[item.Nickname] = true	
+		nicknames[item.Nickname] = true
 	}
 	return errs
 }
@@ -139,7 +116,17 @@ func (r *CreateCustomerRequest) GetDomain() interface{} {
 
 // GetDomain converts the CreateCustomerRequestItem to a domain.Customer entity.
 func (r *CreateCustomerRequestItem) GetDomain() *domain.Customer {
-	return domain.NewCustomer(r.Name, r.Nickname, r.Document, r.Email, r.Whatsapp)
+	var document, email, whatsapp *string
+	if r.Document != "" {
+		document = &r.Document
+	}
+	if r.Email != "" {
+		email = &r.Email
+	}
+	if r.Whatsapp != "" {
+		whatsapp = &r.Whatsapp
+	}
+	return domain.NewCustomer(&r.Name, &r.Nickname, document, email, whatsapp)
 }
 
 // validateName checks if the provided name is valid.

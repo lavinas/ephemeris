@@ -35,7 +35,7 @@ func (s *SimpleLogger) Close() {
 
 // IPrintf is a identity function for printf, allowing it to be used as a ports.Logger
 func (s *SimpleLogger) IPrintf(level int, format string, v ...interface{}) {
-	if level > s.level {
+	if s.level != 0 && level > s.level {
 		return
 	}
 	format = strings.Repeat("\t", level) + format
