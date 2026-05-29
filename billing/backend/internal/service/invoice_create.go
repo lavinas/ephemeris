@@ -38,7 +38,7 @@ func (s *InvoiceCreate) Run(inDTO port.InDTO) port.OutDTO {
 	return dto.NewInvoiceCreateResponse(200, "success", "Invoice created successfully")
 }
 
-// getInvoices retrieves all invoices from the repository and returns them as a slice of domain.Invoice entities.
+// getInvoices retrieves all invoices from the repository and returns them as a slice 
 func (s *InvoiceCreate) getDomain(in []dto.InvoiceCreate) ([]domain.Invoice, error) {
 	invoices := make([]domain.Invoice, len(in))
 	for i, item := range in {
