@@ -9,8 +9,9 @@ type Repository interface {
 	BeginTransaction() error
 	CommitTransaction() error
 	RollbackTransaction() error
-	GetCustomerByNickname(nickname string) (*domain.Customer, error)
-	GetCustomerByDocument(document string) (*domain.Customer, error)
+	FindCustomers(page, pageSize int, name, nickname, document *string,
+		status *int, email, whatsapp *string) ([]domain.Customer, error)
+
 	Close() error
 }
 
@@ -26,7 +27,6 @@ type Logger interface {
 // InDTO represents a generic data transfer object for input of service methods.
 type InDTO interface {
 	Validate(repo Repository) error
-	GetDomain() interface{}
 }
 
 // OutDTO represents a generic data transfer object for output of service methods.

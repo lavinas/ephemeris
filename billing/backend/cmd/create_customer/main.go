@@ -34,16 +34,16 @@ func main() {
 	defer repo.Close()
 
 	// Initialize Service
-	service := service.NewCreateCustomerService(repo, logger)
+	service := service.NewCustomerCreate(repo, logger)
 
-	customer1 := dto.CreateCustomerRequestItem{
+	customer1 := dto.CustomerCreateRequestItem{
 		Name:     "John Doe",
 		Nickname: "Johnny",
 		Document: "123456789",
 		Email:    "john.doe@example.com",
 		Whatsapp: "(11)91234-5678",
 	}
-	customer2 := dto.CreateCustomerRequestItem{
+	customer2 := dto.CustomerCreateRequestItem{
 		Name:     "John Doe",
 		Nickname: "Johnny1",
 		Document: "1234567891",
@@ -51,7 +51,8 @@ func main() {
 		Whatsapp: "(11)91234-5678",
 	}
 
-	response := service.Run(&dto.CreateCustomerRequest{Items: []dto.CreateCustomerRequestItem{customer1, customer2}})
+	response := service.Run(&dto.CustomerCreateRequest{
+		Items: []dto.CustomerCreateRequestItem{customer1, customer2}})
 
 	responseJSON, err := json.MarshalIndent(response, "", "  ")
 	if err != nil {

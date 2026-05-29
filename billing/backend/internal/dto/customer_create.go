@@ -17,13 +17,13 @@ const (
 	requestLimit = 100
 )
 
-// CreateCustomerRequest represents the request payload for creating a new customer.
-type CreateCustomerRequest struct {
-	Items []CreateCustomerRequestItem `json:"items" validate:"required,dive"`
+// CustomerCreateRequest represents the request payload for creating a new customer.
+type CustomerCreateRequest struct {
+	Items []CustomerCreateRequestItem `json:"items" validate:"required,dive"`
 }
 
-// CreateCustomerRequestItem represents an individual customer creation request item.
-type CreateCustomerRequestItem struct {
+// CustomerCreateRequestItem represents an individual customer creation request item.
+type CustomerCreateRequestItem struct {
 	Name     string `json:"name" validate:"required"`
 	Nickname string `json:"nickname" validate:"required"`
 	Document string `json:"document" validate:"required"`
@@ -31,20 +31,20 @@ type CreateCustomerRequestItem struct {
 	Whatsapp string `json:"whatsapp" validate:"required"`
 }
 
-// CreateCustomerResponse represents the response payload after creating a new customer.
-type CreateCustomerResponse struct {
+// CustomerCreateResponse represents the response payload after creating a new customer.
+type CustomerCreateResponse struct {
 	ResponseBase
 }
 
-// NewCreateCustomerResponse creates a new instance of CreateCustomerResponse
-func NewCreateCustomerResponse(httpCode int16, status, message string) CreateCustomerResponse {
-	return CreateCustomerResponse{
+// NewCustomerCreateResponse creates a new instance of CustomerCreateResponse
+func NewCustomerCreateResponse(httpCode int16, status, message string) CustomerCreateResponse {
+	return CustomerCreateResponse{
 		ResponseBase: NewResponseBase(httpCode, status, message),
 	}
 }
 
-// Validate checks if the CreateCustomerRequest has all required fields and valid data.
-func (r *CreateCustomerRequest) Validate(repo port.Repository) error {
+// Validate checks if the CustomerCreateRequest has all required fields and valid data.
+func (r *CustomerCreateRequest) Validate(repo port.Repository) error {
 	if len(r.Items) == 0 {
 		return errors.New("no customer data provided")
 	}
@@ -60,7 +60,7 @@ func (r *CreateCustomerRequest) Validate(repo port.Repository) error {
 }
 
 // validateItems validate items and duplicated items in the request
-func (r *CreateCustomerRequest) validateItems(repo port.Repository) []error {
+func (r *CustomerCreateRequest) validateItems(repo port.Repository) []error {
 	documents := make(map[string]bool, len(r.Items))
 	nicknames := make(map[string]bool, len(r.Items))
 	errs := make([]error, 0)
@@ -80,8 +80,8 @@ func (r *CreateCustomerRequest) validateItems(repo port.Repository) []error {
 	return errs
 }
 
-// Validate checks if the CreateCustomerRequestItem has all required fields and valid data.
-func (r *CreateCustomerRequestItem) Validate(repo port.Repository) error {
+// Validate checks if the CustomerCreateRequestItem has all required fields and valid data.
+func (r *CustomerCreateRequestItem) Validate(repo port.Repository) error {
 	errs := make([]error, 0)
 	if err := r.validateName(); err != nil {
 		errs = append(errs, err)
@@ -105,8 +105,8 @@ func (r *CreateCustomerRequestItem) Validate(repo port.Repository) error {
 	return nil
 }
 
-// GetDomain converts the CreateCustomerRequest to a slice of domain.Customer entities.
-func (r *CreateCustomerRequest) GetDomain() interface{} {
+// GetDomain converts the CustomerCreateRequest to a slice of domain.Customer entities.
+func (r *CustomerCreateRequest) GetDomain() interface{} {
 	customers := make([]domain.Customer, len(r.Items))
 	for i, item := range r.Items {
 		customers[i] = *item.GetDomain()
@@ -114,8 +114,8 @@ func (r *CreateCustomerRequest) GetDomain() interface{} {
 	return &customers
 }
 
-// GetDomain converts the CreateCustomerRequestItem to a domain.Customer entity.
-func (r *CreateCustomerRequestItem) GetDomain() *domain.Customer {
+// GetDomain converts the CustomerCreateRequestItem to a domain.Customer entity.
+func (r *CustomerCreateRequestItem) GetDomain() *domain.Customer {
 	var document, email, whatsapp *string
 	if r.Document != "" {
 		document = &r.Document
@@ -130,7 +130,7 @@ func (r *CreateCustomerRequestItem) GetDomain() *domain.Customer {
 }
 
 // validateName checks if the provided name is valid.
-func (r *CreateCustomerRequestItem) validateName() error {
+func (r *CustomerCreateRequestItem) validateName() error {
 	if r.Name == "" {
 		return errors.New("name is required")
 	}
@@ -138,37 +138,37 @@ func (r *CreateCustomerRequestItem) validateName() error {
 }
 
 // validateNickname checks if the provided nickname is valid and not already in use.
-func (r *CreateCustomerRequestItem) validateNickname(repo port.Repository) error {
+func (r *CustomerCreateRequestItem) validateNickname(repo port.Repository) error {
 	if r.Nickname == "" {
 		return errors.New("nickname is required")
 	}
-	existingCustomer, err := repo.GetCustomerByNickname(r.Nickname)
+	existingCustomer, err := repo.FindCustomers(0, 0, nil, &r.Nickname, nil, nil, nil, nil)
 	if err != nil {
 		return fmt.Errorf("failed to validate nickname: %v", err)
 	}
-	if existingCustomer != nil {
+	if len(existingCustomer) > 0 {
 		return fmt.Errorf("nickname is already in use")
 	}
 	return nil
 }
 
 // validateDocument checks if the provided document is valid and not already in use.
-func (r *CreateCustomerRequestItem) validateDocument(repo port.Repository) error {
+func (r *CustomerCreateRequestItem) validateDocument(repo port.Repository) error {
 	if r.Document == "" {
 		return nil
 	}
-	existingCustomer, err := repo.GetCustomerByDocument(r.Document)
+	existingCustomer, err := repo.FindCustomers(0, 0, nil, nil, &r.Document, nil, nil, nil)
 	if err != nil {
 		return fmt.Errorf("failed to validate document: %v", err)
 	}
-	if existingCustomer != nil {
+	if len(existingCustomer) > 0 {
 		return fmt.Errorf("document is already in use")
 	}
 	return nil
 }
 
 // validateEmail checks if the provided email is valid and not already in use.
-func (r *CreateCustomerRequestItem) validateEmail() error {
+func (r *CustomerCreateRequestItem) validateEmail() error {
 	if r.Email == "" {
 		return nil
 	}
@@ -180,7 +180,7 @@ func (r *CreateCustomerRequestItem) validateEmail() error {
 }
 
 // validateWhatsapp checks if the provided WhatsApp number is valid and not already in use.
-func (r *CreateCustomerRequestItem) validateWhatsapp() error {
+func (r *CustomerCreateRequestItem) validateWhatsapp() error {
 	if r.Whatsapp == "" {
 		return nil
 	}

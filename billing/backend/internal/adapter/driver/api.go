@@ -39,12 +39,19 @@ func NewAPIHandler(addr string, logger port.Logger, repo port.Repository) *APIHa
 		logger: logger,
 		repo:   repo,
 	}
-	api.services = map[string]handleService{
-		"/create-customer": *newHandleService(http.MethodPost, &dto.CreateCustomerRequest{},
-			service.NewCreateCustomerService(repo, logger)),
-		"/ping": *newHandleService(http.MethodGet, nil, service.NewPingService(logger)),
-	}
+	api.mapServices()
 	return api
+}
+
+// MapEndpoint maps an API endpoint to a service method
+func (h *APIHandler) mapServices() {
+	h.services = map[string]handleService{
+		"/ping": *newHandleService(http.MethodGet, nil, service.NewPingService(h.logger)),
+		"/customer/create": *newHandleService(http.MethodPost, &dto.CustomerCreateRequest{},
+			service.NewCustomerCreate(h.repo, h.logger)),
+		"/customer/list": *newHandleService(http.MethodGet, &dto.CustomerListRequest{},
+			service.NewCustomerList(h.repo, h.logger)),
+	}
 }
 
 // Run starts the API server

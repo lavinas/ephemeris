@@ -30,7 +30,7 @@ type JsonLogConfig struct {
 	Level  int    `json:"level"`
 }
 
-// LoadJsonConfig reads the configuration from a JSON file and unmarshals it into a JsonConfig struct
+// LoadJsonConfig reads the configuration from a JSON file and unmarshals it into a JsonConfig
 func NewConfig(path string) (*JsonConfig, error) {
 	// Attempt to read the configuration file, if it fails, use the default configuration string
 	data, err := os.ReadFile(path)
@@ -47,9 +47,10 @@ func NewConfig(path string) (*JsonConfig, error) {
 }
 
 // GetDBData returns the database configuration data as a JsonDBConfig struct
-func (v *JsonConfig) GetDBData() (host string, port int, user string, password string, dbname string, sslmode string, timezone string,
-	connect_timeout int, billing_schema string) {
-	return v.DB.Host, v.DB.Port, v.DB.User, v.DB.Password, v.DB.DBName, v.DB.SSLMode, v.DB.TimeZone, v.DB.ConnectTimeout, v.DB.BillingSchema
+func (v *JsonConfig) GetDBData() (host string, port int, user string, password string,
+	dbname string, sslmode string, timezone string, connect_timeout int, billing_schema string) {
+	return v.DB.Host, v.DB.Port, v.DB.User, v.DB.Password, v.DB.DBName, v.DB.SSLMode,
+		v.DB.TimeZone, v.DB.ConnectTimeout, v.DB.BillingSchema
 }
 
 // GetDBTimeZone returns the database time zone from the configuration

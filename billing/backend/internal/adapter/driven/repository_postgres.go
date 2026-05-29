@@ -113,28 +113,32 @@ func (a *PostgresRepository) Save(model interface{}) error {
 	}).CreateInBatches(model, batchSizeInsertTransaction).Error
 }
 
-// GetCustomerByNickname retrieves a customer by their nickname
-func (a *PostgresRepository) GetCustomerByNickname(nickname string) (*domain.Customer, error) {
-	var customer domain.Customer
-	result := a.DB.Where("nickname = ?", nickname).First(&customer)
-	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
-			return nil, nil // No record found, return nil without error
-		}
-		return nil, result.Error
+// FindCustomers retrieves customers based on the provided filters and pagination parameters
+func (a *PostgresRepository) FindCustomers(page, pageSize int, name, nickname, document *string,
+	status *int, email, whatsapp *string) ([]domain.Customer, error) {
+	var customers []domain.Customer
+	db := a.DB.Model(&domain.Customer{})
+	if name != nil {
+		db = db.Where("name ILIKE ?", "%"+*name+"%")
 	}
-	return &customer, nil
-}
-
-// GetCustomerByDocument retrieves a customer by their document
-func (a *PostgresRepository) GetCustomerByDocument(document string) (*domain.Customer, error) {
-	var customer domain.Customer
-	result := a.DB.Where("document = ?", document).First(&customer)
-	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
-			return nil, nil // No record found, return nil without error
-		}
-		return nil, result.Error
+	if nickname != nil {
+		db = db.Where("nickname ILIKE ?", "%"+*nickname+"%")
 	}
-	return &customer, nil
+	if document != nil {
+		db = db.Where("document ILIKE ?", "%"+*document+"%")
+	}
+	if status != nil {
+		db = db.Where("status = ?", *status)
+	}
+	if email != nil {
+		db = db.Where("email ILIKE ?", "%"+*email+"%")
+	}
+	if whatsapp != nil {
+		db = db.Where("whatsapp ILIKE ?", "%"+*whatsapp+"%")
+	}
+	if page > 0 && pageSize > 0 {
+		db = db.Offset((page - 1) * pageSize).Limit(pageSize)
+	}
+	err := db.Find(&customers).Error
+	return customers, err
 }
