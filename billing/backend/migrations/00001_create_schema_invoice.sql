@@ -10,7 +10,7 @@ drop table if exists business cascade;
 create table business (
     id bigserial primary key,
     legal_name varchar(150) not null,
-    trade_name varchar(150),
+    nickname varchar(150),
     document varchar(50) not null,
     account_bank varchar(100) not null,
     account_agency varchar(20) not null,
@@ -21,8 +21,8 @@ create table business (
     constraint unique_business_document unique(document)
 );
 # main business
-insert into business (legal_name, trade_name, document, account_bank, account_agency, account_number, pix_token, created_at, updated_at) values
-('Cardoso e Barbosa Servicos Musicais e Tecnologia LTDA', 'Estudio Amelia Cardoso', '27.928.875/0001-04', 'Santander (033)', '0985', '13001001-4', 'CNPJ: 27.928.875/0001-04', now(), now());
+insert into business (legal_name, nickname, document, account_bank, account_agency, account_number, pix_token, created_at, updated_at) values
+('Cardoso e Barbosa Servicos Musicais e Tecnologia LTDA', 'estudio_amelia', '27.928.875/0001-04', 'Santander (033)', '0985', '13001001-4', 'CNPJ: 27.928.875/0001-04', now(), now());
 
 # customer table
 drop table if exists customer cascade;

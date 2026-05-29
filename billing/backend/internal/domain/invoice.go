@@ -5,10 +5,8 @@ import "time"
 // Invoice represents a billing invoice with customer details and amount.
 type Invoice struct {
 	ID               int64         `gorm:"primaryKey"`
-	CustomerName     string        `gorm:"not null"`
-	CustomerEmail    string        `gorm:"not null"`
-	CustomerWhatsapp string        `gorm:"not null"`
-	CustomerDocument string        `gorm:"not null"`
+	BusinessID       int64         `gorm:"not null"`
+	CustomerID	     int64         `gorm:"not null"`
 	Amount           float64       `gorm:"not null"`
 	Notes            string        `gorm:"not null"`
 	CreatedAt        time.Time     `gorm:"autoCreateTime"`
@@ -17,15 +15,12 @@ type Invoice struct {
 }
 
 // NewInvoice creates a new Invoice instance with the provided details and calculates the total amount.
-func NewInvoice(name, email, whatsapp, document, notes string, items []InvoiceItem) *Invoice {
+func NewInvoice(businessID, customerID int64, notes string, items []InvoiceItem) *Invoice {
 	invoice := &Invoice{
-		ID:               0,
-		CustomerName:     name,
-		CustomerEmail:    email,
-		CustomerWhatsapp: whatsapp,
-		CustomerDocument: document,
-		Notes:            notes,
-		InvoiceItems:     items,
+		BusinessID:   businessID,
+		CustomerID:   customerID,
+		Notes:        notes,
+		InvoiceItems: items,
 	}
 	invoice.CalculateTotalAmount()
 	return invoice
@@ -57,10 +52,8 @@ type InvoiceItem struct {
 }
 
 // NewInvoiceItem creates a new InvoiceItem instance with the provided details.
-func NewInvoiceItem(invoiceID int64, description string, quantity int, unitPrice float64) *InvoiceItem {
+func NewInvoiceItem(description string, quantity int, unitPrice float64) *InvoiceItem {
 	return &InvoiceItem{
-		ID:          0,
-		InvoiceID:   invoiceID,
 		Description: description,
 		Quantity:    quantity,
 		UnitPrice:   unitPrice,
