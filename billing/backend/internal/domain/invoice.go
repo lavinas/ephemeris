@@ -8,6 +8,8 @@ type Invoice struct {
 	VendorID     int64         `gorm:"not null"`
 	CustomerID   int64         `gorm:"not null"`
 	Amount       float64       `gorm:"not null"`
+	InvoiceDate  time.Time     `gorm:"not null"`
+	DueDate      time.Time     `gorm:"not null"`
 	Notes        string        `gorm:"not null"`
 	CreatedAt    time.Time     `gorm:"autoCreateTime"`
 	UpdatedAt    time.Time     `gorm:"autoUpdateTime"`
@@ -15,10 +17,13 @@ type Invoice struct {
 }
 
 // NewInvoice creates a new Invoice instance with the details and calculates the total amount.
-func NewInvoice(vendorID, customerID int64, notes string, items []InvoiceItem) *Invoice {
+func NewInvoice(vendorID, customerID int64, invoiceDate, dueDate time.Time, 
+	notes string, items []InvoiceItem) *Invoice {
 	invoice := &Invoice{
 		VendorID:     vendorID,
 		CustomerID:   customerID,
+		InvoiceDate:  invoiceDate,
+		DueDate:      dueDate,
 		Notes:        notes,
 		InvoiceItems: items,
 		CreatedAt:    time.Now(),

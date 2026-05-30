@@ -46,6 +46,8 @@ create table invoice (
     id bigserial primary key,
     vendor_id bigint not null references vendor(id) on delete cascade,
     customer_id bigint not null references customer(id) on delete cascade,
+    invoice_date date not null,
+    due_date date not null,
     amount numeric(15, 2) not null,
     notes text not null,
     created_at timestamp not null default now(),

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"billing/internal/domain"
 	"billing/internal/port"
@@ -21,9 +22,11 @@ type InvoiceCreateRequest struct {
 // InvoiceCreateRequest represents the data transfer object for creating a new invoice.
 type InvoiceCreate struct {
 	Vendor       string               `json:"vendor" validate:"required"`
-	vendorID     int64                `json:"-"` // internal field to hold the ID after validation
+	vendorID     int64                `json:"-"`
 	Customer     string               `json:"customer" validate:"required"`
-	customerID   int64                `json:"-"` // internal field to hold the ID after validation
+	customerID   int64                `json:"-"`
+	InvoiceDate  string               `json:"invoicing" validate:"required"`
+	DueDate      string            `json:"due" validate:"required"`
 	InvoiceItems []*InvoiceCreateItem `json:"items" validate:"required,dive,required"`
 	Note         string               `json:"note,omitempty"`
 }
@@ -74,22 +77,62 @@ func (r *InvoiceCreate) Validate(repo port.Repository) error {
 	if err := r.validateVendor(repo); err != nil {
 		errs = append(errs, err)
 	}
-	if len(r.InvoiceItems) == 0 {
-		errs = append(errs, fmt.Errorf("at least one item is required"))
+	if err := r.validateNotes(); err != nil {
+		errs = append(errs, err)
 	}
-	if r.Note != "" && len(r.Note) > notesLimit {
-		errs = append(errs, fmt.Errorf("note cannot exceed %d characters", notesLimit))
+	if dateErrs := r.validateDates(); len(dateErrs) > 0 {
+		errs = append(errs, dateErrs...)
 	}
-	for i, item := range r.InvoiceItems {
-		if err := item.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("invoice item %d: %w", i, err))
-		}
+	if itemErrs := r.validateItems(); len(itemErrs) > 0 {
+		errs = append(errs, itemErrs...)
 	}
 	if len(errs) != 0 {
 		err := errors.Join(errs...)
 		return errors.New(strings.ReplaceAll(err.Error(), "\n", "; "))
 	}
 	return nil
+}
+
+// validateNotes validates the note field to ensure it is not empty and does not exceed the character limit.
+func (r *InvoiceCreate) validateNotes() error {
+	if r.Note == "" {
+		return fmt.Errorf("note is required")
+	}
+	if len(r.Note) > notesLimit {
+		return fmt.Errorf("note cannot exceed %d characters", notesLimit)
+	}
+	return nil
+}
+
+// validateDates validates the invoice and due dates to ensure they are in the correct format and logical order.
+func (r *InvoiceCreate) validateDates() []error {
+	errs := make([]error, 0)
+	invoiceDate, err := time.Parse("2006-01-02", r.InvoiceDate)
+	if err != nil {
+		errs = append(errs, fmt.Errorf("invalid invoice date format, expected YYYY-MM-DD"))
+	}
+	dueDate, err := time.Parse("2006-01-02", r.DueDate)
+	if err != nil {
+		errs = append(errs, fmt.Errorf("invalid due date format, expected YYYY-MM-DD"))
+	}
+	if !invoiceDate.IsZero() && !dueDate.IsZero() && dueDate.Before(invoiceDate) {
+		errs = append(errs, fmt.Errorf("due date cannot be before invoice date"))
+	}
+	return errs	
+}
+
+// validateItems validates the invoice items to ensure they are not empty and have valid fields.
+func (r *InvoiceCreate) validateItems() []error {
+	errs := make([]error, 0)
+	if len(r.InvoiceItems) == 0 {
+		errs = append(errs, fmt.Errorf("at least one item is required"))
+	}
+	for i, item := range r.InvoiceItems {
+		if err := item.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invoice item %d: %w", i, err))
+		}
+	}
+	return errs
 }
 
 // validateCustomer validates the customer nickname and sets the customerID field if valid.
@@ -158,7 +201,10 @@ func (r *InvoiceCreate) GetDomain() *domain.Invoice {
 	for i, item := range r.InvoiceItems {
 		invoiceItems[i] = *item.GetDomain()
 	}
-	return domain.NewInvoice(r.vendorID, r.customerID, r.Note, invoiceItems)
+	iDate, _ := time.Parse("2006-01-02", r.InvoiceDate)
+	dDate, _ := time.Parse("2006-01-02", r.DueDate)
+	return domain.NewInvoice(r.vendorID, r.customerID, iDate, dDate, 
+		r.Note, invoiceItems)
 }
 
 // GetDomain converts the InvoiceCreateItem to a domain.InvoiceItem entity.
