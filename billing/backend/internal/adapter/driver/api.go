@@ -51,6 +51,8 @@ func (h *APIHandler) mapServices() {
 			service.NewCustomerCreate(h.repo, h.logger)),
 		"/customer/list": *newHandleService(http.MethodGet, &dto.CustomerListRequest{},
 			service.NewCustomerList(h.repo, h.logger)),
+		"/invoice/create": *newHandleService(http.MethodPost, &dto.InvoiceCreateRequest{},
+			service.NewInvoiceCreate(h.repo, h.logger)),
 	}
 }
 
@@ -103,7 +105,7 @@ func (h *APIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	// Write the response back to the client
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(int(response.GetStatusCode()))
 	w.Write(responseJSON)
 	// Log the handled request
 	h.logger.IPrintf(1, "Handled request for %s %s", r.Method, r.URL.Path)

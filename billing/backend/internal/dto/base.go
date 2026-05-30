@@ -15,3 +15,8 @@ func NewResponseBase(httpCode int16, status, message string) ResponseBase {
 		Message:  message,
 	}
 }
+
+// GetHTTPCode returns the HTTP status code of the response.
+func (r ResponseBase) GetStatusCode() int16 {
+	return r.HttpCode
+}

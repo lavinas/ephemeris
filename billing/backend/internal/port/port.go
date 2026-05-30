@@ -31,7 +31,9 @@ type InDTO interface {
 }
 
 // OutDTO represents a generic data transfer object for output of service methods.
-type OutDTO interface{}
+type OutDTO interface{
+	GetStatusCode() int16
+}
 
 type Service interface {
 	Run(in InDTO) (out OutDTO)
