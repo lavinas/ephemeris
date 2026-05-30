@@ -4,14 +4,14 @@ import "time"
 
 // Invoice represents a billing invoice with customer details and amount.
 type Invoice struct {
-	ID               int64         `gorm:"primaryKey"`
-	BusinessID       int64         `gorm:"not null"`
-	CustomerID	     int64         `gorm:"not null"`
-	Amount           float64       `gorm:"not null"`
-	Notes            string        `gorm:"not null"`
-	CreatedAt        time.Time     `gorm:"autoCreateTime"`
-	UpdatedAt        time.Time     `gorm:"autoUpdateTime"`
-	InvoiceItems     []InvoiceItem `gorm:"foreignKey:InvoiceID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	ID           int64         `gorm:"primaryKey"`
+	BusinessID   int64         `gorm:"not null"`
+	CustomerID   int64         `gorm:"not null"`
+	Amount       float64       `gorm:"not null"`
+	Notes        string        `gorm:"not null"`
+	CreatedAt    time.Time     `gorm:"autoCreateTime"`
+	UpdatedAt    time.Time     `gorm:"autoUpdateTime"`
+	InvoiceItems []InvoiceItem `gorm:"foreignKey:InvoiceID"`
 }
 
 // NewInvoice creates a new Invoice instance with the provided details and calculates the total amount.
@@ -21,6 +21,8 @@ func NewInvoice(businessID, customerID int64, notes string, items []InvoiceItem)
 		CustomerID:   customerID,
 		Notes:        notes,
 		InvoiceItems: items,
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
 	}
 	invoice.CalculateTotalAmount()
 	return invoice

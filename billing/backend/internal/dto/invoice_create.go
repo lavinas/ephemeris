@@ -9,19 +9,17 @@ import (
 	"billing/internal/port"
 )
 
-
 // InvoiceCreateRequest represents the data transfer object for creating a new invoice.
 type InvoiceCreateRequest struct {
 	Items []InvoiceCreate `json:"items" validate:"required,dive"`
 }
 
-
 // InvoiceCreateRequest represents the data transfer object for creating a new invoice.
 type InvoiceCreate struct {
-	Business         string              `json:"business" validate:"required"`
-	Customer         string              `json:"customer_name" validate:"required"`
-	InvoiceItems     []InvoiceCreateItem `json:"invoice_items" validate:"required,dive,required"`
-	Note             string              `json:"note,omitempty"`
+	Business     string              `json:"business" validate:"required"`
+	Customer     string              `json:"customer_name" validate:"required"`
+	InvoiceItems []InvoiceCreateItem `json:"invoice_items" validate:"required,dive,required"`
+	Note         string              `json:"note,omitempty"`
 }
 
 // InvoiceCreateItemDTO represents an item in the invoice with description, quantity, and unit price.
@@ -117,7 +115,3 @@ func (r *InvoiceCreate) GetDomain(businessID, customerID int64) *domain.Invoice 
 func (i *InvoiceCreateItem) GetDomain() *domain.InvoiceItem {
 	return domain.NewInvoiceItem(i.Description, i.Quantity, i.UnitPrice)
 }
-
-
-
-

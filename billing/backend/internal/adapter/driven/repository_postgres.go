@@ -142,3 +142,33 @@ func (a *PostgresRepository) FindCustomers(page, pageSize int, name, nickname, d
 	err := db.Find(&customers).Error
 	return customers, err
 }
+
+// FindVendors retrieves vendors based on the provided filters and pagination parameters
+func (a *PostgresRepository) FindVendors(page, pageSize int, legalName, nickname, document *string,
+	accountBank, accountAgency, accountNumber *string) ([]domain.Vendor, error) {
+	var vendors []domain.Vendor
+	db := a.DB.Model(&domain.Vendor{})
+	if legalName != nil {
+		db = db.Where("legal_name ILIKE ?", "%"+*legalName+"%")
+	}
+	if nickname != nil {
+		db = db.Where("nickname ILIKE ?", "%"+*nickname+"%")
+	}
+	if document != nil {
+		db = db.Where("document ILIKE ?", "%"+*document+"%")
+	}
+	if accountBank != nil {
+		db = db.Where("account_bank ILIKE ?", "%"+*accountBank+"%")
+	}
+	if accountAgency != nil {
+		db = db.Where("account_agency ILIKE ?", "%"+*accountAgency+"%")
+	}
+	if accountNumber != nil {
+		db = db.Where("account_number ILIKE ?", "%"+*accountNumber+"%")
+	}
+	if page > 0 && pageSize > 0 {
+		db = db.Offset((page - 1) * pageSize).Limit(pageSize)
+	}
+	err := db.Find(&vendors).Error
+	return vendors, err
+}

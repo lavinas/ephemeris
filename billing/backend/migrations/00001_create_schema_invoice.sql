@@ -5,9 +5,9 @@ create database ephemeris;
 create SCHEMA if not exists billing;
 set search_path to billing;
 
-# business table
-drop table if exists business cascade;
-create table business (
+# vendor table
+drop table if exists vendor cascade;
+create table vendor (
     id bigserial primary key,
     legal_name varchar(150) not null,
     nickname varchar(150),
@@ -18,10 +18,10 @@ create table business (
     pix_token varchar(255)not null,
     created_at timestamp not null default now(),
     updated_at timestamp not null default now(),
-    constraint unique_business_document unique(document)
+    constraint unique_vendor_document unique(document)
 );
-# main business
-insert into business (legal_name, nickname, document, account_bank, account_agency, account_number, pix_token, created_at, updated_at) values
+# main vendor
+insert into vendor (legal_name, nickname, document, account_bank, account_agency, account_number, pix_token, created_at, updated_at) values
 ('Cardoso e Barbosa Servicos Musicais e Tecnologia LTDA', 'estudio_amelia', '27.928.875/0001-04', 'Santander (033)', '0985', '13001001-4', 'CNPJ: 27.928.875/0001-04', now(), now());
 
 # customer table
@@ -44,7 +44,7 @@ create table customer (
 drop Table if exists invoice cascade;
 create table invoice (
     id bigserial primary key,
-    business_id bigint not null references business(id) on delete cascade,
+    vendor_id bigint not null references vendor(id) on delete cascade,
     customer_id bigint not null references customer(id) on delete cascade,
     amount numeric(15, 2) not null,
     notes text not null,
