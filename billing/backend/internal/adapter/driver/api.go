@@ -3,6 +3,8 @@ package driver
 import (
 	"encoding/json"
 	"net/http"
+	"io"
+	"bytes"
 
 	"billing/internal/dto"
 	"billing/internal/port"
@@ -73,6 +75,8 @@ func (h *APIHandler) Ping(w http.ResponseWriter, r *http.Request) {
 // ServeHTTP handles incoming HTTP requests and routes them to the appropriate service methods
 func (h *APIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.logger.IPrintf(1, "Received request: %s %s", r.Method, r.URL.Path)
+	// Log the request body for debugging
+	h.logRequestBody(r)
 	// Check if the requested path is registered in the services map
 	service, exists := h.services[r.URL.Path]
 	if !exists {
@@ -108,4 +112,25 @@ func (h *APIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Write(responseJSON)
 	// Log the handled request
 	h.logger.IPrintf(1, "Handled request for %s %s", r.Method, r.URL.Path)
+}
+
+
+// logRequestBody logs the body of the incoming HTTP request for debugging purposes.
+func (h *APIHandler) logRequestBody(r *http.Request) {
+	// verify if the request has a body
+	if r.Body == nil || r.Body == http.NoBody {
+		h.logger.IPrintf(1, "No body in request", "path", r.URL.Path)
+		return
+	}
+	// read the original body bytes
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		h.logger.IPrintf(1, "Error reading body for log", "error", err)
+		return
+	}
+	// Return the bytes to the request so it doesn't lose the data
+	r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+	// Log the structured request (convert bytes to string)
+	h.logger.IPrintf(1, "Request received method: %s, path: %s, body: %s", 
+		r.Method, r.URL.Path, string(bodyBytes))
 }

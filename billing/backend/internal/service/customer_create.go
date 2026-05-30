@@ -21,6 +21,7 @@ func NewCustomerCreate(repo port.Repository, logger port.Logger) *CustomerCreate
 // Run processes a batch of customer creation requests and returns the responses.
 func (s *CustomerCreate) Run(inDTO port.InDTO) port.OutDTO {
 	s.logger.IPrintf(2, "Processing create customer request: %v", inDTO)
+	// Type assertion to the expected DTO type
 	in, ok := inDTO.(*dto.CustomerCreateRequest)
 	if !ok {
 		s.logger.IPrintf(2, "Invalid input type: expected CustomerCreateRequest")
@@ -32,7 +33,7 @@ func (s *CustomerCreate) Run(inDTO port.InDTO) port.OutDTO {
 		return dto.NewCustomerCreateResponse(400, "bad request",
 			fmt.Sprintf("Validation failed: %v", err))
 	}
-	// get domain entities
+	// get and save domain entities
 	if err := s.repo.Save(in.GetDomain()); err != nil {
 		s.logger.IPrintf(2, "Failed to save customers: %v", err)
 		return dto.NewCustomerCreateResponse(500, "internal error", "contact support please")

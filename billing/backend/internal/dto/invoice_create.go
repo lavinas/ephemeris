@@ -9,17 +9,23 @@ import (
 	"billing/internal/port"
 )
 
+const (
+	notesLimit = 500
+)
+
 // InvoiceCreateRequest represents the data transfer object for creating a new invoice.
 type InvoiceCreateRequest struct {
-	Items []InvoiceCreate `json:"items" validate:"required,dive"`
+	Items []*InvoiceCreate `json:"items" validate:"required,dive"`
 }
 
 // InvoiceCreateRequest represents the data transfer object for creating a new invoice.
 type InvoiceCreate struct {
-	Vendor       string              `json:"vendor" validate:"required"`
-	Customer     string              `json:"customer" validate:"required"`
-	InvoiceItems []InvoiceCreateItem `json:"items" validate:"required,dive,required"`
-	Note         string              `json:"note,omitempty"`
+	Vendor       string               `json:"vendor" validate:"required"`
+	vendorID     int64                `json:"-"` // internal field to hold the ID after validation
+	Customer     string               `json:"customer" validate:"required"`
+	customerID   int64                `json:"-"` // internal field to hold the ID after validation
+	InvoiceItems []*InvoiceCreateItem `json:"items" validate:"required,dive,required"`
+	Note         string               `json:"note,omitempty"`
 }
 
 // InvoiceCreateItemDTO represents an item in the invoice with description, quantity, and unit price.
@@ -62,14 +68,17 @@ func (r *InvoiceCreateRequest) Validate(repo port.Repository) error {
 // Validate validates the InvoiceCreateRequest fields using the provided validator.
 func (r *InvoiceCreate) Validate(repo port.Repository) error {
 	errs := make([]error, 0)
-	if r.Customer == "" {
-		errs = append(errs, fmt.Errorf("customer (nickname) is required"))
+	if err := r.validateCustomer(repo); err != nil {
+		errs = append(errs, err)
 	}
-	if r.Vendor == "" {
-		errs = append(errs, fmt.Errorf("vendor (nickname) is required"))
+	if err := r.validateVendor(repo); err != nil {
+		errs = append(errs, err)
 	}
 	if len(r.InvoiceItems) == 0 {
 		errs = append(errs, fmt.Errorf("at least one item is required"))
+	}
+	if r.Note != "" && len(r.Note) > notesLimit {
+		errs = append(errs, fmt.Errorf("note cannot exceed %d characters", notesLimit))
 	}
 	for i, item := range r.InvoiceItems {
 		if err := item.Validate(); err != nil {
@@ -80,6 +89,38 @@ func (r *InvoiceCreate) Validate(repo port.Repository) error {
 		err := errors.Join(errs...)
 		return errors.New(strings.ReplaceAll(err.Error(), "\n", "; "))
 	}
+	return nil
+}
+
+// validateCustomer validates the customer nickname and sets the customerID field if valid.
+func (r *InvoiceCreate) validateCustomer(repo port.Repository) error {
+	if r.Customer == "" {
+		return fmt.Errorf("customer (nickname) is required")
+	}
+	customer, err := repo.GetCustomer(r.Customer)
+	if err != nil {
+		return fmt.Errorf("error finding customer: %v", err)
+	}
+	if customer == nil {
+		return fmt.Errorf("customer not found: %s", r.Customer)
+	}
+	r.customerID = customer.ID
+	return nil
+}
+
+// validateVendor validates the vendor nickname and sets the vendorID field if valid.
+func (r *InvoiceCreate) validateVendor(repo port.Repository) error {
+	if r.Vendor == "" {
+		return fmt.Errorf("vendor (nickname) is required")
+	}
+	vendor, err := repo.GetVendor(r.Vendor)
+	if err != nil {
+		return fmt.Errorf("error finding vendor: %v", err)
+	}
+	if vendor == nil {
+		return fmt.Errorf("vendor not found: %s", r.Vendor)
+	}
+	r.vendorID = vendor.ID
 	return nil
 }
 
@@ -102,13 +143,22 @@ func (i *InvoiceCreateItem) Validate() error {
 	return nil
 }
 
+// GetDomain converts the InvoiceCreateRequest to a slice of domain.Invoice entities.
+func (r *InvoiceCreateRequest) GetDomain() ([]domain.Invoice, error) {
+	invoices := make([]domain.Invoice, len(r.Items))
+	for i, item := range r.Items {
+		invoices[i] = *item.GetDomain()
+	}
+	return invoices, nil
+}
+
 // GetDomain converts the InvoiceCreate to a domain.Invoice entity.
-func (r *InvoiceCreate) GetDomain(businessID, customerID int64) *domain.Invoice {
+func (r *InvoiceCreate) GetDomain() *domain.Invoice {
 	invoiceItems := make([]domain.InvoiceItem, len(r.InvoiceItems))
 	for i, item := range r.InvoiceItems {
 		invoiceItems[i] = *item.GetDomain()
 	}
-	return domain.NewInvoice(businessID, customerID, r.Note, invoiceItems)
+	return domain.NewInvoice(r.vendorID, r.customerID, r.Note, invoiceItems)
 }
 
 // GetDomain converts the InvoiceCreateItem to a domain.InvoiceItem entity.
