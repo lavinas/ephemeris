@@ -16,9 +16,9 @@ type InvoiceCreateRequest struct {
 
 // InvoiceCreateRequest represents the data transfer object for creating a new invoice.
 type InvoiceCreate struct {
-	Business     string              `json:"business" validate:"required"`
-	Customer     string              `json:"customer_name" validate:"required"`
-	InvoiceItems []InvoiceCreateItem `json:"invoice_items" validate:"required,dive,required"`
+	Vendor       string              `json:"vendor" validate:"required"`
+	Customer     string              `json:"customer" validate:"required"`
+	InvoiceItems []InvoiceCreateItem `json:"items" validate:"required,dive,required"`
 	Note         string              `json:"note,omitempty"`
 }
 
@@ -26,7 +26,7 @@ type InvoiceCreate struct {
 type InvoiceCreateItem struct {
 	Description string  `json:"description" validate:"required"`
 	Quantity    int     `json:"quantity" validate:"required,gt=0"`
-	UnitPrice   float64 `json:"unit_price" validate:"required,gt=0"`
+	Price       float64 `json:"price" validate:"required,gt=0"`
 }
 
 // InvoiceCreateResponse represents the data transfer object for the response
@@ -63,13 +63,13 @@ func (r *InvoiceCreateRequest) Validate(repo port.Repository) error {
 func (r *InvoiceCreate) Validate(repo port.Repository) error {
 	errs := make([]error, 0)
 	if r.Customer == "" {
-		errs = append(errs, fmt.Errorf("customer_name is required"))
+		errs = append(errs, fmt.Errorf("customer (nickname) is required"))
 	}
-	if r.Business == "" {
-		errs = append(errs, fmt.Errorf("business is required"))
+	if r.Vendor == "" {
+		errs = append(errs, fmt.Errorf("vendor (nickname) is required"))
 	}
 	if len(r.InvoiceItems) == 0 {
-		errs = append(errs, fmt.Errorf("at least one invoice item is required"))
+		errs = append(errs, fmt.Errorf("at least one item is required"))
 	}
 	for i, item := range r.InvoiceItems {
 		if err := item.Validate(); err != nil {
@@ -92,8 +92,8 @@ func (i *InvoiceCreateItem) Validate() error {
 	if i.Quantity <= 0 {
 		errs = append(errs, fmt.Errorf("quantity must be greater than 0"))
 	}
-	if i.UnitPrice <= 0 {
-		errs = append(errs, fmt.Errorf("unit_price must be greater than 0"))
+	if i.Price <= 0 {
+		errs = append(errs, fmt.Errorf("price must be greater than 0"))
 	}
 	if len(errs) != 0 {
 		err := errors.Join(errs...)
@@ -113,5 +113,5 @@ func (r *InvoiceCreate) GetDomain(businessID, customerID int64) *domain.Invoice 
 
 // GetDomain converts the InvoiceCreateItem to a domain.InvoiceItem entity.
 func (i *InvoiceCreateItem) GetDomain() *domain.InvoiceItem {
-	return domain.NewInvoiceItem(i.Description, i.Quantity, i.UnitPrice)
+	return domain.NewInvoiceItem(i.Description, i.Quantity, i.Price)
 }

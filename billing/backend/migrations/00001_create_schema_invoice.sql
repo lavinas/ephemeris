@@ -58,7 +58,7 @@ create table invoice_item (
     invoice_id bigint not null references invoice(id) on delete cascade,
     description varchar(255) not null,
     quantity int not null,
-    unit_price numeric(15, 2) not null,
+    price numeric(15, 2) not null,
     created_at timestamp not null default now(),
     updated_at timestamp not null default now()
 );

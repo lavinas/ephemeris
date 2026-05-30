@@ -2,7 +2,6 @@ package driver
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"billing/internal/dto"
@@ -91,7 +90,7 @@ func (h *APIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if service.dto != nil {
 		if err := json.NewDecoder(r.Body).Decode(service.dto); err != nil {
 			h.logger.IPrintf(1, "Failed to decode request body: %v", err)
-			http.Error(w, fmt.Sprintf("Invalid request body: %v", err), http.StatusBadRequest)
+			http.Error(w, "Invalid json format", http.StatusBadRequest)
 			return
 		}
 	}

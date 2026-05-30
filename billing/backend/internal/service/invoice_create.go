@@ -34,6 +34,22 @@ func (s *InvoiceCreate) Run(inDTO port.InDTO) port.OutDTO {
 		return dto.NewInvoiceCreateResponse(400, "bad request",
 			fmt.Sprintf("Validation failed: %v", err))
 	}
+	// get domain entities
+	domainInvoices, badReqErr, intErr := s.getDomain(in.Items)
+	if badReqErr != nil {
+		s.logger.IPrintf(2, "Bad request error: %v", badReqErr)
+		return dto.NewInvoiceCreateResponse(400, "bad request", badReqErr.Error())
+	}
+	if intErr != nil {
+		s.logger.IPrintf(2, "Internal error: %v", intErr)
+		return dto.NewInvoiceCreateResponse(500, "internal error", "contact support please")
+	}
+	// save domain entities
+	if err := s.repo.Save(domainInvoices); err != nil {
+		s.logger.IPrintf(2, "Failed to save invoices: %v", err)
+		return dto.NewInvoiceCreateResponse(500, "internal error", "contact support please")
+	}
+	s.logger.IPrintf(2, "Input validation successful for request: %v", in)
 	return dto.NewInvoiceCreateResponse(200, "success", "Invoice created successfully")
 }
 
@@ -42,28 +58,24 @@ func (s *InvoiceCreate) Run(inDTO port.InDTO) port.OutDTO {
 func (s *InvoiceCreate) getDomain(in []dto.InvoiceCreate) ([]domain.Invoice, error, error) {
 	invoices := make([]domain.Invoice, len(in))
 	for i, item := range in {
-		// find vendor id by nickn
-		b, err := s.repo.FindVendors(1, 1, nil, &item.Business, nil, nil, nil, nil)
+		// find vendor id by nickname
+		vendor, err := s.repo.GetVendor(item.Vendor)
 		if err != nil {
-			s.logger.IPrintf(2, "Error finding vendor: %v", err)
-			return nil, fmt.Errorf("error finding vendor: %v", err), nil
+			return nil, nil, fmt.Errorf("error finding vendor: %v", err)
 		}
-		if len(b) == 0 {
-			s.logger.IPrintf(2, "Vendor not found: %s", item.Business)
-			return nil, fmt.Errorf("vendor not found: %s", item.Business), nil
+		if vendor == nil {
+			return nil, fmt.Errorf("vendor not found: %s", item.Vendor), nil
 		}
-		businessID := b[0].ID
+		businessID := vendor.ID
 		// find customer id
-		c, err := s.repo.FindCustomers(1, 1, &item.Customer, nil, nil, nil, nil, nil)
+		customer, err := s.repo.GetCustomer(item.Customer)
 		if err != nil {
-			s.logger.IPrintf(2, "Error finding customer: %v", err)
-			return nil, fmt.Errorf("error finding customer: %v", err), nil
+			return nil, nil, fmt.Errorf("error finding customer: %v", err)
 		}
-		if len(c) == 0 {
-			s.logger.IPrintf(2, "Customer not found: %s", item.Customer)
+		if customer == nil {
 			return nil, fmt.Errorf("customer not found: %s", item.Customer), nil
 		}
-		customerID := c[0].ID
+		customerID := customer.ID
 		invoices[i] = *item.GetDomain(businessID, customerID)
 	}
 	return invoices, nil, nil

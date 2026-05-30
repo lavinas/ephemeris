@@ -11,8 +11,10 @@ type Repository interface {
 	RollbackTransaction() error
 	FindCustomers(page, pageSize int, name, nickname, document *string,
 		status *int, email, whatsapp *string) ([]domain.Customer, error)
+	GetCustomer(nickname string) (*domain.Customer, error)
 	FindVendors(page, pageSize int, legalName, nickname, document *string,
 		accountBank, accountAgency, accountNumber *string) ([]domain.Vendor, error)
+	GetVendor(nickname string) (*domain.Vendor, error)
 	Close() error
 }
 

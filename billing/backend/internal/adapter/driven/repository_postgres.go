@@ -143,6 +143,19 @@ func (a *PostgresRepository) FindCustomers(page, pageSize int, name, nickname, d
 	return customers, err
 }
 
+// GetCustomer retrieves a single customer by Nickname
+func (a *PostgresRepository) GetCustomer(nickname string) (*domain.Customer, error) {
+	var customer domain.Customer
+	err := a.DB.Where("nickname = ?", nickname).First(&customer).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil // Return nil if no record is found
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &customer, nil
+}
+
 // FindVendors retrieves vendors based on the provided filters and pagination parameters
 func (a *PostgresRepository) FindVendors(page, pageSize int, legalName, nickname, document *string,
 	accountBank, accountAgency, accountNumber *string) ([]domain.Vendor, error) {
@@ -171,4 +184,17 @@ func (a *PostgresRepository) FindVendors(page, pageSize int, legalName, nickname
 	}
 	err := db.Find(&vendors).Error
 	return vendors, err
+}
+
+// GetVendor retrieves a single vendor by Nickname
+func (a *PostgresRepository) GetVendor(nickname string) (*domain.Vendor, error) {
+	var vendor domain.Vendor
+	err := a.DB.Where("nickname = ?", nickname).First(&vendor).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil // Return nil if no record is found
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &vendor, nil
 }
