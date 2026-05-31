@@ -6,7 +6,9 @@ import "time"
 type Invoice struct {
 	ID           int64         `gorm:"primaryKey"`
 	VendorID     int64         `gorm:"not null"`
+	Vendor       Vendor        `gorm:"foreignKey:VendorID"`
 	CustomerID   int64         `gorm:"not null"`
+	Customer     Customer      `gorm:"foreignKey:CustomerID"`
 	Amount       float64       `gorm:"not null"`
 	InvoiceDate  time.Time     `gorm:"not null"`
 	DueDate      time.Time     `gorm:"not null"`

@@ -186,6 +186,35 @@ func (a *PostgresRepository) FindVendors(page, pageSize int, legalName, nickname
 	return vendors, err
 }
 
+// FindInvoices retrieves invoices based on the provided filters and pagination parameters
+func (a *PostgresRepository) FindInvoices(page, pageSize int, customer, vendor, status,
+	invoiceDate, dueDate *string) ([]domain.Invoice, error) {
+	var invoices []domain.Invoice
+	db := a.DB.Model(&domain.Invoice{}).Preload("InvoiceItems").
+		Joins("JOIN customer ON invoice.customer_id = customer.id").
+		Joins("JOIN vendor ON invoice.vendor_id = vendor.id")
+	if customer != nil {
+		db = db.Where("customer.nickname ILIKE ?", "%"+*customer+"%")
+	}
+	if vendor != nil {
+		db = db.Where("vendor.nickname ILIKE ?", "%"+*vendor+"%")
+	}
+	if status != nil {
+		db = db.Where("invoice.status::text ILIKE ?", "%"+*status+"%")
+	}
+	if invoiceDate != nil {
+		db = db.Where("invoice.invoice_date::text ILIKE ?", "%"+*invoiceDate+"%")
+	}
+	if dueDate != nil {
+		db = db.Where("invoice.due_date::text ILIKE ?", "%"+*dueDate+"%")
+	}
+	if page > 0 && pageSize > 0 {
+		db = db.Offset((page - 1) * pageSize).Limit(pageSize)
+	}
+	err := db.Find(&invoices).Error
+	return invoices, err
+}
+
 // GetVendor retrieves a single vendor by Nickname
 func (a *PostgresRepository) GetVendor(nickname string) (*domain.Vendor, error) {
 	var vendor domain.Vendor

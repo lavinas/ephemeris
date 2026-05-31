@@ -14,6 +14,8 @@ type Repository interface {
 	GetCustomer(nickname string) (*domain.Customer, error)
 	FindVendors(page, pageSize int, legalName, nickname, document *string,
 		accountBank, accountAgency, accountNumber *string) ([]domain.Vendor, error)
+	FindInvoices(page, pageSize int, customer, vendor, status,
+		invoiceDate, dueDate *string) ([]domain.Invoice, error)
 	GetVendor(nickname string) (*domain.Vendor, error)
 	Close() error
 }
