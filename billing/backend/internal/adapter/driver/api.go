@@ -1,10 +1,10 @@
 package driver
 
 import (
-	"encoding/json"
-	"net/http"
-	"io"
 	"bytes"
+	"encoding/json"
+	"io"
+	"net/http"
 
 	"billing/internal/dto"
 	"billing/internal/port"
@@ -114,7 +114,6 @@ func (h *APIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.logger.IPrintf(1, "Handled request for %s %s", r.Method, r.URL.Path)
 }
 
-
 // logRequestBody logs the body of the incoming HTTP request for debugging purposes.
 func (h *APIHandler) logRequestBody(r *http.Request) {
 	// verify if the request has a body
@@ -131,6 +130,6 @@ func (h *APIHandler) logRequestBody(r *http.Request) {
 	// Return the bytes to the request so it doesn't lose the data
 	r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 	// Log the structured request (convert bytes to string)
-	h.logger.IPrintf(1, "Request received method: %s, path: %s, body: %s", 
+	h.logger.IPrintf(1, "Request received method: %s, path: %s, body: %s",
 		r.Method, r.URL.Path, string(bodyBytes))
 }

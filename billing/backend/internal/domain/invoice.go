@@ -11,13 +11,14 @@ type Invoice struct {
 	InvoiceDate  time.Time     `gorm:"not null"`
 	DueDate      time.Time     `gorm:"not null"`
 	Notes        string        `gorm:"not null"`
+	Status       int           `gorm:"not null"`
 	CreatedAt    time.Time     `gorm:"autoCreateTime"`
 	UpdatedAt    time.Time     `gorm:"autoUpdateTime"`
 	InvoiceItems []InvoiceItem `gorm:"foreignKey:InvoiceID"`
 }
 
 // NewInvoice creates a new Invoice instance with the details and calculates the total amount.
-func NewInvoice(vendorID, customerID int64, invoiceDate, dueDate time.Time, 
+func NewInvoice(vendorID, customerID int64, invoiceDate, dueDate time.Time,
 	notes string, items []InvoiceItem) *Invoice {
 	invoice := &Invoice{
 		VendorID:     vendorID,
@@ -25,6 +26,7 @@ func NewInvoice(vendorID, customerID int64, invoiceDate, dueDate time.Time,
 		InvoiceDate:  invoiceDate,
 		DueDate:      dueDate,
 		Notes:        notes,
+		Status:       1, // Default status
 		InvoiceItems: items,
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),

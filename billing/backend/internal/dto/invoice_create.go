@@ -26,7 +26,7 @@ type InvoiceCreate struct {
 	Customer     string               `json:"customer" validate:"required"`
 	customerID   int64                `json:"-"`
 	InvoiceDate  string               `json:"invoicing" validate:"required"`
-	DueDate      string            `json:"due" validate:"required"`
+	DueDate      string               `json:"due" validate:"required"`
 	InvoiceItems []*InvoiceCreateItem `json:"items" validate:"required,dive,required"`
 	Note         string               `json:"note,omitempty"`
 }
@@ -118,7 +118,7 @@ func (r *InvoiceCreate) validateDates() []error {
 	if !invoiceDate.IsZero() && !dueDate.IsZero() && dueDate.Before(invoiceDate) {
 		errs = append(errs, fmt.Errorf("due date cannot be before invoice date"))
 	}
-	return errs	
+	return errs
 }
 
 // validateItems validates the invoice items to ensure they are not empty and have valid fields.
@@ -203,7 +203,7 @@ func (r *InvoiceCreate) GetDomain() *domain.Invoice {
 	}
 	iDate, _ := time.Parse("2006-01-02", r.InvoiceDate)
 	dDate, _ := time.Parse("2006-01-02", r.DueDate)
-	return domain.NewInvoice(r.vendorID, r.customerID, iDate, dDate, 
+	return domain.NewInvoice(r.vendorID, r.customerID, iDate, dDate,
 		r.Note, invoiceItems)
 }
 
