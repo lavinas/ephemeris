@@ -5,6 +5,7 @@ import (
 
 	"billing/internal/dto"
 	"billing/internal/port"
+	"billing/internal/domain"
 )
 
 // InvoiceList is responsible for handling the business logic of listing invoices.
@@ -41,6 +42,13 @@ func (s *InvoiceList) Run(inDTO port.InDTO) port.OutDTO {
 		s.logger.IPrintf(2, "Failed to fetch invoices: %v", err)
 		return dto.NewInvoiceListResponse(500, "internal error", "contact support please", nil)
 	}
+	s.logger.IPrintf(2, "Successfully fetched %d invoices", len(invoices))
+	return dto.NewInvoiceListResponse(200, "success", "Invoices fetched successfully",
+		s.mountInvoices(invoices))
+}
+
+// mountInvoices maps a slice of domain.Invoice to a slice of dto.InvoiceList for the response.
+func (s *InvoiceList) mountInvoices(invoices []domain.Invoice) []dto.InvoiceList {
 	responseInvoices := make([]dto.InvoiceList, len(invoices))
 	for i, invoice := range invoices {
 		items := make([]dto.InvoiceListListItem, len(invoice.InvoiceItems))
@@ -63,8 +71,5 @@ func (s *InvoiceList) Run(inDTO port.InDTO) port.OutDTO {
 			Items:       items,
 		}
 	}
-
-	s.logger.IPrintf(2, "Successfully fetched %d invoices", len(invoices))
-	return dto.NewInvoiceListResponse(200, "success", "Invoices fetched successfully",
-		responseInvoices)
+	return responseInvoices
 }
