@@ -29,6 +29,7 @@ drop table if exists customer cascade;
 create table customer (
     id bigserial primary key,
     name varchar(150) not null,
+    vendor_id bigint not null references vendor(id) on delete cascade,
     nickname varchar(150) not null,
     status int not null default 1,
     document varchar(50),
@@ -39,12 +40,11 @@ create table customer (
     constraint unique_customer_document unique(document),
     constraint unique_customer_nickname unique(nickname)
 );
-
+create index idx_customer_vendor_id on customer(vendor_id);
 
 drop Table if exists invoice cascade;
 create table invoice (
     id bigserial primary key,
-    vendor_id bigint not null references vendor(id) on delete cascade,
     customer_id bigint not null references customer(id) on delete cascade,
     invoice_date date not null,
     due_date date not null,

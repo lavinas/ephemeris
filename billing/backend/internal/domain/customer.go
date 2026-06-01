@@ -6,6 +6,7 @@ import (
 
 type Customer struct {
 	ID        int64     `gorm:"primaryKey;autoIncrement"`
+	VendorID  int64     `gorm:"not null;index"`
 	Name      string    `gorm:"not null"`
 	Nickname  string    `gorm:"not null;unique"`
 	Status    int       `gorm:"not null"`
@@ -17,9 +18,10 @@ type Customer struct {
 }
 
 // NewCustomer creates a new Customer instance with the provided details.
-func NewCustomer(name, nickname, document, email, whatsapp *string) *Customer {
+func NewCustomer(vendorID int64, name, nickname, document, email, whatsapp *string) *Customer {
 	return &Customer{
 		ID:       0,
+		VendorID: vendorID,
 		Name:     *name,
 		Nickname: *nickname,
 		Status:   1,

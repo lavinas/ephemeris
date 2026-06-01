@@ -34,8 +34,8 @@ func (s *CustomerList) Run(inDTO port.InDTO) port.OutDTO {
 			fmt.Sprintf("Validation failed: %v", err), nil)
 	}
 	// get domain entities
-	customers, err := s.repo.FindCustomers(in.Page, in.PageSize, in.Name, in.Nickname, in.Document,
-		in.Status, in.Email, in.Whatsapp)
+	customers, err := s.repo.FindCustomers(in.Page, in.PageSize, in.VendorID,
+		in.Name, in.Nickname, in.Document, in.Status, in.Email, in.Whatsapp)
 	if err != nil {
 		s.logger.IPrintf(2, "Failed to list customers: %v", err)
 		return dto.NewCustomerListResponse(500, "internal error", "contact support please", nil)

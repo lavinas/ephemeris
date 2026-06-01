@@ -114,10 +114,11 @@ func (a *PostgresRepository) Save(model interface{}) error {
 }
 
 // FindCustomers retrieves customers based on the provided filters and pagination parameters
-func (a *PostgresRepository) FindCustomers(page, pageSize int, name, nickname, document *string,
-	status *int, email, whatsapp *string) ([]domain.Customer, error) {
+func (a *PostgresRepository) FindCustomers(page, pageSize int, vendorID int64, name, nickname,
+	document *string, status *int, email, whatsapp *string) ([]domain.Customer, error) {
 	var customers []domain.Customer
 	db := a.DB.Model(&domain.Customer{})
+	db = db.Where("vendor_id = ?", vendorID)
 	if name != nil {
 		db = db.Where("name ILIKE ?", "%"+*name+"%")
 	}
@@ -200,16 +201,13 @@ func (a *PostgresRepository) GetVendor(nickname string) (*domain.Vendor, error) 
 }
 
 // FindInvoices retrieves invoices based on the provided filters and pagination parameters
-func (a *PostgresRepository) FindInvoices(page, pageSize, customer, vendor int,
+func (a *PostgresRepository) FindInvoices(page, pageSize int, customer int64,
 	invoiceDate, dueDate *string) ([]domain.Invoice, error) {
 	var invoices []domain.Invoice
 	db := a.DB.Model(&domain.Invoice{}).Preload("InvoiceItems").
-			Preload("Customer").Preload("Vendor")
+		Preload("Customer")
 	if customer != 0 {
 		db = db.Where("customer_id = ?", customer)
-	}
-	if vendor != 0 {
-		db = db.Where("vendor_id = ?", vendor)
 	}
 	if invoiceDate != nil {
 		db = db.Where("invoice_date::text ILIKE ?", "%"+*invoiceDate+"%")

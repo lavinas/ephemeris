@@ -3,8 +3,10 @@ package driver
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"billing/internal/dto"
 	"billing/internal/port"
@@ -79,29 +81,15 @@ func (h *APIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.logger.IPrintf(1, "Received request: %s %s", r.Method, r.URL.Path)
 	// Log the request body for debugging
 	h.logRequestBody(r)
-	// Check if the requested path is registered in the services map
-	service, exists := h.services[r.URL.Path]
-	if !exists {
-		h.logger.IPrintf(1, "Service not found for path: %s", r.URL.Path)
-		http.NotFound(w, r)
+	// Retrieve the service for the requested path
+	hservice, err := h.getHandleService(r)
+	if err != nil {
+		h.logger.IPrintf(1, "Service retrieval failed: %v", err)
+		http.Error(w, "Not found", http.StatusNotFound)
 		return
-	}
-	// Check HTTP method
-	if r.Method != service.method {
-		h.logger.IPrintf(1, "Method not allowed: %s for path: %s", r.Method, r.URL.Path)
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	// Decode request body into the appropriate DTO
-	if service.dto != nil {
-		if err := json.NewDecoder(r.Body).Decode(service.dto); err != nil {
-			h.logger.IPrintf(1, "Failed to decode request body: %v", err)
-			http.Error(w, "Invalid json format", http.StatusBadRequest)
-			return
-		}
 	}
 	// Call the service method and get the response
-	response := service.service.Run(service.dto)
+	response := hservice.service.Run(hservice.dto)
 	responseJSON, err := json.MarshalIndent(response, "", "  ")
 	if err != nil {
 		h.logger.IPrintf(1, "Failed to marshal response: %v", err)
@@ -114,6 +102,31 @@ func (h *APIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Write(responseJSON)
 	// Log the handled request
 	h.logger.IPrintf(1, "Handled request for %s %s", r.Method, r.URL.Path)
+}
+
+// getService retrieves the service associated with the given path, if it exists.
+func (h *APIHandler) getHandleService(r *http.Request) (*handleService, error) {
+	// Check if the requested path is registered in the services map
+	service, exists := h.services[r.URL.Path]
+	if !exists {
+		h.logger.IPrintf(1, "Service not found for path: %s", r.URL.Path)
+		return nil, fmt.Errorf("service not found for path: %s", r.URL.Path)
+
+	}
+	// Check HTTP method
+	if r.Method != service.method {
+		h.logger.IPrintf(1, "Method not allowed: %s for path: %s", r.Method, r.URL.Path)
+		return nil, fmt.Errorf("method not allowed: %s for path: %s", r.Method, r.URL.Path)
+	}
+	// Decode request body into the appropriate DTO
+	if service.dto != nil {
+		if err := json.NewDecoder(r.Body).Decode(service.dto); err != nil {
+			h.logger.IPrintf(1, "Failed to decode request body: %v", err)
+			return nil, fmt.Errorf("invalid json format: %v", err)
+
+		}
+	}
+	return &service, nil
 }
 
 // logRequestBody logs the body of the incoming HTTP request for debugging purposes.
@@ -132,6 +145,12 @@ func (h *APIHandler) logRequestBody(r *http.Request) {
 	// Return the bytes to the request so it doesn't lose the data
 	r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 	// Log the structured request (convert bytes to string)
+	bodyString := string(bodyBytes)
+	bodyString = strings.ReplaceAll(bodyString, "\t", " ")
+	bodyString = strings.ReplaceAll(bodyString, "\r", " ")
+	bodyString = strings.ReplaceAll(bodyString, "\n", " ")
+	bodyString = strings.ReplaceAll(bodyString, " ", "")
+
 	h.logger.IPrintf(1, "Request received method: %s, path: %s, body: %s",
-		r.Method, r.URL.Path, string(bodyBytes))
+		r.Method, r.URL.Path, bodyString)
 }

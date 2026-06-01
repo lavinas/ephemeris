@@ -9,14 +9,14 @@ type Repository interface {
 	BeginTransaction() error
 	CommitTransaction() error
 	RollbackTransaction() error
-	FindCustomers(page, pageSize int, name, nickname, document *string,
-		status *int, email, whatsapp *string) ([]domain.Customer, error)
+	FindCustomers(page, pageSize int, vendorID int64, name, nickname,
+		document *string, status *int, email, whatsapp *string) ([]domain.Customer, error)
 	GetCustomer(nickname string) (*domain.Customer, error)
 	FindVendors(page, pageSize int, legalName, nickname, document *string,
 		accountBank, accountAgency, accountNumber *string) ([]domain.Vendor, error)
-	FindInvoices(page, pageSize, customer, vendor int,
-		invoiceDate, dueDate *string) ([]domain.Invoice, error)
 	GetVendor(nickname string) (*domain.Vendor, error)
+	FindInvoices(page, pageSize int, customer int64,
+		invoiceDate, dueDate *string) ([]domain.Invoice, error)
 	Close() error
 }
 

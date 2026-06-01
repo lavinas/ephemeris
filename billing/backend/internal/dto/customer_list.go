@@ -12,6 +12,8 @@ import (
 type CustomerListRequest struct {
 	Page     int     `json:"page" validate:"required,gt=0"`
 	PageSize int     `json:"page_size" validate:"required,gt=0"`
+	Vendor   string  `json:"vendor" validate:"required"`
+	VendorID int64   `json:"-" validate:"-"`
 	Name     *string `json:"name,omitempty"`
 	Nickname *string `json:"nickname,omitempty"`
 	Document *string `json:"document,omitempty"`
@@ -70,9 +72,28 @@ func (r *CustomerListRequest) Validate(repo port.Repository) error {
 	if r.PageSize <= 0 {
 		errs = append(errs, fmt.Errorf("page_size must be greater than 0"))
 	}
+	if err := r.validateVendor(repo); err != nil {
+		errs = append(errs, err)
+	}
 	if len(errs) > 0 {
 		err := errors.Join(errs...)
 		return errors.New(strings.ReplaceAll(err.Error(), "\n", "; "))
 	}
+	return nil
+}
+
+// validateVendor checks if the provided vendor is valid and exists in the system.
+func (r *CustomerListRequest) validateVendor(repo port.Repository) error {
+	if r.Vendor == "" {
+		return errors.New("vendor is required")
+	}
+	vendor, err := repo.GetVendor(r.Vendor)
+	if err != nil {
+		return fmt.Errorf("failed to validate vendor: %v", err)
+	}
+	if vendor == nil {
+		return fmt.Errorf("vendor '%s' does not exist", r.Vendor)
+	}
+	r.VendorID = vendor.ID
 	return nil
 }

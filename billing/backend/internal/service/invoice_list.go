@@ -3,9 +3,9 @@ package service
 import (
 	"fmt"
 
+	"billing/internal/domain"
 	"billing/internal/dto"
 	"billing/internal/port"
-	"billing/internal/domain"
 )
 
 // InvoiceList is responsible for handling the business logic of listing invoices.
@@ -36,8 +36,8 @@ func (s *InvoiceList) Run(inDTO port.InDTO) port.OutDTO {
 			fmt.Sprintf("Validation failed: %v", err), nil)
 	}
 	// Fetch invoices from the repository
-	invoices, err := s.repo.FindInvoices(in.Page, in.PageSize, in.CustomerID, in.VendorID, 
-		in.InvoiceDate, in.DueDate)
+	invoices, err := s.repo.FindInvoices(in.Page, in.PageSize, in.CustomerID, in.InvoiceDate,
+		in.DueDate)
 	if err != nil {
 		s.logger.IPrintf(2, "Failed to fetch invoices: %v", err)
 		return dto.NewInvoiceListResponse(500, "internal error", "contact support please", nil)
@@ -62,7 +62,6 @@ func (s *InvoiceList) mountInvoices(invoices []domain.Invoice) []dto.InvoiceList
 		}
 		responseInvoices[i] = dto.InvoiceList{
 			ID:          invoice.ID,
-			Vendor:      invoice.Vendor.Nickname,
 			Customer:    invoice.Customer.Nickname,
 			Amount:      invoice.Amount,
 			InvoiceDate: invoice.InvoiceDate.Format("2006-01-02"),

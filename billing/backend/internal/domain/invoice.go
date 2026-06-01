@@ -5,8 +5,6 @@ import "time"
 // Invoice represents a billing invoice with customer details and amount.
 type Invoice struct {
 	ID           int64         `gorm:"primaryKey"`
-	VendorID     int64         `gorm:"not null"`
-	Vendor       Vendor        `gorm:"foreignKey:VendorID"`
 	CustomerID   int64         `gorm:"not null"`
 	Customer     Customer      `gorm:"foreignKey:CustomerID"`
 	Amount       float64       `gorm:"not null"`
@@ -19,10 +17,9 @@ type Invoice struct {
 }
 
 // NewInvoice creates a new Invoice instance with the details and calculates the total amount.
-func NewInvoice(vendorID, customerID int64, invoiceDate, dueDate time.Time,
+func NewInvoice(customerID int64, invoiceDate, dueDate time.Time,
 	notes string, items []InvoiceItem) *Invoice {
 	invoice := &Invoice{
-		VendorID:     vendorID,
 		CustomerID:   customerID,
 		InvoiceDate:  invoiceDate,
 		DueDate:      dueDate,

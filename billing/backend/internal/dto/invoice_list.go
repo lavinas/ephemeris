@@ -12,9 +12,9 @@ type InvoiceListRequest struct {
 	Page        int     `json:"page" validate:"required,gt=0"`
 	PageSize    int     `json:"page_size" validate:"required,gt=0"`
 	Customer    *string `json:"customer,omitempty"`
-	CustomerID  int     `json:"customer_id,omitempty"`
+	CustomerID  int64   `json:"customer_id,omitempty"`
 	Vendor      *string `json:"vendor,omitempty"`
-	VendorID    int     `json:"vendor_id,omitempty"`
+	VendorID    int64   `json:"vendor_id,omitempty"`
 	InvoiceDate *string `json:"invoicing,omitempty"`
 	DueDate     *string `json:"due,omitempty"`
 }
@@ -22,13 +22,13 @@ type InvoiceListRequest struct {
 // InvoiceListResponse represents the data transfer object for the response of listing invoices.
 type InvoiceListResponse struct {
 	ResponseBase
+	Vendor   string        `json:"vendor"`
 	Invoices []InvoiceList `json:"invoices,omitempty"`
 }
 
 // InvoiceList represents a single invoice item in the list response.
 type InvoiceList struct {
 	ID          int64                 `json:"id"`
-	Vendor      string                `json:"vendor"`
 	Customer    string                `json:"customer"`
 	Amount      float64               `json:"amount"`
 	InvoiceDate string                `json:"invoicing"`
@@ -89,7 +89,7 @@ func (r *InvoiceListRequest) validateVendor(repo port.Repository) error {
 	if vendors == nil {
 		return fmt.Errorf("vendor not found")
 	}
-	r.VendorID = int(vendors.ID)
+	r.VendorID = vendors.ID
 	return nil
 }
 
@@ -106,6 +106,9 @@ func (r *InvoiceListRequest) validateCustomer(repo port.Repository) error {
 	if customers == nil {
 		return fmt.Errorf("customer not found")
 	}
-	r.CustomerID = int(customers.ID)
+	if r.VendorID != 0 && customers.VendorID != r.VendorID {
+		return fmt.Errorf("customer '%s' does not belong to the specified vendor", *r.Customer)
+	}
+	r.CustomerID = customers.ID
 	return nil
 }

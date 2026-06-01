@@ -71,10 +71,10 @@ func (r *InvoiceCreateRequest) Validate(repo port.Repository) error {
 // Validate validates the InvoiceCreateRequest fields using the provided validator.
 func (r *InvoiceCreate) Validate(repo port.Repository) error {
 	errs := make([]error, 0)
-	if err := r.validateCustomer(repo); err != nil {
+	if err := r.validateVendor(repo); err != nil {
 		errs = append(errs, err)
 	}
-	if err := r.validateVendor(repo); err != nil {
+	if err := r.validateCustomer(repo); err != nil {
 		errs = append(errs, err)
 	}
 	if err := r.validateNotes(); err != nil {
@@ -147,6 +147,9 @@ func (r *InvoiceCreate) validateCustomer(repo port.Repository) error {
 	if customer == nil {
 		return fmt.Errorf("customer not found: %s", r.Customer)
 	}
+	if r.vendorID != 0 && customer.VendorID != r.vendorID {
+		return fmt.Errorf("customer '%s' does not belong to the specified vendor", r.Customer)
+	}
 	r.customerID = customer.ID
 	return nil
 }
@@ -203,8 +206,7 @@ func (r *InvoiceCreate) GetDomain() *domain.Invoice {
 	}
 	iDate, _ := time.Parse("2006-01-02", r.InvoiceDate)
 	dDate, _ := time.Parse("2006-01-02", r.DueDate)
-	return domain.NewInvoice(r.vendorID, r.customerID, iDate, dDate,
-		r.Note, invoiceItems)
+	return domain.NewInvoice(r.customerID, iDate, dDate, r.Note, invoiceItems)
 }
 
 // GetDomain converts the InvoiceCreateItem to a domain.InvoiceItem entity.
