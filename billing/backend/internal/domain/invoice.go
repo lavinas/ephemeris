@@ -13,7 +13,6 @@ type Invoice struct {
 	InvoiceDate  time.Time     `gorm:"not null"`
 	DueDate      time.Time     `gorm:"not null"`
 	Notes        string        `gorm:"not null"`
-	Status       int           `gorm:"not null"`
 	CreatedAt    time.Time     `gorm:"autoCreateTime"`
 	UpdatedAt    time.Time     `gorm:"autoUpdateTime"`
 	InvoiceItems []InvoiceItem `gorm:"foreignKey:InvoiceID"`
@@ -28,7 +27,6 @@ func NewInvoice(vendorID, customerID int64, invoiceDate, dueDate time.Time,
 		InvoiceDate:  invoiceDate,
 		DueDate:      dueDate,
 		Notes:        notes,
-		Status:       1, // Default status
 		InvoiceItems: items,
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),

@@ -93,7 +93,7 @@ func (r *InvoiceCreate) Validate(repo port.Repository) error {
 	return nil
 }
 
-// validateNotes validates the note field to ensure it is not empty and does not exceed the character limit.
+// validateNotes validates the note field to ensure it is not empty and does not exceed the limit.
 func (r *InvoiceCreate) validateNotes() error {
 	if r.Note == "" {
 		return fmt.Errorf("note is required")
@@ -104,16 +104,16 @@ func (r *InvoiceCreate) validateNotes() error {
 	return nil
 }
 
-// validateDates validates the invoice and due dates to ensure they are in the correct format and logical order.
+// validateDates validates the invoice and due dates to ensure they are in the correct format.
 func (r *InvoiceCreate) validateDates() []error {
 	errs := make([]error, 0)
 	invoiceDate, err := time.Parse("2006-01-02", r.InvoiceDate)
 	if err != nil {
-		errs = append(errs, fmt.Errorf("invalid invoice date format, expected YYYY-MM-DD"))
+		errs = append(errs, fmt.Errorf("invoicing expected with YYYY-MM-DD format"))
 	}
 	dueDate, err := time.Parse("2006-01-02", r.DueDate)
 	if err != nil {
-		errs = append(errs, fmt.Errorf("invalid due date format, expected YYYY-MM-DD"))
+		errs = append(errs, fmt.Errorf("due expected with YYYY-MM-DD format"))
 	}
 	if !invoiceDate.IsZero() && !dueDate.IsZero() && dueDate.Before(invoiceDate) {
 		errs = append(errs, fmt.Errorf("due date cannot be before invoice date"))

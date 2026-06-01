@@ -35,8 +35,8 @@ func (s *InvoiceList) Run(inDTO port.InDTO) port.OutDTO {
 			fmt.Sprintf("Validation failed: %v", err), nil)
 	}
 	// Fetch invoices from the repository
-	invoices, err := s.repo.FindInvoices(in.Page, in.PageSize, in.Customer,
-		in.Vendor, in.Status, in.InvoiceDate, in.DueDate)
+	invoices, err := s.repo.FindInvoices(in.Page, in.PageSize, in.CustomerID, in.VendorID, 
+		in.InvoiceDate, in.DueDate)
 	if err != nil {
 		s.logger.IPrintf(2, "Failed to fetch invoices: %v", err)
 		return dto.NewInvoiceListResponse(500, "internal error", "contact support please", nil)
@@ -59,7 +59,6 @@ func (s *InvoiceList) Run(inDTO port.InDTO) port.OutDTO {
 			Amount:      invoice.Amount,
 			InvoiceDate: invoice.InvoiceDate.Format("2006-01-02"),
 			DueDate:     invoice.DueDate.Format("2006-01-02"),
-			Status:      fmt.Sprintf("%d", invoice.Status),
 			Notes:       invoice.Notes,
 			Items:       items,
 		}

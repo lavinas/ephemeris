@@ -12,8 +12,9 @@ type InvoiceListRequest struct {
 	Page        int     `json:"page" validate:"required,gt=0"`
 	PageSize    int     `json:"page_size" validate:"required,gt=0"`
 	Customer    *string `json:"customer,omitempty"`
+	CustomerID  int     `json:"customer_id,omitempty"`
 	Vendor      *string `json:"vendor,omitempty"`
-	Status      *string `json:"status,omitempty"`
+	VendorID    int     `json:"vendor_id,omitempty"`
 	InvoiceDate *string `json:"invoicing,omitempty"`
 	DueDate     *string `json:"due,omitempty"`
 }
@@ -63,10 +64,48 @@ func (r *InvoiceListRequest) Validate(repo port.Repository) error {
 	if r.PageSize <= 0 {
 		errs = append(errs, errors.New("page_size must be greater than 0"))
 	}
-
+	if err := r.validateVendor(repo); err != nil {
+		errs = append(errs, err)
+	}
+	if err := r.validateCustomer(repo); err != nil {
+		errs = append(errs, err)
+	}
 	// Validation logic can be implemented here if needed
 	if len(errs) > 0 {
 		return fmt.Errorf("validation errors: %v", errs)
 	}
+	return nil
+}
+
+// validateVendor validates the vendor field to ensure it is not empty and exists in the repository.
+func (r *InvoiceListRequest) validateVendor(repo port.Repository) error {
+	if r.Vendor == nil || *r.Vendor == "" {
+		return fmt.Errorf("vendor cannot be empty")
+	}
+	vendors, err := repo.GetVendor(*r.Vendor)
+	if err != nil {
+		return fmt.Errorf("vendor not found: %v", err)
+	}
+	if vendors == nil {
+		return fmt.Errorf("vendor not found")
+	}
+	r.VendorID = int(vendors.ID)
+	return nil
+}
+
+// validateCustomer validates the customer field to ensure it is not empty and exists in the repository.
+func (r *InvoiceListRequest) validateCustomer(repo port.Repository) error {
+	if r.Customer == nil || *r.Customer == "" {
+		r.CustomerID = 0 // Set to 0 to indicate no filter on customer
+		return nil
+	}
+	customers, err := repo.GetCustomer(*r.Customer)
+	if err != nil {
+		return fmt.Errorf("customer not found: %v", err)
+	}
+	if customers == nil {
+		return fmt.Errorf("customer not found")
+	}
+	r.CustomerID = int(customers.ID)
 	return nil
 }

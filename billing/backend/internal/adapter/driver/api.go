@@ -54,6 +54,8 @@ func (h *APIHandler) mapServices() {
 			service.NewCustomerList(h.repo, h.logger)),
 		"/invoice/create": *newHandleService(http.MethodPost, &dto.InvoiceCreateRequest{},
 			service.NewInvoiceCreate(h.repo, h.logger)),
+		"/invoice/list": *newHandleService(http.MethodGet, &dto.InvoiceListRequest{},
+			service.NewInvoiceList(h.repo, h.logger)),
 	}
 }
 
