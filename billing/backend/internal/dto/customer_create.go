@@ -9,6 +9,7 @@ import (
 
 	"billing/internal/domain"
 	"billing/internal/port"
+	"github.com/klassmann/cpfcnpj"
 )
 
 const (
@@ -21,7 +22,7 @@ const (
 type CustomerCreateRequest struct {
 	Vendor   string                      `json:"vendor" validate:"required"`
 	VendorID int64                       `json:"-" validate:"-"`
-	Items    []CustomerCreateRequestItem `json:"items" validate:"required,dive"`
+	Items    []*CustomerCreateRequestItem `json:"items" validate:"required,dive"`
 }
 
 // CustomerCreateRequestItem represents an individual customer creation request item.
@@ -79,6 +80,12 @@ func (r *CustomerCreateRequest) validateVendor(repo port.Repository) error {
 
 // validateItems validate items and duplicated items in the request
 func (r *CustomerCreateRequest) validateItems(repo port.Repository) []error {
+	if len(r.Items) == 0 {
+		return []error{errors.New("at least one item is required")}
+	}
+	if len(r.Items) > requestLimit {
+		return []error{fmt.Errorf("number of items exceeds the limit of %d", requestLimit)}
+	}
 	documents := make(map[string]bool, len(r.Items))
 	nicknames := make(map[string]bool, len(r.Items))
 	errs := make([]error, 0)
@@ -161,7 +168,7 @@ func (r *CustomerCreateRequestItem) validateNickname(repo port.Repository, vendo
 		return errors.New("nickname is required")
 	}
 	existingCustomer, err := repo.FindCustomers(0, 0, vendorID, nil, &r.Nickname,
-		nil, nil, nil, nil)
+		nil, -1, nil, nil)
 	if err != nil {
 		return fmt.Errorf("failed to validate nickname: %v", err)
 	}
@@ -176,7 +183,10 @@ func (r *CustomerCreateRequestItem) validateDocument(repo port.Repository, vendo
 	if r.Document == "" {
 		return nil
 	}
-	existingCustomer, err := repo.FindCustomers(0, 0, vendorID, nil, nil, &r.Document, nil, nil, nil)
+	if err := r.validateCpfCnpj(); err != nil {
+		return err
+	}
+	existingCustomer, err := repo.FindCustomers(0, 0, vendorID, nil, nil, &r.Document, -1, nil, nil)
 	if err != nil {
 		return fmt.Errorf("failed to validate document: %v", err)
 	}
@@ -184,6 +194,21 @@ func (r *CustomerCreateRequestItem) validateDocument(repo port.Repository, vendo
 		return fmt.Errorf("document is already in use")
 	}
 	return nil
+}
+
+// validateCpfCnpj checks if the provided document is a valid CPF or CNPJ.
+func (r *CustomerCreateRequestItem) validateCpfCnpj() error {
+	cpf := cpfcnpj.NewCPF(r.Document)
+	if cpf.IsValid() {
+		r.Document = cpf.String()
+		return nil
+	}
+	cnpj := cpfcnpj.NewCNPJ(r.Document)
+	if cnpj.IsValid() {
+		r.Document = cnpj.String()
+		return nil
+	}
+	return fmt.Errorf("invalid document format")
 }
 
 // validateEmail checks if the provided email is valid and not already in use.
@@ -211,5 +236,8 @@ func (r *CustomerCreateRequestItem) validateWhatsapp() error {
 	if !matched {
 		return fmt.Errorf("invalid whatsapp format")
 	}
+	// formating the WhatsApp number to only digits to extract the area code and the number
+	n := regexp.MustCompile(`\D`).ReplaceAllString(r.Whatsapp, "")
+	r.Whatsapp = fmt.Sprintf("(%s) %s-%s", n[0:2], n[2:7], n[7:11])
 	return nil
 }

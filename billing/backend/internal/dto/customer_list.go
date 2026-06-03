@@ -17,7 +17,7 @@ type CustomerListRequest struct {
 	Name     *string `json:"name,omitempty"`
 	Nickname *string `json:"nickname,omitempty"`
 	Document *string `json:"document,omitempty"`
-	Status   *int    `json:"status,omitempty"`
+	Status   int     `json:"status,omitempty"`
 	Email    *string `json:"email,omitempty"`
 	Whatsapp *string `json:"whatsapp,omitempty"`
 }
@@ -74,6 +74,9 @@ func (r *CustomerListRequest) Validate(repo port.Repository) error {
 	}
 	if err := r.validateVendor(repo); err != nil {
 		errs = append(errs, err)
+	}
+	if r.Status != 1 && r.Status != 0 && r.Status != -1 {
+		errs = append(errs, fmt.Errorf("status must be 1 (active), 0 (inactive), or -1 (all)"))
 	}
 	if len(errs) > 0 {
 		err := errors.Join(errs...)

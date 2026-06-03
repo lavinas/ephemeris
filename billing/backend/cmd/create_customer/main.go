@@ -52,7 +52,7 @@ func main() {
 	}
 
 	response := service.Run(&dto.CustomerCreateRequest{
-		Items: []dto.CustomerCreateRequestItem{customer1, customer2}})
+		Items: []*dto.CustomerCreateRequestItem{&customer1, &customer2}})
 
 	responseJSON, err := json.MarshalIndent(response, "", "  ")
 	if err != nil {
