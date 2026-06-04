@@ -113,15 +113,6 @@ func (a *PostgresRepository) Save(model interface{}) error {
 	}).CreateInBatches(model, batchSizeInsertTransaction).Error
 }
 
-// UpdateID updates a record in the database based on its ID
-func (a *PostgresRepository) UpdateID(id int64, model interface{}) error {
-	db := a.DB
-	if a.Tx != nil {
-		db = a.Tx
-	}
-	return db.Model(model).Where("id = ?", id).Updates(model).Error
-}
-
 // FindCustomers retrieves customers based on the provided filters and pagination parameters
 func (a *PostgresRepository) FindCustomers(page, pageSize int, vendorID int64, name, nickname,
 	document *string, status *int, email, whatsapp *string) ([]domain.Customer, error) {
@@ -154,9 +145,10 @@ func (a *PostgresRepository) FindCustomers(page, pageSize int, vendorID int64, n
 }
 
 // GetCustomer retrieves a single customer by Nickname
-func (a *PostgresRepository) GetCustomer(nickname string) (*domain.Customer, error) {
+func (a *PostgresRepository) GetCustomer(vendorID int64, nickname string) (*domain.Customer,
+	error) {
 	var customer domain.Customer
-	err := a.DB.Where("nickname = ?", nickname).First(&customer).Error
+	err := a.DB.Where("vendor_id = ? AND nickname = ?", vendorID, nickname).First(&customer).Error
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil // Return nil if no record is found
 	}

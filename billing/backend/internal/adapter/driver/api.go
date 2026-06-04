@@ -2,11 +2,16 @@ package driver
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
+	"time"
 
 	"billing/internal/dto"
 	"billing/internal/port"
@@ -65,11 +70,30 @@ func (h *APIHandler) mapServices() {
 
 // Run starts the API server
 func (h *APIHandler) Run(addr string) {
-	http.Handle("/", h)
-	h.logger.IPrintf(1, "Starting API server on %s", addr)
-	if err := http.ListenAndServe(addr, nil); err != nil {
-		h.logger.IPrintf(1, "API server failed: %v", err)
+	// Set up channel to listen for interrupt signals for graceful shutdown
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	server := &http.Server{
+		Addr:    addr,
+		Handler: h,
 	}
+	// Start the server in a separate goroutine
+	go func() {
+		h.logger.IPrintf(1, "Starting API server on %s", addr)
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			h.logger.IPrintf(1, "API server failed: %v", err)
+		}
+	}()
+	// Wait for interrupt signal to gracefully shutdown the server
+	<-quit
+	// Attempt graceful shutdown with a timeout context
+	h.logger.IPrintf(1, "Shutting down API server")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := server.Shutdown(ctx); err != nil {
+		h.logger.IPrintf(1, "API server shutdown failed: %v", err)
+	}
+	h.logger.IPrintf(1, "API server stopped")
 }
 
 // Ping is a simple endpoint to check if the API is running

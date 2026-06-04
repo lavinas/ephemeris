@@ -17,7 +17,7 @@ type CustomerListRequest struct {
 	Name     *string `json:"name,omitempty"`
 	Nickname *string `json:"nickname,omitempty"`
 	Document *string `json:"document,omitempty"`
-	Status   *int     `json:"status,omitempty"`
+	Status   *int    `json:"status,omitempty"`
 	Email    *string `json:"email,omitempty"`
 	Whatsapp *string `json:"whatsapp,omitempty"`
 }

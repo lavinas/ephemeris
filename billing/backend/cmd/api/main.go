@@ -31,6 +31,8 @@ func main() {
 	}
 	defer repo.Close()
 	// Initialize API Handler
+	logger.IPrintf(0, "starting API server on :8080")
 	apiHandler := driver.NewAPIHandler(":8080", logger, repo)
 	apiHandler.Run(":8080")
+	logger.IPrintf(0, "logger and database closed")
 }

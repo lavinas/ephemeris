@@ -93,13 +93,13 @@ func (r *InvoiceListRequest) validateVendor(repo port.Repository) error {
 	return nil
 }
 
-// validateCustomer validates the customer field to ensure it is not empty and exists in the repository.
+// validateCustomer validates the customer field to ensure it exists in the repository.
 func (r *InvoiceListRequest) validateCustomer(repo port.Repository) error {
 	if r.Customer == nil || *r.Customer == "" {
 		r.CustomerID = 0 // Set to 0 to indicate no filter on customer
 		return nil
 	}
-	customers, err := repo.GetCustomer(*r.Customer)
+	customers, err := repo.GetCustomer(r.VendorID, *r.Customer)
 	if err != nil {
 		return fmt.Errorf("customer not found: %v", err)
 	}

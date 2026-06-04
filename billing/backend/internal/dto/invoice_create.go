@@ -140,7 +140,7 @@ func (r *InvoiceCreate) validateCustomer(repo port.Repository) error {
 	if r.Customer == "" {
 		return fmt.Errorf("customer (nickname) is required")
 	}
-	customer, err := repo.GetCustomer(r.Customer)
+	customer, err := repo.GetCustomer(r.vendorID, r.Customer)
 	if err != nil {
 		return fmt.Errorf("error finding customer: %v", err)
 	}

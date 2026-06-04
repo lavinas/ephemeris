@@ -6,19 +6,18 @@ import "billing/internal/domain"
 type Repository interface {
 	// Save saves a new invoice to the database and returns the created invoice with its ID.
 	Save(model interface{}) error
-	UpdateID(id int64, model interface{}) error
 	BeginTransaction() error
 	CommitTransaction() error
 	RollbackTransaction() error
+	Close() error
 	FindCustomers(page, pageSize int, vendorID int64, name, nickname,
 		document *string, status *int, email, whatsapp *string) ([]domain.Customer, error)
-	GetCustomer(nickname string) (*domain.Customer, error)
+	GetCustomer(vendorID int64, nickname string) (*domain.Customer, error)
 	FindVendors(page, pageSize int, legalName, nickname, document *string,
 		accountBank, accountAgency, accountNumber *string) ([]domain.Vendor, error)
 	GetVendor(nickname string) (*domain.Vendor, error)
 	FindInvoices(page, pageSize int, customer int64,
 		invoiceDate, dueDate *string) ([]domain.Invoice, error)
-	Close() error
 }
 
 // Logger defines the interface for logging messages with different levels of severity.

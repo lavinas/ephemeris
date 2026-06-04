@@ -37,10 +37,9 @@ create table customer (
     whatsapp varchar(20),
     created_at timestamp with time zone default now(),
     updated_at timestamp with time zone default now(),
-    constraint unique_customer_document unique(document),
-    constraint unique_customer_nickname unique(nickname)
+    constraint unique_customer_document unique(vendor_id, document),
+    constraint unique_customer_nickname unique(vendor_id, nickname)
 );
-create index idx_customer_vendor_id on customer(vendor_id);
 
 drop Table if exists invoice cascade;
 create table invoice (

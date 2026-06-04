@@ -15,11 +15,13 @@ import (
 
 // CustomerUpdateRequest represents the request payload for updating an existing customer.
 type CustomerUpdateRequest struct {
+	Vendor   string           `json:"vendor" validate:"required"`
+	vendorID int64            `json:"-" validate:"-"`
 	Nickname string           `json:"nickname" validate:"required"`
-	Name     string           `json:"name" validate:"required"`
-	Document string           `json:"document" validate:"required"`
-	Email    string           `json:"email" validate:"required,email"`
-	Whatsapp string           `json:"whatsapp" validate:"required"`
+	Name     *string          `json:"name" validate:"required"`
+	Document *string          `json:"document" validate:"required"`
+	Email    *string          `json:"email" validate:"required,email"`
+	Whatsapp *string          `json:"whatsapp" validate:"required"`
 	Status   *int             `json:"status" validate:"required"`
 	customer *domain.Customer `json:"-" validate:"-"`
 }
@@ -39,7 +41,13 @@ func NewCustomerUpdateResponse(httpCode int, status, message string) CustomerUpd
 // Validate checks if the CustomerUpdateRequest has all required fields and valid data.
 func (r *CustomerUpdateRequest) Validate(repo port.Repository) error {
 	errs := make([]error, 0)
+	if err := r.ValidateVendor(repo); err != nil {
+		errs = append(errs, err)
+	}
 	if err := r.validateNickname(repo); err != nil {
+		errs = append(errs, err)
+	}
+	if err := r.validateName(); err != nil {
 		errs = append(errs, err)
 	}
 	if err := r.validateDocument(repo); err != nil {
@@ -64,82 +72,125 @@ func (r *CustomerUpdateRequest) Validate(repo port.Repository) error {
 	return nil
 }
 
+// ValidateVendor checks if the provided vendor is valid and sets the vendorID.
+func (r *CustomerUpdateRequest) ValidateVendor(repo port.Repository) error {
+	if r.Vendor == "" {
+		return fmt.Errorf("vendor is required")
+	}
+	vendor, err := repo.GetVendor(r.Vendor)
+	if err != nil {
+		return fmt.Errorf("failed to validate vendor: %v", err)
+	}
+	if vendor == nil {
+		return fmt.Errorf("vendor '%s' does not exist", r.Vendor)
+	}
+	r.vendorID = vendor.ID
+	return nil
+}
+
 // validateNickname checks if the provided nickname is not already used by another customer.
 func (r *CustomerUpdateRequest) validateNickname(repo port.Repository) error {
+    if r.vendorID == 0 {
+		return nil // Vendor validation will catch this error
+	}
 	if r.Nickname == "" {
 		return fmt.Errorf("nickname is required")
 	}
-	customer, err := repo.GetCustomer(r.Nickname)
+	customer, err := repo.GetCustomer(r.vendorID, r.Nickname)
 	if err != nil {
 		return fmt.Errorf("failed to validate nickname: %v", err)
 	}
 	if customer == nil {
 		return fmt.Errorf("customer with nickname '%s' does not exist", r.Nickname)
 	}
+	if customer.VendorID != r.vendorID {
+		return fmt.Errorf("customer with nickname '%s' does not belong to the specified vendor",
+			r.Nickname)
+	}
 	r.customer = customer
+	return nil
+}
+
+// validateName checks if the provided name is not empty.
+func (r *CustomerUpdateRequest) validateName() error {
+	if r.Name == nil {
+		return nil
+	}
+	if *r.Name == "" {
+		return fmt.Errorf("name cannot be empty")
+	}
 	return nil
 }
 
 // validateDocument checks if the provided document is valid and not used by another customer.
 func (r *CustomerUpdateRequest) validateDocument(repo port.Repository) error {
-	if r.Document == "" {
+	if r.Document == nil {
 		return nil
+	}
+	if *r.Document == "" {
+		return fmt.Errorf("document cannot be empty")
 	}
 	if err := r.validateCpfCnpj(); err != nil {
 		return err
 	}
-	exist, err := repo.FindCustomers(0, 0, 0, nil, nil, &r.Document, nil, nil, nil)
+	exist, err := repo.FindCustomers(0, 0, r.vendorID, nil, nil, r.Document, nil, nil, nil)
 	if err != nil {
 		return fmt.Errorf("failed to validate document: %v", err)
 	}
 
 	if len(exist) > 0 && r.customer != nil && exist[0].ID != r.customer.ID {
-		return fmt.Errorf("document '%s' is already in use by another customer", r.Document)
+		return fmt.Errorf("document '%s' is already in use by another customer", *r.Document)
 	}
 	return nil
 }
 
 // validateWhatsapp checks if the provided WhatsApp number is in a valid format and formats it.
 func (r *CustomerUpdateRequest) validateWhatsapp() error {
-	if r.Whatsapp == "" {
+	if r.Whatsapp == nil {
 		return nil
 	}
-	matched, err := regexp.MatchString(`^\(?\d{2}\)?\s?\d{4,5}-?\d{4}$`, r.Whatsapp)
+	if *r.Whatsapp == "" {
+		return fmt.Errorf("whatsapp cannot be empty")
+	}
+	matched, err := regexp.MatchString(`^\(?\d{2}\)?\s?\d{4,5}-?\d{4}$`, *r.Whatsapp)
 	if err != nil {
 		return fmt.Errorf("failed to validate whatsapp: %v", err)
 	}
 	if !matched {
-		return fmt.Errorf("whatsapp '%s' is not in a valid format", r.Whatsapp)
+		return fmt.Errorf("whatsapp '%s' is not in a valid format", *r.Whatsapp)
 	}
 	return nil
 }
 
 // validateCpfCnpj checks if the provided document is a valid CPF or CNPJ and formats it.
 func (r *CustomerUpdateRequest) validateCpfCnpj() error {
-	if r.Document == "" {
+	if r.Document == nil {
 		return nil
 	}
-	cpf := cpfcnpj.NewCPF(r.Document)
+	cpf := cpfcnpj.NewCPF(*r.Document)
 	if cpf.IsValid() {
-		r.Document = cpf.String()
+		*r.Document = cpf.String()
 		return nil
 	}
-	cnpj := cpfcnpj.NewCNPJ(r.Document)
+	cnpj := cpfcnpj.NewCNPJ(*r.Document)
 	if cnpj.IsValid() {
-		r.Document = cnpj.String()
+		*r.Document = cnpj.String()
 		return nil
 	}
-	return fmt.Errorf("document '%s' is not a valid CPF or CNPJ", r.Document)
+	return fmt.Errorf("document '%s' is not a valid CPF or CNPJ", *r.Document)
 }
 
 // validateEmail checks if the provided email is in a valid format.
 func (r *CustomerUpdateRequest) validateEmail() error {
-	if r.Email == "" {
+	if r.Email == nil {
 		return nil
 	}
-	_, err := mail.ParseAddress(r.Email)
+	if *r.Email == "" {
+		return fmt.Errorf("email cannot be empty")
+	}
+	_, err := mail.ParseAddress(*r.Email)
 	if err != nil {
-		return fmt.Errorf("email '%s' is not in a valid format", r.Email)
+		return fmt.Errorf("email '%s' is not in a valid format", *r.Email)
 	}
 	return nil
 }
@@ -154,7 +205,8 @@ func (r *CustomerUpdateRequest) validateStatus() error {
 
 // validateAtLesatOneField checks if at least one of the fields is provided for update.
 func (r *CustomerUpdateRequest) validateAtLeastOneField() error {
-	if r.Name == "" && r.Document == "" && r.Email == "" && r.Whatsapp == "" && r.Status == nil {
+	if r.Name == nil && r.Document == nil && r.Email == nil && r.Whatsapp == nil &&
+		r.Status == nil {
 		return fmt.Errorf("at least one field must be provided for update")
 	}
 	return nil
@@ -165,17 +217,17 @@ func (r *CustomerUpdateRequest) GetDomain() interface{} {
 	if r.customer == nil {
 		return nil
 	}
-	if r.Name != "" {
-		r.customer.Name = r.Name
+	if r.Name != nil {
+		r.customer.Name = *r.Name
 	}
-	if r.Document != "" {
-		r.customer.Document = &r.Document
+	if r.Document != nil {
+		r.customer.Document = r.Document
 	}
-	if r.Email != "" {
-		r.customer.Email = &r.Email
+	if r.Email != nil {
+		r.customer.Email = r.Email
 	}
-	if r.Whatsapp != "" {
-		r.customer.Whatsapp = &r.Whatsapp
+	if r.Whatsapp != nil {
+		r.customer.Whatsapp = r.Whatsapp
 	}
 	if r.Status != nil {
 		r.customer.Status = *r.Status
@@ -185,11 +237,13 @@ func (r *CustomerUpdateRequest) GetDomain() interface{} {
 
 // Reset resets the fields of the CustomerUpdateRequest to their zero values.
 func (r *CustomerUpdateRequest) Reset() {
+	r.Vendor = ""
+	r.vendorID = 0
 	r.Nickname = ""
-	r.Name = ""
-	r.Document = ""
-	r.Email = ""
-	r.Whatsapp = ""
+	r.Name = nil
+	r.Document = nil
+	r.Email = nil
+	r.Whatsapp = nil
 	r.Status = nil
 	r.customer = nil
 }
