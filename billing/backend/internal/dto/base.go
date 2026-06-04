@@ -2,13 +2,13 @@ package dto
 
 // ResponseBase represents the base structure for API responses, containing common fields for status and messages.
 type ResponseBase struct {
-	HttpCode int16  `json:"http_code"`
+	HttpCode int    `json:"http_code"`
 	Status   string `json:"status"`
 	Message  string `json:"message"`
 }
 
 // NewResponseBase creates a new instance of ResponseBase with the provided HTTP code, status, and message.
-func NewResponseBase(httpCode int16, status, message string) ResponseBase {
+func NewResponseBase(httpCode int, status, message string) ResponseBase {
 	return ResponseBase{
 		HttpCode: httpCode,
 		Status:   status,
@@ -17,6 +17,6 @@ func NewResponseBase(httpCode int16, status, message string) ResponseBase {
 }
 
 // GetHTTPCode returns the HTTP status code of the response.
-func (r ResponseBase) GetStatusCode() int16 {
+func (r ResponseBase) GetStatusCode() int {
 	return r.HttpCode
 }

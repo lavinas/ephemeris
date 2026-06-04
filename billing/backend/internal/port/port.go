@@ -11,7 +11,7 @@ type Repository interface {
 	CommitTransaction() error
 	RollbackTransaction() error
 	FindCustomers(page, pageSize int, vendorID int64, name, nickname,
-		document *string, status int, email, whatsapp *string) ([]domain.Customer, error)
+		document *string, status *int, email, whatsapp *string) ([]domain.Customer, error)
 	GetCustomer(nickname string) (*domain.Customer, error)
 	FindVendors(page, pageSize int, legalName, nickname, document *string,
 		accountBank, accountAgency, accountNumber *string) ([]domain.Vendor, error)
@@ -33,11 +33,12 @@ type Logger interface {
 // InDTO represents a generic data transfer object for input of service methods.
 type InDTO interface {
 	Validate(repo Repository) error
+	Reset()
 }
 
 // OutDTO represents a generic data transfer object for output of service methods.
 type OutDTO interface {
-	GetStatusCode() int16
+	GetStatusCode() int
 }
 
 type Service interface {

@@ -3,22 +3,25 @@ package dto
 import (
 	"errors"
 	"fmt"
+	"net/mail"
 	"regexp"
 	"strings"
-	"net/mail"
 
+	"billing/internal/domain"
 	"billing/internal/port"
+
 	"github.com/klassmann/cpfcnpj"
 )
 
 // CustomerUpdateRequest represents the request payload for updating an existing customer.
 type CustomerUpdateRequest struct {
-	Nickname string `json:"nickname" validate:"required"`
-	Name     string `json:"name" validate:"required"`
-	Document string `json:"document" validate:"required"`
-	Email    string `json:"email" validate:"required,email"`
-	Whatsapp string `json:"whatsapp" validate:"required"`
-	ID       int64  `json:"-" validate:"-"`
+	Nickname string           `json:"nickname" validate:"required"`
+	Name     string           `json:"name" validate:"required"`
+	Document string           `json:"document" validate:"required"`
+	Email    string           `json:"email" validate:"required,email"`
+	Whatsapp string           `json:"whatsapp" validate:"required"`
+	Status   *int             `json:"status" validate:"required"`
+	customer *domain.Customer `json:"-" validate:"-"`
 }
 
 // CustomerUpdateResponse represents the response payload after updating an existing customer.
@@ -27,7 +30,7 @@ type CustomerUpdateResponse struct {
 }
 
 // NewCustomerUpdateResponse creates a new instance of CustomerUpdateResponse
-func NewCustomerUpdateResponse(httpCode int16, status, message string) CustomerUpdateResponse {
+func NewCustomerUpdateResponse(httpCode int, status, message string) CustomerUpdateResponse {
 	return CustomerUpdateResponse{
 		ResponseBase: NewResponseBase(httpCode, status, message),
 	}
@@ -38,7 +41,7 @@ func (r *CustomerUpdateRequest) Validate(repo port.Repository) error {
 	errs := make([]error, 0)
 	if err := r.validateNickname(repo); err != nil {
 		errs = append(errs, err)
-	} 
+	}
 	if err := r.validateDocument(repo); err != nil {
 		errs = append(errs, err)
 	}
@@ -51,6 +54,9 @@ func (r *CustomerUpdateRequest) Validate(repo port.Repository) error {
 	if err := r.validateAtLeastOneField(); err != nil {
 		errs = append(errs, err)
 	}
+	if err := r.validateStatus(); err != nil {
+		errs = append(errs, err)
+	}
 	if len(errs) > 0 {
 		err := errors.Join(errs...)
 		return errors.New(strings.ReplaceAll(err.Error(), "\n", "; "))
@@ -58,24 +64,23 @@ func (r *CustomerUpdateRequest) Validate(repo port.Repository) error {
 	return nil
 }
 
-
 // validateNickname checks if the provided nickname is not already used by another customer.
 func (r *CustomerUpdateRequest) validateNickname(repo port.Repository) error {
 	if r.Nickname == "" {
 		return fmt.Errorf("nickname is required")
 	}
-    customer, err := repo.GetCustomer(r.Nickname)
+	customer, err := repo.GetCustomer(r.Nickname)
 	if err != nil {
 		return fmt.Errorf("failed to validate nickname: %v", err)
 	}
 	if customer == nil {
 		return fmt.Errorf("customer with nickname '%s' does not exist", r.Nickname)
 	}
+	r.customer = customer
 	return nil
 }
 
-
-// validateDocument checks if the provided document is valid and not already used by another customer.
+// validateDocument checks if the provided document is valid and not used by another customer.
 func (r *CustomerUpdateRequest) validateDocument(repo port.Repository) error {
 	if r.Document == "" {
 		return nil
@@ -83,11 +88,12 @@ func (r *CustomerUpdateRequest) validateDocument(repo port.Repository) error {
 	if err := r.validateCpfCnpj(); err != nil {
 		return err
 	}
-	existingCustomer, err := repo.FindCustomers(0, 0, 0, nil, nil, &r.Document, -1, nil, nil)
+	exist, err := repo.FindCustomers(0, 0, 0, nil, nil, &r.Document, nil, nil, nil)
 	if err != nil {
 		return fmt.Errorf("failed to validate document: %v", err)
 	}
-	if len(existingCustomer) > 0 && existingCustomer[0].ID != r.ID {
+
+	if len(exist) > 0 && r.customer != nil && exist[0].ID != r.customer.ID {
 		return fmt.Errorf("document '%s' is already in use by another customer", r.Document)
 	}
 	return nil
@@ -138,28 +144,52 @@ func (r *CustomerUpdateRequest) validateEmail() error {
 	return nil
 }
 
+// validateStatus checks if the provided status is either 0 (inactive) or 1 (active).
+func (r *CustomerUpdateRequest) validateStatus() error {
+	if r.Status != nil && *r.Status != 0 && *r.Status != 1 {
+		return fmt.Errorf("status must be either 0 (inactive) or 1 (active)")
+	}
+	return nil
+}
+
 // validateAtLesatOneField checks if at least one of the fields is provided for update.
 func (r *CustomerUpdateRequest) validateAtLeastOneField() error {
-	if r.Name == "" && r.Document == "" && r.Email == "" && r.Whatsapp == "" {
+	if r.Name == "" && r.Document == "" && r.Email == "" && r.Whatsapp == "" && r.Status == nil {
 		return fmt.Errorf("at least one field must be provided for update")
 	}
 	return nil
 }
 
-// GetModel constructs a map of the fields to be updated based on the non-empty fields in the request.
+// GetModel constructs a map of the fields to be updated based on the non-empty fields
 func (r *CustomerUpdateRequest) GetDomain() interface{} {
-	ret := make(map[string]interface{})
+	if r.customer == nil {
+		return nil
+	}
 	if r.Name != "" {
-		ret["name"] = r.Name
+		r.customer.Name = r.Name
 	}
 	if r.Document != "" {
-		ret["document"] = r.Document
+		r.customer.Document = &r.Document
 	}
 	if r.Email != "" {
-		ret["email"] = r.Email
+		r.customer.Email = &r.Email
 	}
 	if r.Whatsapp != "" {
-		ret["whatsapp"] = r.Whatsapp
+		r.customer.Whatsapp = &r.Whatsapp
 	}
-	return ret
+	if r.Status != nil {
+		r.customer.Status = *r.Status
+	}
+	return r.customer
+}
+
+// Reset resets the fields of the CustomerUpdateRequest to their zero values.
+func (r *CustomerUpdateRequest) Reset() {
+	r.Nickname = ""
+	r.Name = ""
+	r.Document = ""
+	r.Email = ""
+	r.Whatsapp = ""
+	r.Status = nil
+	r.customer = nil
 }

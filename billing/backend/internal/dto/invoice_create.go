@@ -44,7 +44,7 @@ type InvoiceCreateResponse struct {
 }
 
 // NewInvoiceCreateResponse creates a new instance of InvoiceCreateResponse
-func NewInvoiceCreateResponse(httpCode int16, status, message string) InvoiceCreateResponse {
+func NewInvoiceCreateResponse(httpCode int, status, message string) InvoiceCreateResponse {
 	return InvoiceCreateResponse{
 		ResponseBase: NewResponseBase(httpCode, status, message),
 	}
@@ -212,4 +212,9 @@ func (r *InvoiceCreate) GetDomain() *domain.Invoice {
 // GetDomain converts the InvoiceCreateItem to a domain.InvoiceItem entity.
 func (i *InvoiceCreateItem) GetDomain() *domain.InvoiceItem {
 	return domain.NewInvoiceItem(i.Description, i.Quantity, i.Price)
+}
+
+// Reset resets the fields of the InvoiceCreateRequest to their zero values.
+func (r *InvoiceCreateRequest) Reset() {
+	r.Items = nil
 }

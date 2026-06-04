@@ -18,7 +18,6 @@ func NewCustomerUpdate(repo port.Repository, logger port.Logger) *CustomerUpdate
 	}
 }
 
-
 // Run executes the customer update process using the provided request data and returns a response.
 func (s *CustomerUpdate) Run(inDTO port.InDTO) port.OutDTO {
 	request, ok := inDTO.(*dto.CustomerUpdateRequest)
@@ -32,14 +31,17 @@ func (s *CustomerUpdate) Run(inDTO port.InDTO) port.OutDTO {
 		s.logger.IPrintf(2, "Validation failed: %v", err)
 		return dto.NewCustomerUpdateResponse(400, "error", fmt.Sprintf("Validation failed: %v", err))
 	}
-	// Update customer in the repository
-	err := s.repo.UpdateID(request.ID, request.GetDomain())
+	domainCustomer := request.GetDomain()
+	if domainCustomer == nil {
+		s.logger.IPrintf(2, "Failed to convert request to domain model")
+		return dto.NewCustomerUpdateResponse(500, "error", "contact support")
+	}
+	err := s.repo.Save(domainCustomer)
 	if err != nil {
-		s.logger.IPrintf(2, "Failed to update customer: %v", err)
-		return dto.NewCustomerUpdateResponse(500, "error", 
-			fmt.Sprintf("Failed to update customer: %v", err))
+		s.logger.IPrintf(2, "Failed to save customer: %v", err)
+		return dto.NewCustomerUpdateResponse(500, "error", "contact support")
 	}
 	// Finalize response
-	s.logger.IPrintf(2, "Successfully updated customer with ID: %d", request.ID)
+	s.logger.IPrintf(2, "Successfully updated customer with ID: %v", domainCustomer)
 	return dto.NewCustomerUpdateResponse(200, "success", "Customer updated successfully")
 }

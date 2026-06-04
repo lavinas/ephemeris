@@ -20,8 +20,8 @@ const (
 
 // CustomerCreateRequest represents the request payload for creating a new customer.
 type CustomerCreateRequest struct {
-	Vendor   string                      `json:"vendor" validate:"required"`
-	VendorID int64                       `json:"-" validate:"-"`
+	Vendor   string                       `json:"vendor" validate:"required"`
+	VendorID int64                        `json:"-" validate:"-"`
 	Items    []*CustomerCreateRequestItem `json:"items" validate:"required,dive"`
 }
 
@@ -40,7 +40,7 @@ type CustomerCreateResponse struct {
 }
 
 // NewCustomerCreateResponse creates a new instance of CustomerCreateResponse
-func NewCustomerCreateResponse(httpCode int16, status, message string) CustomerCreateResponse {
+func NewCustomerCreateResponse(httpCode int, status, message string) CustomerCreateResponse {
 	return CustomerCreateResponse{
 		ResponseBase: NewResponseBase(httpCode, status, message),
 	}
@@ -168,7 +168,7 @@ func (r *CustomerCreateRequestItem) validateNickname(repo port.Repository, vendo
 		return errors.New("nickname is required")
 	}
 	existingCustomer, err := repo.FindCustomers(0, 0, vendorID, nil, &r.Nickname,
-		nil, -1, nil, nil)
+		nil, nil, nil, nil)
 	if err != nil {
 		return fmt.Errorf("failed to validate nickname: %v", err)
 	}
@@ -186,7 +186,7 @@ func (r *CustomerCreateRequestItem) validateDocument(repo port.Repository, vendo
 	if err := r.validateCpfCnpj(); err != nil {
 		return err
 	}
-	existingCustomer, err := repo.FindCustomers(0, 0, vendorID, nil, nil, &r.Document, -1, nil, nil)
+	existingCustomer, err := repo.FindCustomers(0, 0, vendorID, nil, nil, &r.Document, nil, nil, nil)
 	if err != nil {
 		return fmt.Errorf("failed to validate document: %v", err)
 	}
@@ -240,4 +240,11 @@ func (r *CustomerCreateRequestItem) validateWhatsapp() error {
 	n := regexp.MustCompile(`\D`).ReplaceAllString(r.Whatsapp, "")
 	r.Whatsapp = fmt.Sprintf("(%s) %s-%s", n[0:2], n[2:7], n[7:11])
 	return nil
+}
+
+// Reset resets the fields of the CustomerCreateRequest to their zero values.
+func (r *CustomerCreateRequest) Reset() {
+	r.Vendor = ""
+	r.VendorID = 0
+	r.Items = nil
 }

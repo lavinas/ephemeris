@@ -17,7 +17,7 @@ type CustomerListRequest struct {
 	Name     *string `json:"name,omitempty"`
 	Nickname *string `json:"nickname,omitempty"`
 	Document *string `json:"document,omitempty"`
-	Status   int     `json:"status,omitempty"`
+	Status   *int     `json:"status,omitempty"`
 	Email    *string `json:"email,omitempty"`
 	Whatsapp *string `json:"whatsapp,omitempty"`
 }
@@ -41,7 +41,7 @@ type CustomerDTO struct {
 
 // NewCustomerListResponse creates a new instance of CustomerListResponse with the provided
 // HTTP code, status, message, and customers.
-func NewCustomerListResponse(httpCode int16, status, message string,
+func NewCustomerListResponse(httpCode int, status, message string,
 	customers []CustomerDTO) CustomerListResponse {
 	return CustomerListResponse{
 		ResponseBase: NewResponseBase(httpCode, status, message),
@@ -75,7 +75,7 @@ func (r *CustomerListRequest) Validate(repo port.Repository) error {
 	if err := r.validateVendor(repo); err != nil {
 		errs = append(errs, err)
 	}
-	if r.Status != 1 && r.Status != 0 && r.Status != -1 {
+	if r.Status != nil && *r.Status != 1 && *r.Status != 0 && *r.Status != -1 {
 		errs = append(errs, fmt.Errorf("status must be 1 (active), 0 (inactive), or -1 (all)"))
 	}
 	if len(errs) > 0 {
@@ -99,4 +99,18 @@ func (r *CustomerListRequest) validateVendor(repo port.Repository) error {
 	}
 	r.VendorID = vendor.ID
 	return nil
+}
+
+// Reset resets the fields of the CustomerListRequest to their zero values.
+func (r *CustomerListRequest) Reset() {
+	r.Page = 0
+	r.PageSize = 0
+	r.Vendor = ""
+	r.VendorID = 0
+	r.Name = nil
+	r.Nickname = nil
+	r.Document = nil
+	r.Status = nil
+	r.Email = nil
+	r.Whatsapp = nil
 }

@@ -124,7 +124,7 @@ func (a *PostgresRepository) UpdateID(id int64, model interface{}) error {
 
 // FindCustomers retrieves customers based on the provided filters and pagination parameters
 func (a *PostgresRepository) FindCustomers(page, pageSize int, vendorID int64, name, nickname,
-	document *string, status int, email, whatsapp *string) ([]domain.Customer, error) {
+	document *string, status *int, email, whatsapp *string) ([]domain.Customer, error) {
 	var customers []domain.Customer
 	db := a.DB.Model(&domain.Customer{})
 	db = db.Where("vendor_id = ?", vendorID)
@@ -137,8 +137,8 @@ func (a *PostgresRepository) FindCustomers(page, pageSize int, vendorID int64, n
 	if document != nil {
 		db = db.Where("document ILIKE ?", "%"+*document+"%")
 	}
-	if status != -1 {
-		db = db.Where("status = ?", status)
+	if status != nil {
+		db = db.Where("status = ?", *status)
 	}
 	if email != nil {
 		db = db.Where("email ILIKE ?", "%"+*email+"%")

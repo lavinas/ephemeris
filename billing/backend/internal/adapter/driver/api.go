@@ -54,7 +54,7 @@ func (h *APIHandler) mapServices() {
 			service.NewCustomerCreate(h.repo, h.logger)),
 		"/customer/list": *newHandleService(http.MethodGet, &dto.CustomerListRequest{},
 			service.NewCustomerList(h.repo, h.logger)),
-		"/customer/update": *newHandleService(http.MethodPut, &dto.CustomerUpdateRequest{},
+		"/customer/update": *newHandleService(http.MethodPatch, &dto.CustomerUpdateRequest{},
 			service.NewCustomerUpdate(h.repo, h.logger)),
 		"/invoice/create": *newHandleService(http.MethodPost, &dto.InvoiceCreateRequest{},
 			service.NewInvoiceCreate(h.repo, h.logger)),
@@ -84,48 +84,41 @@ func (h *APIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Log the request body for debugging
 	h.logRequestBody(r)
 	// Retrieve the service for the requested path
-	hservice, err := h.getHandleService(r)
-	if err != nil {
-		h.logger.IPrintf(1, "Service retrieval failed: %v", err)
-		http.Error(w, "Not found", http.StatusNotFound)
+	hservice, errOut := h.getHandleService(r)
+	if errOut != nil {
+		h.writeResponse(w, errOut)
 		return
 	}
 	// Call the service method and get the response
 	response := hservice.service.Run(hservice.dto)
-	responseJSON, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		h.logger.IPrintf(1, "Failed to marshal response: %v", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
-	}
-	// Write the response back to the client
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(int(response.GetStatusCode()))
-	w.Write(responseJSON)
-	// Log the handled request
+	h.writeResponse(w, response)
 	h.logger.IPrintf(1, "Handled request for %s %s", r.Method, r.URL.Path)
 }
 
 // getService retrieves the service associated with the given path, if it exists.
-func (h *APIHandler) getHandleService(r *http.Request) (*handleService, error) {
+func (h *APIHandler) getHandleService(r *http.Request) (*handleService, *dto.ResponseBase) {
 	// Check if the requested path is registered in the services map
 	service, exists := h.services[r.URL.Path]
 	if !exists {
 		h.logger.IPrintf(1, "Service not found for path: %s", r.URL.Path)
-		return nil, fmt.Errorf("service not found for path: %s", r.URL.Path)
-
+		out := dto.NewResponseBase(404, "error", fmt.Sprintf("service not found for path: %s",
+			r.URL.Path))
+		return nil, &out
 	}
 	// Check HTTP method
 	if r.Method != service.method {
 		h.logger.IPrintf(1, "Method not allowed: %s for path: %s", r.Method, r.URL.Path)
-		return nil, fmt.Errorf("method not allowed: %s for path: %s", r.Method, r.URL.Path)
+		out := dto.NewResponseBase(405, "error", fmt.Sprintf("method not allowed: %s for path: %s",
+			r.Method, r.URL.Path))
+		return nil, &out
 	}
 	// Decode request body into the appropriate DTO
 	if service.dto != nil {
+		service.dto.Reset()
 		if err := json.NewDecoder(r.Body).Decode(service.dto); err != nil {
 			h.logger.IPrintf(1, "Failed to decode request body: %v", err)
-			return nil, fmt.Errorf("invalid json format: %v", err)
-
+			out := dto.NewResponseBase(400, "error", fmt.Sprintf("invalid json format: %v", err))
+			return nil, &out
 		}
 	}
 	return &service, nil
@@ -155,4 +148,16 @@ func (h *APIHandler) logRequestBody(r *http.Request) {
 
 	h.logger.IPrintf(1, "Request received method: %s, path: %s, body: %s",
 		r.Method, r.URL.Path, bodyString)
+}
+
+// writeResponse writes the given response to the http.ResponseWriter with the appropriate status
+func (h *APIHandler) writeResponse(w http.ResponseWriter, response port.OutDTO) {
+	responseJSON, err := json.MarshalIndent(response, "", "  ")
+	if err != nil {
+		h.logger.IPrintf(1, "Failed to marshal response: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(int(response.GetStatusCode()))
+	w.Write(responseJSON)
 }

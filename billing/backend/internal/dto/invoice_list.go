@@ -47,7 +47,7 @@ type InvoiceListListItem struct {
 }
 
 // NewInvoiceListResponse creates a new instance of InvoiceListResponse
-func NewInvoiceListResponse(code int16, status, message string,
+func NewInvoiceListResponse(code int, status, message string,
 	items []InvoiceList) InvoiceListResponse {
 	return InvoiceListResponse{
 		ResponseBase: NewResponseBase(code, status, message),
@@ -111,4 +111,16 @@ func (r *InvoiceListRequest) validateCustomer(repo port.Repository) error {
 	}
 	r.CustomerID = customers.ID
 	return nil
+}
+
+// Reset resets the fields of the InvoiceListRequest to their zero values.
+func (r *InvoiceListRequest) Reset() {
+	r.Page = 0
+	r.PageSize = 0
+	r.Customer = nil
+	r.CustomerID = 0
+	r.Vendor = nil
+	r.VendorID = 0
+	r.InvoiceDate = nil
+	r.DueDate = nil
 }
