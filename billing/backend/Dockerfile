@@ -15,7 +15,7 @@ COPY . .
 
 EXPOSE 8080
 
-CMD ["air"]
+CMD ["sh", "-c", "sleep 5 && air"]
 
 
 
