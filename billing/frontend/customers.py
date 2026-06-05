@@ -2,6 +2,7 @@ import requests
 import pandas as pd
 from tabulate import tabulate
 from requests.exceptions import ConnectionError, Timeout
+from os import path
 
 # Configurações
 endpoint = 'http://localhost:8080'
@@ -90,3 +91,26 @@ def update(id, vendor, nickname, name, document, email, whatsapp, status):
     json_data = resposta.json()
     return f'{json_data["status"]} - {json_data["message"]}'
  
+# insert csv
+def insert_csv (vendor, file_path):
+    if not path.isfile(file_path):
+        return f"Erro: O arquivo '{file_path}' não existe."
+    try:
+        df = pd.read_csv(file_path)
+    except Exception as e:
+        return f"Erro ao ler o arquivo CSV: {e}"
+    resp = ''
+    for index, row in df.iterrows():
+        item = {
+            'nickname': row.get('nickname', ''),
+            'name': row.get('name', ''),
+            'document': row.get('document', ''),
+            'email': row.get('email', ''),
+            'whatsapp': row.get('whatsapp', '')
+        }
+        if not item['nickname'] or not item['name'] or not item['document'] or not item['email'] or not item['whatsapp']:
+            resp += f"Erro: Linha {index + 1} - Todos os campos são obrigatórios. Dados: {item}\n"
+            continue
+        resp = insert(vendor, item['nickname'], item['name'], item['document'], item['email'], item['whatsapp'])
+        resp += f"Linha {index + 1}: {resp}\n"
+    return resp

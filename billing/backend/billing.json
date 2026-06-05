@@ -12,7 +12,7 @@
 
     },
     "log": {
-        "output": "stdout",
+        "output": "./tmp/api.log",
         "level": 10
     }
 }

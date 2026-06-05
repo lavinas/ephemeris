@@ -33,3 +33,15 @@ go.work.sum
 
 # tmp files
 tmp/
+
+# logs
+*.log
+
+# executable files
+*.exe
+
+# python
+__pycache__/
+*.pyc
+**/__pycache__/
+**/*.pyc

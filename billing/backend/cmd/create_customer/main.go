@@ -9,20 +9,21 @@ import (
 )
 
 func main() {
-	// Initialize the logger
-	logger, err := driven.NewSimpleLogger("stdout", 1)
-	if err != nil {
-		fmt.Printf("Error initializing logger: %v\n", err)
-		return
-
-	}
-	defer logger.Close()
 	// Initialize Config
 	cfg, err := driven.NewConfig("billing.json")
 	if err != nil {
 		fmt.Printf("Error loading config: %v\n", err)
 		return
 	}
+	// Initialize the logger
+	logOutput, logLevel := cfg.GetLogData()
+	logger, err := driven.NewSimpleLogger(logOutput, logLevel)
+	if err != nil {
+		fmt.Printf("Error initializing logger: %v\n", err)
+		return
+
+	}
+	defer logger.Close()
 	// Initialize Repository
 	host, port, user, password, dbname, sslmode, timezone, timeout, schema := cfg.GetDBData()
 	repo, err := driven.NewPostgresRepository(host, user, password, dbname, sslmode,

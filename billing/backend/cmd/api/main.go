@@ -5,22 +5,25 @@ import (
 	"billing/internal/adapter/driver"
 
 	"fmt"
+	"os"
 )
 
+// Main function to initialize the API server
 func main() {
-	// Initialize the logger
-	logger, err := driven.NewSimpleLogger("stdout", 0)
-	if err != nil {
-		fmt.Printf("Error initializing logger: %v\n", err)
-		return
-	}
-	defer logger.Close()
 	// Initialize Config
 	cfg, err := driven.NewConfig("billing.json")
 	if err != nil {
 		fmt.Printf("Error loading config: %v\n", err)
 		return
 	}
+	// Initialize the logger
+	logOutput, logLevel := cfg.GetLogData()
+	logger, err := driven.NewSimpleLogger(logOutput, logLevel)
+	if err != nil {
+		fmt.Printf("Error initializing logger: %v\n", err)
+		return
+	}
+	defer logger.Close()
 	// Initialize Repository
 	host, port, user, password, dbname, sslmode, timezone, timeout, schema := cfg.GetDBData()
 	repo, err := driven.NewPostgresRepository(host, user, password, dbname, sslmode,
@@ -31,8 +34,9 @@ func main() {
 	}
 	defer repo.Close()
 	// Initialize API Handler
+	os.Setenv("TZ", timezone)
 	logger.IPrintf(0, "starting API server on :8080")
 	apiHandler := driver.NewAPIHandler(":8080", logger, repo)
 	apiHandler.Run(":8080")
-	logger.IPrintf(0, "logger and database closed")
+	logger.IPrintf(0, "logger and database closed 2")
 }

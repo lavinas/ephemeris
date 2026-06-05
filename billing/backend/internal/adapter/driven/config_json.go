@@ -62,3 +62,8 @@ func (v *JsonConfig) GetDBTimeZone() string {
 func (v *JsonConfig) GetConfigData() (output string, level int) {
 	return v.Log.Output, v.Log.Level
 }
+
+// GetLogOutput returns the log output from the configuration
+func (v *JsonConfig) GetLogData() (output string, level int) {
+	return v.Log.Output, v.Log.Level
+}
