@@ -1,0 +1,4 @@
+# .dockerignore
+db/data
+postgres_data
+.git
