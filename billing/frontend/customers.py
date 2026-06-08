@@ -7,15 +7,11 @@ from os import path
 # Configurações
 endpoint = 'http://localhost:8080'
 page = 1
-page_size = 10
+page_size = 1000
 
 # get
 def get(vendor, status, nickname, name, document, email, whatsapp):
     json_data = {'vendor': vendor, 'page': page, 'page_size': page_size}
-    if status and status != "":
-        if status not in ['0', '1', '-1']:
-            return "Erro: Status deve ser 0 (ativo), 1 (inativo) ou -1 (todos)."
-        json_data['status'] = int(status)
     if nickname and nickname != "":
         json_data['nickname'] = nickname
     if name and name != "":
@@ -26,6 +22,11 @@ def get(vendor, status, nickname, name, document, email, whatsapp):
         json_data['email'] = email
     if whatsapp and whatsapp != "":
         json_data['whatsapp'] = whatsapp
+    if status and status != "":
+        if status not in ['0', '1', '-1']:
+            return "Erro: Status deve ser 0 (ativo), 1 (inativo) ou -1 (todos)."
+        json_data['status'] = int(status)
+
     # make API call with error handling
     try:
         resposta = requests.get(f'{endpoint}/customer/list', json=json_data, timeout=5)
@@ -37,7 +38,7 @@ def get(vendor, status, nickname, name, document, email, whatsapp):
         return f"Ocorreu um erro genérico no requests: {e}"
     # verify response status code
     if resposta.status_code != 200:
-        return f'Erro na chamada da API: {resposta.status_code}'
+        return f'Erro na chamada da API: {resposta.status_code} - {resposta.text}'
     # processing response data
     json_data = resposta.json()
     if 'customers' not in json_data or len(json_data['customers']) == 0:
@@ -45,7 +46,8 @@ def get(vendor, status, nickname, name, document, email, whatsapp):
     # exibir clientes
     customers = json_data['customers']
     df = pd.DataFrame(customers)
-    return tabulate(df, headers='keys', tablefmt='grid', showindex=False)
+    df = df.fillna('-')
+    return tabulate(df, headers='keys', tablefmt='grid', showindex=False), len(customers)
 
 # insert
 def insert(vendor, nickname, name, document, email, whatsapp):
@@ -97,6 +99,8 @@ def insert_csv (vendor, file_path):
         return f"Erro: O arquivo '{file_path}' não existe."
     try:
         df = pd.read_csv(file_path)
+        df = df.fillna('')
+        df = df.map(lambda x: x.strip() if isinstance(x, str) else x)
     except Exception as e:
         return f"Erro ao ler o arquivo CSV: {e}"
     resp = ''
@@ -108,9 +112,10 @@ def insert_csv (vendor, file_path):
             'email': row.get('email', ''),
             'whatsapp': row.get('whatsapp', '')
         }
-        if not item['nickname'] or not item['name'] or not item['document'] or not item['email'] or not item['whatsapp']:
-            resp += f"Erro: Linha {index + 1} - Todos os campos são obrigatórios. Dados: {item}\n"
+        print(f"Processando linha {index + 1}: {item}")
+        if not item['nickname'] or not item['name']:
+            resp += f"Erro: Linha {index + 1} - Os campos 'nickname' e 'name' são obrigatórios. Dados: {item}\n"
             continue
         resp = insert(vendor, item['nickname'], item['name'], item['document'], item['email'], item['whatsapp'])
-        resp += f"Linha {index + 1}: {resp}\n"
+        print(f"Resposta da API para linha {index + 1}: {resp}")
     return resp

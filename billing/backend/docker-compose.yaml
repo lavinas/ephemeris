@@ -2,7 +2,7 @@ services:
   # Database service
   db:
     image: postgres:latest
-    container_name: postgres_ephemeris
+    container_name: billing_db
     restart: always
     environment:
       - POSTGRES_USER=root
