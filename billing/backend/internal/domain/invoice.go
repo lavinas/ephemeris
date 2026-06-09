@@ -4,21 +4,24 @@ import "time"
 
 // Invoice represents a billing invoice with customer details and amount.
 type Invoice struct {
-	ID           int64         `gorm:"primaryKey"`
-	CustomerID   int64         `gorm:"not null"`
-	Customer     Customer      `gorm:"foreignKey:CustomerID"`
-	Amount       float64       `gorm:"not null"`
-	InvoiceDate  time.Time     `gorm:"not null"`
-	DueDate      time.Time     `gorm:"not null"`
-	Notes        string        `gorm:"not null"`
-	CreatedAt    time.Time     `gorm:"autoCreateTime"`
-	UpdatedAt    time.Time     `gorm:"autoUpdateTime"`
-	InvoiceItems []InvoiceItem `gorm:"foreignKey:InvoiceID"`
+	ID               int64         `gorm:"primaryKey"`
+	CustomerID       int64         `gorm:"not null"`
+	Customer         Customer      `gorm:"foreignKey:CustomerID"`
+	Amount           float64       `gorm:"not null"`
+	InvoiceDate      time.Time     `gorm:"not null"`
+	DueDate          time.Time     `gorm:"not null"`
+	EmailSentDate    *time.Time    `gorm:"null"`
+	WhatsappSentDate *time.Time    `gorm:"null"`
+	TaxDate          *time.Time    `gorm:"null"`
+	Notes            *string       `gorm:"null"`
+	CreatedAt        time.Time     `gorm:"autoCreateTime"`
+	UpdatedAt        time.Time     `gorm:"autoUpdateTime"`
+	InvoiceItems     []InvoiceItem `gorm:"foreignKey:InvoiceID"`
 }
 
 // NewInvoice creates a new Invoice instance with the details and calculates the total amount.
 func NewInvoice(customerID int64, invoiceDate, dueDate time.Time,
-	notes string, items []InvoiceItem) *Invoice {
+	notes *string, items []InvoiceItem) *Invoice {
 	invoice := &Invoice{
 		CustomerID:   customerID,
 		InvoiceDate:  invoiceDate,
@@ -50,19 +53,19 @@ func (i *Invoice) CalculateTotalAmount() {
 type InvoiceItem struct {
 	ID          int64     `json:"id" gorm:"primaryKey"`
 	InvoiceID   int64     `json:"invoice_id" gorm:"not null"`
-	Description string    `json:"description" gorm:"not null"`
-	Quantity    int       `json:"quantity" gorm:"not null"`
 	Price       float64   `json:"price" gorm:"not null"`
+	Quantity    int       `json:"quantity" gorm:"not null"`
+	Description string    `json:"description" gorm:"not null"`
 	CreatedAt   time.Time `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt   time.Time `json:"updated_at" gorm:"autoUpdateTime"`
 }
 
 // NewInvoiceItem creates a new InvoiceItem instance with the provided details.
-func NewInvoiceItem(description string, quantity int, price float64) *InvoiceItem {
+func NewInvoiceItem(price float64, quantity int, description string) *InvoiceItem {
 	return &InvoiceItem{
-		Description: description,
-		Quantity:    quantity,
 		Price:       price,
+		Quantity:    quantity,
+		Description: description,
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}

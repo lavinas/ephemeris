@@ -27,8 +27,8 @@ type InvoiceCreate struct {
 	customerID   int64                `json:"-"`
 	InvoiceDate  string               `json:"invoicing" validate:"required"`
 	DueDate      string               `json:"due" validate:"required"`
+	Notes        *string              `json:"notes,omitempty"`
 	InvoiceItems []*InvoiceCreateItem `json:"items" validate:"required,dive,required"`
-	Note         string               `json:"note,omitempty"`
 }
 
 // InvoiceCreateItemDTO represents an item in the invoice with description, quantity, and unit price.
@@ -95,10 +95,14 @@ func (r *InvoiceCreate) Validate(repo port.Repository) error {
 
 // validateNotes validates the note field to ensure it is not empty and does not exceed the limit.
 func (r *InvoiceCreate) validateNotes() error {
-	if r.Note == "" {
-		return fmt.Errorf("note is required")
+	if r.Notes == nil {
+		return nil // Notes are optional, so it's valid if it's nil
 	}
-	if len(r.Note) > notesLimit {
+	if *r.Notes == "" {
+		r.Notes = nil // Treat empty string as nil
+		return nil
+	}
+	if len(*r.Notes) > notesLimit {
 		return fmt.Errorf("note cannot exceed %d characters", notesLimit)
 	}
 	return nil
@@ -206,12 +210,12 @@ func (r *InvoiceCreate) GetDomain() *domain.Invoice {
 	}
 	iDate, _ := time.Parse("2006-01-02", r.InvoiceDate)
 	dDate, _ := time.Parse("2006-01-02", r.DueDate)
-	return domain.NewInvoice(r.customerID, iDate, dDate, r.Note, invoiceItems)
+	return domain.NewInvoice(r.customerID, iDate, dDate, r.Notes, invoiceItems)
 }
 
 // GetDomain converts the InvoiceCreateItem to a domain.InvoiceItem entity.
 func (i *InvoiceCreateItem) GetDomain() *domain.InvoiceItem {
-	return domain.NewInvoiceItem(i.Description, i.Quantity, i.Price)
+	return domain.NewInvoiceItem(i.Price, i.Quantity, i.Description)
 }
 
 // Reset resets the fields of the InvoiceCreateRequest to their zero values.

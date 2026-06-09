@@ -1,4 +1,4 @@
--- Active: 1778275768971@@127.0.0.1@5432@ephemeris
+-- Active: 1778275768971@@localhost@5432@ephemeris@billing
 
 create database ephemeris;
 
@@ -42,24 +42,30 @@ create table customer (
 );
 
 drop Table if exists invoice cascade;
+
+drop table invoice;
 create table invoice (
     id bigserial primary key,
     customer_id bigint not null references customer(id) on delete cascade,
+    amount numeric(15, 2) not null,
     invoice_date date not null,
     due_date date not null,
-    amount numeric(15, 2) not null,
-    notes text not null,
+    email_sent_date date,
+    whatsapp_sent_date date,
+    tax_date date,
+    notes text null,
     created_at timestamp not null default now(),
     updated_at timestamp not null default now()
 );
 
 drop Table if exists invoice_item cascade;
+drop table invoice_item;
 create table invoice_item (
     id bigserial primary key,
     invoice_id bigint not null references invoice(id) on delete cascade,
-    description varchar(255) not null,
-    quantity int not null,
     price numeric(15, 2) not null,
+    quantity int not null,
+    description varchar(255) not null,
     created_at timestamp not null default now(),
     updated_at timestamp not null default now()
 );

@@ -53,22 +53,11 @@ func (s *InvoiceList) mountInvoices(invoices []domain.Invoice) []dto.InvoiceList
 	for i, invoice := range invoices {
 		items := make([]dto.InvoiceListListItem, len(invoice.InvoiceItems))
 		for j, item := range invoice.InvoiceItems {
-			items[j] = dto.InvoiceListListItem{
-				ID:          item.ID,
-				Description: item.Description,
-				Quantity:    item.Quantity,
-				Price:       item.Price,
-			}
+			items[j] = dto.NewInvoiceListListItem(item.ID, item.Description, item.Quantity, item.Price)
 		}
-		responseInvoices[i] = dto.InvoiceList{
-			ID:          invoice.ID,
-			Customer:    invoice.Customer.Nickname,
-			Amount:      invoice.Amount,
-			InvoiceDate: invoice.InvoiceDate.Format("2006-01-02"),
-			DueDate:     invoice.DueDate.Format("2006-01-02"),
-			Notes:       invoice.Notes,
-			Items:       items,
-		}
+		responseInvoices[i] = dto.NewInvoiceList(invoice.ID, invoice.Customer.Nickname, invoice.Amount,
+			invoice.InvoiceDate, invoice.DueDate, invoice.EmailSentDate, invoice.WhatsappSentDate,
+			invoice.TaxDate, invoice.Notes, items)
 	}
 	return responseInvoices
 }

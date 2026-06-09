@@ -90,7 +90,7 @@ func (r *CustomerUpdateRequest) ValidateVendor(repo port.Repository) error {
 
 // validateNickname checks if the provided nickname is not already used by another customer.
 func (r *CustomerUpdateRequest) validateNickname(repo port.Repository) error {
-    if r.vendorID == 0 {
+	if r.vendorID == 0 {
 		return nil // Vendor validation will catch this error
 	}
 	if r.Nickname == "" {

@@ -3,6 +3,7 @@ package dto
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"billing/internal/port"
 )
@@ -22,7 +23,6 @@ type InvoiceListRequest struct {
 // InvoiceListResponse represents the data transfer object for the response of listing invoices.
 type InvoiceListResponse struct {
 	ResponseBase
-	Vendor   string        `json:"vendor"`
 	Invoices []InvoiceList `json:"invoices,omitempty"`
 }
 
@@ -33,7 +33,9 @@ type InvoiceList struct {
 	Amount      float64               `json:"amount"`
 	InvoiceDate string                `json:"invoicing"`
 	DueDate     string                `json:"due"`
-	Status      string                `json:"status"`
+	EmailSentDate string             `json:"email_sent"`
+	WhatsappSentDate string          `json:"whatsapp_sent"`
+	TaxDate     string                `json:"tax"`
 	Notes       string                `json:"notes"`
 	Items       []InvoiceListListItem `json:"items,omitempty"`
 }
@@ -52,6 +54,52 @@ func NewInvoiceListResponse(code int, status, message string,
 	return InvoiceListResponse{
 		ResponseBase: NewResponseBase(code, status, message),
 		Invoices:     items,
+	}
+}
+
+// NewInvoiceList creates a new instance of InvoiceList with the provided details.
+func NewInvoiceList(id int64, customer string, amount float64, invoiceDate, dueDate time.Time, 
+	emailSentDate, whatsappSentDate, taxDate *time.Time, notes *string, items []InvoiceListListItem) InvoiceList {
+	invoiceDateStr := invoiceDate.Format("2006-01-02")
+	dueDateStr := dueDate.Format("2006-01-02")
+	emailSentDateStr := "-"
+	if emailSentDate != nil {
+		emailSentDateStr = emailSentDate.Format("2006-01-02")
+	}
+	whatsappSentDateStr := "-"
+	if whatsappSentDate != nil {
+		whatsappSentDateStr = whatsappSentDate.Format("2006-01-02")
+	}
+	taxDateStr := "-"
+	if taxDate != nil {
+		taxDateStr = taxDate.Format("2006-01-02")
+	}
+	notesStr := "-"
+	if notes != nil {
+		notesStr = *notes
+	}
+	return InvoiceList{
+		ID:          id,
+		Customer:    customer,
+		Amount:      amount,
+		InvoiceDate: invoiceDateStr,
+		DueDate:     dueDateStr,
+		EmailSentDate: emailSentDateStr,
+		WhatsappSentDate: whatsappSentDateStr,
+		TaxDate:     taxDateStr,
+		Notes:       notesStr,
+		Items:       items,
+	}
+}
+
+// NewInvoiceListListItem creates a new instance of InvoiceListListItem with the provided details.
+func NewInvoiceListListItem(id int64, description string, quantity int,
+	price float64) InvoiceListListItem {
+	return InvoiceListListItem{
+		ID:          id,
+		Description: description,
+		Quantity:    quantity,
+		Price:       price,
 	}
 }
 
@@ -124,3 +172,5 @@ func (r *InvoiceListRequest) Reset() {
 	r.InvoiceDate = nil
 	r.DueDate = nil
 }
+
+// 
