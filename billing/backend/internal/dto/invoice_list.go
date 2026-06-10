@@ -10,14 +10,14 @@ import (
 
 // InvoiceListRequest represents the data transfer object for listing invoices with pagination and optional filters.
 type InvoiceListRequest struct {
-	Page        int     `json:"page" validate:"required,gt=0"`
-	PageSize    int     `json:"page_size" validate:"required,gt=0"`
-	Customer    *string `json:"customer,omitempty"`
-	CustomerID  int64   `json:"customer_id,omitempty"`
-	Vendor      *string `json:"vendor,omitempty"`
-	VendorID    int64   `json:"vendor_id,omitempty"`
-	InvoiceDate *string `json:"invoicing,omitempty"`
-	DueDate     *string `json:"due,omitempty"`
+	Page             int     `json:"page" validate:"required,gt=0"`
+	PageSize         int     `json:"page_size" validate:"required,gt=0"`
+	Customer         *string `json:"customer,omitempty"`
+	CustomerID       int64   `json:"customer_id,omitempty"`
+	Vendor           *string `json:"vendor,omitempty"`
+	VendorID         int64   `json:"vendor_id,omitempty"`
+	InvoiceDate      *string `json:"invoicing,omitempty"`
+	DueDate          *string `json:"due,omitempty"`
 	EmailSentDate    *string `json:"email_sent,omitempty"`
 	WhatsappSentDate *string `json:"whatsapp_sent,omitempty"`
 	TaxDate          *string `json:"tax,omitempty"`
@@ -165,9 +165,6 @@ func (r *InvoiceListRequest) validateCustomer(repo port.Repository) error {
 	return nil
 }
 
-// validateDate validates a date string to ensure it is in the correct format (YYYY-MM-DD) and can be parsed.
-func (r *InvoiceListRequest) validateDate(dateStr *string, fieldName string) error
-
 // Reset resets the fields of the InvoiceListRequest to their zero values.
 func (r *InvoiceListRequest) Reset() {
 	r.Page = 0
@@ -183,4 +180,3 @@ func (r *InvoiceListRequest) Reset() {
 	r.TaxDate = nil
 	r.Notes = nil
 }
-

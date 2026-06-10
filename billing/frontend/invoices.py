@@ -57,3 +57,18 @@ def get(vendor, customer, invoicing, due, email_sent, whatsapp_sent, tax):
     return tabulate(df, headers='keys', tablefmt='grid', showindex=False)    
     
 
+# insert
+def insert(vendor, customer, invoicing, due, items):
+    json_data = {"items": [{'vendor': vendor, 'customer': customer, 'invoicing': invoicing, 'due': due, 'items': items}]}
+    try:
+        resposta = requests.post(f'{endpoint}/invoice/create', json=json_data, timeout=5)
+    except ConnectionError as e:
+        return f"Erro: A conexão foi recusada pelo servidor remoto. Detalhes: {e}"
+    except Timeout as e:
+        return f"Erro: A requisição excedeu o tempo limite estabelecido. {e}"
+    except requests.exceptions.RequestException as e:
+        return f"Ocorreu um erro genérico no requests: {e}"
+    if resposta.status_code != 200:
+        return f'Erro na chamada da API: {resposta.status_code} - {resposta.text}'
+    resp = resposta.json()
+    return f'{resp["status"]} - {resp["message"]}'
