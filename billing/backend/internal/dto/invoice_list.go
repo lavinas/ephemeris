@@ -18,6 +18,10 @@ type InvoiceListRequest struct {
 	VendorID    int64   `json:"vendor_id,omitempty"`
 	InvoiceDate *string `json:"invoicing,omitempty"`
 	DueDate     *string `json:"due,omitempty"`
+	EmailSentDate    *string `json:"email_sent,omitempty"`
+	WhatsappSentDate *string `json:"whatsapp_sent,omitempty"`
+	TaxDate          *string `json:"tax,omitempty"`
+	Notes            *string `json:"notes,omitempty"`
 }
 
 // InvoiceListResponse represents the data transfer object for the response of listing invoices.
@@ -161,6 +165,9 @@ func (r *InvoiceListRequest) validateCustomer(repo port.Repository) error {
 	return nil
 }
 
+// validateDate validates a date string to ensure it is in the correct format (YYYY-MM-DD) and can be parsed.
+func (r *InvoiceListRequest) validateDate(dateStr *string, fieldName string) error
+
 // Reset resets the fields of the InvoiceListRequest to their zero values.
 func (r *InvoiceListRequest) Reset() {
 	r.Page = 0
@@ -171,6 +178,9 @@ func (r *InvoiceListRequest) Reset() {
 	r.VendorID = 0
 	r.InvoiceDate = nil
 	r.DueDate = nil
+	r.EmailSentDate = nil
+	r.WhatsappSentDate = nil
+	r.TaxDate = nil
+	r.Notes = nil
 }
 
-//

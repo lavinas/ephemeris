@@ -203,7 +203,7 @@ func (a *PostgresRepository) GetVendor(nickname string) (*domain.Vendor, error) 
 
 // FindInvoices retrieves invoices based on the provided filters and pagination parameters
 func (a *PostgresRepository) FindInvoices(page, pageSize int, customer int64,
-	invoiceDate, dueDate *string) ([]domain.Invoice, error) {
+	invoiceDate, dueDate, emailSentDate, whatsappSentDate, taxDate *string) ([]domain.Invoice, error) {
 	var invoices []domain.Invoice
 	db := a.DB.Model(&domain.Invoice{}).Preload("InvoiceItems").
 		Preload("Customer")
@@ -215,6 +215,15 @@ func (a *PostgresRepository) FindInvoices(page, pageSize int, customer int64,
 	}
 	if dueDate != nil {
 		db = db.Where("invoice.due_date::text ILIKE ?", "%"+*dueDate+"%")
+	}
+	if emailSentDate != nil {
+		db = db.Where("email_sent_date::text ILIKE ?", "%"+*emailSentDate+"%")
+	}
+	if whatsappSentDate != nil {
+		db = db.Where("whatsapp_sent_date::text ILIKE ?", "%"+*whatsappSentDate+"%")
+	}
+	if taxDate != nil {
+		db = db.Where("tax_date::text ILIKE ?", "%"+*taxDate+"%")
 	}
 	if page > 0 && pageSize > 0 {
 		db = db.Offset((page - 1) * pageSize).Limit(pageSize)
