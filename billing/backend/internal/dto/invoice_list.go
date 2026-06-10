@@ -18,6 +18,7 @@ type InvoiceListRequest struct {
 	VendorID         int64   `json:"vendor_id,omitempty"`
 	InvoiceDate      *string `json:"invoicing,omitempty"`
 	DueDate          *string `json:"due,omitempty"`
+	PaymentDate      *string `json:"payment_date,omitempty"`
 	EmailSentDate    *string `json:"email_sent,omitempty"`
 	WhatsappSentDate *string `json:"whatsapp_sent,omitempty"`
 	TaxDate          *string `json:"tax,omitempty"`
@@ -37,6 +38,7 @@ type InvoiceList struct {
 	Amount           float64               `json:"amount"`
 	InvoiceDate      string                `json:"invoicing"`
 	DueDate          string                `json:"due"`
+	PaymentDate      string                `json:"payment"`
 	EmailSentDate    string                `json:"email_sent"`
 	WhatsappSentDate string                `json:"whatsapp_sent"`
 	TaxDate          string                `json:"tax"`
@@ -63,9 +65,13 @@ func NewInvoiceListResponse(code int, status, message string,
 
 // NewInvoiceList creates a new instance of InvoiceList with the provided details.
 func NewInvoiceList(id int64, customer string, amount float64, invoiceDate, dueDate time.Time,
-	emailSentDate, whatsappSentDate, taxDate *time.Time, notes *string, items []InvoiceListListItem) InvoiceList {
+	paymentDate, emailSentDate, whatsappSentDate, taxDate *time.Time, notes *string, items []InvoiceListListItem) InvoiceList {
 	invoiceDateStr := invoiceDate.Format("2006-01-02")
 	dueDateStr := dueDate.Format("2006-01-02")
+	paymentDateStr := "-"
+	if paymentDate != nil {
+		paymentDateStr = paymentDate.Format("2006-01-02")
+	}
 	emailSentDateStr := "-"
 	if emailSentDate != nil {
 		emailSentDateStr = emailSentDate.Format("2006-01-02")
@@ -88,6 +94,7 @@ func NewInvoiceList(id int64, customer string, amount float64, invoiceDate, dueD
 		Amount:           amount,
 		InvoiceDate:      invoiceDateStr,
 		DueDate:          dueDateStr,
+		PaymentDate:      paymentDateStr,
 		EmailSentDate:    emailSentDateStr,
 		WhatsappSentDate: whatsappSentDateStr,
 		TaxDate:          taxDateStr,
@@ -175,6 +182,7 @@ func (r *InvoiceListRequest) Reset() {
 	r.VendorID = 0
 	r.InvoiceDate = nil
 	r.DueDate = nil
+	r.PaymentDate = nil
 	r.EmailSentDate = nil
 	r.WhatsappSentDate = nil
 	r.TaxDate = nil

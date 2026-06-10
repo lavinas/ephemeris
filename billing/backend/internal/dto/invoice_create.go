@@ -27,6 +27,7 @@ type InvoiceCreate struct {
 	customerID   int64                `json:"-"`
 	InvoiceDate  string               `json:"invoicing" validate:"required"`
 	DueDate      string               `json:"due" validate:"required"`
+	PaymentDate  *string              `json:"payment,omitempty"`
 	Notes        *string              `json:"notes,omitempty"`
 	InvoiceItems []*InvoiceCreateItem `json:"items" validate:"required,dive,required"`
 }
@@ -108,7 +109,7 @@ func (r *InvoiceCreate) validateNotes() error {
 	return nil
 }
 
-// validateDates validates the invoice and due dates to ensure they are in the correct format.
+// validateDates validates the invoice, due, and payment dates to ensure they are in the correct format.
 func (r *InvoiceCreate) validateDates() []error {
 	errs := make([]error, 0)
 	invoiceDate, err := time.Parse("2006-01-02", r.InvoiceDate)
@@ -121,6 +122,15 @@ func (r *InvoiceCreate) validateDates() []error {
 	}
 	if !invoiceDate.IsZero() && !dueDate.IsZero() && dueDate.Before(invoiceDate) {
 		errs = append(errs, fmt.Errorf("due date cannot be before invoice date"))
+	}
+	if r.PaymentDate != nil {
+		paymentDate, err := time.Parse("2006-01-02", *r.PaymentDate)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("payment_date expected with YYYY-MM-DD format"))
+		}
+		if !invoiceDate.IsZero() && !paymentDate.IsZero() && paymentDate.Before(invoiceDate) {
+			errs = append(errs, fmt.Errorf("payment date cannot be before invoice date"))
+		}
 	}
 	return errs
 }
@@ -210,7 +220,13 @@ func (r *InvoiceCreate) GetDomain() *domain.Invoice {
 	}
 	iDate, _ := time.Parse("2006-01-02", r.InvoiceDate)
 	dDate, _ := time.Parse("2006-01-02", r.DueDate)
-	return domain.NewInvoice(r.customerID, iDate, dDate, r.Notes, invoiceItems)
+	var pDate *time.Time
+	if r.PaymentDate != nil {
+		if parsedDate, err := time.Parse("2006-01-02", *r.PaymentDate); err == nil {
+			pDate = &parsedDate
+		}
+	}
+	return domain.NewInvoice(r.customerID, iDate, dDate, pDate, r.Notes, invoiceItems)
 }
 
 // GetDomain converts the InvoiceCreateItem to a domain.InvoiceItem entity.

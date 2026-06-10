@@ -10,7 +10,7 @@ page = 1
 page_size = 1000
 
 # get
-def get(vendor, customer, invoicing, due, email_sent, whatsapp_sent, tax):
+def get(vendor, customer, invoicing, due, payment, email_sent, whatsapp_sent, tax):
     # build request payload
     json_data = {'vendor': vendor, 'page': page, 'page_size': page_size}
     if customer and customer != "":
@@ -19,6 +19,8 @@ def get(vendor, customer, invoicing, due, email_sent, whatsapp_sent, tax):
         json_data['invoicing'] = invoicing
     if due and due != "":
         json_data['due'] = due
+    if payment and payment != "":
+        json_data['payment'] = payment
     if email_sent and email_sent != "":
         json_data['email_sent'] = email_sent
     if whatsapp_sent and whatsapp_sent != "":
@@ -58,8 +60,16 @@ def get(vendor, customer, invoicing, due, email_sent, whatsapp_sent, tax):
     
 
 # insert
-def insert(vendor, customer, invoicing, due, items):
-    json_data = {"items": [{'vendor': vendor, 'customer': customer, 'invoicing': invoicing, 'due': due, 'items': items}]}
+def insert(vendor, customer, invoicing, due, payment, notes, items):
+    invoice = {'vendor': vendor, 'customer': customer, 'invoicing': invoicing,
+        'due': due, 'items': items
+    }
+    if payment and payment != "":
+        invoice['payment'] = payment
+    if notes and notes != "":
+        invoice['notes'] = notes
+     
+    json_data = {"items": [invoice]}
     try:
         resposta = requests.post(f'{endpoint}/invoice/create', json=json_data, timeout=5)
     except ConnectionError as e:

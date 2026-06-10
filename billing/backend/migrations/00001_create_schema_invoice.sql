@@ -50,6 +50,7 @@ create table invoice (
     amount numeric(15, 2) not null,
     invoice_date date not null,
     due_date date not null,
+    payment_date date,
     email_sent_date date,
     whatsapp_sent_date date,
     tax_date date,

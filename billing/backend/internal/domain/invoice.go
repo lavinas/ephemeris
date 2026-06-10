@@ -10,6 +10,7 @@ type Invoice struct {
 	Amount           float64       `gorm:"not null"`
 	InvoiceDate      time.Time     `gorm:"not null"`
 	DueDate          time.Time     `gorm:"not null"`
+	PaymentDate      *time.Time    `gorm:"null"`
 	EmailSentDate    *time.Time    `gorm:"null"`
 	WhatsappSentDate *time.Time    `gorm:"null"`
 	TaxDate          *time.Time    `gorm:"null"`
@@ -20,12 +21,13 @@ type Invoice struct {
 }
 
 // NewInvoice creates a new Invoice instance with the details and calculates the total amount.
-func NewInvoice(customerID int64, invoiceDate, dueDate time.Time,
+func NewInvoice(customerID int64, invoiceDate, dueDate time.Time, paymentDate *time.Time,
 	notes *string, items []InvoiceItem) *Invoice {
 	invoice := &Invoice{
 		CustomerID:   customerID,
 		InvoiceDate:  invoiceDate,
 		DueDate:      dueDate,
+		PaymentDate:  paymentDate,
 		Notes:        notes,
 		InvoiceItems: items,
 		CreatedAt:    time.Now(),
