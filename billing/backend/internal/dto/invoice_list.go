@@ -28,16 +28,16 @@ type InvoiceListResponse struct {
 
 // InvoiceList represents a single invoice item in the list response.
 type InvoiceList struct {
-	ID          int64                 `json:"id"`
-	Customer    string                `json:"customer"`
-	Amount      float64               `json:"amount"`
-	InvoiceDate string                `json:"invoicing"`
-	DueDate     string                `json:"due"`
-	EmailSentDate string             `json:"email_sent"`
-	WhatsappSentDate string          `json:"whatsapp_sent"`
-	TaxDate     string                `json:"tax"`
-	Notes       string                `json:"notes"`
-	Items       []InvoiceListListItem `json:"items,omitempty"`
+	ID               int64                 `json:"id"`
+	Customer         string                `json:"customer"`
+	Amount           float64               `json:"amount"`
+	InvoiceDate      string                `json:"invoicing"`
+	DueDate          string                `json:"due"`
+	EmailSentDate    string                `json:"email_sent"`
+	WhatsappSentDate string                `json:"whatsapp_sent"`
+	TaxDate          string                `json:"tax"`
+	Notes            string                `json:"notes"`
+	Items            []InvoiceListListItem `json:"items,omitempty"`
 }
 
 // InvoiceListListItem represents a single invoice item in the list response.
@@ -58,7 +58,7 @@ func NewInvoiceListResponse(code int, status, message string,
 }
 
 // NewInvoiceList creates a new instance of InvoiceList with the provided details.
-func NewInvoiceList(id int64, customer string, amount float64, invoiceDate, dueDate time.Time, 
+func NewInvoiceList(id int64, customer string, amount float64, invoiceDate, dueDate time.Time,
 	emailSentDate, whatsappSentDate, taxDate *time.Time, notes *string, items []InvoiceListListItem) InvoiceList {
 	invoiceDateStr := invoiceDate.Format("2006-01-02")
 	dueDateStr := dueDate.Format("2006-01-02")
@@ -79,16 +79,16 @@ func NewInvoiceList(id int64, customer string, amount float64, invoiceDate, dueD
 		notesStr = *notes
 	}
 	return InvoiceList{
-		ID:          id,
-		Customer:    customer,
-		Amount:      amount,
-		InvoiceDate: invoiceDateStr,
-		DueDate:     dueDateStr,
-		EmailSentDate: emailSentDateStr,
+		ID:               id,
+		Customer:         customer,
+		Amount:           amount,
+		InvoiceDate:      invoiceDateStr,
+		DueDate:          dueDateStr,
+		EmailSentDate:    emailSentDateStr,
 		WhatsappSentDate: whatsappSentDateStr,
-		TaxDate:     taxDateStr,
-		Notes:       notesStr,
-		Items:       items,
+		TaxDate:          taxDateStr,
+		Notes:            notesStr,
+		Items:            items,
 	}
 }
 
@@ -173,4 +173,4 @@ func (r *InvoiceListRequest) Reset() {
 	r.DueDate = nil
 }
 
-// 
+//

@@ -36,6 +36,8 @@ func (s *InvoiceList) Run(inDTO port.InDTO) port.OutDTO {
 			fmt.Sprintf("Validation failed: %v", err), nil)
 	}
 	// Fetch invoices from the repository
+	s.logger.IPrintf(2, "Fetching invoices with filters - Page: %d, PageSize: %d, CustomerID: %s, InvoiceDate: %s, DueDate: %s",
+		in.Page, in.PageSize, in.CustomerID, in.InvoiceDate, in.DueDate)
 	invoices, err := s.repo.FindInvoices(in.Page, in.PageSize, in.CustomerID, in.InvoiceDate,
 		in.DueDate)
 	if err != nil {

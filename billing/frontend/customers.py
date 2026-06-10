@@ -11,6 +11,7 @@ page_size = 1000
 
 # get
 def get(vendor, status, nickname, name, document, email, whatsapp):
+    # build request payload
     json_data = {'vendor': vendor, 'page': page, 'page_size': page_size}
     if nickname and nickname != "":
         json_data['nickname'] = nickname
@@ -26,7 +27,6 @@ def get(vendor, status, nickname, name, document, email, whatsapp):
         if status not in ['0', '1', '-1']:
             return "Erro: Status deve ser 0 (ativo), 1 (inativo) ou -1 (todos)."
         json_data['status'] = int(status)
-
     # make API call with error handling
     try:
         resposta = requests.get(f'{endpoint}/customer/list', json=json_data, timeout=5)
