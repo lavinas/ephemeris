@@ -18,6 +18,7 @@ type Repository interface {
 	GetVendor(nickname string) (*domain.Vendor, error)
 	FindInvoices(page, pageSize int, customer int64,
 		invoiceDate, dueDate, paymentDate, emailSentDate, whatsappSentDate, taxDate *string) ([]domain.Invoice, error)
+	GetInvoice(id int64) (*domain.Invoice, error)
 }
 
 // Logger defines the interface for logging messages with different levels of severity.

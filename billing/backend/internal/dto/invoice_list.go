@@ -21,6 +21,7 @@ type InvoiceListRequest struct {
 	PaymentDate      *string `json:"payment_date,omitempty"`
 	EmailSentDate    *string `json:"email_sent,omitempty"`
 	WhatsappSentDate *string `json:"whatsapp_sent,omitempty"`
+	CancellationDate *string `json:"cancellation_date,omitempty"`
 	TaxDate          *string `json:"tax,omitempty"`
 	Notes            *string `json:"notes,omitempty"`
 }
@@ -42,6 +43,7 @@ type InvoiceList struct {
 	EmailSentDate    string                `json:"email_sent"`
 	WhatsappSentDate string                `json:"whatsapp_sent"`
 	TaxDate          string                `json:"tax"`
+	CancellationDate string                `json:"cancellation"`
 	Notes            string                `json:"notes"`
 	Items            []InvoiceListListItem `json:"items,omitempty"`
 }
@@ -65,7 +67,8 @@ func NewInvoiceListResponse(code int, status, message string,
 
 // NewInvoiceList creates a new instance of InvoiceList with the provided details.
 func NewInvoiceList(id int64, customer string, amount float64, invoiceDate, dueDate time.Time,
-	paymentDate, emailSentDate, whatsappSentDate, taxDate *time.Time, notes *string, items []InvoiceListListItem) InvoiceList {
+	paymentDate, emailSentDate, whatsappSentDate, taxDate, cancellationDate *time.Time,
+	notes *string, items []InvoiceListListItem) InvoiceList {
 	invoiceDateStr := invoiceDate.Format("2006-01-02")
 	dueDateStr := dueDate.Format("2006-01-02")
 	paymentDateStr := "-"
@@ -84,6 +87,10 @@ func NewInvoiceList(id int64, customer string, amount float64, invoiceDate, dueD
 	if taxDate != nil {
 		taxDateStr = taxDate.Format("2006-01-02")
 	}
+	cancellationDateStr := "-"
+	if cancellationDate != nil {
+		cancellationDateStr = cancellationDate.Format("2006-01-02")
+	}
 	notesStr := "-"
 	if notes != nil {
 		notesStr = *notes
@@ -98,6 +105,7 @@ func NewInvoiceList(id int64, customer string, amount float64, invoiceDate, dueD
 		EmailSentDate:    emailSentDateStr,
 		WhatsappSentDate: whatsappSentDateStr,
 		TaxDate:          taxDateStr,
+		CancellationDate: cancellationDateStr,
 		Notes:            notesStr,
 		Items:            items,
 	}

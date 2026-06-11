@@ -57,7 +57,7 @@ func (s *InvoiceList) mountInvoices(invoices []domain.Invoice) []dto.InvoiceList
 		}
 		responseInvoices[i] = dto.NewInvoiceList(invoice.ID, invoice.Customer.Nickname, invoice.Amount,
 			invoice.InvoiceDate, invoice.DueDate, invoice.PaymentDate, invoice.EmailSentDate, invoice.WhatsappSentDate,
-			invoice.TaxDate, invoice.Notes, items)
+			invoice.TaxDate, invoice.CancellationDate, invoice.Notes, items)
 	}
 	return responseInvoices
 }

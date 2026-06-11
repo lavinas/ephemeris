@@ -25,24 +25,24 @@ def get(vendor, status, nickname, name, document, email, whatsapp):
         json_data['whatsapp'] = whatsapp
     if status and status != "":
         if status not in ['0', '1', '-1']:
-            return "Erro: Status deve ser 0 (ativo), 1 (inativo) ou -1 (todos)."
+            return "Erro: Status deve ser 0 (ativo), 1 (inativo) ou -1 (todos).", 0
         json_data['status'] = int(status)
     # make API call with error handling
     try:
         resposta = requests.get(f'{endpoint}/customer/list', json=json_data, timeout=5)
     except ConnectionError as e:
-        return f"Erro: A conexão foi recusada pelo servidor remoto. Detalhes: {e}"
+        return f"Erro: A conexão foi recusada pelo servidor remoto. Detalhes: {e}", 0
     except Timeout as e:
-        return f"Erro: A requisição excedeu o tempo limite estabelecido. {e}"
+        return f"Erro: A requisição excedeu o tempo limite estabelecido. {e}", 0
     except requests.exceptions.RequestException as e:
-        return f"Ocorreu um erro genérico no requests: {e}"
+        return f"Ocorreu um erro genérico no requests: {e}", 0
     # verify response status code
     if resposta.status_code != 200:
-        return f'Erro na chamada da API: {resposta.status_code} - {resposta.text}'
+        return f'Erro na chamada da API: {resposta.status_code} - {resposta.text}', 0
     # processing response data
     json_data = resposta.json()
     if 'customers' not in json_data or len(json_data['customers']) == 0:
-        return 'Nenhum cliente encontrado.'
+        return 'Nenhum cliente encontrado.', 0
     # exibir clientes
     customers = json_data['customers']
     df = pd.DataFrame(customers)

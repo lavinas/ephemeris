@@ -234,3 +234,17 @@ func (a *PostgresRepository) FindInvoices(page, pageSize int, customer int64,
 	err := db.Find(&invoices).Error
 	return invoices, err
 }
+
+// GetInvoice retrieves a single invoice by ID
+func (a *PostgresRepository) GetInvoice(id int64) (*domain.Invoice, error) {
+	var invoice domain.Invoice
+	err := a.DB.Preload("InvoiceItems").Preload("Customer").
+		Where("id = ?", id).First(&invoice).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil // Return nil if no record is found
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &invoice, nil
+}

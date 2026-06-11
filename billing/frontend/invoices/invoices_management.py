@@ -10,7 +10,7 @@ page = 1
 page_size = 1000
 
 # get
-def get(vendor, customer, invoicing, due, payment, email_sent, whatsapp_sent, tax):
+def get(vendor, customer, invoicing, due, payment, email_sent, whatsapp_sent, tax, cancellation):
     # build request payload
     json_data = {'vendor': vendor, 'page': page, 'page_size': page_size}
     if customer and customer != "":
@@ -21,6 +21,8 @@ def get(vendor, customer, invoicing, due, payment, email_sent, whatsapp_sent, ta
         json_data['due'] = due
     if payment and payment != "":
         json_data['payment'] = payment
+    if cancellation and cancellation != "":
+        json_data['cancellation'] = cancellation
     if email_sent and email_sent != "":
         json_data['email_sent'] = email_sent
     if whatsapp_sent and whatsapp_sent != "":
@@ -60,12 +62,14 @@ def get(vendor, customer, invoicing, due, payment, email_sent, whatsapp_sent, ta
     
 
 # insert
-def insert(vendor, customer, invoicing, due, payment, notes, items):
+def insert(vendor, customer, invoicing, due, payment, cancellation, notes, items):
     invoice = {'vendor': vendor, 'customer': customer, 'invoicing': invoicing,
         'due': due, 'items': items
     }
     if payment and payment != "":
         invoice['payment'] = payment
+    if cancellation and cancellation != "":
+        invoice['cancellation'] = cancellation
     if notes and notes != "":
         invoice['notes'] = notes
      

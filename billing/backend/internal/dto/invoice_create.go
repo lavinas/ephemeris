@@ -21,15 +21,16 @@ type InvoiceCreateRequest struct {
 
 // InvoiceCreateRequest represents the data transfer object for creating a new invoice.
 type InvoiceCreate struct {
-	Vendor       string               `json:"vendor" validate:"required"`
-	vendorID     int64                `json:"-"`
-	Customer     string               `json:"customer" validate:"required"`
-	customerID   int64                `json:"-"`
-	InvoiceDate  string               `json:"invoicing" validate:"required"`
-	DueDate      string               `json:"due" validate:"required"`
-	PaymentDate  *string              `json:"payment,omitempty"`
-	Notes        *string              `json:"notes,omitempty"`
-	InvoiceItems []*InvoiceCreateItem `json:"items" validate:"required,dive,required"`
+	Vendor           string               `json:"vendor" validate:"required"`
+	vendorID         int64                `json:"-"`
+	Customer         string               `json:"customer" validate:"required"`
+	customerID       int64                `json:"-"`
+	InvoiceDate      string               `json:"invoicing" validate:"required"`
+	DueDate          string               `json:"due" validate:"required"`
+	PaymentDate      *string              `json:"payment,omitempty"`
+	CancellationDate *string              `json:"cancellation,omitempty"`
+	Notes            *string              `json:"notes,omitempty"`
+	InvoiceItems     []*InvoiceCreateItem `json:"items" validate:"required,dive,required"`
 }
 
 // InvoiceCreateItemDTO represents an item in the invoice with description, quantity, and unit price.
@@ -132,6 +133,15 @@ func (r *InvoiceCreate) validateDates() []error {
 			errs = append(errs, fmt.Errorf("payment date cannot be before invoice date"))
 		}
 	}
+	if r.CancellationDate != nil {
+		cancellationDate, err := time.Parse("2006-01-02", *r.CancellationDate)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("cancellation_date expected with YYYY-MM-DD format"))
+		}
+		if !invoiceDate.IsZero() && !cancellationDate.IsZero() && cancellationDate.Before(invoiceDate) {
+			errs = append(errs, fmt.Errorf("cancellation date cannot be before invoice date"))
+		}
+	}
 	return errs
 }
 
@@ -226,7 +236,13 @@ func (r *InvoiceCreate) GetDomain() *domain.Invoice {
 			pDate = &parsedDate
 		}
 	}
-	return domain.NewInvoice(r.customerID, iDate, dDate, pDate, r.Notes, invoiceItems)
+	var cDate *time.Time
+	if r.CancellationDate != nil {
+		if parsedDate, err := time.Parse("2006-01-02", *r.CancellationDate); err == nil {
+			cDate = &parsedDate
+		}
+	}
+	return domain.NewInvoice(r.customerID, iDate, dDate, pDate, cDate, r.Notes, invoiceItems)
 }
 
 // GetDomain converts the InvoiceCreateItem to a domain.InvoiceItem entity.

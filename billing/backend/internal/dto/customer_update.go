@@ -6,6 +6,7 @@ import (
 	"net/mail"
 	"regexp"
 	"strings"
+	"time"
 
 	"billing/internal/domain"
 	"billing/internal/port"
@@ -232,6 +233,7 @@ func (r *CustomerUpdateRequest) GetDomain() interface{} {
 	if r.Status != nil {
 		r.customer.Status = *r.Status
 	}
+	r.customer.UpdatedAt = time.Now()
 	return r.customer
 }
 

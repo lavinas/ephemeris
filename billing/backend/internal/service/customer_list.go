@@ -44,7 +44,7 @@ func (s *CustomerList) Run(inDTO port.InDTO) port.OutDTO {
 	customerDTOs := make([]dto.CustomerDTO, len(customers))
 	for i, c := range customers {
 		customerDTOs[i] = dto.NewCustomerDTO(c.ID, c.Name, c.Nickname, c.Status,
-			c.Document, c.Email, c.Whatsapp)
+			c.Document, c.Email, c.Whatsapp, c.CreatedAt, c.UpdatedAt)
 	}
 	s.logger.IPrintf(2, "Successfully listed %d customers", len(customers))
 	return dto.NewCustomerListResponse(200, "success", "Customers listed successfully",

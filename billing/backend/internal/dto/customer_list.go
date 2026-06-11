@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"billing/internal/port"
 )
@@ -30,13 +31,15 @@ type CustomerListResponse struct {
 
 // CustomerDTO represents the data transfer object for a customer in the list response.
 type CustomerDTO struct {
-	ID       int64   `json:"id"`
-	Name     string  `json:"name"`
-	Nickname string  `json:"nickname"`
-	Status   int     `json:"status"`
-	Document *string `json:"document,omitempty"`
-	Email    *string `json:"email,omitempty"`
-	Whatsapp *string `json:"whatsapp,omitempty"`
+	ID        int64  `json:"id"`
+	Nickname  string `json:"nickname"`
+	Name      string `json:"name"`
+	Document  string `json:"document"`
+	Email     string `json:"email"`
+	Whatsapp  string `json:"whatsapp"`
+	Status    int    `json:"status"`
+	CreatedAt string `json:"created_at"`
+	UpdatedAt string `json:"updated_at"`
 }
 
 // NewCustomerListResponse creates a new instance of CustomerListResponse with the provided
@@ -51,15 +54,30 @@ func NewCustomerListResponse(httpCode int, status, message string,
 
 // NewCustomerDTO creates a new instance of CustomerDTO from the given customer details.
 func NewCustomerDTO(id int64, name, nickname string, status int,
-	document, email, whatsapp *string) CustomerDTO {
+	document, email, whatsapp *string, createdAt, updatedAt time.Time) CustomerDTO {
+	docStr := ""
+	if document != nil {
+		docStr = *document
+	}
+	emailStr := ""
+	if email != nil {
+		emailStr = *email
+	}
+	whatsappStr := ""
+	if whatsapp != nil {
+		whatsappStr = *whatsapp
+	}
+
 	return CustomerDTO{
-		ID:       id,
-		Name:     name,
-		Nickname: nickname,
-		Status:   status,
-		Document: document,
-		Email:    email,
-		Whatsapp: whatsapp,
+		ID:        id,
+		Nickname:  nickname,
+		Name:      name,
+		Document:  docStr,
+		Email:     emailStr,
+		Whatsapp:  whatsappStr,
+		Status:    status,
+		CreatedAt: createdAt.Format("2006-01-02 15:04:05"),
+		UpdatedAt: updatedAt.Format("2006-01-02 15:04:05"),
 	}
 }
 

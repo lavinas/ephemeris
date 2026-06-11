@@ -16,8 +16,8 @@ create table vendor (
     account_agency varchar(20) not null,
     account_number varchar(50) not null,
     pix_token varchar(255)not null,
-    created_at timestamp not null default now(),
-    updated_at timestamp not null default now(),
+    created_at timestamp not null,
+    updated_at timestamp not null,
     constraint unique_vendor_document unique(document)
 );
 # main vendor
@@ -31,19 +31,17 @@ create table customer (
     name varchar(150) not null,
     vendor_id bigint not null references vendor(id) on delete cascade,
     nickname varchar(150) not null,
-    status int not null default 1,
     document varchar(50),
     email varchar(150),
     whatsapp varchar(20),
-    created_at timestamp with time zone default now(),
-    updated_at timestamp with time zone default now(),
+    created_at timestamp not null,
+    updated_at timestamp not null,
+    status int not null default 1,
     constraint unique_customer_document unique(vendor_id, document),
     constraint unique_customer_nickname unique(vendor_id, nickname)
 );
 
 drop Table if exists invoice cascade;
-
-drop table invoice;
 create table invoice (
     id bigserial primary key,
     customer_id bigint not null references customer(id) on delete cascade,
@@ -53,20 +51,21 @@ create table invoice (
     payment_date date,
     email_sent_date date,
     whatsapp_sent_date date,
+    cancellation_date date,
     tax_date date,
     notes text null,
-    created_at timestamp not null default now(),
-    updated_at timestamp not null default now()
+    status int not null default 1,
+    created_at timestamp not null,
+    updated_at timestamp not null
 );
 
 drop Table if exists invoice_item cascade;
-drop table invoice_item;
 create table invoice_item (
     id bigserial primary key,
     invoice_id bigint not null references invoice(id) on delete cascade,
     price numeric(15, 2) not null,
     quantity int not null,
     description varchar(255) not null,
-    created_at timestamp not null default now(),
-    updated_at timestamp not null default now()
+    created_at timestamp not null,
+    updated_at timestamp not null
 );
