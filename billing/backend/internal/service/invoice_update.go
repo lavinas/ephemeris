@@ -12,15 +12,15 @@ type InvoiceUpdate struct {
 }
 
 // NewCustomerUpdate creates a new instance of CustomerUpdate with the provided repository and logger.
-func NewInvoiceUpdate(repo port.Repository, logger port.Logger) *CustomerUpdate {
-	return &CustomerUpdate{
+func NewInvoiceUpdate(repo port.Repository, logger port.Logger) *InvoiceUpdate {
+	return &InvoiceUpdate{
 		Base: NewBase(repo, logger),
 	}
 }
 
 // Run executes the customer update process using the provided request data and returns a response.
 func (s *InvoiceUpdate) Run(inDTO port.InDTO) port.OutDTO {
-	request, ok := inDTO.(*dto.CustomerUpdateRequest)
+	request, ok := inDTO.(*dto.InvoiceUpdateRequest)
 	if !ok {
 		s.logger.IPrintf(2, "Invalid input type")
 		return dto.NewCustomerUpdateResponse(400, "error", "Invalid input type")
