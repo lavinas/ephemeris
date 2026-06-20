@@ -82,7 +82,55 @@ def insert(vendor, customer, invoicing, due, payment, cancellation, notes, items
         return f"Erro: A requisição excedeu o tempo limite estabelecido. {e}"
     except requests.exceptions.RequestException as e:
         return f"Ocorreu um erro genérico no requests: {e}"
-    if resposta.status_code != 200:
-        return f'Erro na chamada da API: {resposta.status_code} - {resposta.text}'
     resp = resposta.json()
     return f'{resp["status"]} - {resp["message"]}'
+
+
+# insertCSV
+def insert_csv(vendor, csv_file):
+    try:
+        df = pd.read_csv(csv_file)
+        df = df.fillna('')
+        df = df.map(lambda x: x.strip() if isinstance(x, str) else x)
+    except FileNotFoundError:
+        return [f"Erro: O arquivo {csv_file} não foi encontrado."]
+    except pd.errors.EmptyDataError:
+        return [f"Erro: O arquivo {csv_file} está vazio."]
+    except pd.errors.ParserError as e:
+        return [f"Erro ao analisar o arquivo CSV: {e}"]
+    except Exception as e:
+        return [f"Ocorreu um erro ao ler o arquivo CSV: {e}"]
+
+    responses = []
+    descs = df.filter(like='description').columns
+    qttys = df.filter(like='quantity').columns
+    prices = df.filter(like='price').columns
+    for _, row in df.iterrows():
+        customer = row.get('customer', '')
+        invoicing = format_date(row.get('invoicing', ''))
+        due = format_date(row.get('due', ''))
+        payment = format_date(row.get('payment', ''))
+        cancellation = format_date(row.get('cancellation', ''))
+        notes = row.get('notes', '')
+        items = []
+        for desc_col, qtty_col, price_col in zip(descs, qttys, prices):
+            if row.get(desc_col, '') != '' and row.get(qtty_col, 0) != 0 and row.get(price_col, 0.0) != 0.0:
+                description = row.get(desc_col, '')
+                qtty = int(row.get(qtty_col, 0))
+                price = float(row.get(price_col, 0.0))
+                items.append({'description': description, 'quantity': qtty, 'price': price})
+        payload = {'vendor': vendor, 'customer': customer, 'invoicing': invoicing,
+                   'due': due, 'payment': payment, 'cancellation': cancellation, 
+                   'notes': notes, 'items': items}    
+        resp = insert(vendor, customer, invoicing, due, payment, cancellation, notes, items)
+        responses.append(f"Payload '{payload}'.Resposta: {resp}")
+    return responses
+
+# format_date
+def format_date(date_str):
+    if date_str in [None, '', '-']:
+        return date_str
+    try:
+        return pd.to_datetime(date_str, format='%d/%m/%Y').strftime('%Y-%m-%d')
+    except Exception as e:
+        return date_str

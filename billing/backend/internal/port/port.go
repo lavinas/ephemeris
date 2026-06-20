@@ -1,6 +1,10 @@
 package port
 
-import "billing/internal/domain"
+import (
+	"time"
+
+	"billing/internal/domain"
+)
 
 // Repository defines the interface for interacting with the data storage layer for invoices.
 type Repository interface {
@@ -19,6 +23,7 @@ type Repository interface {
 	FindInvoices(page, pageSize int, customer int64,
 		invoiceDate, dueDate, paymentDate, emailSentDate, whatsappSentDate, taxDate *string) ([]domain.Invoice, error)
 	GetInvoice(id int64) (*domain.Invoice, error)
+	GetInvoicesByKey(customerID int64, invoiceDate time.Time) ([]domain.Invoice, error)
 }
 
 // Logger defines the interface for logging messages with different levels of severity.

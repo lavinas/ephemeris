@@ -82,7 +82,7 @@ func (r *InvoiceCreate) Validate(repo port.Repository) error {
 	if err := r.validateNotes(); err != nil {
 		errs = append(errs, err)
 	}
-	if dateErrs := r.validateDates(); len(dateErrs) > 0 {
+	if dateErrs := r.validateDates(repo); len(dateErrs) > 0 {
 		errs = append(errs, dateErrs...)
 	}
 	if itemErrs := r.validateItems(); len(itemErrs) > 0 {
@@ -111,11 +111,18 @@ func (r *InvoiceCreate) validateNotes() error {
 }
 
 // validateDates validates the invoice, due, and payment dates to ensure they are in the correct format.
-func (r *InvoiceCreate) validateDates() []error {
+func (r *InvoiceCreate) validateDates(repo port.Repository) []error {
 	errs := make([]error, 0)
 	invoiceDate, err := time.Parse("2006-01-02", r.InvoiceDate)
 	if err != nil {
 		errs = append(errs, fmt.Errorf("invoicing expected with YYYY-MM-DD format"))
+	} else {
+		existingInvoices, err := repo.GetInvoicesByKey(r.customerID, invoiceDate)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("error checking for duplicate invoices: %v", err))
+		} else if len(existingInvoices) > 0 {
+			errs = append(errs, fmt.Errorf("an invoice with the same customer and invoice date already exists"))
+		}
 	}
 	dueDate, err := time.Parse("2006-01-02", r.DueDate)
 	if err != nil {
