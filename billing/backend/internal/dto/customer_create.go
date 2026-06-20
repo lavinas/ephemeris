@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/mail"
-	"regexp"
 	"strings"
 
 	"billing/internal/domain"
@@ -228,18 +227,17 @@ func (r *CustomerCreateRequestItem) validateWhatsapp() error {
 	if r.Whatsapp == "" {
 		return nil
 	}
-	phoneRegex := `^\(?([1-9]{2})\)?\s?(9[1-9][0-9]{3})-?([0-9]{4})$`
-	matched, err := regexp.MatchString(phoneRegex, r.Whatsapp)
-	if err != nil {
-		return fmt.Errorf("failed to validate whatsapp: %v", err)
+	num, err := ValidateCellNumber(r.Whatsapp)
+	if err == nil {
+		r.Whatsapp = num
+		return nil
 	}
-	if !matched {
-		return fmt.Errorf("invalid whatsapp format")
+	num, err = ValidateCellNumber(fmt.Sprintf("+%s", r.Whatsapp))
+	if err == nil {
+		r.Whatsapp = num
+		return nil
 	}
-	// formating the WhatsApp number to only digits to extract the area code and the number
-	n := regexp.MustCompile(`\D`).ReplaceAllString(r.Whatsapp, "")
-	r.Whatsapp = fmt.Sprintf("(%s) %s-%s", n[0:2], n[2:7], n[7:11])
-	return nil
+	return fmt.Errorf("invalid WhatsApp number format")
 }
 
 // Reset resets the fields of the CustomerCreateRequest to their zero values.

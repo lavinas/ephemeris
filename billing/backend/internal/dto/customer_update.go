@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/mail"
-	"regexp"
 	"strings"
 	"time"
 
@@ -153,14 +152,17 @@ func (r *CustomerUpdateRequest) validateWhatsapp() error {
 	if *r.Whatsapp == "" {
 		return fmt.Errorf("whatsapp cannot be empty")
 	}
-	matched, err := regexp.MatchString(`^\(?\d{2}\)?\s?\d{4,5}-?\d{4}$`, *r.Whatsapp)
-	if err != nil {
-		return fmt.Errorf("failed to validate whatsapp: %v", err)
+	num, err := ValidateCellNumber(*r.Whatsapp)
+	if err == nil {
+		r.Whatsapp = &num
+		return nil
 	}
-	if !matched {
-		return fmt.Errorf("whatsapp '%s' is not in a valid format", *r.Whatsapp)
+	num, err = ValidateCellNumber(fmt.Sprintf("+%s", *r.Whatsapp))
+	if err == nil {
+		r.Whatsapp = &num
+		return nil
 	}
-	return nil
+	return fmt.Errorf("invalid WhatsApp number format")
 }
 
 // validateCpfCnpj checks if the provided document is a valid CPF or CNPJ and formats it.

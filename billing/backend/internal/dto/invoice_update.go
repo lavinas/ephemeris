@@ -3,26 +3,26 @@ package dto
 import (
 	"errors"
 	"fmt"
-	"time"
 	"strings"
+	"time"
 
-	"billing/internal/port"
 	"billing/internal/domain"
+	"billing/internal/port"
 )
 
 // InvoiceUpdateRequest represents the data transfer object for updating an existing invoice.
 type InvoiceUpdateRequest struct {
-	Vendor		     string               `json:"vendor" validate:"required"`
-	vendorID	     int64                `json:"-" validate:"-"`
-	ID			     int64                `json:"id" validate:"required"`
-	InvoiceDate      *string              `json:"invoicing,omitempty"`
-	DueDate          *string              `json:"due,omitempty"`
-	PaymentDate      *string              `json:"payment,omitempty"`
-	EmailSentDate    *string              `json:"email_sent,omitempty"`
-	WhatsappSentDate *string              `json:"whatsapp_sent,omitempty"`
-	TaxDate          *string              `json:"tax,omitempty"`
-	CancellationDate *string              `json:"cancellation,omitempty"`
-	invoice          *domain.Invoice      `json:"-" validate:"-"`
+	Vendor           string          `json:"vendor" validate:"required"`
+	vendorID         int64           `json:"-" validate:"-"`
+	ID               int64           `json:"id" validate:"required"`
+	InvoiceDate      *string         `json:"invoicing,omitempty"`
+	DueDate          *string         `json:"due,omitempty"`
+	PaymentDate      *string         `json:"payment,omitempty"`
+	EmailSentDate    *string         `json:"email_sent,omitempty"`
+	WhatsappSentDate *string         `json:"whatsapp_sent,omitempty"`
+	TaxDate          *string         `json:"tax,omitempty"`
+	CancellationDate *string         `json:"cancellation,omitempty"`
+	invoice          *domain.Invoice `json:"-" validate:"-"`
 }
 
 // InvoiceUpdateResponse represents the data transfer object for the response of updating an existing invoice.
@@ -209,7 +209,7 @@ func (r *InvoiceUpdateRequest) GetDomain() interface{} {
 		return nil
 	}
 	if r.InvoiceDate != nil {
-	    dt, _ := time.Parse("2006-01-02", *r.InvoiceDate)	
+		dt, _ := time.Parse("2006-01-02", *r.InvoiceDate)
 		r.invoice.InvoiceDate = dt
 	}
 

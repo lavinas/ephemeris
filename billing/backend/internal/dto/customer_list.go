@@ -132,4 +132,3 @@ func (r *CustomerListRequest) Reset() {
 	r.Email = nil
 	r.Whatsapp = nil
 }
-
