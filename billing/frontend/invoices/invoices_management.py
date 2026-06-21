@@ -9,8 +9,52 @@ endpoint = 'http://localhost:8080'
 page = 1
 page_size = 1000
 
+
 # get
 def get(vendor, customer, invoicing, due, payment, email_sent, whatsapp_sent, tax, cancellation):
+    # build request payload
+    json_data = {'vendor': vendor, 'page': page, 'page_size': page_size}
+    if customer and customer != "":
+        json_data['customer'] = customer
+    if invoicing and invoicing != "":
+        json_data['invoicing'] = invoicing
+    if due and due != "":
+        json_data['due'] = due
+    if payment and payment != "":
+        json_data['payment'] = payment
+    if cancellation and cancellation != "":
+        json_data['cancellation'] = cancellation
+    if email_sent and email_sent != "":
+        json_data['email_sent'] = email_sent
+    if whatsapp_sent and whatsapp_sent != "":
+        json_data['whatsapp_sent'] = whatsapp_sent
+    if tax and tax != "":
+        json_data['tax'] = tax
+    # make API call with error handling
+    try:
+        resposta = requests.get(f'{endpoint}/invoice/list', json=json_data, timeout=5)
+    except ConnectionError as e:
+        return f"Erro: A conexão foi recusada pelo servidor remoto. Detalhes: {e}"
+    except Timeout as e:
+        return f"Erro: A requisição excedeu o tempo limite estabelecido. {e}"
+    except requests.exceptions.RequestException as e:
+        return f"Ocorreu um erro genérico no requests: {e}"
+    if resposta.status_code != 200:
+        return f'Erro na chamada da API: {resposta.status_code} - {resposta.text}'
+    # processing response data
+    json_data = resposta.json()
+    if 'invoices' not in json_data or len(json_data['invoices']) == 0:
+        return 'Nenhuma fatura encontrada.'
+    # get items from invoices and merge with invoices data
+    df_invoices = pd.DataFrame(json_data['invoices'])
+    df_invoices = df_invoices.fillna('-')
+    lb = lambda items: '\n'.join([f"{item['description']} (qtty: {item['quantity']}, price: {item['price']})" 
+                                  for item in items]) if isinstance(items, list) else '-'
+    df_invoices['items'] = df_invoices['items'].apply(lb)
+    return tabulate(df_invoices, headers='keys', tablefmt='grid', showindex=False)    
+
+# get
+def get2(vendor, customer, invoicing, due, payment, email_sent, whatsapp_sent, tax, cancellation):
     # build request payload
     json_data = {'vendor': vendor, 'page': page, 'page_size': page_size}
     if customer and customer != "":
@@ -57,9 +101,11 @@ def get(vendor, customer, invoicing, due, payment, email_sent, whatsapp_sent, ta
     df_invoices = df_invoices.fillna('-')
     df_itens = pd.DataFrame(itens_list)
     df = pd.merge(df_invoices, df_itens, left_on='id', right_on='id', how='left')
-    # fillna after merge    
+    dup = df.duplicated(subset=['id'], keep='first')
+    dup_lines = ['customer', 'invoicing', 'due', 'payment', 'email_sent', 
+                 'whatsapp_sent', 'tax', 'cancellation', 'notes']
+    df.loc[dup, dup_lines] = ''
     return tabulate(df, headers='keys', tablefmt='grid', showindex=False)    
-    
 
 # insert
 def insert(vendor, customer, invoicing, due, payment, cancellation, notes, items):
@@ -85,6 +131,34 @@ def insert(vendor, customer, invoicing, due, payment, cancellation, notes, items
     resp = resposta.json()
     return f'{resp["status"]} - {resp["message"]}'
 
+
+# update
+def update(vendor, id, invoicing, due, payment, email_sent, whatsapp_sent, tax, cancellation):
+    invoice = {'vendor': vendor, 'id': id}
+    if invoicing and invoicing != "":
+        invoice['invoicing'] = invoicing
+    if due and due != "":
+        invoice['due'] = due
+    if payment and payment != "":
+        invoice['payment'] = payment
+    if cancellation and cancellation != "":
+        invoice['cancellation'] = cancellation
+    if email_sent and email_sent != "":
+        invoice['email_sent'] = email_sent
+    if whatsapp_sent and whatsapp_sent != "":
+        invoice['whatsapp_sent'] = whatsapp_sent
+    if tax and tax != "":
+        invoice['tax'] = tax
+    try:
+        resposta = requests.patch(f'{endpoint}/invoice/update', json=invoice, timeout=5)
+    except ConnectionError as e:
+        return f"Erro: A conexão foi recusada pelo servidor remoto. Detalhes: {e}"
+    except Timeout as e:
+        return f"Erro: A requisição excedeu o tempo limite estabelecido. {e}"
+    except requests.exceptions.RequestException as e:
+        return f"Ocorreu um erro genérico no requests: {e}"
+    resp = resposta.json()
+    return f'{resp["status"]} - {resp["message"]}'
 
 # insertCSV
 def insert_csv(vendor, csv_file):
