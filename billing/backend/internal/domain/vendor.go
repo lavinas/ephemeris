@@ -10,6 +10,7 @@ type Vendor struct {
 	LegalName     string    `gorm:"not null"`
 	Nickname      string    `gorm:"not null;unique"`
 	Document      string    `gorm:"not null;unique"`
+	TaxDocument   string    `gorm:"not null"`
 	AccountBank   string    `gorm:"not null"`
 	AccountAgency string    `gorm:"not null"`
 	AccountNumber string    `gorm:"not null"`

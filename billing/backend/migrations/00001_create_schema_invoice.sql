@@ -12,6 +12,7 @@ create table vendor (
     legal_name varchar(150) not null,
     nickname varchar(150),
     document varchar(50) not null,
+    tax_document varchar(50) not null,
     account_bank varchar(100) not null,
     account_agency varchar(20) not null,
     account_number varchar(50) not null,
@@ -21,8 +22,13 @@ create table vendor (
     constraint unique_vendor_document unique(document)
 );
 # main vendor
-insert into vendor (legal_name, nickname, document, account_bank, account_agency, account_number, pix_token, created_at, updated_at) values
-('Cardoso e Barbosa Servicos Musicais e Tecnologia LTDA', 'estudio_amelia', '27.928.875/0001-04', 'Santander (033)', '0985', '13001001-4', 'CNPJ: 27.928.875/0001-04', now(), now());
+insert into vendor (legal_name, nickname, document, tax_document, account_bank, account_agency, account_number, pix_token, created_at, updated_at) values
+('Cardoso e Barbosa Servicos Musicais e Tecnologia LTDA', 'estudio_amelia', '27.928.875/0001-04', '27.928.875/0001-04', 'Santander (033)', '0985', '13001001-4', 'CNPJ: 27.928.875/0001-04', now(), now());
+
+
+
+
+
 
 # customer table
 drop table if exists customer cascade;
