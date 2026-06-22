@@ -18,10 +18,10 @@ type InvoiceListRequest struct {
 	VendorID         int64   `json:"vendor_id,omitempty"`
 	InvoiceDate      *string `json:"invoicing,omitempty"`
 	DueDate          *string `json:"due,omitempty"`
-	PaymentDate      *string `json:"payment_date,omitempty"`
+	PaymentDate      *string `json:"payment,omitempty"`
 	EmailSentDate    *string `json:"email_sent,omitempty"`
 	WhatsappSentDate *string `json:"whatsapp_sent,omitempty"`
-	CancellationDate *string `json:"cancellation_date,omitempty"`
+	CancellationDate *string `json:"cancellation,omitempty"`
 	TaxDate          *string `json:"tax,omitempty"`
 	Notes            *string `json:"notes,omitempty"`
 }

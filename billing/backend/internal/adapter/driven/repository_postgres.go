@@ -212,22 +212,46 @@ func (a *PostgresRepository) FindInvoices(page, pageSize int, customer int64,
 		db = db.Where("customer_id = ?", customer)
 	}
 	if invoiceDate != nil {
-		db = db.Where("invoice_date::text ILIKE ?", "%"+*invoiceDate+"%")
+		if *invoiceDate == "null" {
+			db = db.Where("invoice_date IS NULL")
+		} else {
+			db = db.Where("invoice_date::text ILIKE ?", "%"+*invoiceDate+"%")
+		}
 	}
 	if dueDate != nil {
-		db = db.Where("due_date::text ILIKE ?", "%"+*dueDate+"%")
+		if *dueDate == "null" {
+			db = db.Where("due_date IS NULL")
+		} else {
+			db = db.Where("due_date::text ILIKE ?", "%"+*dueDate+"%")
+		}
 	}
 	if paymentDate != nil {
-		db = db.Where("payment_date::text ILIKE ?", "%"+*paymentDate+"%")
+		if *paymentDate == "null" {
+			db = db.Where("payment_date IS NULL")
+		} else {
+			db = db.Where("payment_date::text ILIKE ?", "%"+*paymentDate+"%")
+		}
 	}
 	if emailSentDate != nil {
-		db = db.Where("email_sent_date::text ILIKE ?", "%"+*emailSentDate+"%")
+		if *emailSentDate == "null" {
+			db = db.Where("email_sent_date IS NULL")
+		} else {
+			db = db.Where("email_sent_date::text ILIKE ?", "%"+*emailSentDate+"%")
+		}
 	}
 	if whatsappSentDate != nil {
-		db = db.Where("whatsapp_sent_date::text ILIKE ?", "%"+*whatsappSentDate+"%")
+		if *whatsappSentDate == "null" {
+			db = db.Where("whatsapp_sent_date IS NULL")
+		} else {
+			db = db.Where("whatsapp_sent_date::text ILIKE ?", "%"+*whatsappSentDate+"%")
+		}
 	}
 	if taxDate != nil {
-		db = db.Where("tax_date::text ILIKE ?", "%"+*taxDate+"%")
+		if *taxDate == "null" {
+			db = db.Where("tax_date IS NULL")
+		} else {
+			db = db.Where("tax_date::text ILIKE ?", "%"+*taxDate+"%")
+		}
 	}
 	if page > 0 && pageSize > 0 {
 		db = db.Offset((page - 1) * pageSize).Limit(pageSize)
