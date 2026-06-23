@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"billing/internal/dto"
+	"fmt"
 )
 
 func validarNumeroInternacional(numeroInput string) {
@@ -27,11 +27,11 @@ func validarNumeroInternacional(numeroInput string) {
 
 func main() {
 	// Testando números de vários países sem especificar a região no código
-	validarNumeroInternacional("(11)980876112") // Brasil
-	validarNumeroInternacional("41 76 752-0704")  // Suiça
+	validarNumeroInternacional("(11)980876112")  // Brasil
+	validarNumeroInternacional("41 76 752-0704") // Suiça
 	validarNumeroInternacional("+5511999998888") // Brasil
-	validarNumeroInternacional("+1813733-9523")   // Estados Unidos
+	validarNumeroInternacional("+1813733-9523")  // Estados Unidos
 	validarNumeroInternacional("+351211234567")  // Portugal
-	validarNumeroInternacional("351912345678")  // Reino Unido
+	validarNumeroInternacional("351912345678")   // Reino Unido
 	validarNumeroInternacional("11999998888")    // Vai falhar (sem o +)
 }
