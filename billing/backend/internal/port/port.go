@@ -24,6 +24,7 @@ type Repository interface {
 		invoiceDate, dueDate, paymentDate, emailSentDate, whatsappSentDate, taxDate *string) ([]domain.Invoice, error)
 	GetInvoice(id int64) (*domain.Invoice, error)
 	GetInvoicesByKey(customerID int64, invoiceDate time.Time) ([]domain.Invoice, error)
+	GetEmissions(vendorID int64, invoiceStartDate, invoiceEndDate time.Time) ([]*domain.Emission, error)
 }
 
 // Logger defines the interface for logging messages with different levels of severity.
@@ -46,6 +47,12 @@ type OutDTO interface {
 	GetStatusCode() int
 }
 
+// Service defines the interface for a service that processes input data and produces output data.
 type Service interface {
 	Run(in InDTO) (out OutDTO)
+}
+
+// EmissionSender defines the interface for sending emissions to an external system.
+type EmissionSender interface {
+	SendEmission(emission *domain.Emission) error
 }

@@ -282,3 +282,26 @@ func (a *PostgresRepository) GetInvoicesByKey(customerID int64, invoiceDate time
 		Find(&invoices).Error
 	return invoices, err
 }
+
+// GetEmissionsPeriod retrieves emissions for a given vendor and period
+func (a *PostgresRepository) GetEmissions(vendorID int64, invoiceStartDate, invoiceEndDate time.Time) ([]*domain.Emission, error) {
+	var emissions []*domain.Emission
+	var emissions2 []*domain.Emission
+	err := a.DB.Preload("EmissionItems").
+		Where("vendor_id = ? AND period_start >= ? AND period_start <= ?", vendorID, invoiceStartDate, invoiceEndDate).
+		Find(&emissions).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return nil, err
+	}
+	err = a.DB.Preload("EmissionItems").
+		Where("vendor_id = ? AND period_end >= ? AND period_end <= ?", vendorID, invoiceStartDate, invoiceEndDate).
+		Find(&emissions2).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return nil, err
+	}
+	emissions = append(emissions, emissions2...)
+	if len(emissions) == 0 {
+		return nil, nil // Return nil if no records are found
+	}
+	return emissions, nil
+}

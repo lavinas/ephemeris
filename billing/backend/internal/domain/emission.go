@@ -19,9 +19,13 @@ type Emission struct {
 
 // EmissionItem represents an individual emission item with a date and amount.
 type EmissionItem struct {
-	ID         int64 `gorm:"primaryKey;autoIncrement"`
-	EmissionID int64 `gorm:"not null;index"`
-	InvoiceID  int64 `gorm:"not null;index"`
+	ID              int64      `gorm:"primaryKey;autoIncrement"`
+	EmissionID      int64      `gorm:"not null;index"`
+	InvoiceID       int64      `gorm:"not null;index"`
+	RPSNum          int64      `gorm:"not null;index"`
+	NFENum          *int64     `gorm:"index"`
+	NFEDateTime     *time.Time `gorm:"date"`
+	NFEVerification *string    `gorm:"size:255"`
 }
 
 // NewEmission creates a new Emission instance with the provided details.
@@ -44,10 +48,11 @@ func (Emission) TableName() string {
 }
 
 // NewEmissionItem creates a new EmissionItem instance with the provided details.
-func NewEmissionItem(emissionID, invoiceID int64) *EmissionItem {
+func NewEmissionItem(emissionID, invoiceID, RPSNum int64) *EmissionItem {
 	return &EmissionItem{
 		EmissionID: emissionID,
 		InvoiceID:  invoiceID,
+		RPSNum:     RPSNum,
 	}
 }
 
