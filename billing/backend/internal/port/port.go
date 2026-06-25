@@ -52,7 +52,7 @@ type Service interface {
 	Run(in InDTO) (out OutDTO)
 }
 
-// EmissionSender defines the interface for sending emissions to an external system.
-type EmissionSender interface {
+// Issuer defines the interface for sending emissions to an external system.
+type Issuer interface {
 	SendEmission(emission *domain.Emission) error
 }
