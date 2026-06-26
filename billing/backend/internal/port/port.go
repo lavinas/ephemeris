@@ -21,7 +21,9 @@ type Repository interface {
 		accountBank, accountAgency, accountNumber *string) ([]domain.Vendor, error)
 	GetVendor(nickname string) (*domain.Vendor, error)
 	FindInvoices(page, pageSize int, customer int64,
-		invoiceDate, dueDate, paymentDate, emailSentDate, whatsappSentDate, taxDate *string) ([]domain.Invoice, error)
+		invoiceDate, dueDate, paymentDate, emailSentDate, 
+		whatsappSentDate, taxDate *string) ([]domain.Invoice, error)
+	GetInvoicesByPeriod(vendorID int64, start, end time.Time) ([]domain.Invoice, error)
 	GetInvoice(id int64) (*domain.Invoice, error)
 	GetInvoicesByKey(customerID int64, invoiceDate time.Time) ([]domain.Invoice, error)
 	GetEmissions(vendorID int64, invoiceStartDate, invoiceEndDate time.Time) ([]*domain.Emission, error)

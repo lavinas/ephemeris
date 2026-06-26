@@ -274,6 +274,17 @@ func (a *PostgresRepository) GetInvoice(id int64) (*domain.Invoice, error) {
 	return &invoice, nil
 }
 
+// GetInvoicesByPeriod retrieves invoices for a given customer and period
+func (a *PostgresRepository) GetInvoicesByPeriod(vendorID int64,
+	start, end time.Time) ([]domain.Invoice, error) {
+	var invoices []domain.Invoice
+	err := a.DB.Preload("InvoiceItems").Preload("Customer").
+		Where("vendor_id = ? AND invoice_date >= ? AND invoice_date <= ?",
+			vendorID, start, end).
+		Find(&invoices).Error
+	return invoices, err
+}
+
 // GetInvoicesByKey retrieves invoices based on the customer ID and invoice date
 func (a *PostgresRepository) GetInvoicesByKey(customerID int64, invoiceDate time.Time) ([]domain.Invoice, error) {
 	var invoices []domain.Invoice
@@ -284,7 +295,8 @@ func (a *PostgresRepository) GetInvoicesByKey(customerID int64, invoiceDate time
 }
 
 // GetEmissionsPeriod retrieves emissions for a given vendor and period
-func (a *PostgresRepository) GetEmissions(vendorID int64, invoiceStartDate, invoiceEndDate time.Time) ([]*domain.Emission, error) {
+func (a *PostgresRepository) GetEmissions(vendorID int64, invoiceStartDate,
+	invoiceEndDate time.Time) ([]*domain.Emission, error) {
 	var emissions []*domain.Emission
 	var emissions2 []*domain.Emission
 	err := a.DB.Preload("EmissionItems").

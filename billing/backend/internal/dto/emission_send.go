@@ -2,15 +2,15 @@ package dto
 
 import (
 	"billing/internal/port"
-	"fmt"
 	"errors"
+	"fmt"
 	"time"
 )
 
 // EmissionSendRequest represents the request data for sending emissions.
 type EmissionSendRequest struct {
-	Vendor   string `json:"vendor"`
-	vendorID         int64  `json:"-"`
+	Vendor           string `json:"vendor"`
+	VendorID         int64  `json:"-"`
 	InvoiceStartDate string `json:"invoice_start_date"`
 	InvoiceEndDate   string `json:"invoice_end_date"`
 	EmissionDate     string `json:"emission_date"`
@@ -25,7 +25,8 @@ type EmissionSendResponse struct {
 }
 
 // NewEmissionSendResponse creates a new instance of EmissionSendResponse.
-func NewEmissionSendResponse(httpCode int, status, message string, emissionID int64, emissionQuantity int, emissionAmount float64) EmissionSendResponse {
+func NewEmissionSendResponse(httpCode int, status, message string, emissionID int64,
+	emissionQuantity int, emissionAmount float64) EmissionSendResponse {
 	return EmissionSendResponse{
 		ResponseBase:     NewResponseBase(httpCode, status, message),
 		EmissionID:       emissionID,
@@ -67,7 +68,7 @@ func (r *EmissionSendRequest) valdateVendor(repo port.Repository) error {
 	if vendor == nil {
 		return fmt.Errorf("vendor '%s' does not exist", r.Vendor)
 	}
-	r.vendorID = vendor.ID
+	r.VendorID = vendor.ID
 	return nil
 }
 
@@ -90,10 +91,12 @@ func (r *EmissionSendRequest) validateDates() error {
 			startDate, _ := time.Parse("2006-01-02", r.InvoiceStartDate)
 			endDate, _ := time.Parse("2006-01-02", r.InvoiceEndDate)
 			if endDate.Before(startDate) {
-				errs = append(errs, fmt.Errorf("invoice_end_date cannot be before invoice_start_date"))
+				errM := fmt.Errorf("invoice_end_date cannot be before invoice_start_date")
+				errs = append(errs, errM)
 			}
 		}
 	}
+
 	if r.EmissionDate == "" {
 		errs = append(errs, fmt.Errorf("emission_date is required"))
 	} else {
@@ -103,7 +106,8 @@ func (r *EmissionSendRequest) validateDates() error {
 			emissionDate, _ := time.Parse("2006-01-02", r.EmissionDate)
 			endDate, _ := time.Parse("2006-01-02", r.InvoiceEndDate)
 			if emissionDate.Before(endDate) {
-				errs = append(errs, fmt.Errorf("emission_date cannot be before invoice_end_date"))
+				errM := fmt.Errorf("emission_date cannot be before invoice_end_date")
+				errs = append(errs, errM)
 			}
 		}
 	}
@@ -113,19 +117,28 @@ func (r *EmissionSendRequest) validateDates() error {
 	return nil
 }
 
-// validateDuplication checks if an emission for the given vendor and period already exists in the repository.
+// validateDuplication checks if an emission for the given vendor and period
+// already exists in the repository.
 func (r *EmissionSendRequest) validateDuplication(repo port.Repository) error {
 	// Implement logic to check for existing emissions in the repository.
 	// This is a placeholder implementation; replace with actual database query.
 	startDate, _ := time.Parse("2006-01-02", r.InvoiceStartDate)
 	endDate, _ := time.Parse("2006-01-02", r.InvoiceEndDate)
-	existingEmissions, err := repo.GetEmissions(r.vendorID, startDate, endDate)
+	existingEmissions, err := repo.GetEmissions(r.VendorID, startDate, endDate)
 	if err != nil {
 		return fmt.Errorf("failed to check for existing emissions: %v", err)
 	}
 	if len(existingEmissions) > 0 {
-		return fmt.Errorf("an emission for vendor '%s' and the specified period already exists", r.Vendor)
+		return fmt.Errorf("an emission for vendor '%s' already exists", r.Vendor)
 	}
 	return nil
 }
 
+// Reset clears the fields of the EmissionSendRequest.
+func (r *EmissionSendRequest) Reset() {
+	r.Vendor = ""
+	r.VendorID = 0
+	r.InvoiceStartDate = ""
+	r.InvoiceEndDate = ""
+	r.EmissionDate = ""
+}
