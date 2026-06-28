@@ -75,3 +75,36 @@ create table invoice_item (
     created_at timestamp not null,
     updated_at timestamp not null
 );
+
+
+drop Table if exists emission cascade;
+create table emission (
+    id bigserial primary key,
+    vendor_id bigint not null references vendor(id) on delete cascade,
+    emission_date date not null ,
+    period_start date not null,
+    period_end date not null,
+    rps_start bigint not null,
+    rps_end bigint not null,
+    nfe_start bigint,
+    nfe_end bigint,
+    nfe_datetime timestamp,
+    amount numeric(15, 2) not null,
+    quantity int not null,
+    created_at timestamp not null,
+    updated_at timestamp not null
+);
+
+drop Table if exists emission_item cascade;
+create table emission_item (
+    id bigserial primary key,
+    emission_id bigint not null references emission(id) on delete cascade,
+    invoice_id bigint not null references invoice(id) on delete cascade,
+    rps_number bigint not null,
+    nfe_number bigint,
+    nfe_datetime timestamp,
+    nfe_verification varchar(100)
+);
+
+
+

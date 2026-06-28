@@ -3,9 +3,9 @@ package service
 import (
 	"time"
 
+	"billing/internal/domain"
 	"billing/internal/dto"
 	"billing/internal/port"
-	"billing/internal/domain"
 )
 
 // EmissionSend is responsible for handling the business logic of sending emissions.
@@ -38,7 +38,8 @@ func (s *EmissionSend) Run(inDTO port.InDTO) port.OutDTO {
 	if err != nil {
 		return dto.NewEmissionSendResponse(500, "error", "Failed to retrieve last RPS number", 0, 0, 0)
 	}
-	domainEmission, invoices, err := s.getEmission(sendDTO.VendorID, sendDTO.InvoiceStartDate, sendDTO.InvoiceEndDate, lastRPS)
+	domainEmission, invoices, err := s.getEmission(sendDTO.VendorID, sendDTO.EmissionDate, 
+		sendDTO.InvoiceStartDate, sendDTO.InvoiceEndDate, lastRPS)
 	if err != nil {
 		return dto.NewEmissionSendResponse(500, "error", "Failed to retrieve emission", 0, 0, 0)
 	}
@@ -46,7 +47,7 @@ func (s *EmissionSend) Run(inDTO port.InDTO) port.OutDTO {
 		s.logger.IPrintf(1, "Failed to send and save emission: %v", err)
 		return dto.NewEmissionSendResponse(500, "error", "Failed to send and save emission", 0, 0, 0)
 	}
-	s.logger.IPrintf(1, "Emission sent successfully: ID %d, Quantity %d, Amount %.2f", 
+	s.logger.IPrintf(1, "Emission sent successfully: ID %d, Quantity %d, Amount %.2f",
 		domainEmission.ID, domainEmission.Quantity, domainEmission.Amount)
 	// Return a successful response
 	return dto.NewEmissionSendResponse(200, "success", "Emission sent successfully",
@@ -54,15 +55,18 @@ func (s *EmissionSend) Run(inDTO port.InDTO) port.OutDTO {
 }
 
 // getEmission retrieves the emission data for the specified vendor and date range from the repository.
-func (s *EmissionSend) getEmission(vendorID int64, startDate, endDate string, lastRPS int64) (*domain.Emission, []domain.Invoice, error) {
+func (s *EmissionSend) getEmission(vendorID int64, emissionDate, startDate, 
+	endDate string, lastRPS int64) (*domain.Emission, []domain.Invoice, error) {
 	sd, _ := time.Parse("2006-01-02", startDate)
 	ed, _ := time.Parse("2006-01-02", endDate)
+	emissionDateParsed, _ := time.Parse("2006-01-02", emissionDate)
 
-	invs , err := s.repo.GetInvoicesByPeriod(vendorID, sd, ed)
+	invs, err := s.repo.GetInvoicesByPeriod(vendorID, sd, ed)
 	if err != nil {
 		s.logger.IPrintf(1, "Failed to retrieve invoices: %v", err)
 		return nil, nil, err
 	}
+	invsOut := make([]domain.Invoice, 0)
 	totalAmount := 0.0
 	quantity := 0
 	emissionItems := make([]domain.EmissionItem, 0)
@@ -80,9 +84,11 @@ func (s *EmissionSend) getEmission(vendorID int64, startDate, endDate string, la
 		inv.UpdatedAt = time.Now()
 		now := time.Now()
 		inv.TaxDate = &now
+		invsOut = append(invsOut, inv)
 	}
-	emission := domain.NewEmission(vendorID, sd, ed, lastRPS + 1, rps-1, totalAmount, quantity, emissionItems)
-	return emission, invs, nil
+	emission := domain.NewEmission(vendorID, sd, ed, emissionDateParsed, 
+		lastRPS+1, rps-1, totalAmount, quantity, emissionItems)
+	return emission, invsOut, nil
 }
 
 // getLastRSPNumber retrieves the last RPS number for the specified vendor from the repository.
@@ -100,7 +106,7 @@ func (s *EmissionSend) SendAndSave(emission *domain.Emission, invoices []domain.
 	if err := s.repo.BeginTransaction(); err != nil {
 		return err
 	}
-	defer s.repo.RollbackTransaction() 
+	defer s.repo.RollbackTransaction()
 	if err := s.sender.SendEmission(emission); err != nil {
 		return err
 	}

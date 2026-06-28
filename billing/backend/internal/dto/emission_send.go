@@ -4,6 +4,7 @@ import (
 	"billing/internal/port"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -112,7 +113,8 @@ func (r *EmissionSendRequest) validateDates() error {
 		}
 	}
 	if len(errs) > 0 {
-		return errors.Join(errs...)
+		err := errors.Join(errs...)
+		return errors.New(strings.ReplaceAll(err.Error(), "\n", "; "))
 	}
 	return nil
 }

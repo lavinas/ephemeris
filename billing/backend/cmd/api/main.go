@@ -33,10 +33,12 @@ func main() {
 		return
 	}
 	defer repo.Close()
+	// Issuer initialization
+	issuer := driven.NewIssuerFile(cfg.GetIssuerFilePath(), cfg.GetIssuerFilePattern(), logger)
 	// Initialize API Handler
 	os.Setenv("TZ", timezone)
 	logger.IPrintf(0, "starting API server on :8080")
-	apiHandler := driver.NewAPIHandler(":8080", logger, repo)
+	apiHandler := driver.NewAPIHandler(":8080", logger, repo, issuer)
 	apiHandler.Run(":8080")
 	logger.IPrintf(0, "logger and database closed 2")
 }

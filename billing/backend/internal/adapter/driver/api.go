@@ -23,14 +23,16 @@ type handleService struct {
 	method  string
 	dto     port.InDTO
 	service port.Service
+	issuer  port.Issuer
 }
 
 // newMapping creates a new instance of mapping with the provided endpoint, method, DTO, and service.
-func newHandleService(method string, dto port.InDTO, service port.Service) *handleService {
+func newHandleService(method string, dto port.InDTO, service port.Service, issuer port.Issuer) *handleService {
 	return &handleService{
 		method:  method,
 		dto:     dto,
 		service: service,
+		issuer:  issuer,
 	}
 }
 
@@ -38,14 +40,16 @@ func newHandleService(method string, dto port.InDTO, service port.Service) *hand
 type APIHandler struct {
 	logger   port.Logger
 	repo     port.Repository
+	issuer   port.Issuer
 	services map[string]handleService
 }
 
 // NewAPIHandler creates a new instance of APIHandler
-func NewAPIHandler(addr string, logger port.Logger, repo port.Repository) *APIHandler {
+func NewAPIHandler(addr string, logger port.Logger, repo port.Repository, issuer port.Issuer) *APIHandler {
 	api := &APIHandler{
 		logger: logger,
 		repo:   repo,
+		issuer: issuer,
 	}
 	api.mapServices()
 	return api
@@ -54,19 +58,21 @@ func NewAPIHandler(addr string, logger port.Logger, repo port.Repository) *APIHa
 // MapEndpoint maps an API endpoint to a service method
 func (h *APIHandler) mapServices() {
 	h.services = map[string]handleService{
-		"/ping": *newHandleService(http.MethodGet, nil, service.NewPingService(h.logger)),
+		"/ping": *newHandleService(http.MethodGet, nil, service.NewPingService(h.logger), h.issuer),
 		"/customer/create": *newHandleService(http.MethodPost, &dto.CustomerCreateRequest{},
-			service.NewCustomerCreate(h.repo, h.logger)),
+			service.NewCustomerCreate(h.repo, h.logger), h.issuer),
 		"/customer/list": *newHandleService(http.MethodGet, &dto.CustomerListRequest{},
-			service.NewCustomerList(h.repo, h.logger)),
+			service.NewCustomerList(h.repo, h.logger), h.issuer),
 		"/customer/update": *newHandleService(http.MethodPatch, &dto.CustomerUpdateRequest{},
-			service.NewCustomerUpdate(h.repo, h.logger)),
+			service.NewCustomerUpdate(h.repo, h.logger), h.issuer),
 		"/invoice/create": *newHandleService(http.MethodPost, &dto.InvoiceCreateRequest{},
-			service.NewInvoiceCreate(h.repo, h.logger)),
+			service.NewInvoiceCreate(h.repo, h.logger), h.issuer),
 		"/invoice/list": *newHandleService(http.MethodGet, &dto.InvoiceListRequest{},
-			service.NewInvoiceList(h.repo, h.logger)),
+			service.NewInvoiceList(h.repo, h.logger), h.issuer),
 		"/invoice/update": *newHandleService(http.MethodPatch, &dto.InvoiceUpdateRequest{},
-			service.NewInvoiceUpdate(h.repo, h.logger)),
+			service.NewInvoiceUpdate(h.repo, h.logger), h.issuer),
+		"/emission/send": *newHandleService(http.MethodPost, &dto.EmissionSendRequest{},
+			service.NewEmissionSend(h.repo, h.logger, h.issuer), h.issuer),
 	}
 }
 

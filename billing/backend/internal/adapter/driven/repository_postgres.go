@@ -278,9 +278,8 @@ func (a *PostgresRepository) GetInvoice(id int64) (*domain.Invoice, error) {
 func (a *PostgresRepository) GetInvoicesByPeriod(vendorID int64,
 	start, end time.Time) ([]domain.Invoice, error) {
 	var invoices []domain.Invoice
-	err := a.DB.Preload("InvoiceItems").Preload("Customer").
-		Where("vendor_id = ? AND invoice_date >= ? AND invoice_date <= ?",
-			vendorID, start, end).
+	err := a.DB.Joins("JOIN customer ON customer.id = invoice.customer_id AND customer.vendor_id = ?", vendorID).
+	Preload("InvoiceItems").Preload("Customer").Where("invoice_date >= ? AND invoice_date <= ?", start, end).
 		Find(&invoices).Error
 	return invoices, err
 }
@@ -337,7 +336,7 @@ func (a *PostgresRepository) GetEmissionLastRPS(vendorID int64) (int64, error) {
 	var lastRPS int64
 	err := a.DB.Model(&domain.Emission{}).
 		Where("vendor_id = ?", vendorID).
-		Select("MAX(rps_end)").Scan(&lastRPS).Error
+		Select("COALESCE(MAX(rps_end), 0)").Scan(&lastRPS).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return 0, err
 	}
