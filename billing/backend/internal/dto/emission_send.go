@@ -124,11 +124,11 @@ func (r *EmissionSendRequest) validateDuplication(repo port.Repository) error {
 	// This is a placeholder implementation; replace with actual database query.
 	startDate, _ := time.Parse("2006-01-02", r.InvoiceStartDate)
 	endDate, _ := time.Parse("2006-01-02", r.InvoiceEndDate)
-	existingEmissions, err := repo.GetEmissions(r.VendorID, startDate, endDate)
+	count, err := repo.GetEmissionsCount(r.VendorID, startDate, endDate)
 	if err != nil {
 		return fmt.Errorf("failed to check for existing emissions: %v", err)
 	}
-	if len(existingEmissions) > 0 {
+	if count > 0 {
 		return fmt.Errorf("an emission for vendor '%s' already exists", r.Vendor)
 	}
 	return nil

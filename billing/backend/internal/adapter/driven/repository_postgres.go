@@ -296,9 +296,9 @@ func (a *PostgresRepository) GetInvoicesByKey(customerID int64, invoiceDate time
 
 // GetEmissionsPeriod retrieves emissions for a given vendor and period
 func (a *PostgresRepository) GetEmissions(vendorID int64, invoiceStartDate,
-	invoiceEndDate time.Time) ([]*domain.Emission, error) {
-	var emissions []*domain.Emission
-	var emissions2 []*domain.Emission
+	invoiceEndDate time.Time) ([]domain.Emission, error) {
+	var emissions []domain.Emission
+	var emissions2 []domain.Emission
 	err := a.DB.Preload("EmissionItems").
 		Where("vendor_id = ? AND period_start >= ? AND period_start <= ?", vendorID, invoiceStartDate, invoiceEndDate).
 		Find(&emissions).Error
@@ -316,6 +316,20 @@ func (a *PostgresRepository) GetEmissions(vendorID int64, invoiceStartDate,
 		return nil, nil // Return nil if no records are found
 	}
 	return emissions, nil
+}
+
+// GetEmissionsCount retrieves the count of emissions for a given vendor and period
+func (a *PostgresRepository) GetEmissionsCount(vendorID int64, invoiceStartDate,
+	invoiceEndDate time.Time) (int64, error) {
+	var count int64
+	err := a.DB.Model(&domain.Emission{}).
+		Where("vendor_id = ? AND period_start >= ? AND period_start <= ?", vendorID, invoiceStartDate, invoiceEndDate).
+		Or("vendor_id = ? AND period_end >= ? AND period_end <= ?", vendorID, invoiceStartDate, invoiceEndDate).
+		Count(&count).Error
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
 }
 
 // GetEmissionLastRPS retrieves the last RPS number for a given vendor
