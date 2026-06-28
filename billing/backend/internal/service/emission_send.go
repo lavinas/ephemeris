@@ -24,7 +24,7 @@ func NewEmissionSend(repo port.Repository, logger port.Logger, issuer port.Issue
 
 // Run processes the request to send emissions and returns the response.
 func (s *EmissionSend) Run(inDTO port.InDTO) port.OutDTO {
-
+	s.logger.IPrintf(1, "Running EmissionSend service")
 	sendDTO, ok := inDTO.(*dto.EmissionSendRequest)
 	if !ok {
 		s.logger.IPrintf(1, "Invalid input type")
@@ -34,10 +34,12 @@ func (s *EmissionSend) Run(inDTO port.InDTO) port.OutDTO {
 		s.logger.IPrintf(1, "Validation error: %v", err)
 		return dto.NewEmissionSendResponse(400, "error", err.Error(), 0, 0, 0)
 	}
-	// Retrieve the emission data from the repository
-	domainEmission, err := s.getEmission(sendDTO.VendorID, sendDTO.InvoiceStartDate, sendDTO.InvoiceEndDate)
+	lastRPS, err := s.getLastRSPNumber(sendDTO.VendorID)
 	if err != nil {
-		s.logger.IPrintf(1, "Failed to retrieve emission: %v", err)
+		return dto.NewEmissionSendResponse(500, "error", "Failed to retrieve last RPS number", 0, 0, 0)
+	}
+	domainEmission, err := s.getEmission(sendDTO.VendorID, sendDTO.InvoiceStartDate, sendDTO.InvoiceEndDate, lastRPS)
+	if err != nil {
 		return dto.NewEmissionSendResponse(500, "error", "Failed to retrieve emission", 0, 0, 0)
 	}
 	// Send the emission using the configured sender
@@ -45,32 +47,48 @@ func (s *EmissionSend) Run(inDTO port.InDTO) port.OutDTO {
 		s.logger.IPrintf(1, "Failed to send emission: %v", err)
 		return dto.NewEmissionSendResponse(500, "error", "Failed to send emission", 0, 0, 0)
 	}
-
+	s.logger.IPrintf(1, "Emission sent successfully: ID %d, Quantity %d, Amount %.2f", 
+		domainEmission.ID, domainEmission.Quantity, domainEmission.Amount)
 	// Return a successful response
 	return dto.NewEmissionSendResponse(200, "success", "Emission sent successfully",
 		domainEmission.ID, domainEmission.Quantity, domainEmission.Amount)
 }
 
-
 // getEmission retrieves the emission data for the specified vendor and date range from the repository.
-func (s *EmissionSend) getEmission(vendorID int64, startDate, endDate string) (*domain.Emission, error) {
+func (s *EmissionSend) getEmission(vendorID int64, startDate, endDate string, lastRPS int64) (*domain.Emission, error) {
 	sd, _ := time.Parse("2006-01-02", startDate)
 	ed, _ := time.Parse("2006-01-02", endDate)
 
-	invs, err := s.repo.GetInvoicesByPeriod(vendorID, sd, ed)
+	invs , err := s.repo.GetInvoicesByPeriod(vendorID, sd, ed)
 	if err != nil {
 		s.logger.IPrintf(1, "Failed to retrieve invoices: %v", err)
 		return nil, err
 	}
-	items := make([]domain.EmissionItem, 0)
-	var totalAmount float64
-	var quantity int
+	totalAmount := 0.0
+	quantity := 0
+	emissionItems := make([]domain.EmissionItem, 0)
+	rps := lastRPS
 	for _, inv := range invs {
-		item := domain.NewEmissionItem(0, inv.ID, inv.Amount)
+		if inv.IsTaxable() == false {
+			s.logger.IPrintf(1, "Skipping invoice ID: %d as it is not taxable", inv.ID)
+			continue
+		}
+		s.logger.IPrintf(2, "Invoice ID: %d, Amount: %.2f", inv.ID, inv.Amount)
 		totalAmount += inv.Amount
 		quantity++
+		emissionItems = append(emissionItems, *domain.NewEmissionItem(0, inv.ID, rps))
+		rps++		
 	}
+	emission := domain.NewEmission(vendorID, sd, ed, lastRPS + 1, rps-1, totalAmount, quantity, emissionItems)
+	return emission, nil // Placeholder implementation; replace with actual repository call to retrieve emission data.
+}
 
-
-	return nil, nil // Placeholder implementation; replace with actual repository call to retrieve emission data.
+// getLastRSPNumber retrieves the last RPS number for the specified vendor from the repository.
+func (s *EmissionSend) getLastRSPNumber(vendorID int64) (int64, error) {
+	lastRPS, err := s.repo.GetEmissionLastRPS(vendorID)
+	if err != nil {
+		s.logger.IPrintf(1, "Failed to retrieve last RPS number: %v", err)
+		return 0, err
+	}
+	return lastRPS, nil
 }

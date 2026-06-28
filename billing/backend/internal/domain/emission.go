@@ -10,6 +10,10 @@ type Emission struct {
 	VendorID      int64          `gorm:"not null;index"`
 	PeriodStart   time.Time      `gorm:"date"`
 	PeriodEnd     time.Time      `gorm:"date"`
+	RPSStart      int64          `gorm:"index"`
+	RPSEnd        int64          `gorm:"index"`
+	NFEStart      *int64         `gorm:"index"`
+	NFEEnd        *int64         `gorm:"index"`
 	Amount        float64        `gorm:"not null"`
 	Quantity      int            `gorm:"not null"`
 	CreatedAt     time.Time      `gorm:"autoCreateTime"`
@@ -29,11 +33,16 @@ type EmissionItem struct {
 }
 
 // NewEmission creates a new Emission instance with the provided details.
-func NewEmission(vendorID int64, periodStart, periodEnd time.Time, amount float64, quantity int, items []EmissionItem) *Emission {
+func NewEmission(vendorID int64, periodStart, periodEnd time.Time, RPSStart, RPSEnd int64, 
+	amount float64, quantity int, items []EmissionItem) *Emission {
 	return &Emission{
 		VendorID:      vendorID,
 		PeriodStart:   periodStart,
 		PeriodEnd:     periodEnd,
+		RPSStart:      RPSStart,
+		RPSEnd:        RPSEnd,
+		NFEStart:      nil,
+		NFEEnd:        nil,
 		Amount:        amount,
 		Quantity:      quantity,
 		CreatedAt:     time.Now(),

@@ -79,3 +79,17 @@ func NewInvoiceItem(price float64, quantity int, description string) *InvoiceIte
 func (InvoiceItem) TableName() string {
 	return "invoice_item"
 }
+
+// IsTaxable checks if the invoice item is taxable based on its description or other criteria.
+func (i *Invoice) IsTaxable() bool {
+	if i.CancellationDate != nil {
+		return false
+	}
+	if i.TaxDate != nil {
+		return false
+	}
+	if i.PaymentDate == nil {
+		return false
+	}
+	return true // Placeholder implementation; replace with actual logic.
+}

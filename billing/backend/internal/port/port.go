@@ -27,6 +27,7 @@ type Repository interface {
 	GetInvoice(id int64) (*domain.Invoice, error)
 	GetInvoicesByKey(customerID int64, invoiceDate time.Time) ([]domain.Invoice, error)
 	GetEmissions(vendorID int64, invoiceStartDate, invoiceEndDate time.Time) ([]*domain.Emission, error)
+	GetEmissionLastRPS(vendorID int64) (int64, error)
 }
 
 // Logger defines the interface for logging messages with different levels of severity.

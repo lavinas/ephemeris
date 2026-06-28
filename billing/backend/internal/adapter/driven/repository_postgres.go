@@ -317,3 +317,15 @@ func (a *PostgresRepository) GetEmissions(vendorID int64, invoiceStartDate,
 	}
 	return emissions, nil
 }
+
+// GetEmissionLastRPS retrieves the last RPS number for a given vendor
+func (a *PostgresRepository) GetEmissionLastRPS(vendorID int64) (int64, error) {
+	var lastRPS int64
+	err := a.DB.Model(&domain.Emission{}).
+		Where("vendor_id = ?", vendorID).
+		Select("MAX(rps_end)").Scan(&lastRPS).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return 0, err
+	}
+	return lastRPS, nil
+}
