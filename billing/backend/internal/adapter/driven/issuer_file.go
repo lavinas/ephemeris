@@ -61,7 +61,7 @@ type line struct {
 	Description       string `fixed:"441,500,left, "`
 }
 
-// footer represents the footer of the emission file. This is a placeholder implementation; you should customize it based on your requirements.
+// footer represents the footer of the emission file.
 type footer struct {
 	RegType       int `fixed:"1,1,right,0"`
 	TotalRecords  int `fixed:"2,7,right,0"`
@@ -69,7 +69,7 @@ type footer struct {
 	TotalDiscount int `fixed:"24,15,right,0"`
 }
 
-// IssuerFile is a concrete implementation of the port.Issuer interface for handling file-based emissions.
+// IssuerFile is a concrete implementation of the port.
 type IssuerFile struct {
 	filePath string
 	pattern  string
@@ -106,7 +106,7 @@ func (i *IssuerFile) SendEmission(emission *domain.Emission) error {
 	return nil
 }
 
-// openFile is a helper function to open the file for writing. It can be implemented to handle file creation and error handling.
+// openFile is a helper function to open the file for writing. 
 func (i *IssuerFile) openFile(emission *domain.Emission) error {
 	file_path := filepath.Join(i.filePath, i.replacePlaceholders(i.pattern, emission))
 	file, err := os.OpenFile(file_path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
@@ -130,7 +130,7 @@ func (i *IssuerFile) replacePlaceholders(pattern string, emission *domain.Emissi
 	return pattern
 }
 
-// writeHeader writes the header to the file. This is a placeholder implementation; you should customize it based on your requirements.
+// writeHeader writes the header to the file. 
 func (i *IssuerFile) writeHeader(emission *domain.Emission) error {
 	ccm := regexp.MustCompile(`[^0-9]`).ReplaceAllString(emission.Vendor.TaxDocument, "")
 	ccmd, _ := strconv.Atoi(ccm)
@@ -153,7 +153,7 @@ func (i *IssuerFile) writeHeader(emission *domain.Emission) error {
 	return nil
 }
 
-// writelines writes the emission lines to the file. This is a placeholder implementation; you should customize it based on your requirements.
+// writelines writes the emission lines to the file. 
 func (i *IssuerFile) writeItems(emission *domain.Emission) error {
 	emissionDate, _ := strconv.Atoi(emission.EmissionDate.Format("20060102"))
 	for _, item := range emission.EmissionItems {
@@ -169,7 +169,7 @@ func (i *IssuerFile) writeItems(emission *domain.Emission) error {
 	return nil
 }
 
-// getItem is a helper function to convert an EmissionItem to a line. This is a placeholder implementation; you should customize it based on your requirements.
+// getItem is a helper function to convert an EmissionItem to a line. 
 func (i *IssuerFile) getLine(emissionDate int, item *domain.EmissionItem) line {
 	// Convert item fields to the appropriate types and formats
 	document := regexp.MustCompile(`[^0-9]`).ReplaceAllString(*item.Invoice.Customer.Document, "")
@@ -212,13 +212,20 @@ func (i *IssuerFile) getLine(emissionDate int, item *domain.EmissionItem) line {
 	}
 }
 
-// getDescription is a helper function to generate a description for the emission item. This is a placeholder implementation; you should customize it based on your requirements.
+// getDescription is a helper function to generate a description for the emission item.
 func (i *IssuerFile) getDescription(item *domain.EmissionItem) string {
 	// Implement logic to generate a description based on the item details
-	return "Emission Item Description"
+	ret := ""
+	for _, invItem := range item.Invoice.InvoiceItems {
+		ret += strconv.Itoa(invItem.Quantity) + " " + invItem.Description + "|"
+	}
+	if len(ret) > 0 {
+		ret = ret[:len(ret)-1] // Remove the last "|"
+	}
+	return ret
 }
 
-// writeFooter writes the footer to the file. This is a placeholder implementation; you should customize it based on your requirements.
+// writeFooter writes the footer to the file. This is a placeholder implementation
 func (i *IssuerFile) writeFooter(emission *domain.Emission) error {
 	amount := int(emission.Amount * 100)
 	footer := footer{
