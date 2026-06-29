@@ -3,6 +3,7 @@ module billing
 go 1.26.2
 
 require (
+	github.com/ianlopshire/go-fixedwidth v0.10.0
 	github.com/klassmann/cpfcnpj v0.0.0-20200907140233-a595c5fd8de1
 	github.com/nyaruka/phonenumbers v1.8.0
 	gorm.io/driver/postgres v1.6.0

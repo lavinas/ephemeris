@@ -8,6 +8,7 @@ import (
 type Emission struct {
 	ID            int64          `gorm:"primaryKey;autoIncrement"`
 	VendorID      int64          `gorm:"not null;index"`
+	Vendor        Vendor         `gorm:"foreignKey:VendorID"`
 	EmissionDate  time.Time      `gorm:"not null;date"`
 	PeriodStart   time.Time      `gorm:"date"`
 	PeriodEnd     time.Time      `gorm:"date"`
@@ -27,6 +28,7 @@ type EmissionItem struct {
 	ID              int64      `gorm:"primaryKey;autoIncrement"`
 	EmissionID      int64      `gorm:"not null;index"`
 	InvoiceID       int64      `gorm:"not null;index"`
+	Invoice         Invoice    `gorm:"foreignKey:InvoiceID"`
 	RPSNumber       int64      `gorm:"not null;index"`
 	NFENumber       *int64     `gorm:"index"`
 	NFEDatetime     *time.Time `gorm:"date"`
@@ -34,10 +36,11 @@ type EmissionItem struct {
 }
 
 // NewEmission creates a new Emission instance with the provided details.
-func NewEmission(vendorID int64, periodStart, periodEnd, emissionDate time.Time, RPSStart, 
+func NewEmission(vendor *Vendor, periodStart, periodEnd, emissionDate time.Time, RPSStart,
 	RPSEnd int64, amount float64, quantity int, items []EmissionItem) *Emission {
 	return &Emission{
-		VendorID:      vendorID,
+		VendorID:      vendor.ID,
+		Vendor:        *vendor,
 		PeriodStart:   periodStart,
 		PeriodEnd:     periodEnd,
 		EmissionDate:  emissionDate,
@@ -59,10 +62,11 @@ func (Emission) TableName() string {
 }
 
 // NewEmissionItem creates a new EmissionItem instance with the provided details.
-func NewEmissionItem(emissionID, invoiceID, RPSNum int64) *EmissionItem {
+func NewEmissionItem(emissionID, invoiceID, RPSNum int64, invoice Invoice) *EmissionItem {
 	return &EmissionItem{
 		EmissionID: emissionID,
 		InvoiceID:  invoiceID,
+		Invoice:    invoice,
 		RPSNumber:  RPSNum,
 	}
 }

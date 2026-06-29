@@ -279,7 +279,7 @@ func (a *PostgresRepository) GetInvoicesByPeriod(vendorID int64,
 	start, end time.Time) ([]domain.Invoice, error) {
 	var invoices []domain.Invoice
 	err := a.DB.Joins("JOIN customer ON customer.id = invoice.customer_id AND customer.vendor_id = ?", vendorID).
-	Preload("InvoiceItems").Preload("Customer").Where("invoice_date >= ? AND invoice_date <= ?", start, end).
+		Preload("InvoiceItems").Preload("Customer").Where("invoice_date >= ? AND invoice_date <= ?", start, end).
 		Find(&invoices).Error
 	return invoices, err
 }

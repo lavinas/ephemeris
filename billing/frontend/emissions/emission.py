@@ -18,4 +18,4 @@ def send (vendor, start_date, end_date, emission_date):
   except requests.exceptions.RequestException as e:
     return f"Ocorreu um erro genérico no requests: {e}"
   json_data = resposta.json()
-  return f'{json_data["status"]} - {json_data["message"]}'
+  return f'{json_data["status"]} - {json_data["message"]} - id: {json_data["emission_id"]} - qtde: {json_data["emission_quantity"]} - valor: {json_data["emission_amount"]}'

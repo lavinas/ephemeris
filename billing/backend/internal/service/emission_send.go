@@ -38,7 +38,11 @@ func (s *EmissionSend) Run(inDTO port.InDTO) port.OutDTO {
 	if err != nil {
 		return dto.NewEmissionSendResponse(500, "error", "Failed to retrieve last RPS number", 0, 0, 0)
 	}
-	domainEmission, invoices, err := s.getEmission(sendDTO.VendorID, sendDTO.EmissionDate, 
+	vendor, err := s.getVendor(sendDTO.Vendor)
+	if err != nil {
+		return dto.NewEmissionSendResponse(500, "error", "Failed to retrieve vendor", 0, 0, 0)
+	}
+	domainEmission, invoices, err := s.getEmission(vendor, sendDTO.EmissionDate,
 		sendDTO.InvoiceStartDate, sendDTO.InvoiceEndDate, lastRPS)
 	if err != nil {
 		return dto.NewEmissionSendResponse(500, "error", "Failed to retrieve emission", 0, 0, 0)
@@ -55,13 +59,13 @@ func (s *EmissionSend) Run(inDTO port.InDTO) port.OutDTO {
 }
 
 // getEmission retrieves the emission data for the specified vendor and date range from the repository.
-func (s *EmissionSend) getEmission(vendorID int64, emissionDate, startDate, 
+func (s *EmissionSend) getEmission(vendor *domain.Vendor, emissionDate, startDate,
 	endDate string, lastRPS int64) (*domain.Emission, []domain.Invoice, error) {
 	sd, _ := time.Parse("2006-01-02", startDate)
 	ed, _ := time.Parse("2006-01-02", endDate)
 	emissionDateParsed, _ := time.Parse("2006-01-02", emissionDate)
 
-	invs, err := s.repo.GetInvoicesByPeriod(vendorID, sd, ed)
+	invs, err := s.repo.GetInvoicesByPeriod(vendor.ID, sd, ed)
 	if err != nil {
 		s.logger.IPrintf(1, "Failed to retrieve invoices: %v", err)
 		return nil, nil, err
@@ -79,16 +83,26 @@ func (s *EmissionSend) getEmission(vendorID int64, emissionDate, startDate,
 		s.logger.IPrintf(2, "Invoice ID: %d, Amount: %.2f", inv.ID, inv.Amount)
 		totalAmount += inv.Amount
 		quantity++
-		emissionItems = append(emissionItems, *domain.NewEmissionItem(0, inv.ID, rps))
+		emissionItems = append(emissionItems, *domain.NewEmissionItem(0, inv.ID, rps, inv))
 		rps++
 		inv.UpdatedAt = time.Now()
 		now := time.Now()
 		inv.TaxDate = &now
 		invsOut = append(invsOut, inv)
 	}
-	emission := domain.NewEmission(vendorID, sd, ed, emissionDateParsed, 
+	emission := domain.NewEmission(vendor, sd, ed, emissionDateParsed,
 		lastRPS+1, rps-1, totalAmount, quantity, emissionItems)
 	return emission, invsOut, nil
+}
+
+// getVendor retrieves the vendor information for the specified vendor ID from the repository.
+func (s *EmissionSend) getVendor(nickname string) (*domain.Vendor, error) {
+	vendor, err := s.repo.GetVendor(nickname)
+	if err != nil {
+		s.logger.IPrintf(1, "Failed to retrieve vendor: %v", err)
+		return nil, err
+	}
+	return vendor, nil
 }
 
 // getLastRSPNumber retrieves the last RPS number for the specified vendor from the repository.
