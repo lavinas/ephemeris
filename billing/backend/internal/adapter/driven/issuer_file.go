@@ -159,10 +159,13 @@ func (i *IssuerFile) writeItems(emission *domain.Emission) error {
 	for _, item := range emission.EmissionItems {
 		it := i.getLine(emissionDate, &item)
 		line, err := fixedwidth.Marshal(it)
+		lineStr := string(line)
+		re := regexp.MustCompile(`(?m) +$`)
+		lineStr = re.ReplaceAllString(lineStr, "")
 		if err != nil {
 			return err
 		}
-		if _, err := i.file.Write(line); err != nil {
+		if _, err := i.file.WriteString(lineStr); err != nil {
 			return err
 		}
 	}
