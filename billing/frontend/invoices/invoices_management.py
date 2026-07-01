@@ -30,6 +30,8 @@ def get(vendor, customer, invoicing, due, payment, email_sent, whatsapp_sent, ta
         json_data['whatsapp_sent'] = whatsapp_sent
     if tax and tax != "":
         json_data['tax'] = tax
+    if cancellation and cancellation != "":
+        json_data['cancellation'] = cancellation
     # make API call with error handling
     try:
         resposta = requests.get(f'{endpoint}/invoice/list', json=json_data, timeout=5)

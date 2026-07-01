@@ -37,7 +37,7 @@ func (s *InvoiceList) Run(inDTO port.InDTO) port.OutDTO {
 	}
 	// Fetch invoices from the repository
 	invoices, err := s.repo.FindInvoices(in.Page, in.PageSize, in.CustomerID, in.InvoiceDate,
-		in.DueDate, in.PaymentDate, in.EmailSentDate, in.WhatsappSentDate, in.TaxDate)
+		in.DueDate, in.PaymentDate, in.EmailSentDate, in.WhatsappSentDate, in.TaxDate, in.CancellationDate)
 	if err != nil {
 		s.logger.IPrintf(2, "Failed to fetch invoices: %v", err)
 		return dto.NewInvoiceListResponse(500, "internal error", "contact support please", nil)

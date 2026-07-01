@@ -16,7 +16,7 @@
         "level": 10
     },
     "issuer": {
-        "file_path": "./",
-        "pattern": "nfe_<yyyy>_<mm>_<id>.txt"
+        "file_path": "./tmp/",
+        "file_pattern": "nfe_<yyyy>_<mm>_<id>.txt"
     }
 }

@@ -17,6 +17,7 @@ type Vendor struct {
 	PixToken      string    `gorm:"not null"`
 	CreatedAt     time.Time `gorm:"not null;default:now()"`
 	UpdatedAt     time.Time `gorm:"not null;default:now()"`
+	LastRps       int64     `gorm:"not null;default:0"`
 }
 
 // TableName specifies the table name for Vendor model.
