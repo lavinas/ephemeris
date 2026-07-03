@@ -292,14 +292,6 @@ func (a *PostgresRepository) GetInvoicesByPeriod(vendorID int64,
 	return invoices, err
 }
 
-// GetInvoicesByKey retrieves invoices based on the customer ID and invoice date
-func (a *PostgresRepository) GetInvoicesByKey(customerID int64, invoiceDate time.Time) ([]domain.Invoice, error) {
-	var invoices []domain.Invoice
-	err := a.DB.Preload("InvoiceItems").Preload("Customer").
-		Where("customer_id = ? AND invoice_date::text = ?", customerID, invoiceDate.Format("2006-01-02")).
-		Find(&invoices).Error
-	return invoices, err
-}
 
 // GetEmissionsPeriod retrieves emissions for a given vendor and period
 func (a *PostgresRepository) GetEmissions(vendorID int64, invoiceStartDate,

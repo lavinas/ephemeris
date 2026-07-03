@@ -25,7 +25,6 @@ type Repository interface {
 		cancellationDate *string) ([]domain.Invoice, error)
 	GetInvoicesByPeriod(vendorID int64, start, end time.Time) ([]domain.Invoice, error)
 	GetInvoice(id int64) (*domain.Invoice, error)
-	GetInvoicesByKey(customerID int64, invoiceDate time.Time) ([]domain.Invoice, error)
 	GetEmissions(vendorID int64, invoiceStartDate, invoiceEndDate time.Time) ([]domain.Emission, error)
 	GetEmissionsCount(vendorID int64, invoiceStartDate, invoiceEndDate time.Time) (int64, error)
 	GetEmissionLastRPS(vendorID int64) (int64, error)

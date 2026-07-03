@@ -116,13 +116,6 @@ func (r *InvoiceCreate) validateDates(repo port.Repository) []error {
 	invoiceDate, err := time.Parse("2006-01-02", r.InvoiceDate)
 	if err != nil {
 		errs = append(errs, fmt.Errorf("invoicing expected with YYYY-MM-DD format"))
-	} else {
-		existingInvoices, err := repo.GetInvoicesByKey(r.customerID, invoiceDate)
-		if err != nil {
-			errs = append(errs, fmt.Errorf("error checking for duplicate invoices: %v", err))
-		} else if len(existingInvoices) > 0 {
-			errs = append(errs, fmt.Errorf("an invoice with the same customer and invoice date already exists"))
-		}
 	}
 	dueDate, err := time.Parse("2006-01-02", r.DueDate)
 	if err != nil {
