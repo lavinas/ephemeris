@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"billing/internal/domain"
 	"billing/internal/port"
@@ -13,6 +14,9 @@ import (
 
 	"golang.org/x/text/encoding/charmap"
 	"golang.org/x/text/transform"
+	"golang.org/x/text/runes"
+	"golang.org/x/text/unicode/norm"
+
 )
 
 const (
@@ -201,6 +205,7 @@ func (i *IssuerFile) getLine(emissionDate int, item *domain.EmissionItem) line {
 	if item.Invoice.Customer.Email != nil {
 		email = *item.Invoice.Customer.Email
 	}
+	name := i.removeAccents(item.Invoice.Customer.Name)
 	return line{
 		RegType:           2,
 		RPSType:           rps_type,
@@ -217,7 +222,7 @@ func (i *IssuerFile) getLine(emissionDate int, item *domain.EmissionItem) line {
 		Document:          docnumber,
 		CityDocument:      0,
 		StateDocument:     0,
-		Name:              item.Invoice.Customer.Name,
+		Name:              name,
 		AddressType:       " ",
 		Address:           " ",
 		AddressNumber:     " ",
@@ -265,4 +270,15 @@ func (i *IssuerFile) writeFooter(emission *domain.Emission) error {
 	}
 	i.logger.IPrintf(3, "Footer written for emission ID: %d", emission.ID)
 	return nil
+}
+
+// removeAccents is a helper function to remove accents from a string.
+func (i *IssuerFile) removeAccents(texto string) string {
+	// Transforma a string para separar letras dos acentos, remove os acentos e recompõe
+	t := transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
+	
+	// Aplica a transformação
+	resultado, _, _ := transform.String(t, texto)
+	
+	return resultado
 }
