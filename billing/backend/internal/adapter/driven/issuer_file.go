@@ -1,11 +1,14 @@
 package driven
 
 import (
+	"encoding/csv"
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 	"unicode"
 
 	"billing/internal/domain"
@@ -114,17 +117,19 @@ func (i *IssuerFile) SendEmission(emission *domain.Emission) error {
 }
 
 // ReceiveEmission is a placeholder for receiving emissions.
-func (i *IssuerFile) ReceiveEmission(source string) error {
+func (i *IssuerFile) ReceiveEmission(source string) (map[int64]domain.EmissionItem, error) {
 	i.logger.IPrintf(2, "Receiving emission from file: %s", source)
 	if err := i.openReceiveFile(source); err != nil {
-		return err
+		return nil, err
 	}
 	defer i.file.Close()
-	// Implement logic to read and process the emission data from the file
-	i.logger.IPrintf(2, "Emission received from file: %s", source)
-	return nil
+	lines, err := i.readReceiveFile()
+	if err != nil {
+		return nil, err
+	}
+	i.logger.IPrintf(2, "Received %d lines from file: %s", len(lines), source)
+	return lines, nil
 }
-
 
 // openSendFile is a helper function to open the file for writing.
 func (i *IssuerFile) openSendFile(emission *domain.Emission) error {
@@ -153,9 +158,62 @@ func (i *IssuerFile) openReceiveFile(source string) error {
 }
 
 // readReceiveFile is a placeholder for reading the file for receiving emissions.
-func (i *IssuerFile) readReceiveFile() error {
-	// Implement logic to read and process the emission data from the file
-	return nil
+func (i *IssuerFile) readReceiveFile() (map[int64]domain.EmissionItem, error) {
+	lines := make(map[int64]domain.EmissionItem)
+	reader := csv.NewReader(i.file)
+	records, err := reader.ReadAll()
+	if err != nil {
+		return nil, err
+	}
+	header := records[0]
+	if header[0] != "Tipo de Registro" {
+		return nil, fmt.Errorf("invalid file")
+	}
+	var totalTrailer int
+	for _, record := range records[1:] {
+		switch record[0] {
+		case "2":
+			item, err := i.getItemFromRecord(record)
+			if err != nil {
+				return nil, err
+			}
+			lines[item.RPSNumber] = item
+		case "9":
+			totalTrailer, err = strconv.Atoi(record[1])
+			if err != nil {
+				return nil, fmt.Errorf("invalid trailer total: %v", err)
+			}
+		}
+	}
+	if totalTrailer != len(lines) {
+		return nil, fmt.Errorf("trailer total does not match number of lines: %d != %d",
+			totalTrailer, len(lines))
+	}
+	return lines, nil
+}
+
+// getItemFromRecord is a helper function to convert a CSV record to an EmissionItem.
+func (i *IssuerFile) getItemFromRecord(record []string) (domain.EmissionItem, error) {
+	rpsNum, err := strconv.ParseInt(record[6], 10, 64)
+	if err != nil {
+		return domain.EmissionItem{}, fmt.Errorf("invalid RPS number: %v", err)
+	}
+	nfeNum, err := strconv.ParseInt(record[1], 10, 64)
+	if err != nil {
+		return domain.EmissionItem{}, fmt.Errorf("invalid NFE number: %v", err)
+	}
+	nfeDateTime, err := time.Parse("2006-01-02 15:04:05", record[2])
+	if err != nil {
+		return domain.EmissionItem{}, fmt.Errorf("invalid NFE datetime: %v", err)
+	}
+	nfeVerification := record[3]
+	item := domain.EmissionItem{
+		RPSNumber:       rpsNum,
+		NFENumber:       &nfeNum,
+		NFEDatetime:     &nfeDateTime,
+		NFEVerification: &nfeVerification,
+	}
+	return item, nil
 }
 
 // replacePlaceholders replaces placeholders in the file pattern with actual values from the emission.

@@ -73,6 +73,8 @@ func (h *APIHandler) mapServices() {
 			service.NewInvoiceUpdate(h.repo, h.logger), h.issuer),
 		"/emission/send": *newHandleService(http.MethodPost, &dto.EmissionSendRequest{},
 			service.NewEmissionSend(h.repo, h.logger, h.issuer), h.issuer),
+		"/emission/receive": *newHandleService(http.MethodPost, &dto.EmissionReceiveRequest{},
+			service.NewEmissionReceive(h.repo, h.logger, h.issuer), h.issuer),
 	}
 }
 

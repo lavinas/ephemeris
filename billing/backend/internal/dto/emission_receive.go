@@ -1,18 +1,18 @@
 package dto
 
 import (
+	"billing/internal/domain"
 	"billing/internal/port"
 	"errors"
 	"fmt"
-	"billing/internal/domain"
 )
 
 // EmissionReceiveRequest represents the request data for emission receives.
 type EmissionReceiveRequest struct {
-	Vendor     string `json:"vendor"`
-	VendorID   int64  `json:"-"`
-	EmissionID int64  `json:"emission_id"`
-	Source     string `json:"source"`
+	Vendor     string           `json:"vendor"`
+	VendorID   int64            `json:"-"`
+	EmissionID int64            `json:"emission_id"`
+	Source     string           `json:"source"`
 	Emission   *domain.Emission `json:"-"`
 }
 
@@ -85,6 +85,11 @@ func (r *EmissionReceiveRequest) validateEmissionID(repo port.Repository) error 
 	}
 	r.Emission = emission
 	return nil
+}
+
+// GetDomain gets the domain representation of the EmissionReceiveRequest.
+func (r *EmissionReceiveRequest) GetDomain() *domain.Emission {
+	return r.Emission
 }
 
 // Reset resets the EmissionReceiveRequest to its default state.
