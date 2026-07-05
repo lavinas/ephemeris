@@ -292,7 +292,6 @@ func (a *PostgresRepository) GetInvoicesByPeriod(vendorID int64,
 	return invoices, err
 }
 
-
 // GetEmissionsPeriod retrieves emissions for a given vendor and period
 func (a *PostgresRepository) GetEmissions(vendorID int64, invoiceStartDate,
 	invoiceEndDate time.Time) ([]domain.Emission, error) {
@@ -341,4 +340,18 @@ func (a *PostgresRepository) GetEmissionLastRPS(vendorID int64) (int64, error) {
 		return 0, err
 	}
 	return lastRPS, nil
+}
+
+// GetEmission retrieves a single emission by ID
+func (a *PostgresRepository) GetEmission(id int64) (*domain.Emission, error) {
+	var emission domain.Emission
+	err := a.DB.Preload("EmissionItems").Preload("Vendor").
+		Where("id = ?", id).First(&emission).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil // Return nil if no record is found
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &emission, nil
 }

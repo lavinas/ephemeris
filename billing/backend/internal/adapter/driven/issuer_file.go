@@ -13,10 +13,9 @@ import (
 	"github.com/ianlopshire/go-fixedwidth"
 
 	"golang.org/x/text/encoding/charmap"
-	"golang.org/x/text/transform"
 	"golang.org/x/text/runes"
+	"golang.org/x/text/transform"
 	"golang.org/x/text/unicode/norm"
-
 )
 
 const (
@@ -97,7 +96,7 @@ func NewIssuerFile(filePath string, filePattern string, logger port.Logger) *Iss
 // SendEmission sends the emission data to a file and logs the operation.
 func (i *IssuerFile) SendEmission(emission *domain.Emission) error {
 	i.logger.IPrintf(2, "Sending emission to file: %s", i.filePath)
-	if err := i.openFile(emission); err != nil {
+	if err := i.openSendFile(emission); err != nil {
 		return err
 	}
 	defer i.file.Close()
@@ -114,11 +113,24 @@ func (i *IssuerFile) SendEmission(emission *domain.Emission) error {
 	return nil
 }
 
-// openFile is a helper function to open the file for writing.
-func (i *IssuerFile) openFile(emission *domain.Emission) error {
+// ReceiveEmission is a placeholder for receiving emissions.
+func (i *IssuerFile) ReceiveEmission(source string) error {
+	i.logger.IPrintf(2, "Receiving emission from file: %s", source)
+	if err := i.openReceiveFile(source); err != nil {
+		return err
+	}
+	defer i.file.Close()
+	// Implement logic to read and process the emission data from the file
+	i.logger.IPrintf(2, "Emission received from file: %s", source)
+	return nil
+}
+
+
+// openSendFile is a helper function to open the file for writing.
+func (i *IssuerFile) openSendFile(emission *domain.Emission) error {
 	file_path := filepath.Join(i.filePath, i.replacePlaceholders(i.pattern, emission))
 	i.logger.IPrintf(3, "Opened file: %s (path: %s, pattern: %s)", file_path, i.filePath, i.pattern)
-	file, err := os.OpenFile(file_path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	file, err := os.OpenFile(file_path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
 		return err
 	}
@@ -127,6 +139,22 @@ func (i *IssuerFile) openFile(emission *domain.Emission) error {
 	i.file = file
 	i.writer = writer
 
+	return nil
+}
+
+// openReceiveFile is a placeholder for opening the file for reading.
+func (i *IssuerFile) openReceiveFile(source string) error {
+	file, err := os.Open(source)
+	if err != nil {
+		return err
+	}
+	i.file = file
+	return nil
+}
+
+// readReceiveFile is a placeholder for reading the file for receiving emissions.
+func (i *IssuerFile) readReceiveFile() error {
+	// Implement logic to read and process the emission data from the file
 	return nil
 }
 
@@ -176,7 +204,7 @@ func (i *IssuerFile) writeItems(emission *domain.Emission) error {
 	i.logger.IPrintf(3, "Writing items for emission ID: %d", emission.ID)
 	emissionDate, _ := strconv.Atoi(emission.EmissionDate.Format("20060102"))
 	for _, item := range emission.EmissionItems {
-		it := i.getLine(emissionDate, &item)
+		it := i.getSendLine(emissionDate, &item)
 		line, err := fixedwidth.Marshal(it)
 		lineStr := string(line)
 		lineStr = strings.TrimRight(lineStr, " ") + "\n"
@@ -192,8 +220,8 @@ func (i *IssuerFile) writeItems(emission *domain.Emission) error {
 	return nil
 }
 
-// getItem is a helper function to convert an EmissionItem to a line.
-func (i *IssuerFile) getLine(emissionDate int, item *domain.EmissionItem) line {
+// getSendLine is a helper function to convert an EmissionItem to a line.
+func (i *IssuerFile) getSendLine(emissionDate int, item *domain.EmissionItem) line {
 	// Convert item fields to the appropriate types and formats
 	document := regexp.MustCompile(`[^0-9]`).ReplaceAllString(*item.Invoice.Customer.Document, "")
 	documentType := 1
@@ -232,12 +260,12 @@ func (i *IssuerFile) getLine(emissionDate int, item *domain.EmissionItem) line {
 		State:             " ",
 		PostalCode:        " ",
 		Email:             email,
-		Description:       i.getDescription(item),
+		Description:       i.getSendDescription(item),
 	}
 }
 
-// getDescription is a helper function to generate a description for the emission item.
-func (i *IssuerFile) getDescription(item *domain.EmissionItem) string {
+// getSendDescription is a helper function to generate a description for the emission item.
+func (i *IssuerFile) getSendDescription(item *domain.EmissionItem) string {
 	// Implement logic to generate a description based on the item details
 	ret := ""
 	for _, invItem := range item.Invoice.InvoiceItems {
@@ -276,9 +304,9 @@ func (i *IssuerFile) writeFooter(emission *domain.Emission) error {
 func (i *IssuerFile) removeAccents(texto string) string {
 	// Transforma a string para separar letras dos acentos, remove os acentos e recompõe
 	t := transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
-	
+
 	// Aplica a transformação
 	resultado, _, _ := transform.String(t, texto)
-	
+
 	return resultado
 }

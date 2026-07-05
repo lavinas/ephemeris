@@ -28,6 +28,7 @@ type Repository interface {
 	GetEmissions(vendorID int64, invoiceStartDate, invoiceEndDate time.Time) ([]domain.Emission, error)
 	GetEmissionsCount(vendorID int64, invoiceStartDate, invoiceEndDate time.Time) (int64, error)
 	GetEmissionLastRPS(vendorID int64) (int64, error)
+	GetEmission(id int64) (*domain.Emission, error)
 }
 
 // Logger defines the interface for logging messages with different levels of severity.

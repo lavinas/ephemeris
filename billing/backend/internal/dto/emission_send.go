@@ -58,7 +58,6 @@ func (r *EmissionSendRequest) Validate(repo port.Repository) error {
 
 // valdateVendor checks if the vendor exists in the repository.
 func (r *EmissionSendRequest) valdateVendor(repo port.Repository) error {
-	// Implement logic to validate if the vendor exists in the repository.
 	if r.Vendor == "" {
 		return fmt.Errorf("vendor is required")
 	}
