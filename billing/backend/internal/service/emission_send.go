@@ -75,7 +75,7 @@ func (s *EmissionSend) getEmission(vendor *domain.Vendor, emissionDate, startDat
 	invsOut := make([]domain.Invoice, 0)
 	totalAmount := 0.0
 	quantity := 0
-	emissionItems := make([]domain.EmissionItem, 0)
+	emissionItems := make([]*domain.EmissionItem, 0)
 	rps := lastRPS
 	for _, inv := range invs {
 		if inv.IsTaxable() == false {
@@ -86,7 +86,7 @@ func (s *EmissionSend) getEmission(vendor *domain.Vendor, emissionDate, startDat
 		totalAmount += inv.Amount
 		quantity++
 		rps++
-		emissionItems = append(emissionItems, *domain.NewEmissionItem(0, inv.ID, rps, inv))
+		emissionItems = append(emissionItems, domain.NewEmissionItem(0, inv.ID, rps, inv))
 		inv.UpdatedAt = time.Now()
 		now := time.Now()
 		inv.TaxDate = &now

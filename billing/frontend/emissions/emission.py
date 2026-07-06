@@ -6,7 +6,7 @@ endpoint = 'http://localhost:8080'
 page = 1
 page_size = 1000
 
-# emit
+# send
 def send (vendor, start_date, end_date, emission_date):
   json_data = {'vendor': vendor, 'invoice_start_date': start_date, 'invoice_end_date': end_date, 'emission_date': emission_date}
   try:
@@ -19,3 +19,17 @@ def send (vendor, start_date, end_date, emission_date):
     return f"Ocorreu um erro genérico no requests: {e}"
   json_data = resposta.json()
   return f'{json_data["status"]} - {json_data["message"]} - id: {json_data["emission_id"]} - qtde: {json_data["emission_quantity"]} - valor: {json_data["emission_amount"]}'
+
+# receive
+def receive (vendor, id, source):
+  json_data = {'vendor': vendor, 'emission_id': id, 'source': source}
+  try:
+    resposta = requests.post(f'{endpoint}/emission/receive', json=json_data, timeout=5)
+  except ConnectionError as e:
+    return f"Erro: A conexão foi recusada pelo servidor remoto. Detalhes: {e}"
+  except Timeout as e:
+    return f"Erro: A requisição excedeu o tempo limite estabelecido. {e}"
+  except requests.exceptions.RequestException as e:
+    return f"Ocorreu um erro genérico no requests: {e}"
+  json_data = resposta.json()
+  return f'{json_data["status"]} - {json_data["message"]} - id: {json_data["emission_id"]} - qtde: {json_data["emission_quantity"]} - valor: {json_data["emission_amount"]}' 

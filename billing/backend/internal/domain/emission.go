@@ -16,11 +16,12 @@ type Emission struct {
 	RPSEnd        int64          `gorm:"index"`
 	NFEStart      *int64         `gorm:"index"`
 	NFEEnd        *int64         `gorm:"index"`
+	NFEDatetime   *time.Time     `gorm:"date"`
 	Amount        float64        `gorm:"not null"`
 	Quantity      int            `gorm:"not null"`
 	CreatedAt     time.Time      `gorm:"autoCreateTime"`
 	UpdatedAt     time.Time      `gorm:"autoUpdateTime"`
-	EmissionItems []EmissionItem `gorm:"foreignKey:EmissionID"`
+	EmissionItems []*EmissionItem `gorm:"foreignKey:EmissionID"`
 }
 
 // EmissionItem represents an individual emission item with a date and amount.
@@ -37,7 +38,7 @@ type EmissionItem struct {
 
 // NewEmission creates a new Emission instance with the provided details.
 func NewEmission(vendor *Vendor, periodStart, periodEnd, emissionDate time.Time, RPSStart,
-	RPSEnd int64, amount float64, quantity int, items []EmissionItem) *Emission {
+	RPSEnd int64, amount float64, quantity int, items []*EmissionItem) *Emission {
 	return &Emission{
 		VendorID:      vendor.ID,
 		Vendor:        *vendor,

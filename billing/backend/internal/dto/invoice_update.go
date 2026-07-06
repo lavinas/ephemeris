@@ -212,7 +212,6 @@ func (r *InvoiceUpdateRequest) GetDomain() interface{} {
 		dt, _ := time.Parse("2006-01-02", *r.InvoiceDate)
 		r.invoice.InvoiceDate = dt
 	}
-
 	if r.DueDate != nil {
 		dt, _ := time.Parse("2006-01-02", *r.DueDate)
 		r.invoice.DueDate = dt

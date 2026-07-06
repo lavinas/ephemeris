@@ -59,5 +59,5 @@ type Service interface {
 // Issuer defines the interface for sending emissions to an external system.
 type Issuer interface {
 	SendEmission(emission *domain.Emission) error
-	ReceiveEmission(source string) (map[int64]domain.EmissionItem, error)
+	ReceiveEmission(source string) (map[int64]*domain.EmissionItem, error)
 }

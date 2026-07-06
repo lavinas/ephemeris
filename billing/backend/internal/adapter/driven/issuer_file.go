@@ -117,7 +117,7 @@ func (i *IssuerFile) SendEmission(emission *domain.Emission) error {
 }
 
 // ReceiveEmission is a placeholder for receiving emissions.
-func (i *IssuerFile) ReceiveEmission(source string) (map[int64]domain.EmissionItem, error) {
+func (i *IssuerFile) ReceiveEmission(source string) (map[int64]*domain.EmissionItem, error) {
 	i.logger.IPrintf(2, "Receiving emission from file: %s", source)
 	if err := i.openReceiveFile(source); err != nil {
 		return nil, err
@@ -158,11 +158,14 @@ func (i *IssuerFile) openReceiveFile(source string) error {
 }
 
 // readReceiveFile is a placeholder for reading the file for receiving emissions.
-func (i *IssuerFile) readReceiveFile() (map[int64]domain.EmissionItem, error) {
-	lines := make(map[int64]domain.EmissionItem)
+func (i *IssuerFile) readReceiveFile() (map[int64]*domain.EmissionItem, error) {
+	lines := make(map[int64]*domain.EmissionItem)
 	reader := csv.NewReader(i.file)
+	reader.Comma = ';'
+	reader.FieldsPerRecord = -1
 	records, err := reader.ReadAll()
 	if err != nil {
+		i.logger.IPrintf(3, "Error on reading CSV file: %v", err)
 		return nil, err
 	}
 	header := records[0]
@@ -178,7 +181,7 @@ func (i *IssuerFile) readReceiveFile() (map[int64]domain.EmissionItem, error) {
 				return nil, err
 			}
 			lines[item.RPSNumber] = item
-		case "9":
+		case "Total":
 			totalTrailer, err = strconv.Atoi(record[1])
 			if err != nil {
 				return nil, fmt.Errorf("invalid trailer total: %v", err)
@@ -193,21 +196,21 @@ func (i *IssuerFile) readReceiveFile() (map[int64]domain.EmissionItem, error) {
 }
 
 // getItemFromRecord is a helper function to convert a CSV record to an EmissionItem.
-func (i *IssuerFile) getItemFromRecord(record []string) (domain.EmissionItem, error) {
+func (i *IssuerFile) getItemFromRecord(record []string) (*domain.EmissionItem, error) {
 	rpsNum, err := strconv.ParseInt(record[6], 10, 64)
 	if err != nil {
-		return domain.EmissionItem{}, fmt.Errorf("invalid RPS number: %v", err)
+		return nil, fmt.Errorf("invalid RPS number: %v", err)
 	}
 	nfeNum, err := strconv.ParseInt(record[1], 10, 64)
 	if err != nil {
-		return domain.EmissionItem{}, fmt.Errorf("invalid NFE number: %v", err)
+		return nil, fmt.Errorf("invalid NFE number: %v", err)
 	}
-	nfeDateTime, err := time.Parse("2006-01-02 15:04:05", record[2])
+	nfeDateTime, err := time.Parse("02/01/2006 15:04:05", record[2])
 	if err != nil {
-		return domain.EmissionItem{}, fmt.Errorf("invalid NFE datetime: %v", err)
+		return nil, fmt.Errorf("invalid NFE datetime: %v", err)
 	}
 	nfeVerification := record[3]
-	item := domain.EmissionItem{
+	item := &domain.EmissionItem{
 		RPSNumber:       rpsNum,
 		NFENumber:       &nfeNum,
 		NFEDatetime:     &nfeDateTime,
@@ -262,7 +265,7 @@ func (i *IssuerFile) writeItems(emission *domain.Emission) error {
 	i.logger.IPrintf(3, "Writing items for emission ID: %d", emission.ID)
 	emissionDate, _ := strconv.Atoi(emission.EmissionDate.Format("20060102"))
 	for _, item := range emission.EmissionItems {
-		it := i.getSendLine(emissionDate, &item)
+		it := i.getSendLine(emissionDate, item)
 		line, err := fixedwidth.Marshal(it)
 		lineStr := string(line)
 		lineStr = strings.TrimRight(lineStr, " ") + "\n"
