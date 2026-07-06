@@ -53,7 +53,8 @@ def get(vendor, customer, invoicing, due, payment, email_sent, whatsapp_sent, ta
     lb = lambda items: '\n'.join([f"{item['description']} (qtty: {item['quantity']}, price: {item['price']})" 
                                   for item in items]) if isinstance(items, list) else '-'
     df_invoices['items'] = df_invoices['items'].apply(lb)
-    return tabulate(df_invoices, headers='keys', tablefmt='grid', showindex=False), len(df_invoices)
+    return tabulate(df_invoices, headers='keys', tablefmt='grid', showindex=False), len(df_invoices), \
+        sum(df_invoices['amount'].replace('-', 0).astype(float))    
 
 # insert
 def insert(vendor, customer, invoicing, due, payment, cancellation, notes, items):
