@@ -6,21 +6,21 @@ import (
 
 // Emission represents an emission record associated with a vendor, including the period of the emission.
 type Emission struct {
-	ID            int64          `gorm:"primaryKey;autoIncrement"`
-	VendorID      int64          `gorm:"not null;index"`
-	Vendor        Vendor         `gorm:"foreignKey:VendorID"`
-	EmissionDate  time.Time      `gorm:"not null;date"`
-	PeriodStart   time.Time      `gorm:"date"`
-	PeriodEnd     time.Time      `gorm:"date"`
-	RPSStart      int64          `gorm:"index"`
-	RPSEnd        int64          `gorm:"index"`
-	NFEStart      *int64         `gorm:"index"`
-	NFEEnd        *int64         `gorm:"index"`
-	NFEDatetime   *time.Time     `gorm:"date"`
-	Amount        float64        `gorm:"not null"`
-	Quantity      int            `gorm:"not null"`
-	CreatedAt     time.Time      `gorm:"autoCreateTime"`
-	UpdatedAt     time.Time      `gorm:"autoUpdateTime"`
+	ID            int64           `gorm:"primaryKey;autoIncrement"`
+	VendorID      int64           `gorm:"not null;index"`
+	Vendor        Vendor          `gorm:"foreignKey:VendorID"`
+	EmissionDate  time.Time       `gorm:"not null;date"`
+	PeriodStart   time.Time       `gorm:"date"`
+	PeriodEnd     time.Time       `gorm:"date"`
+	RPSStart      int64           `gorm:"index"`
+	RPSEnd        int64           `gorm:"index"`
+	NFEStart      *int64          `gorm:"index"`
+	NFEEnd        *int64          `gorm:"index"`
+	NFEDatetime   *time.Time      `gorm:"date"`
+	Amount        float64         `gorm:"not null"`
+	Quantity      int             `gorm:"not null"`
+	CreatedAt     time.Time       `gorm:"autoCreateTime"`
+	UpdatedAt     time.Time       `gorm:"autoUpdateTime"`
 	EmissionItems []*EmissionItem `gorm:"foreignKey:EmissionID"`
 }
 
