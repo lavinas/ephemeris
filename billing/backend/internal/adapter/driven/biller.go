@@ -66,7 +66,7 @@ func (p *Biller) addHeader(request dto.BillerRequest) {
 			},
 		),
 	)
-	p.generator.AddRow(10,
+	p.generator.AddRow(5,
 		text.NewCol(12, request.Vendor.Name,
 			props.Text{
 				Top:   0,
@@ -74,6 +74,16 @@ func (p *Biller) addHeader(request dto.BillerRequest) {
 				Align: align.Center,
 				Size:  10,
 			}))
+	p.generator.AddRow(5,
+		text.NewCol(12, request.Vendor.Document,
+			props.Text{
+				Top:   0,
+				Style: fontstyle.Bold,
+				Align: align.Center,
+				Size:  8,
+			}))
+
+
 	p.generator.AddRow(10,
 		text.NewCol(12, "Invoice", props.Text{
 			Top:   5,

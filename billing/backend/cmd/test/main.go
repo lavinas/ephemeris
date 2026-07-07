@@ -13,6 +13,7 @@ func main() {
 		Vendor: dto.BillerVendor{
 			Logo:     "./images/logo_amelia.png",
 			Name:     "Estudio Amelia Cardoso",
+			Document: "27.928.875/0001-04",
 			Address:  strPtr("123 Main St"),
 			Postcode: strPtr("12345"),
 			City:     strPtr("Cityville"),

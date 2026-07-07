@@ -11,6 +11,7 @@ type BillerItem struct {
 type BillerVendor struct {
 	Logo     string
 	Name     string
+	Document string
 	Address  *string
 	Postcode *string
 	City     *string
