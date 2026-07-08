@@ -1,5 +1,9 @@
 package dto
 
+import (
+	"time"
+)
+
 // BillerItem represents an item in the biller request.
 type BillerItem struct {
 	Description string
@@ -32,8 +36,11 @@ type BillerCustomer struct {
 
 // BillerRequest defines the interface for generating PDF files.
 type BillerRequest struct {
-	Vendor   BillerVendor
-	Customer BillerCustomer
-	Items    []BillerItem
-	Notes    *string
+	InvoiceID   string
+	InvoiceDate time.Time
+	InvoiceDue  time.Time
+	Vendor      BillerVendor
+	Customer    BillerCustomer
+	Items       []BillerItem
+	Notes       *[]string
 }

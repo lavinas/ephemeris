@@ -1,15 +1,21 @@
 package driven
 
 import (
+	"fmt"
+	"regexp"
+	"time"
+
 	"billing/internal/dto"
 	"billing/internal/port"
 
 	"github.com/johnfercher/maroto/v2"
 	"github.com/johnfercher/maroto/v2/pkg/components/image"
+	mline "github.com/johnfercher/maroto/v2/pkg/components/line"
 	"github.com/johnfercher/maroto/v2/pkg/components/text"
 	"github.com/johnfercher/maroto/v2/pkg/config"
 	"github.com/johnfercher/maroto/v2/pkg/consts/align"
 	"github.com/johnfercher/maroto/v2/pkg/consts/fontstyle"
+	"github.com/johnfercher/maroto/v2/pkg/consts/linestyle"
 	"github.com/johnfercher/maroto/v2/pkg/consts/orientation"
 	"github.com/johnfercher/maroto/v2/pkg/consts/pagesize"
 	"github.com/johnfercher/maroto/v2/pkg/core"
@@ -44,6 +50,14 @@ func NewBiller(logger port.Logger, path string) *Biller {
 func (p *Biller) GeneratePDF(request dto.BillerRequest) error {
 	p.logger.IPrintf(2, "Generating PDF...")
 	p.addHeader(request)
+	p.addSeparator(3, 3)
+	p.addBill(request)
+	p.addSeparator(3, 2)
+	p.addItems(request)
+	p.addSeparator(2, 1)
+	p.addTotal(100)
+	p.addSpaceRow(5)
+	p.addNotes(request.Notes)
 	document, err := p.generator.Generate()
 	if err != nil {
 		return err
@@ -63,9 +77,7 @@ func (p *Biller) addHeader(request dto.BillerRequest) {
 			props.Rect{
 				Center:  true,
 				Percent: 100,
-			},
-		),
-	)
+			}))
 	p.generator.AddRow(5,
 		text.NewCol(12, request.Vendor.Name,
 			props.Text{
@@ -75,21 +87,270 @@ func (p *Biller) addHeader(request dto.BillerRequest) {
 				Size:  10,
 			}))
 	p.generator.AddRow(5,
-		text.NewCol(12, request.Vendor.Document,
+		text.NewCol(12, fmt.Sprintf("cnpj: %s", request.Vendor.Document),
 			props.Text{
 				Top:   0,
-				Style: fontstyle.Bold,
 				Align: align.Center,
 				Size:  8,
 			}))
+	if request.Vendor.Email != nil {
+		p.generator.AddRow(5,
+			text.NewCol(12, fmt.Sprintf("email: %s", *request.Vendor.Email),
+				props.Text{
+					Top:   0,
+					Align: align.Center,
+					Size:  8,
+				}))
+	}
+	if request.Vendor.Whatsapp != nil {
+		p.generator.AddRow(5,
+			text.NewCol(12, fmt.Sprintf("whatsapp: %s", *request.Vendor.Whatsapp),
+				props.Text{
+					Top:   0,
+					Align: align.Center,
+					Size:  8,
+				}))
+	}
+}
 
-
-	p.generator.AddRow(10,
-		text.NewCol(12, "Invoice", props.Text{
-			Top:   5,
-			Style: fontstyle.Bold,
-			Align: align.Center,
-			Size:  12,
-		}),
+// addBill adds the bill information to the PDF.
+func (p *Biller) addBill(request dto.BillerRequest) {
+	p.generator.AddRow(4,
+		text.NewCol(8, request.Customer.Name,
+			props.Text{
+				Top:   0,
+				Left:  10,
+				Align: align.Left,
+				Style: fontstyle.Bold,
+				Size:  8,
+			}),
+		text.NewCol(5, p.getInvoiceID(request.InvoiceID),
+			props.Text{
+				Align: align.Left,
+				Left:  15,
+				Size:  8,
+			}),
 	)
+	p.generator.AddRow(4,
+		text.NewCol(8, p.getDocument(request.Customer.Document),
+			props.Text{
+				Top:   0,
+				Left:  10,
+				Align: align.Left,
+				Size:  8,
+			}),
+		text.NewCol(5, p.getDueDate(request.InvoiceDue),
+			props.Text{
+				Align: align.Left,
+				Left:  15,
+				Style: fontstyle.Bold,
+				Size:  8,
+			}),
+	)
+	p.generator.AddRow(4,
+		text.NewCol(8, p.getEmail(request.Customer.Email),
+			props.Text{
+				Top:   0,
+				Left:  10,
+				Align: align.Left,
+				Size:  8,
+			}),
+		text.NewCol(5, p.getInvoiceDate(request.InvoiceDate),
+			props.Text{
+				Align: align.Left,
+				Left:  15,
+				Size:  8,
+			}),
+	)
+}
+
+// addSpaceRow adds empty rows to the PDF for spacing.
+func (p *Biller) addSpaceRow(height float64) {
+	p.generator.AddRow(height)
+}
+
+// addSeparator adds a separator row to the PDF.
+func (p *Biller) addSeparator(heightTop float64, heightBottom float64) {
+	p.generator.AddRow(heightTop)
+	p.generator.AddRows(mline.NewRow(0, props.Line{
+		Thickness: 0.5, 
+		Style:     linestyle.Solid,                               // Estilo (Solid, Dashed ou Dotted)
+		Color:     &props.Color{Red: 200, Green: 200, Blue: 200}, // Cor vermelha
+	}))
+	p.generator.AddRow(heightBottom)
+}
+
+// addItems adds the items to the PDF.
+func (p *Biller) addItems(request dto.BillerRequest) {
+	p.addItemHeader()
+	for _, item := range request.Items {
+		p.addItemRow(item)
+	}
+}
+
+// getInvoiceID returns the invoice ID as a formatted string.
+func (p *Biller) getInvoiceID(invoiceID string) string {
+	return fmt.Sprintf("Invoice #      : %s", invoiceID)
+}
+
+// getDocument 
+func (p *Biller) getDocument(document *string) string {
+	if document == nil {
+		return ""
+	}
+	document_num := *document
+	document_type := "CPF"
+	reg := regexp.MustCompile(`\D`)
+	if len(reg.ReplaceAllString(document_num, "")) >= 14 {
+		document_type = "CNPJ"
+	}
+	return fmt.Sprintf("%s: %s", document_type, document_num)
+}
+
+// getInvoiceDate returns the invoice date as a formatted string.
+func (p *Biller) getInvoiceDate(invoiceDate time.Time) string {
+	return fmt.Sprintf("Emissão       : %s", invoiceDate.Format("02/01/2006"))
+}
+
+// getEmail returns the email as a formatted string.
+func (p *Biller) getEmail(email *string) string {
+	if email == nil {
+		return ""
+	}
+	return fmt.Sprintf("Email: %s", *email)
+}
+
+// getDueDate returns the due date as a formatted string.
+func (p *Biller) getDueDate(dueDate time.Time) string {
+	return fmt.Sprintf("Vencimento: %s", dueDate.Format("02/01/2006"))
+}
+
+
+// addItemHeader adds the header for the items section in the PDF.
+func (p *Biller) addItemHeader() {
+		p.generator.AddRow(5,
+		text.NewCol(5, "Descrição",
+			props.Text{
+				Top:   0,
+				Left:  10,
+				Align: align.Left,
+				Style: fontstyle.Bold,
+				Size:  8,
+			}),
+		text.NewCol(2, "Quantidade",
+			props.Text{
+				Top:   0,
+				Align: align.Center,
+				Style: fontstyle.Bold,
+				Size:  8,
+			}),
+		text.NewCol(2, "Valor",
+			props.Text{
+				Top:   0,
+				Align: align.Right,
+				Style: fontstyle.Bold,
+				Size:  8,
+			}),
+		text.NewCol(2, "Total",
+			props.Text{
+				Top:   0,
+				Align: align.Right,
+				Style: fontstyle.Bold,
+				Size:  8,
+			}),
+	)
+}
+
+// addItemRow adds a row for an item in the PDF.
+func (p *Biller) addItemRow(item dto.BillerItem) {
+	p.generator.AddRow(5,
+		text.NewCol(5, item.Description,
+			props.Text{
+				Top:   0,
+				Left:  10,
+				Align: align.Left,
+				Size:  8,
+			}),
+		text.NewCol(2, fmt.Sprintf("%d", item.Quantity),
+			props.Text{
+				Top:   0,
+				Align: align.Center,
+				Size:  8,
+			}),
+		text.NewCol(2, fmt.Sprintf("R$ %.2f", item.Price),
+			props.Text{
+				Top:   0,
+				Align: align.Right,
+				Size:  8,
+			}),
+		text.NewCol(2, fmt.Sprintf("R$ %.2f", float64(item.Quantity)*item.Price),
+			props.Text{
+				Top:   0,
+				Align: align.Right,
+				Size:  8,
+			}),
+	)
+}
+
+// addTotal
+func (p *Biller) addTotal(total float64) {
+	p.generator.AddRow(5,
+		text.NewCol(5, "",
+			props.Text{
+				Top:   0,
+				Left:  10,
+				Align: align.Left,
+				Size:  8,
+			}),
+		text.NewCol(2, "",
+			props.Text{
+				Top:   0,
+				Align: align.Center,
+				Size:  8,
+			}),
+		text.NewCol(2, "TOTAL",
+			props.Text{
+				Top:   0,
+				Align: align.Right,
+				Style: fontstyle.Bold,
+				Size:  8,
+			}),
+		text.NewCol(2, fmt.Sprintf("R$ %.2f", total),
+			props.Text{
+				Top:   0,
+				Align: align.Right,
+				Style: fontstyle.Bold,
+				Size:  8,
+			}),
+	)
+}
+
+// addNotes adds the notes section to the PDF.
+func (p *Biller) addNotes(notes *[]string) {
+	if notes == nil {
+		return
+	}
+	p.generator.AddRow(5,
+		text.NewCol(12, "Notas:",
+			props.Text{
+				Top:   0,
+				Left:  10,
+				Align: align.Left,
+				Style: fontstyle.Bold,
+				Size:  10,
+			}),
+	)
+	p.generator.AddRow(5)
+	
+	for _, note := range *notes {
+		p.generator.AddRow(5,
+			text.NewCol(12, note,
+				props.Text{
+					Top:   0,
+					Left:  10,
+					Align: align.Left,
+					Size:  8,
+				}),
+		)
+	}
 }
