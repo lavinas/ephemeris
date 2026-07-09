@@ -36,23 +36,24 @@ def get(vendor, customer, invoicing, due, payment, email_sent, whatsapp_sent, ta
     try:
         resposta = requests.get(f'{endpoint}/invoice/list', json=json_data, timeout=5)
     except ConnectionError as e:
-        return f"Erro: A conexão foi recusada pelo servidor remoto. Detalhes: {e}", 0
+        return f"Erro: A conexão foi recusada pelo servidor remoto. Detalhes: {e}", 0, 0
     except Timeout as e:
-        return f"Erro: A requisição excedeu o tempo limite estabelecido. {e}", 0
+        return f"Erro: A requisição excedeu o tempo limite estabelecido. {e}", 0, 0
     except requests.exceptions.RequestException as e:
-        return f"Ocorreu um erro genérico no requests: {e}"
+        return f"Ocorreu um erro genérico no requests: {e}", 0, 0
     if resposta.status_code != 200:
-        return f'Erro na chamada da API: {resposta.status_code} - {resposta.text}', 0
+        return f'Erro na chamada da API: {resposta.status_code} - {resposta.text}', 0, 0
     # processing response data
     json_data = resposta.json()
     if 'invoices' not in json_data or len(json_data['invoices']) == 0:
-        return 'Nenhuma fatura encontrada.', 0
+        return 'Nenhuma fatura encontrada.', 0, 0
     # get items from invoices and merge with invoices data
     df_invoices = pd.DataFrame(json_data['invoices'])
     df_invoices = df_invoices.fillna('-')
     lb = lambda items: '\n'.join([f"{item['description']} (qtty: {item['quantity']}, price: {item['price']})" 
                                   for item in items]) if isinstance(items, list) else '-'
     df_invoices['items'] = df_invoices['items'].apply(lb)
+    df_invoices = df_invoices.sort_values(by=['customer', 'invoicing'])
     return tabulate(df_invoices, headers='keys', tablefmt='grid', showindex=False), len(df_invoices), \
         sum(df_invoices['amount'].replace('-', 0).astype(float))    
 

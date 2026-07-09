@@ -47,6 +47,7 @@ def get(vendor, status, nickname, name, document, email, whatsapp):
     customers = json_data['customers']
     df = pd.DataFrame(customers)
     df = df.fillna('-')
+    df = df.sort_values(by=['nickname'])
     return tabulate(df, headers='keys', tablefmt='grid', showindex=False), len(customers)
 
 # insert
