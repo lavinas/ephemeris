@@ -173,7 +173,7 @@ func (p *Biller) addSpaceRow(height float64) {
 func (p *Biller) addSeparator(heightTop float64, heightBottom float64) {
 	p.generator.AddRow(heightTop)
 	p.generator.AddRows(mline.NewRow(0, props.Line{
-		Thickness: 0.5, 
+		Thickness: 0.5,
 		Style:     linestyle.Solid,                               // Estilo (Solid, Dashed ou Dotted)
 		Color:     &props.Color{Red: 200, Green: 200, Blue: 200}, // Cor vermelha
 	}))
@@ -193,7 +193,7 @@ func (p *Biller) getInvoiceID(invoiceID string) string {
 	return fmt.Sprintf("Invoice #      : %s", invoiceID)
 }
 
-// getDocument 
+// getDocument
 func (p *Biller) getDocument(document *string) string {
 	if document == nil {
 		return ""
@@ -225,10 +225,9 @@ func (p *Biller) getDueDate(dueDate time.Time) string {
 	return fmt.Sprintf("Vencimento: %s", dueDate.Format("02/01/2006"))
 }
 
-
 // addItemHeader adds the header for the items section in the PDF.
 func (p *Biller) addItemHeader() {
-		p.generator.AddRow(5,
+	p.generator.AddRow(5,
 		text.NewCol(5, "Descrição",
 			props.Text{
 				Top:   0,
@@ -341,7 +340,7 @@ func (p *Biller) addNotes(notes *[]string) {
 			}),
 	)
 	p.generator.AddRow(5)
-	
+
 	for _, note := range *notes {
 		p.generator.AddRow(5,
 			text.NewCol(12, note,
