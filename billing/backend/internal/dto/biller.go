@@ -23,7 +23,6 @@ type BillerVendor struct {
 	Country  *string
 	Email    *string
 	Whatsapp *string
-	PixKey   *string
 }
 
 // BillerCustomer represents the customer information in the biller request.
@@ -34,6 +33,29 @@ type BillerCustomer struct {
 	Whatsapp *string
 }
 
+// BillerBankAccount represents the bank account information in the biller request.
+type BillerBankAccount struct {
+	BankName   string
+	BankAgency string
+	BankAccount string
+	ReceiverName string
+	ReceiverDocument string
+}
+
+// BillerPix represents the Pix information in the biller request.
+type BillerPix struct {
+	PixKey string
+	ReceiverName string
+	PixCopyPaste *string
+	PixQRCode *string
+} 
+
+// BillerReceive represents the bank information in the biller request.
+type BillerReceive struct {
+	BankAccount *BillerBankAccount
+	Pix         *BillerPix
+}
+
 // BillerRequest defines the interface for generating PDF files.
 type BillerRequest struct {
 	InvoiceID   string
@@ -42,5 +64,5 @@ type BillerRequest struct {
 	Vendor      BillerVendor
 	Customer    BillerCustomer
 	Items       []BillerItem
-	Notes       *[]string
+	Receive	    BillerReceive
 }

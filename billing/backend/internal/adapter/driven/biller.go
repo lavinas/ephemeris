@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"time"
+	"encoding/base64"
 
 	"billing/internal/dto"
 	"billing/internal/port"
@@ -20,6 +21,8 @@ import (
 	"github.com/johnfercher/maroto/v2/pkg/consts/pagesize"
 	"github.com/johnfercher/maroto/v2/pkg/core"
 	"github.com/johnfercher/maroto/v2/pkg/props"
+	"github.com/johnfercher/maroto/v2/pkg/components/row"
+	"github.com/johnfercher/maroto/v2/pkg/components/col"
 )
 
 // PDFGenerator is an implementation of the PDFGenerator interface that generates PDF files.
@@ -53,11 +56,11 @@ func (p *Biller) GeneratePDF(request dto.BillerRequest) error {
 	p.addSeparator(3, 3)
 	p.addBill(request)
 	p.addSeparator(3, 2)
-	p.addItems(request)
+	total := p.addItems(request)
 	p.addSeparator(2, 1)
-	p.addTotal(100)
+	p.addTotal(total)
 	p.addSpaceRow(5)
-	p.addNotes(request.Notes)
+	p.addReceive(request.Receive)
 	document, err := p.generator.Generate()
 	if err != nil {
 		return err
@@ -181,11 +184,13 @@ func (p *Biller) addSeparator(heightTop float64, heightBottom float64) {
 }
 
 // addItems adds the items to the PDF.
-func (p *Biller) addItems(request dto.BillerRequest) {
+func (p *Biller) addItems(request dto.BillerRequest) float64 {
 	p.addItemHeader()
+	var total float64
 	for _, item := range request.Items {
-		p.addItemRow(item)
+		total += p.addItemRow(item)
 	}
+	return total
 }
 
 // getInvoiceID returns the invoice ID as a formatted string.
@@ -261,7 +266,8 @@ func (p *Biller) addItemHeader() {
 }
 
 // addItemRow adds a row for an item in the PDF.
-func (p *Biller) addItemRow(item dto.BillerItem) {
+func (p *Biller) addItemRow(item dto.BillerItem) float64 {
+	total := float64(item.Quantity) * item.Price
 	p.generator.AddRow(5,
 		text.NewCol(5, item.Description,
 			props.Text{
@@ -282,13 +288,14 @@ func (p *Biller) addItemRow(item dto.BillerItem) {
 				Align: align.Right,
 				Size:  8,
 			}),
-		text.NewCol(2, fmt.Sprintf("R$ %.2f", float64(item.Quantity)*item.Price),
+		text.NewCol(2, fmt.Sprintf("R$ %.2f", total),
 			props.Text{
 				Top:   0,
 				Align: align.Right,
 				Size:  8,
 			}),
 	)
+	return total
 }
 
 // addTotal
@@ -324,9 +331,9 @@ func (p *Biller) addTotal(total float64) {
 	)
 }
 
-// addNotes adds the notes section to the PDF.
-func (p *Biller) addNotes(notes *[]string) {
-	if notes == nil {
+// addReceive adds the receive section to the PDF.
+func (p *Biller) addReceive(receive dto.BillerReceive) {
+	if receive.BankAccount == nil && receive.Pix == nil {
 		return
 	}
 	p.generator.AddRow(5,
@@ -340,16 +347,48 @@ func (p *Biller) addNotes(notes *[]string) {
 			}),
 	)
 	p.generator.AddRow(5)
-
-	for _, note := range *notes {
-		p.generator.AddRow(5,
-			text.NewCol(12, note,
-				props.Text{
-					Top:   0,
-					Left:  10,
-					Align: align.Left,
-					Size:  8,
-				}),
-		)
-	}
+	p.addPix(receive.Pix)
+	
 }
+
+// addPix adds the Pix section to the PDF.
+func (p *Biller) addPix(pix *dto.BillerPix) {
+	if pix == nil {
+		return
+	}
+	p.generator.AddRow(5,
+		text.NewCol(12, "Para pagamento via Pix:",
+			props.Text{
+				Top:   0,
+				Left:  10,
+				Align: align.Left,
+				Style: fontstyle.Bold,
+				Size:  10,
+			}),
+	)
+
+	p.generator.AddRow(5)
+	p.addQRCode(pix.PixQRCode)
+
+}
+
+// addQRCode adds the QR code to the PDF.
+func (p *Biller) addQRCode(qrCode *string) error {
+	if qrCode == nil {
+		return nil
+	}
+	img, err := base64.StdEncoding.DecodeString(*qrCode)
+	if err != nil {
+		return err
+	}
+	imgComp := image.NewFromBytes(img, "png")
+
+	p.generator.AddRows(
+		row.New(40).Add(
+			col.New(12).Add(imgComp),
+		),
+	)
+	return nil
+}
+
+

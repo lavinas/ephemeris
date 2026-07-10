@@ -39,7 +39,7 @@ func main() {
 			Country:  strPtr("Country"),
 			Email:    strPtr("financeiro@ameliacardoso.com.br"),
 			Whatsapp: strPtr("(11) 98088-8399"),
-			PixKey:   strPtr("1234567890"),
+
 		},
 		Customer: dto.BillerCustomer{
 			Name:     "Rui Miranda Ribeiro Facó",
@@ -51,7 +51,6 @@ func main() {
 			{Description: "Item 1", Quantity: 2, Price: 10.0},
 			{Description: "Item 2", Quantity: 1, Price: 20.0},
 		},
-		Notes: &notes,
 	}
 
 	err := pdfGenerator.GeneratePDF(request)
