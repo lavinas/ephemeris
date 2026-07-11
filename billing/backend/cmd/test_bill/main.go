@@ -6,6 +6,12 @@ import (
 	"time"
 )
 
+const (
+	qrcode = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEAAQMAAABmvDolAAAABlBMVEX///8AAABVwtN+AAADZ0lEQVR42uyZMa6rPBSEB1G49A7ijSDYVopIIFFkW0bZiNmBSxeI+TV2yL33f80rXoiL6+bxuF+B7HPmzDj4Xb/rX6+B5GO3JAPQBnD2sFO7ktyrAXrA+CaS3tnUkukG8M415j+dBDjePWwCnJ06wEy9s2lYI7e6gEdAusFhfATLeXcRXXM6sFvOJEYy4tbrkysDAPNYY2qXEI1vSC6Bd9/8qIc3A7ns15huvbP3bw8/++LDgFYbLHI7+IYpb+cQfojIm4Ee9s6VOjuJRN5JGP079dUAANWJhh7ReBeP3mRq97OAgTCP/G2Mox4mIF6HYA3rAYCIdrdJWzoBVsdtp2GH2XAW0ASMXGnIYFPntKUuvzl6swagdxFZsprAqdVo1LZuF5wIDEEiVlpSD/psO3UXmNnXA9AmuFjU3l/AeSFTq/48DZA+ZO3yYDnN3cXRO5qtrwZoiCsaJs3HqSVxG0KU40qtPwsYAsYNMPNCXLuLpjJhuDIdjrQCoHdMXRMhk3PtkB1hBC72EJATAOnDgxGtKm1Q2Q+Mozbx1tcEXIv/fFbaTNriUU8DAIlWxLjQ5gegbGcafTVAQyrRaFJbliZ12eRw3k8Dgs3WfVxYrOmtCVLUqBldC9CX6Jdt81jcshKZEkd/HpCzaGq9i5o6nJeQT/MrkFYAOKArahbNdgG3gfa+weJZcicAAMbHSjMvgZR10Zde4b5Z1s8DgyY1Y3YLsqbaUuRENvVnATk+7PLALmsXjhl9jMUqAIcrYDnBcdJIyr0p8jUW3w40xLjJaMkMP/JELhnHvFTu8wCcnVqJ/FCsO2ePXHKnAtE8nolG81FjMertccVRBVCivZmaYOldzLYwtcH+73rhnYBsA5WaKSNakqmdtK2vsv88MOT/QtrF1MGaWflebuelMG8HZPa2RkIWyE2peUfUmyPjVAEworsANwWNIrkuXoFXGDwBGJ5h4TYEe9do3pqQ7zq+TvPzQOkLfXOZRH+YnBOAfLuYXUvxeHLsEcMaday1APnm/1ISTf4JYF4YDQO+HOn7gXKpTi7lNHOlXRUf0FcF+EvxoPmySB5e/vkQkLMAF2WrJAvZFUtR45dlrQDQKas3lpAFhFPzvDX6Xg/vBZ6/qUlRizXVNJQ1Pe6CagB+1+/6+/VfAAAA//9tb2M83Ye9zwAAAABJRU5ErkJggg=="
+	copyPaste = "00020101021126810014BR.GOV.BCB.PIX0114279288750001040241Aula de canto de 30 minutos em 09/07/202652040000530398654041.505802BR5925BARBOSA E CARDOSO PREPARA6009SAO PAULO62100506123456630463D7"
+)
+
+
 func main() {
 	logger, _ := driven.NewSimpleLogger("stdout", 2)
 	pdfGenerator := driven.NewBiller(logger, "./files/bill/output.pdf")
@@ -51,6 +57,22 @@ func main() {
 			{Description: "Item 1", Quantity: 2, Price: 10.0},
 			{Description: "Item 2", Quantity: 1, Price: 20.0},
 		},
+		Receive: dto.BillerReceive{
+			BankAccount: &dto.BillerBankAccount{
+				BankName:         "Santander (033)",
+				BankAgency:       "0985",
+				BankAccount:      "13001001-4",
+				ReceiverName:     "BARBOSA E CARDOSO PREPARAÇÃO VOCAL E PRODUÇÕES MUSICAIS LTDA",
+				ReceiverDocument: "27.928.875/0001-04",
+			},
+			Pix: &dto.BillerPix{
+				PixKey:       "27.928.875/0001-04",
+				ReceiverName: "Estudio Vocal Amelia Cardoso",
+				PixCopyPaste: copyPaste,				
+				PixQRCode:    qrcode,
+			},
+		},
+		
 	}
 
 	err := pdfGenerator.GeneratePDF(request)

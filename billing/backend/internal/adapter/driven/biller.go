@@ -1,15 +1,17 @@
 package driven
 
 import (
+	"encoding/base64"
 	"fmt"
 	"regexp"
+	"strings"
 	"time"
-	"encoding/base64"
 
 	"billing/internal/dto"
 	"billing/internal/port"
 
 	"github.com/johnfercher/maroto/v2"
+	"github.com/johnfercher/maroto/v2/pkg/components/col"
 	"github.com/johnfercher/maroto/v2/pkg/components/image"
 	mline "github.com/johnfercher/maroto/v2/pkg/components/line"
 	"github.com/johnfercher/maroto/v2/pkg/components/text"
@@ -21,8 +23,6 @@ import (
 	"github.com/johnfercher/maroto/v2/pkg/consts/pagesize"
 	"github.com/johnfercher/maroto/v2/pkg/core"
 	"github.com/johnfercher/maroto/v2/pkg/props"
-	"github.com/johnfercher/maroto/v2/pkg/components/row"
-	"github.com/johnfercher/maroto/v2/pkg/components/col"
 )
 
 // PDFGenerator is an implementation of the PDFGenerator interface that generates PDF files.
@@ -52,6 +52,7 @@ func NewBiller(logger port.Logger, path string) *Biller {
 // GeneratePDF generates a PDF file based on the provided data and returns the file path.
 func (p *Biller) GeneratePDF(request dto.BillerRequest) error {
 	p.logger.IPrintf(2, "Generating PDF...")
+	p.addFooter(request.Vendor.Name)
 	p.addHeader(request)
 	p.addSeparator(3, 3)
 	p.addBill(request)
@@ -59,8 +60,8 @@ func (p *Biller) GeneratePDF(request dto.BillerRequest) error {
 	total := p.addItems(request)
 	p.addSeparator(2, 1)
 	p.addTotal(total)
-	p.addSpaceRow(5)
-	p.addReceive(request.Receive)
+	p.addSpaceRow(3)
+	p.addReceive(request.Receive, total)
 	document, err := p.generator.Generate()
 	if err != nil {
 		return err
@@ -332,9 +333,9 @@ func (p *Biller) addTotal(total float64) {
 }
 
 // addReceive adds the receive section to the PDF.
-func (p *Biller) addReceive(receive dto.BillerReceive) {
+func (p *Biller) addReceive(receive dto.BillerReceive, value float64) error {
 	if receive.BankAccount == nil && receive.Pix == nil {
-		return
+		return nil
 	}
 	p.generator.AddRow(5,
 		text.NewCol(12, "Notas:",
@@ -346,49 +347,186 @@ func (p *Biller) addReceive(receive dto.BillerReceive) {
 				Size:  10,
 			}),
 	)
-	p.generator.AddRow(5)
-	p.addPix(receive.Pix)
-	
+	p.generator.AddRow(7)
+	if err := p.addPix(receive.Pix, value); err != nil {
+		return err
+	}
+	p.generator.AddRow(12)
+	p.addBankAccount(receive.BankAccount, value)
+	return nil
 }
 
 // addPix adds the Pix section to the PDF.
-func (p *Biller) addPix(pix *dto.BillerPix) {
+func (p *Biller) addPix(pix *dto.BillerPix, value float64) error {
 	if pix == nil {
-		return
+		return nil
 	}
 	p.generator.AddRow(5,
-		text.NewCol(12, "Para pagamento via Pix:",
+		text.NewCol(12, "Para pagamento via Pix, utilize o QrCode ou as opções abaixo:",
 			props.Text{
 				Top:   0,
 				Left:  10,
 				Align: align.Left,
-				Style: fontstyle.Bold,
-				Size:  10,
+				Size:  8,
 			}),
 	)
 
-	p.generator.AddRow(5)
-	p.addQRCode(pix.PixQRCode)
+	cols := []core.Col{col.New(1)}
 
-}
-
-// addQRCode adds the QR code to the PDF.
-func (p *Biller) addQRCode(qrCode *string) error {
-	if qrCode == nil {
-		return nil
-	}
-	img, err := base64.StdEncoding.DecodeString(*qrCode)
+	qr, err := p.addQRCode(pix.PixQRCode)
 	if err != nil {
 		return err
 	}
-	imgComp := image.NewFromBytes(img, "png")
+	if qr != nil {
+		cols = append(cols, *qr)
+	}
 
-	p.generator.AddRows(
-		row.New(40).Add(
-			col.New(12).Add(imgComp),
-		),
+	cp := p.addCopyPaste(pix.PixCopyPaste, pix.PixKey, value)
+	if cp != nil {
+		cols = append(cols, *cp)
+	}
+
+	p.generator.AddRow(28, cols...)
+
+	p.generator.AddRow(3,
+		text.NewCol(12, "Por favor certifique-se que o valor do pagamento é o mesmo desta fatura e que o recebedor é: " + pix.ReceiverName,
+			props.Text{
+				Top:   10,
+				Left:  17,
+				Align: align.Left,
+				Size:  8,
+			}),
 	)
+
 	return nil
 }
 
+// addQRCode adds the QR code to the PDF.
+func (p *Biller) addQRCode(qrCode string) (*core.Col, error) {
+	strImg := strings.SplitN(qrCode, ",", 2)[1]
 
+	img, err := base64.StdEncoding.DecodeString(strImg)
+	if err != nil {
+		return nil, err
+	}
+	imgComp := image.NewFromBytes(img, "png")
+	colr := col.New(2).Add(imgComp)
+	return &colr, nil
+}
+
+
+// addCopyPaste adds the Pix copy-paste code to the PDF.
+func (p *Biller) addCopyPaste(copyPaste string, pixKey string, value float64) *core.Col {
+	pkey := fmt.Sprintf("%s (valor: R$ %.2f)", pixKey, value)
+	colr := col.New(8).Add(
+		text.New("Código Pix (Copie e Cole o código abaixo):", props.Text{Top: 4, Style: fontstyle.Bold, Align: align.Left, Left: 5, Size: 8}),
+		text.New(copyPaste, props.Text{Top: 8, Align: align.Left, Left: 5, Size: 8}),
+		text.New("Chave Pix (caso queira pagar diretamente e enviar o comprovante):", 
+			props.Text{Top: 20, Style: fontstyle.Bold, Align: align.Left, Left: 5, Size: 8}),
+		text.New(pkey, props.Text{Top: 24, Align: align.Left, Left: 5, Size: 8}),
+	) // Fecha a colunaEsquerda
+	return &colr
+}
+
+// addBankAccount adds the bank account information to the PDF.
+func (p *Biller) addBankAccount(bankAccount *dto.BillerBankAccount, value float64) {
+	if bankAccount == nil {
+		return
+	}
+	p.generator.AddRow(5,
+		text.NewCol(12, "Para pagamento via transferência bancária, utilize os dados abaixo:",
+			props.Text{
+				Top:   0,
+				Left:  10,
+				Align: align.Left,
+				Size:  8,
+			}),
+	)
+	p.generator.AddRow(2)
+	p.generator.AddRow(4,
+		text.NewCol(12, fmt.Sprintf("Banco: %s", bankAccount.BankName),
+			props.Text{
+				Top:   0,
+				Left:  17,
+				Style: fontstyle.Bold,
+				Align: align.Left,
+				Size:  8,
+			}),
+	)
+	p.generator.AddRow(4,
+		text.NewCol(12, fmt.Sprintf("Agência: %s", bankAccount.BankAgency),
+			props.Text{
+				Top:   0,
+				Left:  17,
+				Align: align.Left,
+				Size:  8,
+			}),
+	)
+	p.generator.AddRow(4,
+		text.NewCol(12, fmt.Sprintf("Conta: %s", bankAccount.BankAccount),
+			props.Text{
+				Top:   0,
+				Left:  17,
+				Align: align.Left,
+				Size:  8,
+			}),
+	)
+	p.generator.AddRow(4,
+		text.NewCol(12, fmt.Sprintf("%s", bankAccount.ReceiverName),
+			props.Text{
+				Top:   0,
+				Left:  17,
+				Align: align.Left,
+				Size:  8,
+			}),
+	)
+	p.generator.AddRow(4,
+		text.NewCol(12, fmt.Sprintf("%s", bankAccount.ReceiverDocument),
+			props.Text{
+				Top:   0,
+				Left:  17,
+				Align: align.Left,
+				Size:  8,
+			}),
+	)
+	p.generator.AddRow(4,
+		text.NewCol(12, fmt.Sprintf("Valor: R$ %.2f", value),
+			props.Text{
+				Top:   0,
+				Left:  17,
+				Align: align.Left,
+				Size:  8,
+			}),
+	)
+}
+
+
+// addFooter adds the footer to the PDF.
+func (p *Biller) addFooter(name string) {
+
+	row0 := mline.NewRow(0, props.Line{
+		Thickness: 0.5,
+		Style:     linestyle.Solid,                           
+		Color:     &props.Color{Red: 200, Green: 200, Blue: 200},
+	})
+
+	row1 := text.NewRow(
+		5, "Este documento é uma representação do boleto e não possui validade fiscal.",
+		props.Text{
+			Top:   0,
+			Align: align.Center,
+			Size:  8,
+		},
+	)
+
+	row2 := text.NewRow(
+		5, "Gerado por: " + name,
+		props.Text{
+			Top:   0,
+			Align: align.Center,
+			Size:  8,
+		},
+	)
+
+	p.generator.RegisterFooter(row0, row1, row2)
+}

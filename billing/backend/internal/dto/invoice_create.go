@@ -82,7 +82,7 @@ func (r *InvoiceCreate) Validate(repo port.Repository) error {
 	if err := r.validateNotes(); err != nil {
 		errs = append(errs, err)
 	}
-	if dateErrs := r.validateDates(repo); len(dateErrs) > 0 {
+	if dateErrs := r.validateDates(); len(dateErrs) > 0 {
 		errs = append(errs, dateErrs...)
 	}
 	if itemErrs := r.validateItems(); len(itemErrs) > 0 {
@@ -111,7 +111,7 @@ func (r *InvoiceCreate) validateNotes() error {
 }
 
 // validateDates validates the invoice, due, and payment dates to ensure they are in the correct format.
-func (r *InvoiceCreate) validateDates(repo port.Repository) []error {
+func (r *InvoiceCreate) validateDates() []error {
 	errs := make([]error, 0)
 	invoiceDate, err := time.Parse("2006-01-02", r.InvoiceDate)
 	if err != nil {

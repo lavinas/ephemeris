@@ -46,8 +46,8 @@ type BillerBankAccount struct {
 type BillerPix struct {
 	PixKey string
 	ReceiverName string
-	PixCopyPaste *string
-	PixQRCode *string
+	PixCopyPaste string
+	PixQRCode string
 } 
 
 // BillerReceive represents the bank information in the biller request.
