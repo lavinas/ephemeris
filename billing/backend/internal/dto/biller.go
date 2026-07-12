@@ -35,20 +35,20 @@ type BillerCustomer struct {
 
 // BillerBankAccount represents the bank account information in the biller request.
 type BillerBankAccount struct {
-	BankName   string
-	BankAgency string
-	BankAccount string
-	ReceiverName string
+	BankName         string
+	BankAgency       string
+	BankAccount      string
+	ReceiverName     string
 	ReceiverDocument string
 }
 
 // BillerPix represents the Pix information in the biller request.
 type BillerPix struct {
-	PixKey string
+	PixKey       string
 	ReceiverName string
 	PixCopyPaste string
-	PixQRCode string
-} 
+	PixQRCode    string
+}
 
 // BillerReceive represents the bank information in the biller request.
 type BillerReceive struct {
@@ -64,5 +64,5 @@ type BillerRequest struct {
 	Vendor      BillerVendor
 	Customer    BillerCustomer
 	Items       []BillerItem
-	Receive	    BillerReceive
+	Receive     BillerReceive
 }

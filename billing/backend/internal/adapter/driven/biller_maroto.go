@@ -29,14 +29,14 @@ import (
 )
 
 // PDFGenerator is an implementation of the PDFGenerator interface that generates PDF files.
-type Biller struct {
+type BillerMaroto struct {
 	logger    port.Logger
 	path      string
 	generator core.Maroto
 }
 
-// NewBiller creates a new instance of Biller.
-func NewBiller(logger port.Logger, path string) *Biller {
+// NewBillerMaroto creates a new instance of BillerMaroto.
+func NewBillerMaroto(logger port.Logger, path string) *BillerMaroto {
 	cfg := config.NewBuilder().
 		WithOrientation(orientation.Vertical).
 		WithPageSize(pagesize.A4).
@@ -45,7 +45,7 @@ func NewBiller(logger port.Logger, path string) *Biller {
 		WithRightMargin(15).
 		WithBottomMargin(15).
 		Build()
-	return &Biller{
+	return &BillerMaroto{
 		logger:    logger,
 		path:      path,
 		generator: maroto.New(cfg),
@@ -53,7 +53,7 @@ func NewBiller(logger port.Logger, path string) *Biller {
 }
 
 // GeneratePDF generates a PDF file based on the provided data and returns the file path.
-func (p *Biller) GeneratePDF(request dto.BillerRequest) error {
+func (p *BillerMaroto) GeneratePDF(request dto.BillerRequest) error {
 	p.logger.IPrintf(2, "Generating PDF...")
 	p.addFooter(request.Vendor.Name)
 	p.addHeader(request)
@@ -69,7 +69,7 @@ func (p *Biller) GeneratePDF(request dto.BillerRequest) error {
 	p.addInstructions(request)
 	p.addSpaceRow(8)
 	p.addSignature(request)
-	
+
 	document, err := p.generator.Generate()
 	if err != nil {
 		return err
@@ -83,7 +83,7 @@ func (p *Biller) GeneratePDF(request dto.BillerRequest) error {
 }
 
 // header
-func (p *Biller) addHeader(request dto.BillerRequest) {
+func (p *BillerMaroto) addHeader(request dto.BillerRequest) {
 	p.generator.AddRow(20,
 		image.NewFromFileCol(12, request.Vendor.Logo,
 			props.Rect{
@@ -126,7 +126,7 @@ func (p *Biller) addHeader(request dto.BillerRequest) {
 }
 
 // instructions
-func (p *Biller) addInstructions(request dto.BillerRequest) {
+func (p *BillerMaroto) addInstructions(request dto.BillerRequest) {
 	txt := fmt.Sprintf("Em caso de dúvidas, entre em contato através do email: %s ou whatsapp: %s", *request.Vendor.Email, *request.Vendor.Whatsapp)
 	p.generator.AddRow(5,
 		text.NewCol(12, txt,
@@ -138,9 +138,8 @@ func (p *Biller) addInstructions(request dto.BillerRequest) {
 			}))
 }
 
-
 // addSignature adds the signature section to the PDF.
-func (p *Biller) addSignature(request dto.BillerRequest) {
+func (p *BillerMaroto) addSignature(request dto.BillerRequest) {
 	txt := fmt.Sprintf("%s", request.Vendor.Name)
 	p.generator.AddRow(5,
 		text.NewCol(12, txt,
@@ -153,10 +152,8 @@ func (p *Biller) addSignature(request dto.BillerRequest) {
 			}))
 }
 
-
-
 // addBill adds the bill information to the PDF.
-func (p *Biller) addBill(request dto.BillerRequest) {
+func (p *BillerMaroto) addBill(request dto.BillerRequest) {
 	p.generator.AddRow(5,
 		text.NewCol(8, request.Customer.Name,
 			props.Text{
@@ -207,12 +204,12 @@ func (p *Biller) addBill(request dto.BillerRequest) {
 }
 
 // addSpaceRow adds empty rows to the PDF for spacing.
-func (p *Biller) addSpaceRow(height float64) {
+func (p *BillerMaroto) addSpaceRow(height float64) {
 	p.generator.AddRow(height)
 }
 
 // addSeparator adds a separator row to the PDF.
-func (p *Biller) addSeparator(heightTop float64, heightBottom float64) {
+func (p *BillerMaroto) addSeparator(heightTop float64, heightBottom float64) {
 	p.generator.AddRow(heightTop)
 	p.generator.AddRows(mline.NewRow(0, props.Line{
 		Thickness: 0.5,
@@ -223,7 +220,7 @@ func (p *Biller) addSeparator(heightTop float64, heightBottom float64) {
 }
 
 // addItems adds the items to the PDF.
-func (p *Biller) addItems(request dto.BillerRequest) float64 {
+func (p *BillerMaroto) addItems(request dto.BillerRequest) float64 {
 	p.addItemHeader()
 	var total float64
 	for _, item := range request.Items {
@@ -233,13 +230,13 @@ func (p *Biller) addItems(request dto.BillerRequest) float64 {
 }
 
 // getInvoiceID returns the invoice ID as a formatted string.
-func (p *Biller) getInvoiceID(invoiceID int64) string {
+func (p *BillerMaroto) getInvoiceID(invoiceID int64) string {
 	printer := message.NewPrinter(language.Portuguese)
 	return printer.Sprintf("Invoice #      : %d", invoiceID)
 }
 
 // getDocument
-func (p *Biller) getDocument(document *string) string {
+func (p *BillerMaroto) getDocument(document *string) string {
 	if document == nil {
 		return ""
 	}
@@ -253,12 +250,12 @@ func (p *Biller) getDocument(document *string) string {
 }
 
 // getInvoiceDate returns the invoice date as a formatted string.
-func (p *Biller) getInvoiceDate(invoiceDate time.Time) string {
+func (p *BillerMaroto) getInvoiceDate(invoiceDate time.Time) string {
 	return fmt.Sprintf("Emissão       : %s", invoiceDate.Format("02/01/2006"))
 }
 
 // getEmail returns the email as a formatted string.
-func (p *Biller) getEmail(email *string) string {
+func (p *BillerMaroto) getEmail(email *string) string {
 	if email == nil {
 		return ""
 	}
@@ -266,12 +263,12 @@ func (p *Biller) getEmail(email *string) string {
 }
 
 // getDueDate returns the due date as a formatted string.
-func (p *Biller) getDueDate(dueDate time.Time) string {
+func (p *BillerMaroto) getDueDate(dueDate time.Time) string {
 	return fmt.Sprintf("Vencimento: %s", dueDate.Format("02/01/2006"))
 }
 
 // addItemHeader adds the header for the items section in the PDF.
-func (p *Biller) addItemHeader() {
+func (p *BillerMaroto) addItemHeader() {
 	p.generator.AddRow(5,
 		text.NewCol(5, "Descrição",
 			props.Text{
@@ -306,7 +303,7 @@ func (p *Biller) addItemHeader() {
 }
 
 // addItemRow adds a row for an item in the PDF.
-func (p *Biller) addItemRow(item dto.BillerItem) float64 {
+func (p *BillerMaroto) addItemRow(item dto.BillerItem) float64 {
 	total := float64(item.Quantity) * item.Price
 	p.generator.AddRow(5,
 		text.NewCol(5, item.Description,
@@ -339,7 +336,7 @@ func (p *Biller) addItemRow(item dto.BillerItem) float64 {
 }
 
 // addTotal
-func (p *Biller) addTotal(total float64) {
+func (p *BillerMaroto) addTotal(total float64) {
 	p.generator.AddRow(5,
 		text.NewCol(5, "",
 			props.Text{
@@ -372,7 +369,7 @@ func (p *Biller) addTotal(total float64) {
 }
 
 // addReceive adds the receive section to the PDF.
-func (p *Biller) addReceive(receive dto.BillerReceive, value float64) error {
+func (p *BillerMaroto) addReceive(receive dto.BillerReceive, value float64) error {
 	if receive.BankAccount == nil && receive.Pix == nil {
 		return nil
 	}
@@ -397,7 +394,7 @@ func (p *Biller) addReceive(receive dto.BillerReceive, value float64) error {
 }
 
 // addPix adds the Pix section to the PDF.
-func (p *Biller) addPix(pix *dto.BillerPix, value float64) error {
+func (p *BillerMaroto) addPix(pix *dto.BillerPix, value float64) error {
 	if pix == nil {
 		return nil
 	}
@@ -428,7 +425,6 @@ func (p *Biller) addPix(pix *dto.BillerPix, value float64) error {
 
 	p.generator.AddRow(28, cols...)
 
-
 	txt := fmt.Sprintf("* Por favor, antes de confirmar o pagamento, verifique que o valor do pagamento é R$ %.2f e que o recebedor é %s", value, pix.ReceiverName)
 
 	p.generator.AddRow(3,
@@ -445,7 +441,7 @@ func (p *Biller) addPix(pix *dto.BillerPix, value float64) error {
 }
 
 // addQRCode adds the QR code to the PDF.
-func (p *Biller) addQRCode(qrCode string) (*core.Col, error) {
+func (p *BillerMaroto) addQRCode(qrCode string) (*core.Col, error) {
 	strImg := strings.SplitN(qrCode, ",", 2)[1]
 
 	img, err := base64.StdEncoding.DecodeString(strImg)
@@ -457,14 +453,13 @@ func (p *Biller) addQRCode(qrCode string) (*core.Col, error) {
 	return &colr, nil
 }
 
-
 // addCopyPaste adds the Pix copy-paste code to the PDF.
-func (p *Biller) addCopyPaste(copyPaste string, pixKey string, value float64) *core.Col {
+func (p *BillerMaroto) addCopyPaste(copyPaste string, pixKey string, value float64) *core.Col {
 	pkey := fmt.Sprintf("%s (valor: R$ %.2f)", pixKey, value)
 	colr := col.New(8).Add(
 		text.New("Código Pix (Copie e Cole o código abaixo):", props.Text{Top: 4, Style: fontstyle.Bold, Align: align.Left, Left: 5, Size: 8}),
 		text.New(copyPaste, props.Text{Top: 8, Align: align.Left, Left: 5, Size: 8}),
-		text.New("Chave Pix (caso queira pagar diretamente e enviar o comprovante):", 
+		text.New("Chave Pix (caso queira pagar diretamente e enviar o comprovante):",
 			props.Text{Top: 20, Style: fontstyle.Bold, Align: align.Left, Left: 5, Size: 8}),
 		text.New(pkey, props.Text{Top: 24, Align: align.Left, Left: 5, Size: 8}),
 	) // Fecha a colunaEsquerda
@@ -472,7 +467,7 @@ func (p *Biller) addCopyPaste(copyPaste string, pixKey string, value float64) *c
 }
 
 // addBankAccount adds the bank account information to the PDF.
-func (p *Biller) addBankAccount(bankAccount *dto.BillerBankAccount, value float64) {
+func (p *BillerMaroto) addBankAccount(bankAccount *dto.BillerBankAccount, value float64) {
 	if bankAccount == nil {
 		return
 	}
@@ -543,13 +538,12 @@ func (p *Biller) addBankAccount(bankAccount *dto.BillerBankAccount, value float6
 	)
 }
 
-
 // addFooter adds the footer to the PDF.
-func (p *Biller) addFooter(name string) {
+func (p *BillerMaroto) addFooter(name string) {
 
 	row0 := mline.NewRow(0, props.Line{
 		Thickness: 0.5,
-		Style:     linestyle.Solid,                           
+		Style:     linestyle.Solid,
 		Color:     &props.Color{Red: 200, Green: 200, Blue: 200},
 	})
 
@@ -563,7 +557,7 @@ func (p *Biller) addFooter(name string) {
 	)
 
 	row2 := text.NewRow(
-		5, "Gerado por: " + name,
+		5, "Gerado por: "+name,
 		props.Text{
 			Top:   0,
 			Align: align.Center,
