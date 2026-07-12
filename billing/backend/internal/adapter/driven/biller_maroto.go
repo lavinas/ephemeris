@@ -31,12 +31,11 @@ import (
 // PDFGenerator is an implementation of the PDFGenerator interface that generates PDF files.
 type BillerMaroto struct {
 	logger    port.Logger
-	path      string
 	generator core.Maroto
 }
 
 // NewBillerMaroto creates a new instance of BillerMaroto.
-func NewBillerMaroto(logger port.Logger, path string) *BillerMaroto {
+func NewBillerMaroto(logger port.Logger) *BillerMaroto {
 	cfg := config.NewBuilder().
 		WithOrientation(orientation.Vertical).
 		WithPageSize(pagesize.A4).
@@ -47,13 +46,34 @@ func NewBillerMaroto(logger port.Logger, path string) *BillerMaroto {
 		Build()
 	return &BillerMaroto{
 		logger:    logger,
-		path:      path,
 		generator: maroto.New(cfg),
 	}
 }
 
 // GeneratePDF generates a PDF file based on the provided data and returns the file path.
-func (p *BillerMaroto) GeneratePDF(request dto.BillerRequest) error {
+func (p *BillerMaroto) Generate(request dto.BillerRequest, path string) error {
+	document, err := p.getForm(request)
+	if err != nil {
+		return err
+	}
+	err = document.Save(path)
+	if err != nil {
+		return err
+	}
+	p.logger.IPrintf(2, "PDF generated successfully at path: %s", path)
+	return nil
+}
+// GetPDFPath returns the path where the generated PDF will be saved.
+func (p *BillerMaroto) Get(request dto.BillerRequest) ([]byte, error) {
+	document, err := p.getForm(request)
+	if err != nil {
+		return nil, err
+	}
+	return document.GetBytes(), nil
+}
+
+// getForm gets biller form 
+func (p *BillerMaroto) getForm(request dto.BillerRequest) (core.Document, error) {
 	p.logger.IPrintf(2, "Generating PDF...")
 	p.addFooter(request.Vendor.Name)
 	p.addHeader(request)
@@ -69,18 +89,11 @@ func (p *BillerMaroto) GeneratePDF(request dto.BillerRequest) error {
 	p.addInstructions(request)
 	p.addSpaceRow(8)
 	p.addSignature(request)
-
-	document, err := p.generator.Generate()
-	if err != nil {
-		return err
-	}
-	err = document.Save(p.path)
-	if err != nil {
-		return err
-	}
-	p.logger.IPrintf(2, "PDF generated successfully at path: %s", p.path)
-	return nil
+	return p.generator.Generate()
 }
+
+
+
 
 // header
 func (p *BillerMaroto) addHeader(request dto.BillerRequest) {

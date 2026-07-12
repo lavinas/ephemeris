@@ -13,7 +13,7 @@ const (
 
 func main() {
 	logger, _ := driven.NewSimpleLogger("stdout", 2)
-	pdfGenerator := driven.NewBillerMaroto(logger, "./files/bill/output.pdf")
+	pdfGenerator := driven.NewBillerMaroto(logger)
 
 	notes := make([]string, 0)
 	notes = append(notes, "Seguem os dados para o depósito ou PIX (CNPJ: 27.928.875/0001-04)")
@@ -72,10 +72,16 @@ func main() {
 		},
 	}
 
-	err := pdfGenerator.GeneratePDF(request)
+	err := pdfGenerator.Generate(request, "./files/bill/output.pdf")
 	if err != nil {
 		logger.IPrintf(1, "Error generating PDF: %v", err)
 	}
+
+	bin, err := pdfGenerator.Get(request)
+	if err != nil {
+		logger.IPrintf(1, "Error getting PDF binary: %v", err)
+	}
+	logger.IPrintf(1, "Tamanho binário: %d", len(bin))
 }
 
 // strPtr is a helper function to create a pointer to a string.
