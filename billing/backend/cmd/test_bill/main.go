@@ -31,7 +31,7 @@ func main() {
 	notes = append(notes, "Estudio de aulas Amélia Cardoso")
 
 	request := dto.BillerRequest{
-		InvoiceID:   "123.456",
+		InvoiceID:   123456789,
 		InvoiceDate: time.Date(2026, 5, 25, 0, 0, 0, 0, time.UTC),
 		InvoiceDue:  time.Date(2026, 5, 29, 0, 0, 0, 0, time.UTC), // Due in 30 days
 		Vendor: dto.BillerVendor{

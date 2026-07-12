@@ -58,7 +58,7 @@ type BillerReceive struct {
 
 // BillerRequest defines the interface for generating PDF files.
 type BillerRequest struct {
-	InvoiceID   string
+	InvoiceID   int64
 	InvoiceDate time.Time
 	InvoiceDue  time.Time
 	Vendor      BillerVendor

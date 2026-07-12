@@ -10,6 +10,9 @@ import (
 	"billing/internal/dto"
 	"billing/internal/port"
 
+	"golang.org/x/text/language"
+	"golang.org/x/text/message"
+
 	"github.com/johnfercher/maroto/v2"
 	"github.com/johnfercher/maroto/v2/pkg/components/col"
 	"github.com/johnfercher/maroto/v2/pkg/components/image"
@@ -56,13 +59,13 @@ func (p *Biller) GeneratePDF(request dto.BillerRequest) error {
 	p.addHeader(request)
 	p.addSeparator(6, 3)
 	p.addBill(request)
-	p.addSeparator(6, 2)
+	p.addSeparator(4, 2)
 	total := p.addItems(request)
 	p.addSeparator(2, 2)
 	p.addTotal(total)
-	p.addSpaceRow(5)
+	p.addSpaceRow(4)
 	p.addReceive(request.Receive, total)
-	p.addSpaceRow(5)
+	p.addSpaceRow(4)
 	p.addInstructions(request)
 	p.addSpaceRow(8)
 	p.addSignature(request)
@@ -154,7 +157,7 @@ func (p *Biller) addSignature(request dto.BillerRequest) {
 
 // addBill adds the bill information to the PDF.
 func (p *Biller) addBill(request dto.BillerRequest) {
-	p.generator.AddRow(4,
+	p.generator.AddRow(5,
 		text.NewCol(8, request.Customer.Name,
 			props.Text{
 				Top:   0,
@@ -170,7 +173,7 @@ func (p *Biller) addBill(request dto.BillerRequest) {
 				Size:  10,
 			}),
 	)
-	p.generator.AddRow(4,
+	p.generator.AddRow(5,
 		text.NewCol(8, p.getDocument(request.Customer.Document),
 			props.Text{
 				Top:   0,
@@ -186,7 +189,7 @@ func (p *Biller) addBill(request dto.BillerRequest) {
 				Size:  10,
 			}),
 	)
-	p.generator.AddRow(4,
+	p.generator.AddRow(5,
 		text.NewCol(8, p.getEmail(request.Customer.Email),
 			props.Text{
 				Top:   0,
@@ -230,8 +233,9 @@ func (p *Biller) addItems(request dto.BillerRequest) float64 {
 }
 
 // getInvoiceID returns the invoice ID as a formatted string.
-func (p *Biller) getInvoiceID(invoiceID string) string {
-	return fmt.Sprintf("Invoice #      : %s", invoiceID)
+func (p *Biller) getInvoiceID(invoiceID int64) string {
+	printer := message.NewPrinter(language.Portuguese)
+	return printer.Sprintf("Invoice #      : %d", invoiceID)
 }
 
 // getDocument
@@ -386,7 +390,7 @@ func (p *Biller) addReceive(receive dto.BillerReceive, value float64) error {
 	if err := p.addPix(receive.Pix, value); err != nil {
 		return err
 	}
-	p.generator.AddRow(13)
+	p.generator.AddRow(12)
 	p.addBankAccount(receive.BankAccount, value)
 
 	return nil
