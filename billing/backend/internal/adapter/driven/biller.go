@@ -54,14 +54,19 @@ func (p *Biller) GeneratePDF(request dto.BillerRequest) error {
 	p.logger.IPrintf(2, "Generating PDF...")
 	p.addFooter(request.Vendor.Name)
 	p.addHeader(request)
-	p.addSeparator(3, 3)
+	p.addSeparator(6, 3)
 	p.addBill(request)
-	p.addSeparator(3, 2)
+	p.addSeparator(6, 2)
 	total := p.addItems(request)
-	p.addSeparator(2, 1)
+	p.addSeparator(2, 2)
 	p.addTotal(total)
-	p.addSpaceRow(3)
+	p.addSpaceRow(5)
 	p.addReceive(request.Receive, total)
+	p.addSpaceRow(5)
+	p.addInstructions(request)
+	p.addSpaceRow(8)
+	p.addSignature(request)
+	
 	document, err := p.generator.Generate()
 	if err != nil {
 		return err
@@ -88,14 +93,14 @@ func (p *Biller) addHeader(request dto.BillerRequest) {
 				Top:   0,
 				Style: fontstyle.Bold,
 				Align: align.Center,
-				Size:  10,
+				Size:  12,
 			}))
 	p.generator.AddRow(5,
 		text.NewCol(12, fmt.Sprintf("cnpj: %s", request.Vendor.Document),
 			props.Text{
 				Top:   0,
 				Align: align.Center,
-				Size:  8,
+				Size:  10,
 			}))
 	if request.Vendor.Email != nil {
 		p.generator.AddRow(5,
@@ -103,7 +108,7 @@ func (p *Biller) addHeader(request dto.BillerRequest) {
 				props.Text{
 					Top:   0,
 					Align: align.Center,
-					Size:  8,
+					Size:  10,
 				}))
 	}
 	if request.Vendor.Whatsapp != nil {
@@ -112,10 +117,40 @@ func (p *Biller) addHeader(request dto.BillerRequest) {
 				props.Text{
 					Top:   0,
 					Align: align.Center,
-					Size:  8,
+					Size:  10,
 				}))
 	}
 }
+
+// instructions
+func (p *Biller) addInstructions(request dto.BillerRequest) {
+	txt := fmt.Sprintf("Em caso de dúvidas, entre em contato através do email: %s ou whatsapp: %s", *request.Vendor.Email, *request.Vendor.Whatsapp)
+	p.generator.AddRow(5,
+		text.NewCol(12, txt,
+			props.Text{
+				Left:  10,
+				Top:   0,
+				Align: align.Left,
+				Size:  10,
+			}))
+}
+
+
+// addSignature adds the signature section to the PDF.
+func (p *Biller) addSignature(request dto.BillerRequest) {
+	txt := fmt.Sprintf("%s", request.Vendor.Name)
+	p.generator.AddRow(5,
+		text.NewCol(12, txt,
+			props.Text{
+				Left:  10,
+				Top:   0,
+				Style: fontstyle.BoldItalic,
+				Align: align.Left,
+				Size:  10,
+			}))
+}
+
+
 
 // addBill adds the bill information to the PDF.
 func (p *Biller) addBill(request dto.BillerRequest) {
@@ -126,13 +161,13 @@ func (p *Biller) addBill(request dto.BillerRequest) {
 				Left:  10,
 				Align: align.Left,
 				Style: fontstyle.Bold,
-				Size:  8,
+				Size:  10,
 			}),
 		text.NewCol(5, p.getInvoiceID(request.InvoiceID),
 			props.Text{
 				Align: align.Left,
-				Left:  15,
-				Size:  8,
+				Left:  6,
+				Size:  10,
 			}),
 	)
 	p.generator.AddRow(4,
@@ -141,14 +176,14 @@ func (p *Biller) addBill(request dto.BillerRequest) {
 				Top:   0,
 				Left:  10,
 				Align: align.Left,
-				Size:  8,
+				Size:  10,
 			}),
 		text.NewCol(5, p.getDueDate(request.InvoiceDue),
 			props.Text{
 				Align: align.Left,
-				Left:  15,
+				Left:  6,
 				Style: fontstyle.Bold,
-				Size:  8,
+				Size:  10,
 			}),
 	)
 	p.generator.AddRow(4,
@@ -157,13 +192,13 @@ func (p *Biller) addBill(request dto.BillerRequest) {
 				Top:   0,
 				Left:  10,
 				Align: align.Left,
-				Size:  8,
+				Size:  10,
 			}),
 		text.NewCol(5, p.getInvoiceDate(request.InvoiceDate),
 			props.Text{
 				Align: align.Left,
-				Left:  15,
-				Size:  8,
+				Left:  6,
+				Size:  10,
 			}),
 	)
 }
@@ -240,28 +275,28 @@ func (p *Biller) addItemHeader() {
 				Left:  10,
 				Align: align.Left,
 				Style: fontstyle.Bold,
-				Size:  8,
+				Size:  10,
 			}),
 		text.NewCol(2, "Quantidade",
 			props.Text{
 				Top:   0,
 				Align: align.Center,
 				Style: fontstyle.Bold,
-				Size:  8,
+				Size:  10,
 			}),
 		text.NewCol(2, "Valor",
 			props.Text{
 				Top:   0,
 				Align: align.Right,
 				Style: fontstyle.Bold,
-				Size:  8,
+				Size:  10,
 			}),
 		text.NewCol(2, "Total",
 			props.Text{
 				Top:   0,
 				Align: align.Right,
 				Style: fontstyle.Bold,
-				Size:  8,
+				Size:  12,
 			}),
 	)
 }
@@ -275,25 +310,25 @@ func (p *Biller) addItemRow(item dto.BillerItem) float64 {
 				Top:   0,
 				Left:  10,
 				Align: align.Left,
-				Size:  8,
+				Size:  10,
 			}),
 		text.NewCol(2, fmt.Sprintf("%d", item.Quantity),
 			props.Text{
 				Top:   0,
 				Align: align.Center,
-				Size:  8,
+				Size:  10,
 			}),
 		text.NewCol(2, fmt.Sprintf("R$ %.2f", item.Price),
 			props.Text{
 				Top:   0,
 				Align: align.Right,
-				Size:  8,
+				Size:  10,
 			}),
 		text.NewCol(2, fmt.Sprintf("R$ %.2f", total),
 			props.Text{
 				Top:   0,
 				Align: align.Right,
-				Size:  8,
+				Size:  10,
 			}),
 	)
 	return total
@@ -307,27 +342,27 @@ func (p *Biller) addTotal(total float64) {
 				Top:   0,
 				Left:  10,
 				Align: align.Left,
-				Size:  8,
+				Size:  10,
 			}),
 		text.NewCol(2, "",
 			props.Text{
 				Top:   0,
 				Align: align.Center,
-				Size:  8,
+				Size:  10,
 			}),
 		text.NewCol(2, "TOTAL",
 			props.Text{
 				Top:   0,
 				Align: align.Right,
 				Style: fontstyle.Bold,
-				Size:  8,
+				Size:  10,
 			}),
 		text.NewCol(2, fmt.Sprintf("R$ %.2f", total),
 			props.Text{
 				Top:   0,
 				Align: align.Right,
 				Style: fontstyle.Bold,
-				Size:  8,
+				Size:  10,
 			}),
 	)
 }
@@ -347,12 +382,13 @@ func (p *Biller) addReceive(receive dto.BillerReceive, value float64) error {
 				Size:  10,
 			}),
 	)
-	p.generator.AddRow(7)
+	p.generator.AddRow(3)
 	if err := p.addPix(receive.Pix, value); err != nil {
 		return err
 	}
-	p.generator.AddRow(12)
+	p.generator.AddRow(13)
 	p.addBankAccount(receive.BankAccount, value)
+
 	return nil
 }
 
@@ -362,12 +398,12 @@ func (p *Biller) addPix(pix *dto.BillerPix, value float64) error {
 		return nil
 	}
 	p.generator.AddRow(5,
-		text.NewCol(12, "Para pagamento via Pix, utilize o QrCode ou as opções abaixo:",
+		text.NewCol(12, "Para pagamento via *Pix, utilize o QrCode ou as opções abaixo:",
 			props.Text{
 				Top:   0,
 				Left:  10,
 				Align: align.Left,
-				Size:  8,
+				Size:  10,
 			}),
 	)
 
@@ -388,8 +424,11 @@ func (p *Biller) addPix(pix *dto.BillerPix, value float64) error {
 
 	p.generator.AddRow(28, cols...)
 
+
+	txt := fmt.Sprintf("* Por favor, antes de confirmar o pagamento, verifique que o valor do pagamento é R$ %.2f e que o recebedor é %s", value, pix.ReceiverName)
+
 	p.generator.AddRow(3,
-		text.NewCol(12, "Por favor certifique-se que o valor do pagamento é o mesmo desta fatura e que o recebedor é: " + pix.ReceiverName,
+		text.NewCol(11, txt,
 			props.Text{
 				Top:   10,
 				Left:  17,
@@ -439,7 +478,7 @@ func (p *Biller) addBankAccount(bankAccount *dto.BillerBankAccount, value float6
 				Top:   0,
 				Left:  10,
 				Align: align.Left,
-				Size:  8,
+				Size:  10,
 			}),
 	)
 	p.generator.AddRow(2)
@@ -515,7 +554,7 @@ func (p *Biller) addFooter(name string) {
 		props.Text{
 			Top:   0,
 			Align: align.Center,
-			Size:  8,
+			Size:  10,
 		},
 	)
 
@@ -524,7 +563,7 @@ func (p *Biller) addFooter(name string) {
 		props.Text{
 			Top:   0,
 			Align: align.Center,
-			Size:  8,
+			Size:  10,
 		},
 	)
 
