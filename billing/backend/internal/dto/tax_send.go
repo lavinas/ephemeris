@@ -8,8 +8,8 @@ import (
 	"time"
 )
 
-// EmissionSendRequest represents the request data for sending emissions.
-type EmissionSendRequest struct {
+// TaxSendRequest represents the request data for sending emissions.
+type TaxSendRequest struct {
 	Vendor           string `json:"vendor"`
 	VendorID         int64  `json:"-"`
 	InvoiceStartDate string `json:"invoice_start_date"`
@@ -17,18 +17,18 @@ type EmissionSendRequest struct {
 	EmissionDate     string `json:"emission_date"`
 }
 
-// EmissionSendResponse represents the response data after sending emissions.
-type EmissionSendResponse struct {
+// TaxSendResponse represents the response data after sending emissions.
+type TaxSendResponse struct {
 	ResponseBase
 	EmissionID       int64   `json:"emission_id"`
 	EmissionQuantity int     `json:"emission_quantity"`
 	EmissionAmount   float64 `json:"emission_amount"`
 }
 
-// NewEmissionSendResponse creates a new instance of EmissionSendResponse.
-func NewEmissionSendResponse(httpCode int, status, message string, emissionID int64,
-	emissionQuantity int, emissionAmount float64) EmissionSendResponse {
-	return EmissionSendResponse{
+// NewTaxSendResponse creates a new instance of TaxSendResponse.
+func NewTaxSendResponse(httpCode int, status, message string, emissionID int64,
+	emissionQuantity int, emissionAmount float64) TaxSendResponse {
+	return TaxSendResponse{
 		ResponseBase:     NewResponseBase(httpCode, status, message),
 		EmissionID:       emissionID,
 		EmissionQuantity: emissionQuantity,
@@ -36,8 +36,8 @@ func NewEmissionSendResponse(httpCode int, status, message string, emissionID in
 	}
 }
 
-// Validate checks if the EmissionSendRequest has all required fields and valid data.
-func (r *EmissionSendRequest) Validate(repo port.Repository) error {
+// Validate checks if the TaxSendRequest has all required fields and valid data.
+func (r *TaxSendRequest) Validate(repo port.Repository) error {
 	errs := make([]error, 0)
 	if err := r.valdateVendor(repo); err != nil {
 		errs = append(errs, err)
@@ -57,7 +57,7 @@ func (r *EmissionSendRequest) Validate(repo port.Repository) error {
 }
 
 // valdateVendor checks if the vendor exists in the repository.
-func (r *EmissionSendRequest) valdateVendor(repo port.Repository) error {
+func (r *TaxSendRequest) valdateVendor(repo port.Repository) error {
 	if r.Vendor == "" {
 		return fmt.Errorf("vendor is required")
 	}
@@ -73,7 +73,7 @@ func (r *EmissionSendRequest) valdateVendor(repo port.Repository) error {
 }
 
 // validateDates checks if the provided dates are valid and in the correct format.
-func (r *EmissionSendRequest) validateDates() error {
+func (r *TaxSendRequest) validateDates() error {
 	errs := make([]error, 0)
 	if r.InvoiceStartDate == "" {
 		errs = append(errs, fmt.Errorf("invoice_start_date is required"))
@@ -120,7 +120,7 @@ func (r *EmissionSendRequest) validateDates() error {
 
 // validateDuplication checks if an emission for the given vendor and period
 // already exists in the repository.
-func (r *EmissionSendRequest) validateDuplication(repo port.Repository) error {
+func (r *TaxSendRequest) validateDuplication(repo port.Repository) error {
 	// Implement logic to check for existing emissions in the repository.
 	// This is a placeholder implementation; replace with actual database query.
 	startDate, _ := time.Parse("2006-01-02", r.InvoiceStartDate)
@@ -135,8 +135,8 @@ func (r *EmissionSendRequest) validateDuplication(repo port.Repository) error {
 	return nil
 }
 
-// Reset clears the fields of the EmissionSendRequest.
-func (r *EmissionSendRequest) Reset() {
+// Reset clears the fields of the TaxSendRequest.
+func (r *TaxSendRequest) Reset() {
 	r.Vendor = ""
 	r.VendorID = 0
 	r.InvoiceStartDate = ""

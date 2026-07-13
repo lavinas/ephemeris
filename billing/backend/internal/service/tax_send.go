@@ -8,58 +8,58 @@ import (
 	"billing/internal/port"
 )
 
-// EmissionSend is responsible for handling the business logic of sending emissions.
-type EmissionSend struct {
+// TaxSend is responsible for handling the business logic of sending emissions.
+type TaxSend struct {
 	Base
 	sender port.Issuer
 }
 
-// NewEmissionSend creates a new instance of EmissionSend.
-func NewEmissionSend(repo port.Repository, logger port.Logger, issuer port.Issuer) *EmissionSend {
-	return &EmissionSend{
+// NewTaxSend creates a new instance of TaxSend.
+func NewTaxSend(repo port.Repository, logger port.Logger, issuer port.Issuer) *TaxSend {
+	return &TaxSend{
 		Base:   *NewBase(repo, logger),
 		sender: issuer,
 	}
 }
 
 // Run processes the request to send emissions and returns the response.
-func (s *EmissionSend) Run(inDTO port.InDTO) port.OutDTO {
-	s.logger.IPrintf(1, "Running EmissionSend service")
-	sendDTO, ok := inDTO.(*dto.EmissionSendRequest)
+func (s *TaxSend) Run(inDTO port.InDTO) port.OutDTO {
+	s.logger.IPrintf(1, "Running TaxSend service")
+	sendDTO, ok := inDTO.(*dto.TaxSendRequest)
 	if !ok {
 		s.logger.IPrintf(1, "Invalid input type")
-		return dto.NewEmissionSendResponse(400, "error", "Invalid input type", 0, 0, 0)
+		return dto.NewTaxSendResponse(400, "error", "Invalid input type", 0, 0, 0)
 	}
 	if err := sendDTO.Validate(s.repo); err != nil {
 		s.logger.IPrintf(1, "Validation error: %v", err)
-		return dto.NewEmissionSendResponse(400, "error", err.Error(), 0, 0, 0)
+		return dto.NewTaxSendResponse(400, "error", err.Error(), 0, 0, 0)
 	}
 	vendor, err := s.getVendor(sendDTO.Vendor)
 	if err != nil {
-		return dto.NewEmissionSendResponse(500, "error", "Failed to retrieve vendor", 0, 0, 0)
+		return dto.NewTaxSendResponse(500, "error", "Failed to retrieve vendor", 0, 0, 0)
 	}
 	lastRPS, err := s.getLastRSPNumber(vendor.ID, vendor.LastRps)
 	if err != nil {
-		return dto.NewEmissionSendResponse(500, "error", "Failed to retrieve last RPS number", 0, 0, 0)
+		return dto.NewTaxSendResponse(500, "error", "Failed to retrieve last RPS number", 0, 0, 0)
 	}
 	domainEmission, invoices, err := s.getEmission(vendor, sendDTO.EmissionDate,
 		sendDTO.InvoiceStartDate, sendDTO.InvoiceEndDate, lastRPS)
 	if err != nil {
-		return dto.NewEmissionSendResponse(500, "error", "Failed to retrieve emission", 0, 0, 0)
+		return dto.NewTaxSendResponse(500, "error", "Failed to retrieve emission", 0, 0, 0)
 	}
 	if err := s.SendAndSave(domainEmission, invoices); err != nil {
 		s.logger.IPrintf(1, "Failed to send and save emission: %v", err)
-		return dto.NewEmissionSendResponse(500, "error", "Failed to send and save emission", 0, 0, 0)
+		return dto.NewTaxSendResponse(500, "error", "Failed to send and save emission", 0, 0, 0)
 	}
 	s.logger.IPrintf(1, "Emission sent successfully: ID %d, Quantity %d, Amount %.2f",
 		domainEmission.ID, domainEmission.Quantity, domainEmission.Amount)
 	// Return a successful response
-	return dto.NewEmissionSendResponse(200, "success", "Emission sent successfully",
+	return dto.NewTaxSendResponse(200, "success", "Emission sent successfully",
 		domainEmission.ID, domainEmission.Quantity, domainEmission.Amount)
 }
 
 // getEmission retrieves the emission data for the specified vendor and date range from the repository.
-func (s *EmissionSend) getEmission(vendor *domain.Vendor, emissionDate, startDate,
+func (s *TaxSend) getEmission(vendor *domain.Vendor, emissionDate, startDate,
 	endDate string, lastRPS int64) (*domain.Emission, []domain.Invoice, error) {
 	s.logger.IPrintf(2, "Retrieving emission for vendor: %s, start date: %s, end date: %s, emission date: %s",
 		vendor.Nickname, startDate, endDate, emissionDate)
@@ -99,7 +99,7 @@ func (s *EmissionSend) getEmission(vendor *domain.Vendor, emissionDate, startDat
 }
 
 // getVendor retrieves the vendor information for the specified vendor ID from the repository.
-func (s *EmissionSend) getVendor(nickname string) (*domain.Vendor, error) {
+func (s *TaxSend) getVendor(nickname string) (*domain.Vendor, error) {
 	vendor, err := s.repo.GetVendor(nickname)
 	if err != nil {
 		s.logger.IPrintf(1, "Failed to retrieve vendor: %v", err)
@@ -109,7 +109,7 @@ func (s *EmissionSend) getVendor(nickname string) (*domain.Vendor, error) {
 }
 
 // getLastRSPNumber retrieves the last RPS number for the specified vendor from the repository.
-func (s *EmissionSend) getLastRSPNumber(vendorID int64, defaultRPS int64) (int64, error) {
+func (s *TaxSend) getLastRSPNumber(vendorID int64, defaultRPS int64) (int64, error) {
 	lastRPS, err := s.repo.GetEmissionLastRPS(vendorID)
 	if err != nil {
 		s.logger.IPrintf(1, "Failed to retrieve last RPS number: %v", err)
@@ -122,7 +122,7 @@ func (s *EmissionSend) getLastRSPNumber(vendorID int64, defaultRPS int64) (int64
 }
 
 // saveAll saves the emission and updates the invoices in the repository.
-func (s *EmissionSend) SendAndSave(emission *domain.Emission, invoices []domain.Invoice) error {
+func (s *TaxSend) SendAndSave(emission *domain.Emission, invoices []domain.Invoice) error {
 	s.logger.IPrintf(2, "Sending emission ID: %d, Quantity: %d, Amount: %.2f", emission.ID, emission.Quantity, emission.Amount)
 	if err := s.repo.BeginTransaction(); err != nil {
 		return err

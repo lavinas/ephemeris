@@ -9,61 +9,61 @@ import (
 	"billing/internal/port"
 )
 
-// EmissionReceive is responsible for handling the business logic of receiving emissions.
-type EmissionReceive struct {
+// TaxReceive is responsible for handling the business logic of receiving emissions.
+type TaxReceive struct {
 	Base
 	receiver port.Issuer
 }
 
-// NewEmissionReceive creates a new instance of EmissionReceive.
-func NewEmissionReceive(repo port.Repository, logger port.Logger, issuer port.Issuer) *EmissionReceive {
-	return &EmissionReceive{
+// NewTaxReceive creates a new instance of TaxReceive.
+func NewTaxReceive(repo port.Repository, logger port.Logger, issuer port.Issuer) *TaxReceive {
+	return &TaxReceive{
 		Base:     *NewBase(repo, logger),
 		receiver: issuer,
 	}
 }
 
 // Run processes the request to receive emissions and returns the response.
-func (s *EmissionReceive) Run(inDTO port.InDTO) port.OutDTO {
-	s.logger.IPrintf(1, "Running EmissionReceive service")
-	receiveDTO, ok := inDTO.(*dto.EmissionReceiveRequest)
+func (s *TaxReceive) Run(inDTO port.InDTO) port.OutDTO {
+	s.logger.IPrintf(1, "Running TaxReceive service")
+	receiveDTO, ok := inDTO.(*dto.TaxReceiveRequest)
 	if !ok {
 		s.logger.IPrintf(1, "Invalid input type")
-		return dto.NewEmissionReceiveResponse(400, "error", "Invalid input type", 0, 0, 0)
+		return dto.NewTaxReceiveResponse(400, "error", "Invalid input type", 0, 0, 0)
 	}
 	// Validate the input DTO
 	if err := receiveDTO.Validate(s.repo); err != nil {
 		s.logger.IPrintf(1, "Validation error: %v", err)
-		return dto.NewEmissionReceiveResponse(400, "error", err.Error(), 0, 0, 0)
+		return dto.NewTaxReceiveResponse(400, "error", err.Error(), 0, 0, 0)
 	}
 	// Call the receiver to process the emission receive
 	fileItems, err := s.receiver.ReceiveEmission(receiveDTO.Source)
 	if err != nil {
 		s.logger.IPrintf(1, "Error receiving emission: %v", err)
-		return dto.NewEmissionReceiveResponse(400, "error", err.Error(), 0, 0, 0)
+		return dto.NewTaxReceiveResponse(400, "error", err.Error(), 0, 0, 0)
 	}
 	// Get the domain emission from the DTO
 	emission := receiveDTO.GetDomain()
 	// Merge the received emission items with the existing emission items
 	if err := s.mergeEmissionItems(emission, fileItems); err != nil {
 		s.logger.IPrintf(1, "Error merging emission items: %v", err)
-		return dto.NewEmissionReceiveResponse(400, "error", err.Error(), 0, 0, 0)
+		return dto.NewTaxReceiveResponse(400, "error", err.Error(), 0, 0, 0)
 	}
 	// Save the updated emission to the repository
 	if err := s.saveEmission(emission); err != nil {
 		s.logger.IPrintf(1, "Error saving emission: %v", err)
-		return dto.NewEmissionReceiveResponse(500, "error", "Failed to save emission", 0, 0, 0)
+		return dto.NewTaxReceiveResponse(500, "error", "Failed to save emission", 0, 0, 0)
 	}
 	// Process the emission receive logic here
 	s.logger.IPrintf(1, "Emission received successfully: ID %d, Quantity %d, Amount %.2f",
 		emission.ID, emission.Quantity, emission.Amount)
 	// Return a successful response
-	return dto.NewEmissionReceiveResponse(200, "success", "Emission received successfully",
+	return dto.NewTaxReceiveResponse(200, "success", "Emission received successfully",
 		emission.ID, emission.Quantity, emission.Amount)
 }
 
 // mergeEmissionItems merges the received emission items with the existing emission items in the domain model.
-func (s *EmissionReceive) mergeEmissionItems(emission *domain.Emission,
+func (s *TaxReceive) mergeEmissionItems(emission *domain.Emission,
 	fileItems map[int64]*domain.EmissionItem) error {
 	if len(fileItems) != len(emission.EmissionItems) {
 		return fmt.Errorf("mismatch in number of emission items: expected %d, got %d",
@@ -91,7 +91,7 @@ func (s *EmissionReceive) mergeEmissionItems(emission *domain.Emission,
 }
 
 // saveEmission saves the updated emission to the repository.
-func (s *EmissionReceive) saveEmission(emission *domain.Emission) error {
+func (s *TaxReceive) saveEmission(emission *domain.Emission) error {
 	if err := s.repo.BeginTransaction(); err != nil {
 		s.logger.IPrintf(1, "Error starting transaction: %v", err)
 		return fmt.Errorf("failed to start transaction: %v", err)

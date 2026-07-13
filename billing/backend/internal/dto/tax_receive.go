@@ -7,8 +7,8 @@ import (
 	"fmt"
 )
 
-// EmissionReceiveRequest represents the request data for emission receives.
-type EmissionReceiveRequest struct {
+// TaxReceiveRequest represents the request data for emission receives.
+type TaxReceiveRequest struct {
 	Vendor     string           `json:"vendor"`
 	VendorID   int64            `json:"-"`
 	EmissionID int64            `json:"emission_id"`
@@ -16,18 +16,18 @@ type EmissionReceiveRequest struct {
 	Emission   *domain.Emission `json:"-"`
 }
 
-// EmissionReceiveResponse represents the response data after processing emission receives.
-type EmissionReceiveResponse struct {
+// TaxReceiveResponse represents the response data after processing emission receives.
+type TaxReceiveResponse struct {
 	ResponseBase
 	EmissionID       int64   `json:"emission_id"`
 	EmissionQuantity int     `json:"emission_quantity"`
 	EmissionAmount   float64 `json:"emission_amount"`
 }
 
-// NewEmissionReceiveResponse creates a new instance of EmissionReceiveResponse.
-func NewEmissionReceiveResponse(httpCode int, status, message string, emissionID int64,
-	emissionQuantity int, emissionAmount float64) EmissionReceiveResponse {
-	return EmissionReceiveResponse{
+// NewTaxReceiveResponse creates a new instance of TaxReceiveResponse.
+func NewTaxReceiveResponse(httpCode int, status, message string, emissionID int64,
+	emissionQuantity int, emissionAmount float64) TaxReceiveResponse {
+	return TaxReceiveResponse{
 		ResponseBase:     NewResponseBase(httpCode, status, message),
 		EmissionID:       emissionID,
 		EmissionQuantity: emissionQuantity,
@@ -35,8 +35,8 @@ func NewEmissionReceiveResponse(httpCode int, status, message string, emissionID
 	}
 }
 
-// Validate checks if the EmissionReceiveRequest has all required fields and valid data.
-func (r *EmissionReceiveRequest) Validate(repo port.Repository) error {
+// Validate checks if the TaxReceiveRequest has all required fields and valid data.
+func (r *TaxReceiveRequest) Validate(repo port.Repository) error {
 	errs := make([]error, 0)
 	if err := r.validateVendor(repo); err != nil {
 		errs = append(errs, err)
@@ -52,7 +52,7 @@ func (r *EmissionReceiveRequest) Validate(repo port.Repository) error {
 }
 
 // validateVendor checks if the vendor exists in the repository.
-func (r *EmissionReceiveRequest) validateVendor(repo port.Repository) error {
+func (r *TaxReceiveRequest) validateVendor(repo port.Repository) error {
 	if r.Vendor == "" {
 		return fmt.Errorf("vendor is required")
 	}
@@ -68,7 +68,7 @@ func (r *EmissionReceiveRequest) validateVendor(repo port.Repository) error {
 }
 
 // validateEmissionID checks if the emission ID exists in the repository.
-func (r *EmissionReceiveRequest) validateEmissionID(repo port.Repository) error {
+func (r *TaxReceiveRequest) validateEmissionID(repo port.Repository) error {
 	if r.EmissionID <= 0 {
 		return fmt.Errorf("emission_id must be a positive integer")
 	}
@@ -87,13 +87,13 @@ func (r *EmissionReceiveRequest) validateEmissionID(repo port.Repository) error 
 	return nil
 }
 
-// GetDomain gets the domain representation of the EmissionReceiveRequest.
-func (r *EmissionReceiveRequest) GetDomain() *domain.Emission {
+// GetDomain gets the domain representation of the TaxReceiveRequest.
+func (r *TaxReceiveRequest) GetDomain() *domain.Emission {
 	return r.Emission
 }
 
-// Reset resets the EmissionReceiveRequest to its default state.
-func (r *EmissionReceiveRequest) Reset() {
+// Reset resets the TaxReceiveRequest to its default state.
+func (r *TaxReceiveRequest) Reset() {
 	r.Vendor = ""
 	r.VendorID = 0
 	r.EmissionID = 0
