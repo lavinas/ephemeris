@@ -29,7 +29,7 @@ func main() {
 	notes = append(notes, "Att")
 	notes = append(notes, "Estudio de aulas Amélia Cardoso")
 
-	request := dto.BillerRequest{
+	request := &dto.BillerRequest{
 		InvoiceID:   123456789,
 		InvoiceDate: time.Date(2026, 5, 25, 0, 0, 0, 0, time.UTC),
 		InvoiceDue:  time.Date(2026, 5, 29, 0, 0, 0, 0, time.UTC), // Due in 30 days
@@ -77,7 +77,7 @@ func main() {
 		logger.IPrintf(1, "Error generating PDF: %v", err)
 	}
 
-	bin, err := pdfGenerator.Get(request)
+	bin, err := pdfGenerator.GetBinary(request)
 	if err != nil {
 		logger.IPrintf(1, "Error getting PDF binary: %v", err)
 	}

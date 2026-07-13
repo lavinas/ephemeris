@@ -9,7 +9,7 @@ import (
 func main() {
 	pixToken := driven.NewPixToken()
 
-	request := dto.PixRequest{
+	request := &dto.PixRequest{
 		Key:         "27928875000104",
 		Description: "Aula de canto de 30 minutos em 09/07/2026",
 		Name:        "BARBOSA E CARDOSO PREPARACAO VOCAL E PRODUCOES MUSICAIS LTDA",

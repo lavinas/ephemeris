@@ -61,3 +61,15 @@ type Issuer interface {
 	SendEmission(emission *domain.Emission) error
 	ReceiveEmission(source string) (map[int64]*domain.EmissionItem, error)
 }
+
+// Biller defines the interface for generating PDF files for invoices.
+type Biller interface {
+	Generate(request InDTO, path string) error
+	GetBinary(request InDTO) ([]byte, error)
+	GetPDFBase64(request InDTO) (string, error)
+}
+
+// Pixer defines the interface for generating Pix payment payloads.
+type Pixer interface {
+	Get(request InDTO) (string, string, error)
+}

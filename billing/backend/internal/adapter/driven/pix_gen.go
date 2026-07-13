@@ -2,9 +2,11 @@ package driven
 
 import (
 	"billing/internal/dto"
+	"billing/internal/port"
 	"fmt"
 	"strings"
 	"unicode"
+	"errors"
 
 	"encoding/base64"
 	"golang.org/x/text/runes"
@@ -24,14 +26,18 @@ func NewPixToken() *PixToken {
 }
 
 // Get generates the Pix payment payload based on the provided request data.
-func (p *PixToken) Get(request dto.PixRequest) (string, string, error) {
-	key := p.removeAccents(request.Key)
-	desc := p.removeAccents(request.Description)
-	name := p.removeAccents(request.Name)
-	city := p.removeAccents(request.City)
-	Txid := p.removeAccents(request.Txid)
+func (p *PixToken) Get(request port.InDTO) (string, string, error) {
+	in, ok := request.(*dto.PixRequest)
+	if !ok {
+		return "", "", errors.New("invalid input type")
+	}
+	key := p.removeAccents(in.Key)
+	desc := p.removeAccents(in.Description)
+	name := p.removeAccents(in.Name)
+	city := p.removeAccents(in.City)
+	Txid := p.removeAccents(in.Txid)
 
-	payload := p.gerarPayloadPix(key, desc, name, city, request.Amount, Txid)
+	payload := p.gerarPayloadPix(key, desc, name, city, in.Amount, Txid)
 	qrCode, err := p.gerarQRCode(payload)
 	if err != nil {
 		return "", "", err
