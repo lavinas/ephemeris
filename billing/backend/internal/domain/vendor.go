@@ -15,6 +15,8 @@ type Vendor struct {
 	AccountAgency string    `gorm:"not null"`
 	AccountNumber string    `gorm:"not null"`
 	PixToken      string    `gorm:"not null"`
+	PixName       string    `gorm:"not null"`
+	PixCity       string    `gorm:"not null"`
 	CreatedAt     time.Time `gorm:"not null;default:now()"`
 	UpdatedAt     time.Time `gorm:"not null;default:now()"`
 	LastRps       int64     `gorm:"not null;default:0"`

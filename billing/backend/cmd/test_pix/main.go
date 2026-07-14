@@ -7,12 +7,13 @@ import (
 
 // Main function to test the Pix payment payload generation.
 func main() {
-	pixToken := driven.NewPixToken()
+	logger, _ := driven.NewSimpleLogger("stdout", 0)
+	pixToken := driven.NewPixToken(logger)
 
 	request := &dto.PixRequest{
 		Key:         "27928875000104",
 		Description: "Aula de canto de 30 minutos em 09/07/2026",
-		Name:        "BARBOSA E CARDOSO PREPARACAO VOCAL E PRODUCOES MUSICAIS LTDA",
+		Name:        "Estudio Vocal Amelia Cardoso",
 		City:        "SAO PAULO",
 		Amount:      1.5,
 		Txid:        "123456",

@@ -18,15 +18,19 @@ import (
 
 // PixToken is a struct that implements the port.PixToken interface.
 type PixToken struct {
+	logger port.Logger
 }
 
 // NewPixToken creates a new instance of PixToken.
-func NewPixToken() *PixToken {
-	return &PixToken{}
+func NewPixToken(logger port.Logger) *PixToken {
+	return &PixToken{
+		logger: logger,
+	}
 }
 
 // Get generates the Pix payment payload based on the provided request data.
 func (p *PixToken) Get(request port.InDTO) (string, string, error) {
+	p.logger.IPrintf(2, "Generating Pix payload for request: %v", request)
 	in, ok := request.(*dto.PixRequest)
 	if !ok {
 		return "", "", errors.New("invalid input type")

@@ -17,16 +17,17 @@ create table vendor (
     account_agency varchar(20) not null,
     account_number varchar(50) not null,
     pix_token varchar(255)not null,
+    pix_name varchar(255) not null,
+    pix_city varchar(255) not null,
     created_at timestamp not null,
     updated_at timestamp not null,
     last_rps bigint not null,
     constraint unique_vendor_document unique(document)
 );
 
-
 # main vendor
-insert into vendor (legal_name, nickname, document, tax_document, account_bank, account_agency, account_number, pix_token, created_at, updated_at) values
-('Cardoso e Barbosa Servicos Musicais e Tecnologia LTDA', 'estudio_amelia', '27.928.875/0001-04', '27.928.875/0001-04', 'Santander (033)', '0985', '13001001-4', 'CNPJ: 27.928.875/0001-04', now(), now(), 2435);
+insert into vendor (legal_name, nickname, document, tax_document, account_bank, account_agency, account_number, pix_token, pix_name, pix_city, created_at, updated_at, last_rps) values
+('Cardoso e Barbosa Servicos Musicais e Tecnologia LTDA', 'estudio_amelia', '27.928.875/0001-04', '27.928.875/0001-04', 'Santander (033)', '0985', '13001001-4', '27.928.875/0001-04', 'Estudio Vocal Amelia Cardoso', 'Sao Paulo', now(), now(), 2435);
 
 
 # customer table

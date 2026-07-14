@@ -7,24 +7,24 @@ import (
 	"billing/internal/port"
 )
 
-// GetBillRequest represents a request to get an invoice bill for a customer.
-type GetBillRequest struct {
+// BillGetRequest represents a request to get an invoice bill for a customer.
+type BillGetRequest struct {
 	DocumentType int    `json:"document_type"` // 1 - bill, 2 - qrcode, 3 - payload
 	Vendor       string `json:"vendor"`
 	vendorID     int64  `json:"-" validate:"-"`
 	InvoiceID    int64  `json:"invoice_id"`
 }
 
-// GetBillResponse represents the response after retrieving an invoice bill for a customer.
-type GetBillResponse struct {
+// BillGetResponse represents the response after retrieving an invoice bill for a customer.
+type BillGetResponse struct {
 	ResponseBase
 	DocumentType   int    `json:"document_type"` // 1 - bill, 2 - qrcode, 3 - payload
 	DocumentBase64 string `json:"document_base64"`
 }
 
-// NewGetBillResponse creates a new instance of GetBillResponse with the provided parameters.
-func NewGetBillResponse(statusCode int, statusMessage string, errorMessage string, documentType int, documentBase64 string) *GetBillResponse {
-	return &GetBillResponse{
+// NewBillGetResponse creates a new instance of BillGetResponse with the provided parameters.
+func NewBillGetResponse(statusCode int, statusMessage string, errorMessage string, documentType int, documentBase64 string) *BillGetResponse {
+	return &BillGetResponse{
 		ResponseBase: ResponseBase{
 			HttpCode: statusCode,
 			Status:   statusMessage,
@@ -35,8 +35,8 @@ func NewGetBillResponse(statusCode int, statusMessage string, errorMessage strin
 	}
 }
 
-// Validate checks if the GetBillRequest has valid data.
-func (r *GetBillRequest) Validate(repo port.Repository) error {
+// Validate checks if the BillGetRequest has valid data.
+func (r *BillGetRequest) Validate(repo port.Repository) error {
 	errs := make([]error, 0)
 	if err := r.validateDocumentType(); err != nil {
 		errs = append(errs, err)
@@ -55,7 +55,7 @@ func (r *GetBillRequest) Validate(repo port.Repository) error {
 }
 
 // validateDocumentType checks if the DocumentType is valid (1, 2, or 3).
-func (r *GetBillRequest) validateDocumentType() error {
+func (r *BillGetRequest) validateDocumentType() error {
 	if r.DocumentType < 1 || r.DocumentType > 3 {
 		return errors.New("invalid document type: must be 1 (bill), 2 (qrcode), or 3 (pix code)")
 	}
@@ -63,7 +63,7 @@ func (r *GetBillRequest) validateDocumentType() error {
 }
 
 // validateVendor checks if the vendor exists in the repository and sets the vendorID in the request.
-func (r *GetBillRequest) validateVendor(repo port.Repository) error {
+func (r *BillGetRequest) validateVendor(repo port.Repository) error {
 	vendor, err := repo.GetVendor(r.Vendor)
 	if err != nil {
 		return err
@@ -73,7 +73,7 @@ func (r *GetBillRequest) validateVendor(repo port.Repository) error {
 }
 
 // validateInvoiceID checks if the InvoiceID is valid (greater than 0).
-func (r *GetBillRequest) validateInvoiceID(repo port.Repository) error {
+func (r *BillGetRequest) validateInvoiceID(repo port.Repository) error {
 	invoice, err := repo.GetInvoice(r.InvoiceID)
 	if err != nil {
 		return err
@@ -87,8 +87,8 @@ func (r *GetBillRequest) validateInvoiceID(repo port.Repository) error {
 	return nil
 }
 
-// Reset resets the GetBillRequest fields to their zero values.
-func (r *GetBillRequest) Reset() {
+// Reset resets the BillGetRequest fields to their zero values.
+func (r *BillGetRequest) Reset() {
 	r.DocumentType = 0
 	r.Vendor = ""
 	r.InvoiceID = 0

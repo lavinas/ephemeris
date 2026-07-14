@@ -158,3 +158,20 @@ def format_date(date_str):
         return pd.to_datetime(date_str, format='%d/%m/%Y').strftime('%Y-%m-%d')
     except Exception as e:
         return date_str
+    
+    
+# get bill
+def get_bill(document_type, vendor, invoiceID):
+    json_data = {'document_type': document_type, 'vendor': vendor, 'invoice_id': invoiceID}
+    try:
+        resposta = requests.get(f'{endpoint}/invoice/bill/get', json=json_data, timeout=5)
+    except ConnectionError as e:
+        return f"Erro: A conexão foi recusada pelo servidor remoto. Detalhes: {e}"
+    except Timeout as e:
+        return f"Erro: A requisição excedeu o tempo limite estabelecido. {e}"
+    except requests.exceptions.RequestException as e:
+        return f"Ocorreu um erro genérico no requests: {e}"
+    if resposta.status_code != 200:
+        return f'Erro na chamada da API: {resposta.status_code} - {resposta.text}'
+    resp = resposta.json()
+    return resp

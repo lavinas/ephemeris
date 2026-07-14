@@ -24,15 +24,19 @@ type handleService struct {
 	dto     port.InDTO
 	service port.Service
 	issuer  port.Issuer
+	biller  port.Biller
+	pixer   port.Pixer
 }
 
 // newMapping creates a new instance of mapping with the provided endpoint, method, DTO, and service.
-func newHandleService(method string, dto port.InDTO, service port.Service, issuer port.Issuer) *handleService {
+func newHandleService(method string, dto port.InDTO, service port.Service, issuer port.Issuer, biller port.Biller, pixer port.Pixer) *handleService {
 	return &handleService{
 		method:  method,
 		dto:     dto,
 		service: service,
 		issuer:  issuer,
+		biller:  biller,
+		pixer:   pixer,
 	}
 }
 
@@ -41,11 +45,13 @@ type APIHandler struct {
 	logger   port.Logger
 	repo     port.Repository
 	issuer   port.Issuer
+	biller   port.Biller
+	pixer    port.Pixer
 	services map[string]handleService
 }
 
 // NewAPIHandler creates a new instance of APIHandler
-func NewAPIHandler(addr string, logger port.Logger, repo port.Repository, issuer port.Issuer) *APIHandler {
+func NewAPIHandler(addr string, logger port.Logger, repo port.Repository, issuer port.Issuer, biller port.Biller, pixer port.Pixer) *APIHandler {
 	api := &APIHandler{
 		logger: logger,
 		repo:   repo,
@@ -58,23 +64,25 @@ func NewAPIHandler(addr string, logger port.Logger, repo port.Repository, issuer
 // MapEndpoint maps an API endpoint to a service method
 func (h *APIHandler) mapServices() {
 	h.services = map[string]handleService{
-		"/ping": *newHandleService(http.MethodGet, nil, service.NewPingService(h.logger), h.issuer),
+		"/ping": *newHandleService(http.MethodGet, nil, service.NewPingService(h.logger), h.issuer, h.biller, h.pixer),
 		"/customer/create": *newHandleService(http.MethodPost, &dto.CustomerCreateRequest{},
-			service.NewCustomerCreate(h.repo, h.logger), h.issuer),
+			service.NewCustomerCreate(h.repo, h.logger), h.issuer, h.biller, h.pixer),
 		"/customer/list": *newHandleService(http.MethodGet, &dto.CustomerListRequest{},
-			service.NewCustomerList(h.repo, h.logger), h.issuer),
+			service.NewCustomerList(h.repo, h.logger), h.issuer, h.biller, h.pixer),
 		"/customer/update": *newHandleService(http.MethodPatch, &dto.CustomerUpdateRequest{},
-			service.NewCustomerUpdate(h.repo, h.logger), h.issuer),
+			service.NewCustomerUpdate(h.repo, h.logger), h.issuer, h.biller, h.pixer),
 		"/invoice/create": *newHandleService(http.MethodPost, &dto.InvoiceCreateRequest{},
-			service.NewInvoiceCreate(h.repo, h.logger), h.issuer),
+			service.NewInvoiceCreate(h.repo, h.logger), h.issuer, h.biller, h.pixer),
 		"/invoice/list": *newHandleService(http.MethodGet, &dto.InvoiceListRequest{},
-			service.NewInvoiceList(h.repo, h.logger), h.issuer),
+			service.NewInvoiceList(h.repo, h.logger), h.issuer, h.biller, h.pixer),
 		"/invoice/update": *newHandleService(http.MethodPatch, &dto.InvoiceUpdateRequest{},
-			service.NewInvoiceUpdate(h.repo, h.logger), h.issuer),
+			service.NewInvoiceUpdate(h.repo, h.logger), h.issuer, h.biller, h.pixer),
+		"/invoice/bill/get": *newHandleService(http.MethodGet, &dto.BillGetRequest{},
+			service.NewBillGet(h.repo, h.logger, h.biller, h.pixer), h.issuer, h.biller, h.pixer),
 		"/tax/send": *newHandleService(http.MethodPost, &dto.TaxSendRequest{},
-			service.NewTaxSend(h.repo, h.logger, h.issuer), h.issuer),
+			service.NewTaxSend(h.repo, h.logger, h.issuer), h.issuer, h.biller, h.pixer),
 		"/tax/receive": *newHandleService(http.MethodPost, &dto.TaxReceiveRequest{},
-			service.NewTaxReceive(h.repo, h.logger, h.issuer), h.issuer),
+			service.NewTaxReceive(h.repo, h.logger, h.issuer), h.issuer, h.biller, h.pixer),
 	}
 }
 
