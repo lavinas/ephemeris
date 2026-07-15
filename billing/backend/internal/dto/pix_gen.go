@@ -1,11 +1,10 @@
 package dto
 
 import (
-	"strings"
-	"errors"
 	"billing/internal/port"
+	"errors"
+	"strings"
 )
-
 
 // PixRequest represents the request structure for generating a Pix payment payload.
 type PixRequest struct {
@@ -54,5 +53,3 @@ func (r *PixRequest) Reset() {
 	r.Amount = 0
 	r.Txid = ""
 }
-
-

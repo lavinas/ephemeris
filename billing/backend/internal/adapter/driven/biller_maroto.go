@@ -91,7 +91,7 @@ func (p *BillerMaroto) GetPDFBase64(request port.InDTO) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return base64.StdEncoding.EncodeToString(document), nil
+	return "data:application/pdf;base64," + base64.StdEncoding.EncodeToString(document), nil
 }
 
 // getForm gets biller form
@@ -302,7 +302,7 @@ func (p *BillerMaroto) getDueDate(dueDate time.Time) string {
 // addItemHeader adds the header for the items section in the PDF.
 func (p *BillerMaroto) addItemHeader() {
 	p.generator.AddRow(5,
-		text.NewCol(5, "Descrição",
+		text.NewCol(6, "Descrição",
 			props.Text{
 				Top:   0,
 				Left:  10,
@@ -310,7 +310,7 @@ func (p *BillerMaroto) addItemHeader() {
 				Style: fontstyle.Bold,
 				Size:  10,
 			}),
-		text.NewCol(2, "Quantidade",
+		text.NewCol(1, "Quantidade",
 			props.Text{
 				Top:   0,
 				Align: align.Center,
@@ -329,7 +329,7 @@ func (p *BillerMaroto) addItemHeader() {
 				Top:   0,
 				Align: align.Right,
 				Style: fontstyle.Bold,
-				Size:  12,
+				Size:  10,
 			}),
 	)
 }
@@ -338,14 +338,14 @@ func (p *BillerMaroto) addItemHeader() {
 func (p *BillerMaroto) addItemRow(item dto.BillerItem) float64 {
 	total := float64(item.Quantity) * item.Price
 	p.generator.AddRow(5,
-		text.NewCol(5, item.Description,
+		text.NewCol(6, item.Description,
 			props.Text{
 				Top:   0,
 				Left:  10,
 				Align: align.Left,
 				Size:  10,
 			}),
-		text.NewCol(2, fmt.Sprintf("%d", item.Quantity),
+		text.NewCol(1, fmt.Sprintf("%d", item.Quantity),
 			props.Text{
 				Top:   0,
 				Align: align.Center,
@@ -370,14 +370,14 @@ func (p *BillerMaroto) addItemRow(item dto.BillerItem) float64 {
 // addTotal
 func (p *BillerMaroto) addTotal(total float64) {
 	p.generator.AddRow(5,
-		text.NewCol(5, "",
+		text.NewCol(6, "",
 			props.Text{
 				Top:   0,
 				Left:  10,
 				Align: align.Left,
 				Size:  10,
 			}),
-		text.NewCol(2, "",
+		text.NewCol(1, "",
 			props.Text{
 				Top:   0,
 				Align: align.Center,
@@ -419,7 +419,7 @@ func (p *BillerMaroto) addReceive(receive dto.BillerReceive, value float64) erro
 	if err := p.addPix(receive.Pix, value); err != nil {
 		return err
 	}
-	p.generator.AddRow(12)
+	p.generator.AddRow(10)
 	p.addBankAccount(receive.BankAccount, value)
 
 	return nil
@@ -462,7 +462,7 @@ func (p *BillerMaroto) addPix(pix *dto.BillerPix, value float64) error {
 	p.generator.AddRow(3,
 		text.NewCol(11, txt,
 			props.Text{
-				Top:   10,
+				Top:   0,
 				Left:  17,
 				Align: align.Left,
 				Size:  8,
@@ -482,6 +482,7 @@ func (p *BillerMaroto) addQRCode(qrCode string) (*core.Col, error) {
 	}
 	imgComp := image.NewFromBytes(img, "png")
 	colr := col.New(2).Add(imgComp)
+
 	return &colr, nil
 }
 
@@ -489,11 +490,11 @@ func (p *BillerMaroto) addQRCode(qrCode string) (*core.Col, error) {
 func (p *BillerMaroto) addCopyPaste(copyPaste string, pixKey string, value float64) *core.Col {
 	pkey := fmt.Sprintf("%s (valor: R$ %.2f)", pixKey, value)
 	colr := col.New(8).Add(
-		text.New("Código Pix (Copie e Cole o código abaixo):", props.Text{Top: 4, Style: fontstyle.Bold, Align: align.Left, Left: 5, Size: 8}),
-		text.New(copyPaste, props.Text{Top: 8, Align: align.Left, Left: 5, Size: 8}),
+		text.New("Código Pix (Copie e Cole o código abaixo):", props.Text{Top: 1, Style: fontstyle.Bold, Align: align.Left, Left: 5, Size: 8}),
+		text.New(copyPaste, props.Text{Top: 5, Align: align.Left, Left: 5, Size: 8}),
 		text.New("Chave Pix (caso queira pagar diretamente e enviar o comprovante):",
-			props.Text{Top: 20, Style: fontstyle.Bold, Align: align.Left, Left: 5, Size: 8}),
-		text.New(pkey, props.Text{Top: 24, Align: align.Left, Left: 5, Size: 8}),
+			props.Text{Top: 19, Style: fontstyle.Bold, Align: align.Left, Left: 5, Size: 8}),
+		text.New(pkey, props.Text{Top: 23, Align: align.Left, Left: 5, Size: 8}),
 	) // Fecha a colunaEsquerda
 	return &colr
 }

@@ -2,11 +2,12 @@ package service
 
 import (
 	"errors"
+	"path/filepath"
 	"strconv"
 
+	"billing/internal/domain"
 	"billing/internal/dto"
 	"billing/internal/port"
-	"billing/internal/domain"
 )
 
 // BillSendService is a service for sending bills to customers.
@@ -15,6 +16,10 @@ type BillGet struct {
 	biller port.Biller
 	pixer  port.Pixer
 }
+
+const (
+	logoPath = "./images/"
+)
 
 // NewBillGet creates a new instance of BillGet.
 func NewBillGet(repo port.Repository, logger port.Logger, biller port.Biller, pixer port.Pixer) *BillGet {
@@ -59,13 +64,10 @@ func (s *BillGet) getDocument(docType int, vendorNick string, invoiceID int64) (
 	if err != nil {
 		return "", errors.New("vendor not found")
 	}
-	s.logger.IPrintf(2, "Vendor retrieved successfully: %v", vendor)
-	s.logger.IPrintf(2, "Retrieving invoice for ID: %d", invoiceID)
-	invoice , err := s.repo.GetInvoice(invoiceID)
+	invoice, err := s.repo.GetInvoice(invoiceID)
 	if err != nil {
 		return "", errors.New("invoice not found")
 	}
-	s.logger.IPrintf(2, "Invoice retrieved successfully: %v", invoice)
 	switch docType {
 	case 1:
 		return s.getBill(vendor, invoice)
@@ -93,12 +95,12 @@ func (s *BillGet) getPixStrings(invoice *domain.Invoice, vendor *domain.Vendor) 
 		Description: invoice.InvoiceItems[0].Description,
 		Name:        vendor.PixName,
 		City:        vendor.PixCity,
-		Txid:        idStr, // Use invoice ID as Txid
+		Txid:        idStr,          // Use invoice ID as Txid
 		Amount:      invoice.Amount, // Example amount, replace with actual value
 	}
 	s.logger.IPrintf(2, "PixRequest DTO created: %v", dto)
 	payload, qrCode, err := s.pixer.Get(dto)
-	s.logger.IPrintf(2, "Pix strings generated: payload=%v, qrCode=%v, error=%v", payload, qrCode, err)	
+	s.logger.IPrintf(2, "Pix strings generated: payload=%v, qrCode=%v, error=%v", payload, qrCode, err)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -109,16 +111,21 @@ func (s *BillGet) getPixStrings(invoice *domain.Invoice, vendor *domain.Vendor) 
 // getBill generates the bill document for the given invoice.
 func (s *BillGet) getBill(vendor *domain.Vendor, invoice *domain.Invoice) (string, error) {
 	s.logger.IPrintf(2, "Generating bill for vendor: %v, invoice: %v", vendor, invoice)
-	payload, _, err := s.getPixStrings(invoice, vendor)
+	payload, qrCode, err := s.getPixStrings(invoice, vendor)
 	if err != nil {
 		return "", err
 	}
-	s.logger.IPrintf(2, "Pix strings generated successfully: %v", payload)
-	if payload == nil {
+	if payload == nil || qrCode == nil {
 		return "", errors.New("vendor does not have a Pix token")
-	}	
+	}
+	billDto := s.getBillDto(invoice, vendor, *payload, *qrCode)
+	s.logger.IPrintf(2, "Bill DTO created: %v", billDto)
+	bill, err := s.biller.GetPDFBase64(billDto)
+	if err != nil {
+		return "", err
+	}
 	s.logger.IPrintf(2, "Generating bill document using Maroto for invoice: %v", invoice)
-	return *payload, nil
+	return bill, nil
 }
 
 // getQRCode generates the QR code document for the given invoice.
@@ -130,7 +137,7 @@ func (s *BillGet) getQRCode(vendor *domain.Vendor, invoice *domain.Invoice) (str
 	}
 	if qrCode == nil {
 		return "", errors.New("vendor does not have a Pix token")
-	}	
+	}
 	return *qrCode, nil
 }
 
@@ -142,6 +149,62 @@ func (s *BillGet) getPayload(vendor *domain.Vendor, invoice *domain.Invoice) (st
 	}
 	if payload == nil {
 		return "", errors.New("vendor does not have a Pix token")
-	}	
+	}
 	return *payload, nil
+}
+
+// getBillDto creates a BillRequest DTO for the given invoice and vendor.
+func (s *BillGet) getBillDto(invoice *domain.Invoice, vendor *domain.Vendor, payload string, qrCode string) *dto.BillerRequest {
+	s.logger.IPrintf(2, "Creating BillRequest DTO for vendor: %v, invoice: %v", vendor, invoice)
+	logo := filepath.Join(logoPath, vendor.LogoName)
+
+	return &dto.BillerRequest{
+		InvoiceID:   invoice.ID,
+		InvoiceDate: invoice.InvoiceDate,
+		InvoiceDue:  invoice.DueDate,
+		Vendor: dto.BillerVendor{
+			Logo:     logo,
+			Name:     vendor.LegalName,
+			Document: vendor.Document,
+			Email:    &vendor.Email,
+			Whatsapp: &vendor.Whatsapp,
+		},
+		Customer: dto.BillerCustomer{
+			Name:     invoice.Customer.Name,
+			Document: invoice.Customer.Document,
+			Email:    invoice.Customer.Email,
+			Whatsapp: invoice.Customer.Whatsapp,
+		},
+		Items: s.getBillItems(invoice),
+		Receive: dto.BillerReceive{
+			Pix: &dto.BillerPix{
+				PixKey:       vendor.PixToken,
+				ReceiverName: vendor.PixName,
+				PixCopyPaste: payload,
+				PixQRCode:    qrCode,
+			},
+			BankAccount: &dto.BillerBankAccount{
+				BankName:         vendor.AccountBank,
+				BankAgency:       vendor.AccountAgency,
+				BankAccount:      vendor.AccountNumber,
+				ReceiverName:     vendor.LegalName,
+				ReceiverDocument: vendor.Document,
+			},
+		},
+	}
+}
+
+// getBillItems creates a slice of BillerItem DTOs for the given invoice.
+func (s *BillGet) getBillItems(invoice *domain.Invoice) []dto.BillerItem {
+	s.logger.IPrintf(2, "Creating BillerItem DTOs for invoice: %v", invoice)
+	items := make([]dto.BillerItem, len(invoice.InvoiceItems))
+	for i, item := range invoice.InvoiceItems {
+		items[i] = dto.BillerItem{
+			Description: item.Description,
+			Quantity:    item.Quantity,
+			Price:       item.Price,
+		}
+	}
+	s.logger.IPrintf(2, "BillerItem DTOs created: %v", items)
+	return items
 }

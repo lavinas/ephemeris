@@ -12,6 +12,8 @@ create table vendor (
     legal_name varchar(150) not null,
     nickname varchar(150),
     document varchar(50) not null,
+    email VARCHAR(150) not null,
+    whatsapp varchar(20) not null,
     tax_document varchar(50) not null,
     account_bank varchar(100) not null,
     account_agency varchar(20) not null,
@@ -19,6 +21,7 @@ create table vendor (
     pix_token varchar(255)not null,
     pix_name varchar(255) not null,
     pix_city varchar(255) not null,
+    logo_name varchar(255),
     created_at timestamp not null,
     updated_at timestamp not null,
     last_rps bigint not null,
@@ -26,8 +29,8 @@ create table vendor (
 );
 
 # main vendor
-insert into vendor (legal_name, nickname, document, tax_document, account_bank, account_agency, account_number, pix_token, pix_name, pix_city, created_at, updated_at, last_rps) values
-('Cardoso e Barbosa Servicos Musicais e Tecnologia LTDA', 'estudio_amelia', '27.928.875/0001-04', '27.928.875/0001-04', 'Santander (033)', '0985', '13001001-4', '27.928.875/0001-04', 'Estudio Vocal Amelia Cardoso', 'Sao Paulo', now(), now(), 2435);
+insert into vendor (legal_name, nickname, document, tax_document, account_bank, account_agency, account_number, pix_token, pix_name, pix_city, logo_name, email, whatsapp, created_at, updated_at, last_rps) values
+('Cardoso e Barbosa Servicos Musicais e Tecnologia LTDA', 'estudio_amelia', '27.928.875/0001-04', '27.928.875/0001-04', 'Santander (033)', '0985', '13001001-4', '27.928.875/0001-04', 'Estudio Vocal Amelia Cardoso', 'Sao Paulo', 'logo_amelia.png', 'financeiro@ameilacardoso.com.br', '(11) 98088-8399', now(), now(), 2435);
 
 
 # customer table

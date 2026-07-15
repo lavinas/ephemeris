@@ -56,6 +56,8 @@ func NewAPIHandler(addr string, logger port.Logger, repo port.Repository, issuer
 		logger: logger,
 		repo:   repo,
 		issuer: issuer,
+		biller: biller,
+		pixer:  pixer,
 	}
 	api.mapServices()
 	return api

@@ -10,6 +10,8 @@ type Vendor struct {
 	LegalName     string    `gorm:"not null"`
 	Nickname      string    `gorm:"not null;unique"`
 	Document      string    `gorm:"not null;unique"`
+	Email         string    `gorm:"not null"`
+	Whatsapp      string    `gorm:"not null"`
 	TaxDocument   string    `gorm:"not null"`
 	AccountBank   string    `gorm:"not null"`
 	AccountAgency string    `gorm:"not null"`
@@ -20,6 +22,7 @@ type Vendor struct {
 	CreatedAt     time.Time `gorm:"not null;default:now()"`
 	UpdatedAt     time.Time `gorm:"not null;default:now()"`
 	LastRps       int64     `gorm:"not null;default:0"`
+	LogoName      string    `gorm:"not null"`
 }
 
 // TableName specifies the table name for Vendor model.

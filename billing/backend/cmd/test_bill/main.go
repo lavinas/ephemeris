@@ -52,8 +52,8 @@ func main() {
 			Whatsapp: strPtr("(11) 91234-5678"),
 		},
 		Items: []dto.BillerItem{
-			{Description: "Item 1", Quantity: 2, Price: 10.0},
-			{Description: "Item 2", Quantity: 1, Price: 20.0},
+			{Description: "aulas de canto de 60 minutos em junho de 2026", Quantity: 2, Price: 300.0},
+			{Description: "aulas de piano de 60 minutos em junho de 2026", Quantity: 1, Price: 20.0},
 		},
 		Receive: dto.BillerReceive{
 			BankAccount: &dto.BillerBankAccount{
