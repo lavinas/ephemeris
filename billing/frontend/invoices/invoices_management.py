@@ -2,6 +2,8 @@ import requests
 import pandas as pd
 from tabulate import tabulate
 from requests.exceptions import ConnectionError, Timeout
+from os import path as os_path
+from base64 import b64decode
 
 
 # Configurações
@@ -10,9 +12,9 @@ page = 1
 page_size = 1000
 
 
-# get
-def get(vendor, customer, invoicing, due, payment, email_sent, whatsapp_sent, tax, cancellation):
-    # build request payload
+# get_df 
+def get_df(vendor, customer, invoicing, due, payment, email_sent, whatsapp_sent, tax, cancellation):
+   # build request payload
     json_data = {'vendor': vendor, 'page': page, 'page_size': page_size}
     if customer and customer != "":
         json_data['customer'] = customer
@@ -54,6 +56,11 @@ def get(vendor, customer, invoicing, due, payment, email_sent, whatsapp_sent, ta
                                   for item in items]) if isinstance(items, list) else '-'
     df_invoices['items'] = df_invoices['items'].apply(lb)
     df_invoices = df_invoices.sort_values(by=['customer', 'invoicing'])
+    return df_invoices
+
+# get
+def get(vendor, customer, invoicing, due, payment, email_sent, whatsapp_sent, tax, cancellation):
+    df_invoices = get_df(vendor, customer, invoicing, due, payment, email_sent, whatsapp_sent, tax, cancellation)
     return tabulate(df_invoices, headers='keys', tablefmt='grid', showindex=False), len(df_invoices), \
         sum(df_invoices['amount'].replace('-', 0).astype(float))    
 
@@ -160,9 +167,9 @@ def format_date(date_str):
         return date_str
     
     
-# get bill
-def get_bill(document_type, vendor, invoiceID):
-    json_data = {'document_type': document_type, 'vendor': vendor, 'invoice_id': invoiceID}
+# save bill
+def save_bill(vendor, invoiceID, path):
+    json_data = {'document_type': 1, 'vendor': vendor, 'invoice_id': invoiceID}
     try:
         resposta = requests.get(f'{endpoint}/invoice/bill/get', json=json_data, timeout=5)
     except ConnectionError as e:
@@ -174,4 +181,20 @@ def get_bill(document_type, vendor, invoiceID):
     if resposta.status_code != 200:
         return f'Erro na chamada da API: {resposta.status_code} - {resposta.text}'
     resp = resposta.json()
-    return resp
+    file_path = os_path.join(path, resp['document_name'])
+    file_bin = b64decode(resp['document_base64'])
+    with open(file_path, 'wb') as f:
+        f.write(file_bin)
+    return f'Arquivo salvo com sucesso em: {file_path}'
+
+# save bills
+def save_bills(vendor, customer, invoicing, due, path):
+    df_get = get_df(vendor, customer, invoicing, due, '', '', '', '', '')
+    if isinstance(df_get, str):
+        return df_get
+    for invoice_id in df_get['id']:
+        result = save_bill(vendor, invoice_id, path)
+        if "Erro" in result:
+            return result
+    return "Todos os arquivos foram salvos com sucesso."
+    

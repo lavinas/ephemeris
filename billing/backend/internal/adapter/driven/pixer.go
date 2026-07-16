@@ -16,20 +16,20 @@ import (
 	"github.com/skip2/go-qrcode"
 )
 
-// PixToken is a struct that implements the port.PixToken interface.
-type PixToken struct {
+// Pixer is a struct that implements the port.Pixer interface.
+type Pixer struct {
 	logger port.Logger
 }
 
-// NewPixToken creates a new instance of PixToken.
-func NewPixToken(logger port.Logger) *PixToken {
-	return &PixToken{
+// NewPixer creates a new instance of Pixer.
+func NewPixer(logger port.Logger) *Pixer {
+	return &Pixer{
 		logger: logger,
 	}
 }
 
 // Get generates the Pix payment payload based on the provided request data.
-func (p *PixToken) Get(request port.InDTO) (string, string, error) {
+func (p *Pixer) Get(request port.InDTO) (string, string, error) {
 	p.logger.IPrintf(2, "Generating Pix payload for request: %v", request)
 	in, ok := request.(*dto.PixRequest)
 	if !ok {
@@ -50,7 +50,7 @@ func (p *PixToken) Get(request port.InDTO) (string, string, error) {
 }
 
 // Calcula o CRC-16 (polinômio 0x1021) conforme padrão do Banco Central
-func (p *PixToken) calcCRC16(payload string) string {
+func (p *Pixer) calcCRC16(payload string) string {
 	crc := 0xFFFF
 	polynomial := 0x1021
 
@@ -68,12 +68,12 @@ func (p *PixToken) calcCRC16(payload string) string {
 }
 
 // Formata tag e valor no padrão TLV (Tag, Length, Value)
-func (p *PixToken) montaCampo(tag string, valor string) string {
+func (p *Pixer) montaCampo(tag string, valor string) string {
 	return fmt.Sprintf("%s%02d%s", tag, len(valor), valor)
 }
 
 // Gera o Payload do Pix Copia e Cola
-func (p *PixToken) gerarPayloadPix(chave string, descricao string, nome string, cidade string, valor float64, txid string) string {
+func (p *Pixer) gerarPayloadPix(chave string, descricao string, nome string, cidade string, valor float64, txid string) string {
 	// Trata os dados para o padrão aceito pelo Santander
 	nomeTratado := strings.ToUpper(p.removeAccents(nome))
 	if len(nomeTratado) > 25 {
@@ -121,7 +121,7 @@ func (p *PixToken) gerarPayloadPix(chave string, descricao string, nome string, 
 }
 
 // removeAccents is a helper function to remove accents from a string.
-func (i *PixToken) removeAccents(texto string) string {
+func (i *Pixer) removeAccents(texto string) string {
 	// Transforma a string para separar letras dos acentos, remove os acentos e recompõe
 	t := transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
 
@@ -132,7 +132,7 @@ func (i *PixToken) removeAccents(texto string) string {
 }
 
 // gerarQRCode generates a QR code image from the provided Pix payload and saves it to the specified file path.
-func (p *PixToken) gerarQRCode(payload string) (string, error) {
+func (p *Pixer) gerarQRCode(payload string) (string, error) {
 	// Gera os bytes do PNG diretamente na memória
 	var pngBytes []byte
 	pngBytes, err := qrcode.Encode(payload, qrcode.Medium, 256)
@@ -144,5 +144,5 @@ func (p *PixToken) gerarQRCode(payload string) (string, error) {
 	stringBase64 := base64.StdEncoding.EncodeToString(pngBytes)
 
 	// Retorna no formato pronto para usar na tag <img src="..."> do HTML
-	return "data:image/png;base64," + stringBase64, nil
+	return stringBase64, nil
 }

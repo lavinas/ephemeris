@@ -20,10 +20,11 @@ type BillGetResponse struct {
 	ResponseBase
 	DocumentType   int    `json:"document_type"` // 1 - bill, 2 - qrcode, 3 - payload
 	DocumentBase64 string `json:"document_base64"`
+	DocumentName   string `json:"document_name"`
 }
 
 // NewBillGetResponse creates a new instance of BillGetResponse with the provided parameters.
-func NewBillGetResponse(statusCode int, statusMessage string, errorMessage string, documentType int, documentBase64 string) *BillGetResponse {
+func NewBillGetResponse(statusCode int, statusMessage string, errorMessage string, documentType int, documentBase64 string, documentName string) *BillGetResponse {
 	return &BillGetResponse{
 		ResponseBase: ResponseBase{
 			HttpCode: statusCode,
@@ -32,6 +33,7 @@ func NewBillGetResponse(statusCode int, statusMessage string, errorMessage strin
 		},
 		DocumentType:   documentType,
 		DocumentBase64: documentBase64,
+		DocumentName:   documentName,
 	}
 }
 

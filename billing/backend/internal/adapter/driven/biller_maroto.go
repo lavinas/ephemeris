@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"regexp"
-	"strings"
 	"time"
 
 	"billing/internal/dto"
@@ -36,6 +35,15 @@ type BillerMaroto struct {
 
 // NewBillerMaroto creates a new instance of BillerMaroto.
 func NewBillerMaroto(logger port.Logger) *BillerMaroto {
+	biller := &BillerMaroto{
+		logger: logger,
+	}
+	biller.resetGenerator()
+	return biller
+}
+	
+// reset generator resets the PDF generator to its initial state.
+func (p *BillerMaroto) resetGenerator() {
 	cfg := config.NewBuilder().
 		WithOrientation(orientation.Vertical).
 		WithPageSize(pagesize.A4).
@@ -44,10 +52,7 @@ func NewBillerMaroto(logger port.Logger) *BillerMaroto {
 		WithRightMargin(15).
 		WithBottomMargin(15).
 		Build()
-	return &BillerMaroto{
-		logger:    logger,
-		generator: maroto.New(cfg),
-	}
+	p.generator = maroto.New(cfg)
 }
 
 // GeneratePDF generates a PDF file based on the provided data and returns the file path.
@@ -83,6 +88,7 @@ func (p *BillerMaroto) GetBinary(request port.InDTO) ([]byte, error) {
 
 // GetPDFBase64 returns the base64 encoded string of the generated PDF.
 func (p *BillerMaroto) GetPDFBase64(request port.InDTO) (string, error) {
+	p.logger.IPrintf(2, "PDF Base64 for request: %v", request)
 	requestDTO, ok := request.(*dto.BillerRequest)
 	if !ok {
 		return "", fmt.Errorf("invalid request type: expected BillerRequest")
@@ -91,12 +97,15 @@ func (p *BillerMaroto) GetPDFBase64(request port.InDTO) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return "data:application/pdf;base64," + base64.StdEncoding.EncodeToString(document), nil
+	doc := base64.StdEncoding.EncodeToString(document)
+	p.logger.IPrintf(2, "PDF Base64 response: %s", doc)
+	return doc, nil
 }
 
 // getForm gets biller form
 func (p *BillerMaroto) getForm(request dto.BillerRequest) (core.Document, error) {
-	p.logger.IPrintf(2, "Generating PDF...")
+	p.resetGenerator()
+	p.logger.IPrintf(2, "Generating PDF...%v", request)
 	p.addFooter(request.Vendor.Name)
 	p.addHeader(request)
 	p.addSeparator(6, 3)
@@ -457,7 +466,7 @@ func (p *BillerMaroto) addPix(pix *dto.BillerPix, value float64) error {
 
 	p.generator.AddRow(28, cols...)
 
-	txt := fmt.Sprintf("* Por favor, antes de confirmar o pagamento, verifique que o valor do pagamento é R$ %.2f e que o recebedor é %s", value, pix.ReceiverName)
+	txt := fmt.Sprintf("* Por favor, antes de confirmar o pagamento, verifique que o valor é R$ %.2f e que o recebedor é %s", value, pix.ReceiverName)
 
 	p.generator.AddRow(3,
 		text.NewCol(11, txt,
@@ -474,9 +483,7 @@ func (p *BillerMaroto) addPix(pix *dto.BillerPix, value float64) error {
 
 // addQRCode adds the QR code to the PDF.
 func (p *BillerMaroto) addQRCode(qrCode string) (*core.Col, error) {
-	strImg := strings.SplitN(qrCode, ",", 2)[1]
-
-	img, err := base64.StdEncoding.DecodeString(strImg)
+	img, err := base64.StdEncoding.DecodeString(qrCode)
 	if err != nil {
 		return nil, err
 	}
@@ -491,7 +498,7 @@ func (p *BillerMaroto) addCopyPaste(copyPaste string, pixKey string, value float
 	pkey := fmt.Sprintf("%s (valor: R$ %.2f)", pixKey, value)
 	colr := col.New(8).Add(
 		text.New("Código Pix (Copie e Cole o código abaixo):", props.Text{Top: 1, Style: fontstyle.Bold, Align: align.Left, Left: 5, Size: 8}),
-		text.New(copyPaste, props.Text{Top: 5, Align: align.Left, Left: 5, Size: 8}),
+		text.New(copyPaste, props.Text{Top: 5, Align: align.Left, Left: 5, Size: 8, Color: &props.Color{Red: 0, Green: 0, Blue: 139}}),
 		text.New("Chave Pix (caso queira pagar diretamente e enviar o comprovante):",
 			props.Text{Top: 19, Style: fontstyle.Bold, Align: align.Left, Left: 5, Size: 8}),
 		text.New(pkey, props.Text{Top: 23, Align: align.Left, Left: 5, Size: 8}),

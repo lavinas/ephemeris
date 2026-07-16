@@ -38,7 +38,7 @@ func main() {
 	// Biller initialization
 	biller := driven.NewBillerMaroto(logger)
 	// Pixer initialization
-	pixer := driven.NewPixToken(logger)
+	pixer := driven.NewPixer(logger)
 	// Initialize API Handler
 	os.Setenv("TZ", timezone)
 	logger.IPrintf(0, "starting API server on :8080")

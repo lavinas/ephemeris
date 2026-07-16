@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"path/filepath"
 	"strconv"
 
@@ -37,47 +38,67 @@ func (s *BillGet) Run(inDTO port.InDTO) port.OutDTO {
 	in, ok := inDTO.(*dto.BillGetRequest)
 	if !ok {
 		s.logger.IPrintf(2, "Invalid input type: expected BillGetRequest")
-		return dto.NewBillGetResponse(400, "bad request", "Invalid input type", 0, "")
+		return dto.NewBillGetResponse(400, "bad request", "Invalid input type", 0, "", "")
 	}
 	s.logger.IPrintf(2, "Validated input: %v", in)
 	// Validate input
 	if err := in.Validate(s.repo); err != nil {
 		s.logger.IPrintf(2, "Validation failed: %v", err)
 		return dto.NewBillGetResponse(400, "bad request",
-			"Validation failed: "+err.Error(), 0, "")
+			"Validation failed: "+err.Error(), 0, "", "")
 	}
 	s.logger.IPrintf(2, "Input validated successfully: %v", in)
-	documentBase64, err := s.getDocument(in.DocumentType, in.Vendor, in.InvoiceID)
+	document, name, err := s.getDocument(in.DocumentType, in.Vendor, in.InvoiceID)
 	if err != nil {
 		s.logger.IPrintf(2, "Error generating document: %v", err)
 		return dto.NewBillGetResponse(500, "internal server error",
-			"contact support", 0, "")
+			"contact support", 0, "", "")
 	}
-	s.logger.IPrintf(2, "Document generated successfully: %v", documentBase64)
-	return dto.NewBillGetResponse(200, "success", "", in.DocumentType, documentBase64)
+	s.logger.IPrintf(2, "Document generated successfully: %v", document)
+	return dto.NewBillGetResponse(200, "success", "", in.DocumentType, document, name)
+}
+
+// getDocumentName returns the document name based on the document type and invoice ID.
+func (s *BillGet) getDocumentName(docType int, invoice *domain.Invoice) string {
+	nameFmt := "%s-%s-%s.%s"
+	extMap := map[int]string{
+		1: "pdf",
+		2: "png",
+		3: "txt",
+	}
+	ext, _ := extMap[docType]
+	invDate := invoice.InvoiceDate.Format("2006-01-02")
+	dueDate := invoice.DueDate.Format("2006-01-02")
+	return fmt.Sprintf(nameFmt, dueDate, invDate, invoice.Customer.Nickname, ext)
 }
 
 // getDocument is a helper function to retrieve the document based on the document type.
-func (s *BillGet) getDocument(docType int, vendorNick string, invoiceID int64) (string, error) {
+func (s *BillGet) getDocument(docType int, vendorNick string, invoiceID int64) (string, string, error) {
 	s.logger.IPrintf(2, "Retrieving document for type: %d, vendor: %s, invoiceID: %d", docType, vendorNick, invoiceID)
 	vendor, err := s.repo.GetVendor(vendorNick)
 	if err != nil {
-		return "", errors.New("vendor not found")
+		return "", "", errors.New("vendor not found")
 	}
 	invoice, err := s.repo.GetInvoice(invoiceID)
 	if err != nil {
-		return "", errors.New("invoice not found")
+		return "", "", errors.New("invoice not found")
 	}
+	var document string
 	switch docType {
 	case 1:
-		return s.getBill(vendor, invoice)
+		document, err = s.getBill(vendor, invoice)
 	case 2:
-		return s.getQRCode(vendor, invoice)
+		document, err = s.getQRCode(vendor, invoice)
 	case 3:
-		return s.getPayload(vendor, invoice)
+		document, err = s.getPayload(vendor, invoice)
 	default:
-		return "", errors.New("invalid document type")
+		return "", "", errors.New("invalid document type")
 	}
+	if err != nil {
+		return "", "", err
+	}
+	s.logger.IPrintf(2, "Document retrieved successfully for type: %d, vendor: %s, invoiceID: %d", docType, vendorNick, invoiceID)
+	return document, s.getDocumentName(docType, invoice), nil
 }
 
 // getPixStrings is a helper function to retrieve the Pix strings based on the document type.
