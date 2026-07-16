@@ -40,21 +40,19 @@ func (s *BillGet) Run(inDTO port.InDTO) port.OutDTO {
 		s.logger.IPrintf(2, "Invalid input type: expected BillGetRequest")
 		return dto.NewBillGetResponse(400, "bad request", "Invalid input type", 0, "", "")
 	}
-	s.logger.IPrintf(2, "Validated input: %v", in)
 	// Validate input
 	if err := in.Validate(s.repo); err != nil {
 		s.logger.IPrintf(2, "Validation failed: %v", err)
 		return dto.NewBillGetResponse(400, "bad request",
 			"Validation failed: "+err.Error(), 0, "", "")
 	}
-	s.logger.IPrintf(2, "Input validated successfully: %v", in)
 	document, name, err := s.getDocument(in.DocumentType, in.Vendor, in.InvoiceID)
 	if err != nil {
 		s.logger.IPrintf(2, "Error generating document: %v", err)
 		return dto.NewBillGetResponse(500, "internal server error",
 			"contact support", 0, "", "")
 	}
-	s.logger.IPrintf(2, "Document generated successfully: %v", document)
+	s.logger.IPrintf(2, "Document generated successfully")
 	return dto.NewBillGetResponse(200, "success", "", in.DocumentType, document, name)
 }
 
@@ -119,13 +117,11 @@ func (s *BillGet) getPixStrings(invoice *domain.Invoice, vendor *domain.Vendor) 
 		Txid:        idStr,          // Use invoice ID as Txid
 		Amount:      invoice.Amount, // Example amount, replace with actual value
 	}
-	s.logger.IPrintf(2, "PixRequest DTO created: %v", dto)
 	payload, qrCode, err := s.pixer.Get(dto)
-	s.logger.IPrintf(2, "Pix strings generated: payload=%v, qrCode=%v, error=%v", payload, qrCode, err)
 	if err != nil {
 		return nil, nil, err
 	}
-	s.logger.IPrintf(2, "Pix strings generated successfully: payload=%v, qrCode=%v", payload, qrCode)
+	s.logger.IPrintf(2, "Pix strings generated successfully")
 	return &payload, &qrCode, nil
 }
 
@@ -140,7 +136,6 @@ func (s *BillGet) getBill(vendor *domain.Vendor, invoice *domain.Invoice) (strin
 		return "", errors.New("vendor does not have a Pix token")
 	}
 	billDto := s.getBillDto(invoice, vendor, *payload, *qrCode)
-	s.logger.IPrintf(2, "Bill DTO created: %v", billDto)
 	bill, err := s.biller.GetPDFBase64(billDto)
 	if err != nil {
 		return "", err

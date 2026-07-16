@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"time"
+	"strings"
 
 	"billing/internal/dto"
 	"billing/internal/port"
@@ -69,7 +70,6 @@ func (p *BillerMaroto) Generate(request port.InDTO, path string) error {
 	if err != nil {
 		return err
 	}
-	p.logger.IPrintf(2, "PDF generated successfully at path: %s", path)
 	return nil
 }
 
@@ -88,7 +88,6 @@ func (p *BillerMaroto) GetBinary(request port.InDTO) ([]byte, error) {
 
 // GetPDFBase64 returns the base64 encoded string of the generated PDF.
 func (p *BillerMaroto) GetPDFBase64(request port.InDTO) (string, error) {
-	p.logger.IPrintf(2, "PDF Base64 for request: %v", request)
 	requestDTO, ok := request.(*dto.BillerRequest)
 	if !ok {
 		return "", fmt.Errorf("invalid request type: expected BillerRequest")
@@ -98,14 +97,12 @@ func (p *BillerMaroto) GetPDFBase64(request port.InDTO) (string, error) {
 		return "", err
 	}
 	doc := base64.StdEncoding.EncodeToString(document)
-	p.logger.IPrintf(2, "PDF Base64 response: %s", doc)
 	return doc, nil
 }
 
 // getForm gets biller form
 func (p *BillerMaroto) getForm(request dto.BillerRequest) (core.Document, error) {
 	p.resetGenerator()
-	p.logger.IPrintf(2, "Generating PDF...%v", request)
 	p.addFooter(request.Vendor.Name)
 	p.addHeader(request)
 	p.addSeparator(6, 3)
@@ -345,7 +342,11 @@ func (p *BillerMaroto) addItemHeader() {
 
 // addItemRow adds a row for an item in the PDF.
 func (p *BillerMaroto) addItemRow(item dto.BillerItem) float64 {
+	price := fmt.Sprintf("R$ %.2f", item.Price)
+	price = strings.Replace(price, ".", ",", 1)
 	total := float64(item.Quantity) * item.Price
+	totalStr := fmt.Sprintf("R$ %.2f", float64(item.Quantity) * item.Price)
+	totalStr = strings.Replace(totalStr, ".", ",", 1)
 	p.generator.AddRow(5,
 		text.NewCol(6, item.Description,
 			props.Text{
@@ -360,13 +361,13 @@ func (p *BillerMaroto) addItemRow(item dto.BillerItem) float64 {
 				Align: align.Center,
 				Size:  10,
 			}),
-		text.NewCol(2, fmt.Sprintf("R$ %.2f", item.Price),
+		text.NewCol(2, price,
 			props.Text{
 				Top:   0,
 				Align: align.Right,
 				Size:  10,
 			}),
-		text.NewCol(2, fmt.Sprintf("R$ %.2f", total),
+		text.NewCol(2, totalStr,
 			props.Text{
 				Top:   0,
 				Align: align.Right,
@@ -378,6 +379,8 @@ func (p *BillerMaroto) addItemRow(item dto.BillerItem) float64 {
 
 // addTotal
 func (p *BillerMaroto) addTotal(total float64) {
+	totalStr := fmt.Sprintf("R$ %.2f", total)
+	totalStr = strings.Replace(totalStr, ".", ",", 1)
 	p.generator.AddRow(5,
 		text.NewCol(6, "",
 			props.Text{
@@ -399,7 +402,7 @@ func (p *BillerMaroto) addTotal(total float64) {
 				Style: fontstyle.Bold,
 				Size:  10,
 			}),
-		text.NewCol(2, fmt.Sprintf("R$ %.2f", total),
+		text.NewCol(2, totalStr,
 			props.Text{
 				Top:   0,
 				Align: align.Right,
@@ -466,7 +469,9 @@ func (p *BillerMaroto) addPix(pix *dto.BillerPix, value float64) error {
 
 	p.generator.AddRow(28, cols...)
 
-	txt := fmt.Sprintf("* Por favor, antes de confirmar o pagamento, verifique que o valor é R$ %.2f e que o recebedor é %s", value, pix.ReceiverName)
+	strVal := fmt.Sprintf("R$ %.2f", value)
+	strVal = strings.Replace(strVal, ".", ",", -1)
+	txt := fmt.Sprintf("* Por favor, antes de confirmar o pagamento, verifique que o valor é %s e que o recebedor é %s", strVal, pix.ReceiverName)
 
 	p.generator.AddRow(3,
 		text.NewCol(11, txt,
@@ -495,7 +500,10 @@ func (p *BillerMaroto) addQRCode(qrCode string) (*core.Col, error) {
 
 // addCopyPaste adds the Pix copy-paste code to the PDF.
 func (p *BillerMaroto) addCopyPaste(copyPaste string, pixKey string, value float64) *core.Col {
-	pkey := fmt.Sprintf("%s (valor: R$ %.2f)", pixKey, value)
+	strVal := fmt.Sprintf("valor R$ %.2f", value)
+	strVal = strings.Replace(strVal, ".", ",", -1)
+
+	pkey := fmt.Sprintf("%s (%s)", pixKey, strVal)
 	colr := col.New(8).Add(
 		text.New("Código Pix (Copie e Cole o código abaixo):", props.Text{Top: 1, Style: fontstyle.Bold, Align: align.Left, Left: 5, Size: 8}),
 		text.New(copyPaste, props.Text{Top: 5, Align: align.Left, Left: 5, Size: 8, Color: &props.Color{Red: 0, Green: 0, Blue: 139}}),
@@ -567,8 +575,10 @@ func (p *BillerMaroto) addBankAccount(bankAccount *dto.BillerBankAccount, value 
 				Size:  8,
 			}),
 	)
+	strVal := fmt.Sprintf("Valor:R$ %.2f", value)
+	strVal = strings.Replace(strVal, ".", ",", -1)
 	p.generator.AddRow(4,
-		text.NewCol(12, fmt.Sprintf("Valor: R$ %.2f", value),
+		text.NewCol(12, strVal,
 			props.Text{
 				Top:   0,
 				Left:  17,
