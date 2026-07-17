@@ -9,8 +9,9 @@ set search_path to billing;
 drop table if exists vendor cascade;
 create table vendor (
     id bigserial primary key,
-    legal_name varchar(150) not null,
     nickname varchar(150),
+    legal_name varchar(150) not null,
+    trading_name varchar(150),
     document varchar(50) not null,
     email VARCHAR(150) not null,
     whatsapp varchar(20) not null,
@@ -25,13 +26,60 @@ create table vendor (
     created_at timestamp not null,
     updated_at timestamp not null,
     last_rps bigint not null,
+    smtp_host varchar(255),
+    smtp_port int,
+    smtp_user varchar(255),
+    smtp_password varchar(255),
     constraint unique_vendor_document unique(document)
 );
 
 # main vendor
-insert into vendor (legal_name, nickname, document, tax_document, account_bank, account_agency, account_number, pix_token, pix_name, pix_city, logo_name, email, whatsapp, created_at, updated_at, last_rps) values
-('Cardoso e Barbosa Servicos Musicais e Tecnologia LTDA', 'estudio_amelia', '27.928.875/0001-04', '27.928.875/0001-04', 'Santander (033)', '0985', '13001001-4', '27.928.875/0001-04', 'Estudio Vocal Amelia Cardoso', 'Sao Paulo', 'logo_amelia.png', 'financeiro@ameilacardoso.com.br', '(11) 98088-8399', now(), now(), 2435);
 
+insert into vendor (nickname, 
+                    legal_name, 
+                    trading_name, 
+                    document, 
+                    tax_document, 
+                    account_bank, 
+                    account_agency, 
+                    account_number, 
+                    pix_token, 
+                    pix_name, 
+                    pix_city, 
+                    logo_name, 
+                    email, 
+                    whatsapp, 
+                    last_rps,
+                    smtp_host,
+                    smtp_port,
+                    smtp_user,
+                    smtp_password,
+                    created_at,
+                    updated_at
+                    ) 
+            values (
+                    'estudio_amelia',
+                    'Cardoso e Barbosa Serviços Musicais e Tecnologia LTDA',
+                    'Estúdio Amélia Cardoso',
+                    '27.928.875/0001-04',
+                    '5.727.888-1',
+                    '033 - Santander',
+                    '0985',
+                    '13001001-4',
+                    '27.928.875/0001-04',
+                    'Estúdio Vocal Amélia Cardoso',
+                    'São Paulo',
+                    'logo_amelia.png',
+                    'financeiro@ameliacardoso.com.br',
+                    '(11) 98088-8399',
+                    2435,
+                    'smtp.zoho.com',
+                    465,
+                    'financeiro@ameliacardoso.com.br',
+                    'pwd22Adm**',
+                    now(),
+                    now()
+            );
 
 # customer table
 drop table if exists customer cascade;

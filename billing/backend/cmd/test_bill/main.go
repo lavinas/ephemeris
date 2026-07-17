@@ -30,23 +30,25 @@ func main() {
 	notes = append(notes, "Estudio de aulas Amélia Cardoso")
 
 	request := &dto.BillerRequest{
-		InvoiceID:   123456789,
-		InvoiceDate: time.Date(2026, 5, 25, 0, 0, 0, 0, time.UTC),
-		InvoiceDue:  time.Date(2026, 5, 29, 0, 0, 0, 0, time.UTC), // Due in 30 days
+		InvoiceID:    123456789,
+		InvoiceDate:  time.Date(2026, 5, 25, 0, 0, 0, 0, time.UTC),
+		InvoiceDue:   time.Date(2026, 5, 29, 0, 0, 0, 0, time.UTC), // Due in 30 days
+		BillFileName: "invoice_xxxx.pdf",
 		Vendor: dto.BillerVendor{
-			Logo:     "./images/logo_amelia.png",
-			Name:     "Estudio Amelia Cardoso",
-			Document: "27.928.875/0001-04",
-			Address:  strPtr("123 Main St"),
-			Postcode: strPtr("12345"),
-			City:     strPtr("Cityville"),
-			State:    strPtr("State"),
-			Country:  strPtr("Country"),
-			Email:    strPtr("financeiro@ameliacardoso.com.br"),
-			Whatsapp: strPtr("(11) 98088-8399"),
+			Logo:        "./images/logo_amelia.png",
+			LegalName:   "BARBOSA E CARDOSO PREPARAÇÃO VOCAL E PRODUÇÕES MUSICAIS LTDA",
+			TradingName: "Estúdio Amelia Cardoso",
+			Document:    "27.928.875/0001-04",
+			Address:     strPtr("123 Main St"),
+			Postcode:    strPtr("12345"),
+			City:        strPtr("Cityville"),
+			State:       strPtr("State"),
+			Country:     strPtr("Country"),
+			Email:       strPtr("financeiro@ameliacardoso.com.br"),
+			Whatsapp:    strPtr("(11) 98088-8399"),
 		},
 		Customer: dto.BillerCustomer{
-			Name:     "Paulo Barbosa",
+			Name:     "Amelia Cardoso",
 			Document: strPtr("044.123.456-78"),
 			Email:    strPtr("lavinas@gmail.com"),
 			Whatsapp: strPtr("(11) 98087-6112"),
@@ -69,6 +71,12 @@ func main() {
 				PixCopyPaste: copyPaste,
 				PixQRCode:    qrcode,
 			},
+		},
+		SMTP: dto.BillerSMTP{
+			SmtpHost:     "smtp.zoho.com",
+			SmtpPort:     587,
+			SmtpUser:     "financeiro@ameliacardoso.com.br",
+			SmtpPassword: "pwd22Adm**",
 		},
 	}
 

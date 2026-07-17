@@ -7,11 +7,10 @@ import (
 // Vendor represents a supplier or service provider with their banking details and contact info.
 type Vendor struct {
 	ID            int64     `gorm:"primaryKey"`
-	LegalName     string    `gorm:"not null"`
 	Nickname      string    `gorm:"not null;unique"`
+	LegalName     string    `gorm:"not null"`
+	TradingName   string    `gorm:"not null"`
 	Document      string    `gorm:"not null;unique"`
-	Email         string    `gorm:"not null"`
-	Whatsapp      string    `gorm:"not null"`
 	TaxDocument   string    `gorm:"not null"`
 	AccountBank   string    `gorm:"not null"`
 	AccountAgency string    `gorm:"not null"`
@@ -19,10 +18,16 @@ type Vendor struct {
 	PixToken      string    `gorm:"not null"`
 	PixName       string    `gorm:"not null"`
 	PixCity       string    `gorm:"not null"`
+	LogoName      string    `gorm:"not null"`
+	Email         string    `gorm:"not null"`
+	Whatsapp      string    `gorm:"not null"`
+	LastRps       int64     `gorm:"not null;default:0"`
+	SmtpHost      string    `gorm:"not null"`
+	SmtpPort      int       `gorm:"not null"`
+	SmtpUser      string    `gorm:"not null"`
+	SmtpPassword  string    `gorm:"not null"`
 	CreatedAt     time.Time `gorm:"not null;default:now()"`
 	UpdatedAt     time.Time `gorm:"not null;default:now()"`
-	LastRps       int64     `gorm:"not null;default:0"`
-	LogoName      string    `gorm:"not null"`
 }
 
 // TableName specifies the table name for Vendor model.

@@ -17,16 +17,17 @@ type BillerItem struct {
 
 // BillerVendor represents the vendor information in the biller request.
 type BillerVendor struct {
-	Logo     string
-	Name     string
-	Document string
-	Address  *string
-	Postcode *string
-	City     *string
-	State    *string
-	Country  *string
-	Email    *string
-	Whatsapp *string
+	Logo        string
+	LegalName   string
+	TradingName string
+	Document    string
+	Address     *string
+	Postcode    *string
+	City        *string
+	State       *string
+	Country     *string
+	Email       *string
+	Whatsapp    *string
 }
 
 // BillerCustomer represents the customer information in the biller request.
@@ -60,15 +61,24 @@ type BillerReceive struct {
 	Pix         *BillerPix
 }
 
+type BillerSMTP struct {
+	SmtpHost     string
+	SmtpPort     int
+	SmtpUser     string
+	SmtpPassword string
+}
+
 // BillerRequest defines the interface for generating PDF files.
 type BillerRequest struct {
-	InvoiceID   int64
-	InvoiceDate time.Time
-	InvoiceDue  time.Time
-	Vendor      BillerVendor
-	Customer    BillerCustomer
-	Items       []BillerItem
-	Receive     BillerReceive
+	InvoiceID    int64
+	InvoiceDate  time.Time
+	InvoiceDue   time.Time
+	BillFileName string
+	Vendor       BillerVendor
+	Customer     BillerCustomer
+	Items        []BillerItem
+	Receive      BillerReceive
+	SMTP         BillerSMTP
 }
 
 // Validate checks if the BillerRequest has valid data.
@@ -85,8 +95,8 @@ func (r *BillerRequest) Validate(repo port.Repository) error {
 	if r.InvoiceDue.IsZero() {
 		errs = append(errs, errors.New("invalid invoice due date: cannot be zero"))
 	}
-	if r.Vendor.Name == "" || r.Vendor.Document == "" {
-		errs = append(errs, errors.New("invalid vendor information: name and document are required"))
+	if r.Vendor.LegalName == "" || r.Vendor.TradingName == "" || r.Vendor.Document == "" {
+		errs = append(errs, errors.New("invalid vendor information: legal name, trading name, and document are required"))
 	}
 	if r.Customer.Name == "" {
 		errs = append(errs, errors.New("invalid customer information: name is required"))

@@ -1,8 +1,10 @@
 package driven
 
 import (
+	"bytes"
 	"encoding/base64"
 	"fmt"
+	"html/template"
 	"io"
 	"regexp"
 	"strings"
@@ -31,6 +33,45 @@ import (
 	"github.com/johnfercher/maroto/v2/pkg/props"
 )
 
+const (
+	bodyTemplate = `
+	<html>
+		<body style="font-family: Arial, sans-serif; font-size: 16px; color: #333;">
+			<p>Olá {{.Name}},</p>
+			<p>Obrigado pela confiança, sempre buscamos investir em aperfeiçoamento pedagógico e em tecnologia.</p>
+			<p>Enviamos em anexo a fatura referente ao vencimento em <b>{{.DueDate}}</b> no valor de <b>{{.Amount}}</b>, referente a:.</p>
+			{{.Description}}
+			<p>Para sua comodidade, disponibilizamos também aqui o pagamento via Pix. Utilize 
+				o QRCode ou copie e cole o código pix que estão abaixo:</p>
+			<p><img src="cid:{{.CidQRCode}}" alt="QR Code" style="width: 150px; height: 150px;"></p>
+			<p><span style="font-family: monospace; font-size: 14px; background-color: #f4f4f4; 
+				padding: 10px; border-radius: 5px;">{{.CopyPasteCode}}</span></p>
+			<p style="font-size: 14px">
+			    <b>*</b>Por favor, antes de confirmar o pagamento, verifique que o valor é 
+					{{.Amount}} e que o recebedor é {{.VendorName}}.
+			</p>
+			<p> </p>
+			<p> </p>
+			<p>Atenciosamente,</p>
+			<p>{{.VendorName}}</p>
+		</body>
+	</html>
+	`
+)
+
+// emailData represents the data used to populate the email template.
+type bodyData struct {
+	VendorName    string
+	Name          string
+	InvoiceDate   string
+	DueDate       string
+	Amount        string
+	Description   template.HTML
+	QrCodeBase64  template.HTML
+	CopyPasteCode string
+	CidQRCode     string
+}
+
 // PDFGenerator is an implementation of the PDFGenerator interface that generates PDF files.
 type BillerMaroto struct {
 	logger    port.Logger
@@ -44,107 +85,6 @@ func NewBillerMaroto(logger port.Logger) *BillerMaroto {
 	}
 	biller.resetGenerator()
 	return biller
-}
-
-// reset generator resets the PDF generator to its initial state.
-func (p *BillerMaroto) resetGenerator() {
-	cfg := config.NewBuilder().
-		WithOrientation(orientation.Vertical).
-		WithPageSize(pagesize.A4).
-		WithLeftMargin(15).
-		WithTopMargin(15).
-		WithRightMargin(15).
-		WithBottomMargin(15).
-		Build()
-	p.generator = maroto.New(cfg)
-}
-
-// SendMail generates a PDF file based on the provided data and sends it via email.
-func (p *BillerMaroto) SendMail(request port.InDTO) error {
-	requestDTO, ok := request.(*dto.BillerRequest)
-	if !ok {
-		return fmt.Errorf("invalid request type: expected BillerRequest")
-	}
-	_, err := p.GetBinary(request)
-	if err != nil {
-		return err
-	}
-	m := gomail.NewMessage()
-
-	m.SetHeader("From", "financeiro@ameliacardoso.com.br")
-	m.SetHeader("To", *requestDTO.Customer.Email)
-	m.SetHeader("Subject", p.getEmailSubject(*requestDTO))
-	m.SetBody("text/html", p.getEmailBody(*requestDTO))
-
-	fileName, err := p.GetFileName(request)
-	if err != nil {
-		return err
-	}
-	m.Attach(fileName, gomail.SetCopyFunc(func(w io.Writer) error {
-		bin, err := p.GetBinary(request)
-		if err != nil {
-			return err
-		}
-		_, err = w.Write(bin)
-		return err
-	}))
-
-	d := gomail.NewDialer("smtp.zoho.com", 465, "financeiro@ameliacardoso.com.br", "pwd22Adm**")
-
-	// Dispara o e-mail
-	if err := d.DialAndSend(m); err != nil {
-		return fmt.Errorf("erro ao enviar o e-mail via Zoho: %w", err)
-	}
-
-	return nil
-}
-
-// GetFileName returns the filename for the generated PDF based on the invoice ID.
-func (p *BillerMaroto) GetFileName(request port.InDTO) (string, error) {
-	requestDTO, ok := request.(*dto.BillerRequest)
-	if !ok {
-		return "", fmt.Errorf("invalid request type: expected BillerRequest")
-	}
-	return fmt.Sprintf("invoice_%d.pdf", requestDTO.InvoiceID), nil
-}
-
-// getEmailSubject generates the email subject for sending the PDF.
-func (p *BillerMaroto) getEmailSubject(request dto.BillerRequest) string {
-	porMonth := map[string]string{
-		"January":   "Janeiro",
-		"February":  "Fevereiro",
-		"March":     "Março",
-		"April":     "Abril",
-		"May":       "Maio",
-		"June":      "Junho",
-		"July":      "Julho",
-		"August":    "Agosto",
-		"September": "Setembro",
-		"October":   "Outubro",
-		"November":  "Novembro",
-		"December":  "Dezembro",
-	}
-	month := request.InvoiceDate.Format("January")
-	year := request.InvoiceDate.Format("2006")
-	return fmt.Sprintf("Estúdio Amelia Cardoso - sua fatura de %s de %s ", porMonth[month], year)
-}
-
-// getEmailBody generates the email body for sending the PDF.
-func (p *BillerMaroto) getEmailBody(request dto.BillerRequest) string {
-	textPat := `
-	<html>
-		<body style="font-family: Arial, sans-serif; color: #333;">
-			<h2>Olá %s,</h2>
-			<p>Obrigado pela confiança, sempre buscamos investir em aperfeiçoamento pedagógico e em tecnologia.</p>
-			<p>Enviamos em anexo a fatura referente <colocar itens> com vencimento em %s no valor de R$ %s.</p>
-			<p>Os dados para pagamento encontram-se no boleto em anexo, que pode ser pago via PIX ou transferência bancária.</p>
-			<p> </p>
-			<p>Atenciosamente,</p>
-			<p>Estúdio de aulas Amélia Cardoso</p>
-		</body>
-	</html>
-	`
-	return fmt.Sprintf(textPat, request.Customer.Name, request.InvoiceDue.Format("02/01/2006"), fmt.Sprintf("R$ %.2f", request.Items[0].Price))
 }
 
 // GeneratePDF generates a PDF file based on the provided data and returns the file path.
@@ -191,10 +131,172 @@ func (p *BillerMaroto) GetPDFBase64(request port.InDTO) (string, error) {
 	return doc, nil
 }
 
+// SendMail generates a PDF file based on the provided data and sends it via email.
+func (p *BillerMaroto) SendMail(request port.InDTO) error {
+	requestDTO, ok := request.(*dto.BillerRequest)
+	if !ok {
+		return fmt.Errorf("invalid request type: expected BillerRequest")
+	}
+	_, err := p.GetBinary(request)
+	if err != nil {
+		return err
+	}
+	m := gomail.NewMessage()
+	p.setEmailHeader(m, *requestDTO)
+	if err := p.setEmailBody(m, *requestDTO); err != nil {
+		return err
+	}
+	if err := p.setEmailAttach(m, *requestDTO); err != nil {
+		return err
+	}
+	smtpHost := requestDTO.SMTP.SmtpHost
+	smtpPort := requestDTO.SMTP.SmtpPort
+	smtpUser := requestDTO.SMTP.SmtpUser
+	smtpPassword := requestDTO.SMTP.SmtpPassword
+	d := gomail.NewDialer(smtpHost, smtpPort, smtpUser, smtpPassword)
+	if err := d.DialAndSend(m); err != nil {
+		return fmt.Errorf("erro ao enviar o e-mail via Zoho: %w", err)
+	}
+
+	return nil
+}
+
+// reset generator resets the PDF generator to its initial state.
+func (p *BillerMaroto) resetGenerator() {
+	cfg := config.NewBuilder().
+		WithOrientation(orientation.Vertical).
+		WithPageSize(pagesize.A4).
+		WithLeftMargin(15).
+		WithTopMargin(15).
+		WithRightMargin(15).
+		WithBottomMargin(15).
+		Build()
+	p.generator = maroto.New(cfg)
+}
+
+// setemailHeader sets the email header for sending the PDF.
+func (p *BillerMaroto) setEmailHeader(m *gomail.Message, request dto.BillerRequest) {
+	m.SetHeader("From", *request.Vendor.Email)
+	m.SetHeader("To", *request.Customer.Email)
+	m.SetHeader("Subject", p.getEmailSubject(request))
+}
+
+// setEmailBody sets the email body for sending .
+func (p *BillerMaroto) setEmailBody(m *gomail.Message, request dto.BillerRequest) error {
+	cidQRCode, err := p.prepareQRCodeAttachment(m, request)
+	if err != nil {
+		return err
+	}
+	body, err := p.getEmailBody(request, cidQRCode)
+	if err != nil {
+		return err
+	}
+	m.SetBody("text/html", body)
+	return nil
+}
+
+// prepareQRCodeAttachment prepares the QR code attachment for the email.
+func (p *BillerMaroto) prepareQRCodeAttachment(m *gomail.Message, request dto.BillerRequest) (string, error) {
+	cidQRCode := "qrcode"
+	if !strings.Contains(bodyTemplate, "{{.CidQRCode}}") {
+		return "", nil
+	}
+	binQrCode, err := base64.StdEncoding.DecodeString(request.Receive.Pix.PixQRCode)
+	if err != nil {
+		return "", fmt.Errorf("failed to decode QR code base64: %w", err)
+	}
+	m.Attach("grafico.png", gomail.SetCopyFunc(func(w io.Writer) error {
+		_, err := w.Write(binQrCode)
+		return err
+	}), gomail.SetHeader(map[string][]string{
+		"Content-Disposition": {`inline; filename="grafico.png"`},
+		"Content-ID":          {fmt.Sprintf("<%s>", cidQRCode)}, // O ID precisa estar entre < >
+	}))
+	return cidQRCode, nil
+}
+
+// setEmailAttach sets the email attachment for sending the PDF.
+func (p *BillerMaroto) setEmailAttach(m *gomail.Message, request dto.BillerRequest) error {
+	m.Attach(request.BillFileName, gomail.SetCopyFunc(func(w io.Writer) error {
+		bin, err := p.GetBinary(&request)
+		if err != nil {
+			return err
+		}
+		_, err = w.Write(bin)
+		return err
+	}))
+	return nil
+}
+
+// getEmailSubject generates the email subject for sending the PDF.
+func (p *BillerMaroto) getEmailSubject(request dto.BillerRequest) string {
+	porMonth := map[string]string{
+		"January":   "janeiro",
+		"February":  "fevereiro",
+		"March":     "março",
+		"April":     "abril",
+		"May":       "maio",
+		"June":      "junho",
+		"July":      "julho",
+		"August":    "agosto",
+		"September": "setembro",
+		"October":   "outubro",
+		"November":  "novembro",
+		"December":  "dezembro",
+	}
+	month := request.InvoiceDate.Format("January")
+	year := request.InvoiceDate.Format("2006")
+	return fmt.Sprintf("Estúdio Amelia Cardoso - sua fatura de %s de %s ", porMonth[month], year)
+}
+
+// getEmailBody generates the email body for sending the PDF.
+func (p *BillerMaroto) getEmailBody(request dto.BillerRequest, cidQRCode string) (string, error) {
+	emailData := bodyData{
+		VendorName:    request.Vendor.TradingName,
+		Name:          strings.Split(request.Customer.Name, " ")[0],
+		InvoiceDate:   request.InvoiceDate.Format("02/01/2006"),
+		DueDate:       request.InvoiceDue.Format("02/01/2006"),
+		Amount:        p.getEmailAmount(request),
+		Description:   template.HTML(p.getEmailDescription(request)),
+		QrCodeBase64:  template.HTML("data:image/png;base64," + request.Receive.Pix.PixQRCode),
+		CidQRCode:     cidQRCode,
+		CopyPasteCode: request.Receive.Pix.PixCopyPaste,
+	}
+	var body bytes.Buffer
+	tmp := template.Must(template.New("email").Parse(bodyTemplate))
+	if err := tmp.Execute(&body, emailData); err != nil {
+		return "", fmt.Errorf("failed to execute email template: %w", err)
+	}
+	return body.String(), nil
+}
+
+// getEmailDescription generates the email description for sending the PDF.
+func (p *BillerMaroto) getEmailDescription(request dto.BillerRequest) string {
+	var desc strings.Builder
+	for _, item := range request.Items {
+		desc.WriteString(fmt.Sprintf("<li>%d x %s</li>", item.Quantity, item.Description))
+	}
+	if desc.Len() > 0 {
+		return "<ul>" + desc.String() + "</ul>"
+	}
+	return ""
+}
+
+// getEmailAmount gets the total amount for the email body.
+func (p *BillerMaroto) getEmailAmount(request dto.BillerRequest) string {
+	amount := 0.00
+	for _, item := range request.Items {
+		amount += float64(item.Quantity) * item.Price
+	}
+	amountStr := fmt.Sprintf("R$ %.2f", amount)
+	amountStr = strings.Replace(amountStr, ".", ",", 1)
+	return amountStr
+}
+
 // getForm gets biller form
 func (p *BillerMaroto) getForm(request dto.BillerRequest) (core.Document, error) {
 	p.resetGenerator()
-	p.addFooter(request.Vendor.Name)
+	p.addFooter(request.Vendor.TradingName)
 	p.addHeader(request)
 	p.addSeparator(6, 3)
 	p.addBill(request)
@@ -220,7 +322,7 @@ func (p *BillerMaroto) addHeader(request dto.BillerRequest) {
 				Percent: 100,
 			}))
 	p.generator.AddRow(5,
-		text.NewCol(12, request.Vendor.Name,
+		text.NewCol(12, request.Vendor.TradingName,
 			props.Text{
 				Top:   0,
 				Style: fontstyle.Bold,
@@ -269,7 +371,7 @@ func (p *BillerMaroto) addInstructions(request dto.BillerRequest) {
 
 // addSignature adds the signature section to the PDF.
 func (p *BillerMaroto) addSignature(request dto.BillerRequest) {
-	txt := fmt.Sprintf("%s", request.Vendor.Name)
+	txt := fmt.Sprintf("%s", request.Vendor.TradingName)
 	p.generator.AddRow(5,
 		text.NewCol(12, txt,
 			props.Text{
@@ -666,7 +768,7 @@ func (p *BillerMaroto) addBankAccount(bankAccount *dto.BillerBankAccount, value 
 				Size:  8,
 			}),
 	)
-	strVal := fmt.Sprintf("Valor:R$ %.2f", value)
+	strVal := fmt.Sprintf("Valor: R$ %.2f", value)
 	strVal = strings.Replace(strVal, ".", ",", -1)
 	p.generator.AddRow(4,
 		text.NewCol(12, strVal,

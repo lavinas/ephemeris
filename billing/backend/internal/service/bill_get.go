@@ -11,7 +11,7 @@ import (
 	"billing/internal/port"
 )
 
-// BillSendService is a service for sending bills to customers.
+// BillGet is a service for retrieving bills for customers.
 type BillGet struct {
 	Base
 	biller port.Biller
@@ -175,15 +175,17 @@ func (s *BillGet) getBillDto(invoice *domain.Invoice, vendor *domain.Vendor, pay
 	logo := filepath.Join(logoPath, vendor.LogoName)
 
 	return &dto.BillerRequest{
-		InvoiceID:   invoice.ID,
-		InvoiceDate: invoice.InvoiceDate,
-		InvoiceDue:  invoice.DueDate,
+		InvoiceID:    invoice.ID,
+		InvoiceDate:  invoice.InvoiceDate,
+		InvoiceDue:   invoice.DueDate,
+		BillFileName: s.getDocumentName(1, invoice),
 		Vendor: dto.BillerVendor{
-			Logo:     logo,
-			Name:     vendor.LegalName,
-			Document: vendor.Document,
-			Email:    &vendor.Email,
-			Whatsapp: &vendor.Whatsapp,
+			Logo:        logo,
+			LegalName:   vendor.LegalName,
+			TradingName: vendor.TradingName,
+			Document:    vendor.Document,
+			Email:       &vendor.Email,
+			Whatsapp:    &vendor.Whatsapp,
 		},
 		Customer: dto.BillerCustomer{
 			Name:     invoice.Customer.Name,
@@ -206,6 +208,12 @@ func (s *BillGet) getBillDto(invoice *domain.Invoice, vendor *domain.Vendor, pay
 				ReceiverName:     vendor.LegalName,
 				ReceiverDocument: vendor.Document,
 			},
+		},
+		SMTP: dto.BillerSMTP{
+			SmtpHost:     vendor.SmtpHost,
+			SmtpPort:     vendor.SmtpPort,
+			SmtpUser:     vendor.SmtpUser,
+			SmtpPassword: vendor.SmtpPassword,
 		},
 	}
 }

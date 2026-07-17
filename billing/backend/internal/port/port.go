@@ -67,6 +67,7 @@ type Biller interface {
 	Generate(request InDTO, path string) error
 	GetBinary(request InDTO) ([]byte, error)
 	GetPDFBase64(request InDTO) (string, error)
+	SendMail(request InDTO) error
 }
 
 // Pixer defines the interface for generating Pix payment payloads.
