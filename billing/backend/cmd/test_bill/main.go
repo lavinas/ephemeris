@@ -46,10 +46,10 @@ func main() {
 			Whatsapp: strPtr("(11) 98088-8399"),
 		},
 		Customer: dto.BillerCustomer{
-			Name:     "Rui Miranda Ribeiro Facó",
+			Name:     "Paulo Barbosa",
 			Document: strPtr("044.123.456-78"),
-			Email:    strPtr("rui.miranda@example.com"),
-			Whatsapp: strPtr("(11) 91234-5678"),
+			Email:    strPtr("lavinas@gmail.com"),
+			Whatsapp: strPtr("(11) 98087-6112"),
 		},
 		Items: []dto.BillerItem{
 			{Description: "aulas de canto de 60 minutos em junho de 2026", Quantity: 2, Price: 300.0},
@@ -72,16 +72,11 @@ func main() {
 		},
 	}
 
-	err := pdfGenerator.Generate(request, "./files/bill/output.pdf")
+	err := pdfGenerator.SendMail(request)
 	if err != nil {
 		logger.IPrintf(1, "Error generating PDF: %v", err)
 	}
 
-	bin, err := pdfGenerator.GetBinary(request)
-	if err != nil {
-		logger.IPrintf(1, "Error getting PDF binary: %v", err)
-	}
-	logger.IPrintf(1, "Tamanho binário: %d", len(bin))
 }
 
 // strPtr is a helper function to create a pointer to a string.

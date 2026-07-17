@@ -3,15 +3,18 @@ package driven
 import (
 	"encoding/base64"
 	"fmt"
+	"io"
 	"regexp"
-	"time"
 	"strings"
+	"time"
 
 	"billing/internal/dto"
 	"billing/internal/port"
 
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
+
+	"gopkg.in/gomail.v2"
 
 	"github.com/johnfercher/maroto/v2"
 	"github.com/johnfercher/maroto/v2/pkg/components/col"
@@ -42,7 +45,7 @@ func NewBillerMaroto(logger port.Logger) *BillerMaroto {
 	biller.resetGenerator()
 	return biller
 }
-	
+
 // reset generator resets the PDF generator to its initial state.
 func (p *BillerMaroto) resetGenerator() {
 	cfg := config.NewBuilder().
@@ -54,6 +57,94 @@ func (p *BillerMaroto) resetGenerator() {
 		WithBottomMargin(15).
 		Build()
 	p.generator = maroto.New(cfg)
+}
+
+// SendMail generates a PDF file based on the provided data and sends it via email.
+func (p *BillerMaroto) SendMail(request port.InDTO) error {
+	requestDTO, ok := request.(*dto.BillerRequest)
+	if !ok {
+		return fmt.Errorf("invalid request type: expected BillerRequest")
+	}
+	_, err := p.GetBinary(request)
+	if err != nil {
+		return err
+	}
+	m := gomail.NewMessage()
+
+	m.SetHeader("From", "financeiro@ameliacardoso.com.br")
+	m.SetHeader("To", *requestDTO.Customer.Email)
+	m.SetHeader("Subject", p.getEmailSubject(*requestDTO))
+	m.SetBody("text/html", p.getEmailBody(*requestDTO))
+
+	fileName, err := p.GetFileName(request)
+	if err != nil {
+		return err
+	}
+	m.Attach(fileName, gomail.SetCopyFunc(func(w io.Writer) error {
+		bin, err := p.GetBinary(request)
+		if err != nil {
+			return err
+		}
+		_, err = w.Write(bin)
+		return err
+	}))
+
+	d := gomail.NewDialer("smtp.zoho.com", 465, "financeiro@ameliacardoso.com.br", "pwd22Adm**")
+
+	// Dispara o e-mail
+	if err := d.DialAndSend(m); err != nil {
+		return fmt.Errorf("erro ao enviar o e-mail via Zoho: %w", err)
+	}
+
+	return nil
+}
+
+// GetFileName returns the filename for the generated PDF based on the invoice ID.
+func (p *BillerMaroto) GetFileName(request port.InDTO) (string, error) {
+	requestDTO, ok := request.(*dto.BillerRequest)
+	if !ok {
+		return "", fmt.Errorf("invalid request type: expected BillerRequest")
+	}
+	return fmt.Sprintf("invoice_%d.pdf", requestDTO.InvoiceID), nil
+}
+
+// getEmailSubject generates the email subject for sending the PDF.
+func (p *BillerMaroto) getEmailSubject(request dto.BillerRequest) string {
+	porMonth := map[string]string{
+		"January":   "Janeiro",
+		"February":  "Fevereiro",
+		"March":     "Março",
+		"April":     "Abril",
+		"May":       "Maio",
+		"June":      "Junho",
+		"July":      "Julho",
+		"August":    "Agosto",
+		"September": "Setembro",
+		"October":   "Outubro",
+		"November":  "Novembro",
+		"December":  "Dezembro",
+	}
+	month := request.InvoiceDate.Format("January")
+	year := request.InvoiceDate.Format("2006")
+	return fmt.Sprintf("Estúdio Amelia Cardoso - sua fatura de %s de %s ", porMonth[month], year)
+}
+
+// getEmailBody generates the email body for sending the PDF.
+func (p *BillerMaroto) getEmailBody(request dto.BillerRequest) string {
+	textPat := `
+	<html>
+		<body style="font-family: Arial, sans-serif; color: #333;">
+			<h2>Olá %s,</h2>
+			<p>Obrigado pela confiança, sempre buscamos investir em aperfeiçoamento pedagógico e em tecnologia.</p>
+			<p>Enviamos em anexo a fatura referente <colocar itens> com vencimento em %s no valor de R$ %s.</p>
+			<p>Os dados para pagamento encontram-se no boleto em anexo, que pode ser pago via PIX ou transferência bancária.</p>
+			<p> </p>
+			<p>Atenciosamente,</p>
+			<p>Estúdio de aulas Amélia Cardoso</p>
+		</body>
+	</html>
+	`
+	return fmt.Sprintf(textPat, request.Customer.Name, request.InvoiceDue.Format("02/01/2006"), fmt.Sprintf("R$ %.2f", request.Items[0].Price))
 }
 
 // GeneratePDF generates a PDF file based on the provided data and returns the file path.
@@ -345,7 +436,7 @@ func (p *BillerMaroto) addItemRow(item dto.BillerItem) float64 {
 	price := fmt.Sprintf("R$ %.2f", item.Price)
 	price = strings.Replace(price, ".", ",", 1)
 	total := float64(item.Quantity) * item.Price
-	totalStr := fmt.Sprintf("R$ %.2f", float64(item.Quantity) * item.Price)
+	totalStr := fmt.Sprintf("R$ %.2f", float64(item.Quantity)*item.Price)
 	totalStr = strings.Replace(totalStr, ".", ",", 1)
 	p.generator.AddRow(5,
 		text.NewCol(6, item.Description,
