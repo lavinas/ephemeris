@@ -79,6 +79,7 @@ type BillerRequest struct {
 	Items        []BillerItem
 	Receive      BillerReceive
 	SMTP         BillerSMTP
+	SendCopy     bool
 }
 
 // Validate checks if the BillerRequest has valid data.
@@ -125,4 +126,6 @@ func (r *BillerRequest) Reset() {
 	r.Customer = BillerCustomer{}
 	r.Items = nil
 	r.Receive = BillerReceive{}
+	r.SMTP = BillerSMTP{}
+	r.SendCopy = false
 }

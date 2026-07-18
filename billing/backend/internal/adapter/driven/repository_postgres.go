@@ -2,6 +2,7 @@ package driven
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"gorm.io/driver/postgres"
@@ -213,50 +214,52 @@ func (a *PostgresRepository) FindInvoices(page, pageSize int, customer int64,
 		db = db.Where("customer_id = ?", customer)
 	}
 	if invoiceDate != nil {
-		if *invoiceDate == "null" {
-			db = db.Where("invoice_date IS NULL")
-		} else {
-			db = db.Where("invoice_date::text ILIKE ?", "%"+*invoiceDate+"%")
-		}
+		db = db.Where("invoice_date::text ILIKE ?", "%"+*invoiceDate+"%")
 	}
 	if dueDate != nil {
-		if *dueDate == "null" {
-			db = db.Where("due_date IS NULL")
-		} else {
-			db = db.Where("due_date::text ILIKE ?", "%"+*dueDate+"%")
-		}
+		db = db.Where("due_date IS NULL")
 	}
 	if paymentDate != nil {
-		if *paymentDate == "null" {
+		if strings.ToLower(*paymentDate) == "null" {
 			db = db.Where("payment_date IS NULL")
+		} else if strings.ToLower(*paymentDate) == "not null" {
+			db = db.Where("payment_date IS NOT NULL")
 		} else {
 			db = db.Where("payment_date::text ILIKE ?", "%"+*paymentDate+"%")
 		}
 	}
 	if emailSentDate != nil {
-		if *emailSentDate == "null" {
+		if strings.ToLower(*emailSentDate) == "null" {
 			db = db.Where("email_sent_date IS NULL")
+		} else if strings.ToLower(*emailSentDate) == "not null" {
+			db = db.Where("email_sent_date IS NOT NULL")
 		} else {
 			db = db.Where("email_sent_date::text ILIKE ?", "%"+*emailSentDate+"%")
 		}
 	}
 	if whatsappSentDate != nil {
-		if *whatsappSentDate == "null" {
+		if strings.ToLower(*whatsappSentDate) == "null" {
 			db = db.Where("whatsapp_sent_date IS NULL")
+		} else if strings.ToLower(*whatsappSentDate) == "not null" {
+			db = db.Where("whatsapp_sent_date IS NOT NULL")
 		} else {
 			db = db.Where("whatsapp_sent_date::text ILIKE ?", "%"+*whatsappSentDate+"%")
 		}
 	}
 	if taxDate != nil {
-		if *taxDate == "null" {
+		if strings.ToLower(*taxDate) == "null" {
 			db = db.Where("tax_date IS NULL")
+		} else if strings.ToLower(*taxDate) == "not null" {
+			db = db.Where("tax_date IS NOT NULL")
 		} else {
 			db = db.Where("tax_date::text ILIKE ?", "%"+*taxDate+"%")
 		}
 	}
 	if cancellationDate != nil {
-		if *cancellationDate == "null" {
+		if strings.ToLower(*cancellationDate) == "null" {
 			db = db.Where("cancellation_date IS NULL")
+		} else if strings.ToLower(*cancellationDate) == "not null" {
+			db = db.Where("cancellation_date IS NOT NULL")
 		} else {
 			db = db.Where("cancellation_date::text ILIKE ?", "%"+*cancellationDate+"%")
 		}

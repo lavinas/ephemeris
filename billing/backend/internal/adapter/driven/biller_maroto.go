@@ -45,7 +45,7 @@ const (
 				o QRCode ou copie e cole o código pix que estão abaixo:</p>
 			<p><img src="cid:{{.CidQRCode}}" alt="QR Code" style="width: 150px; height: 150px;"></p>
 			<p><span style="font-family: monospace; font-size: 14px; background-color: #f4f4f4; 
-				padding: 10px; border-radius: 5px;">{{.CopyPasteCode}}</span></p>
+				padding: 10; border-radius: 15px;">{{.CopyPasteCode}}</span></p>
 			<p style="font-size: 14px">
 			    <b>*</b>Por favor, antes de confirmar o pagamento, verifique que o valor é 
 					{{.Amount}} e que o recebedor é {{.VendorName}}.
@@ -146,6 +146,7 @@ func (p *BillerMaroto) SendMail(request port.InDTO) error {
 	if err := p.setEmailBody(m, *requestDTO); err != nil {
 		return err
 	}
+	p.setEmailCopyHeader(m, *requestDTO)
 	if err := p.setEmailAttach(m, *requestDTO); err != nil {
 		return err
 	}
@@ -179,6 +180,13 @@ func (p *BillerMaroto) setEmailHeader(m *gomail.Message, request dto.BillerReque
 	m.SetHeader("From", *request.Vendor.Email)
 	m.SetHeader("To", *request.Customer.Email)
 	m.SetHeader("Subject", p.getEmailSubject(request))
+}
+
+// setEmailCopyHeader sets the email copy header for sending the PDF.
+func (p *BillerMaroto) setEmailCopyHeader(m *gomail.Message, request dto.BillerRequest) {
+	if request.SendCopy && request.Vendor.Email != nil {
+		m.SetHeader("Bcc", *request.Vendor.Email)
+	}
 }
 
 // setEmailBody sets the email body for sending .

@@ -12,6 +12,7 @@ type BillSendRequest struct {
 	Vendor    string `json:"vendor"`
 	vendorID  int64  `json:"-" validate:"-"`
 	InvoiceID int64  `json:"invoice_id"`
+	SendCopy  bool   `json:"send_copy"`
 }
 
 // BillSendResponse represents the response after sending an invoice bill to a customer.

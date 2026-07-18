@@ -38,17 +38,17 @@ def get_df(vendor, customer, invoicing, due, payment, email_sent, whatsapp_sent,
     try:
         resposta = requests.get(f'{endpoint}/invoice/list', json=json_data, timeout=5)
     except ConnectionError as e:
-        return f"Erro: A conexão foi recusada pelo servidor remoto. Detalhes: {e}", 0, 0
+        return f"Erro: A conexão foi recusada pelo servidor remoto. Detalhes: {e}"
     except Timeout as e:
-        return f"Erro: A requisição excedeu o tempo limite estabelecido. {e}", 0, 0
+        return f"Erro: A requisição excedeu o tempo limite estabelecido. {e}"
     except requests.exceptions.RequestException as e:
-        return f"Ocorreu um erro genérico no requests: {e}", 0, 0
+        return f"Ocorreu um erro genérico no requests: {e}"
     if resposta.status_code != 200:
-        return f'Erro na chamada da API: {resposta.status_code} - {resposta.text}', 0, 0
+        return f'Erro na chamada da API: {resposta.status_code} - {resposta.text}'
     # processing response data
     json_data = resposta.json()
     if 'invoices' not in json_data or len(json_data['invoices']) == 0:
-        return 'Nenhuma fatura encontrada.', 0, 0
+        return 'Nenhuma fatura encontrada.'
     # get items from invoices and merge with invoices data
     df_invoices = pd.DataFrame(json_data['invoices'])
     df_invoices = df_invoices.fillna('-')
@@ -61,8 +61,12 @@ def get_df(vendor, customer, invoicing, due, payment, email_sent, whatsapp_sent,
 # get
 def get(vendor, customer, invoicing, due, payment, email_sent, whatsapp_sent, tax, cancellation):
     df_invoices = get_df(vendor, customer, invoicing, due, payment, email_sent, whatsapp_sent, tax, cancellation)
+    if isinstance(df_invoices, str):
+        return df_invoices, 0, 0
+    if len(df_invoices) == 0:
+        return 'Nenhuma fatura encontrada.', 0, 0
     return tabulate(df_invoices, headers='keys', tablefmt='grid', showindex=False), len(df_invoices), \
-        sum(df_invoices['amount'].replace('-', 0).astype(float))    
+        sum(df_invoices['amount'].replace('-', 0).astype(float))
 
 # insert
 def insert(vendor, customer, invoicing, due, payment, cancellation, notes, items):
@@ -200,8 +204,8 @@ def save_bills(vendor, customer, invoicing, due, path):
 
 
 # send bill
-def send_bill(vendor, invoiceID):
-    json_data = {'vendor': vendor, 'invoice_id': invoiceID}
+def send_bill(vendor, invoiceID, send_copy):
+    json_data = {'vendor': vendor, 'invoice_id': invoiceID, 'send_copy': send_copy}
     try:
         resposta = requests.post(f'{endpoint}/bill/send', json=json_data, timeout=5)
     except ConnectionError as e:

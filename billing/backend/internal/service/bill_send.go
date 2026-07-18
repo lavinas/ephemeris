@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"billing/internal/domain"
 	"billing/internal/dto"
@@ -35,33 +36,43 @@ func (s *BillSend) Run(inDTO port.InDTO) port.OutDTO {
 		s.logger.IPrintf(2, "Invalid input type: expected BillSendRequest")
 		return dto.NewBillSendResponse(400, "bad request", "Invalid input type")
 	}
+	// Validate the input DTO
 	if err := in.Validate(s.repo); err != nil {
 		s.logger.IPrintf(2, "Validation failed: %v", err)
 		return dto.NewBillSendResponse(400, "bad request", "Validation failed: "+err.Error())
 	}
+	// Retrieve vendor and invoice from the repository
 	vendor, err := s.repo.GetVendor(in.Vendor)
 	if err != nil {
 		return dto.NewBillSendResponse(400, "bad request", "vendor not found")
 	}
+	// Retrieve the invoice from the repository
 	invoice, err := s.repo.GetInvoice(in.InvoiceID)
 	if err != nil {
 		return dto.NewBillSendResponse(400, "bad request", "invoice not found")
 	}
+	// Generate Pix strings for the invoice and vendor
 	payload, qrCode, err := s.getPixStrings(invoice, vendor)
 	if err != nil {
 		return dto.NewBillSendResponse(500, "internal server error", "contact support")
 	}
-	sDto := s.getBillDto(invoice, vendor, *payload, *qrCode)
-
+	// Create the BillRequest DTO and send the bill via email
+	sDto := s.getBillDto(invoice, vendor, *payload, *qrCode, in.SendCopy)
 	if err := s.biller.SendMail(sDto); err != nil {
 		s.logger.IPrintf(2, "Error sending bill: %v", err)
 		return dto.NewBillSendResponse(500, "internal server error", "contact support")
 	}
+	// Update the invoice's EmailSentDate and save it to the repository
+	if err := s.updateInvoiceEmailSentDate(invoice); err != nil {
+		return dto.NewBillSendResponse(500, "internal server error", "contact support")
+	}
+	// Log the successful bill sending and return a success response
+	s.logger.IPrintf(2, "Bill sent successfully for invoice ID: %v", in.InvoiceID)
 	return dto.NewBillSendResponse(200, "success", "")
 }
 
 // / getBillDto creates a BillRequest DTO for the given invoice and vendor.
-func (s *BillSend) getBillDto(invoice *domain.Invoice, vendor *domain.Vendor, payload string, qrCode string) *dto.BillerRequest {
+func (s *BillSend) getBillDto(invoice *domain.Invoice, vendor *domain.Vendor, payload string, qrCode string, sendCopy bool) *dto.BillerRequest {
 	s.logger.IPrintf(2, "Creating BillRequest DTO for vendor: %v, invoice: %v", vendor, invoice)
 	logo := filepath.Join(logoPath, vendor.LogoName)
 	return &dto.BillerRequest{
@@ -69,6 +80,7 @@ func (s *BillSend) getBillDto(invoice *domain.Invoice, vendor *domain.Vendor, pa
 		InvoiceDate:  invoice.InvoiceDate,
 		InvoiceDue:   invoice.DueDate,
 		BillFileName: s.getDocumentName(1, invoice),
+		SendCopy:     sendCopy,
 		Vendor: dto.BillerVendor{
 			Logo:        logo,
 			LegalName:   vendor.LegalName,
@@ -161,4 +173,17 @@ func (s *BillSend) getPixStrings(invoice *domain.Invoice, vendor *domain.Vendor)
 	}
 	s.logger.IPrintf(2, "Pix strings generated successfully")
 	return &payload, &qrCode, nil
+}
+
+// updateInvoiceEmailSentDate updates the EmailSentDate of the invoice and saves it to the repository.
+func (s *BillSend) updateInvoiceEmailSentDate(invoice *domain.Invoice) error {
+	s.logger.IPrintf(2, "Updating EmailSentDate for invoice ID: %v", invoice.ID)
+	now := time.Now()
+	invoice.EmailSentDate = &now
+	if err := s.repo.Save(invoice); err != nil {
+		s.logger.IPrintf(2, "Error saving invoice: %v", err)
+		return err
+	}
+	s.logger.IPrintf(2, "EmailSentDate updated successfully for invoice ID: %v", invoice.ID)
+	return nil
 }
