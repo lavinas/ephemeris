@@ -2,7 +2,7 @@ FROM golang:1.26-alpine
 
 WORKDIR /app
 
-RUN apk add --no-cache git gcc musl-dev
+RUN apk add --no-cache git gcc musl-dev chromium fontconfig ttf-freefont
 
 RUN go install github.com/air-verse/air@latest
 
