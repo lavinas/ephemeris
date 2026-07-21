@@ -11,14 +11,14 @@ import (
 // TaxSend is responsible for handling the business logic of sending emissions.
 type TaxSend struct {
 	Base
-	sender port.Issuer
+	sender port.Taxer
 }
 
 // NewTaxSend creates a new instance of TaxSend.
-func NewTaxSend(repo port.Repository, logger port.Logger, issuer port.Issuer) *TaxSend {
+func NewTaxSend(repo port.Repository, logger port.Logger, taxer port.Taxer) *TaxSend {
 	return &TaxSend{
 		Base:   *NewBase(repo, logger),
-		sender: issuer,
+		sender: taxer,
 	}
 }
 

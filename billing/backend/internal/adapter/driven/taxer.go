@@ -78,8 +78,8 @@ type footer struct {
 	TotalDiscount int `fixed:"24,38,right,0"`
 }
 
-// IssuerFile is a concrete implementation of the port.
-type IssuerFile struct {
+// Taxer is a concrete implementation of the port.
+type Taxer struct {
 	filePath string
 	pattern  string
 	logger   port.Logger
@@ -87,9 +87,9 @@ type IssuerFile struct {
 	writer   *transform.Writer
 }
 
-// NewIssuerFile creates a new instance of IssuerFile with the specified file path and logger.
-func NewIssuerFile(filePath string, filePattern string, logger port.Logger) *IssuerFile {
-	return &IssuerFile{
+// NewTaxer creates a new instance of Taxer with the specified file path and logger.
+func NewTaxer(filePath string, filePattern string, logger port.Logger) *Taxer {
+	return &Taxer{
 		filePath: filePath,
 		pattern:  filePattern,
 		logger:   logger,
@@ -97,7 +97,7 @@ func NewIssuerFile(filePath string, filePattern string, logger port.Logger) *Iss
 }
 
 // SendEmission sends the emission data to a file and logs the operation.
-func (i *IssuerFile) SendEmission(emission *domain.Emission) error {
+func (i *Taxer) SendEmission(emission *domain.Emission) error {
 	i.logger.IPrintf(2, "Sending emission to file: %s", i.filePath)
 	if err := i.openSendFile(emission); err != nil {
 		return err
@@ -117,7 +117,7 @@ func (i *IssuerFile) SendEmission(emission *domain.Emission) error {
 }
 
 // ReceiveEmission is a placeholder for receiving emissions.
-func (i *IssuerFile) ReceiveEmission(source string) (map[int64]*domain.EmissionItem, error) {
+func (i *Taxer) ReceiveEmission(source string) (map[int64]*domain.EmissionItem, error) {
 	i.logger.IPrintf(2, "Receiving emission from file: %s", source)
 	if err := i.openReceiveFile(source); err != nil {
 		return nil, err
@@ -132,7 +132,7 @@ func (i *IssuerFile) ReceiveEmission(source string) (map[int64]*domain.EmissionI
 }
 
 // openSendFile is a helper function to open the file for writing.
-func (i *IssuerFile) openSendFile(emission *domain.Emission) error {
+func (i *Taxer) openSendFile(emission *domain.Emission) error {
 	file_path := filepath.Join(i.filePath, i.replacePlaceholders(i.pattern, emission))
 	i.logger.IPrintf(3, "Opened file: %s (path: %s, pattern: %s)", file_path, i.filePath, i.pattern)
 	file, err := os.OpenFile(file_path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
@@ -148,7 +148,7 @@ func (i *IssuerFile) openSendFile(emission *domain.Emission) error {
 }
 
 // openReceiveFile is a placeholder for opening the file for reading.
-func (i *IssuerFile) openReceiveFile(source string) error {
+func (i *Taxer) openReceiveFile(source string) error {
 	file, err := os.Open(source)
 	if err != nil {
 		return err
@@ -158,7 +158,7 @@ func (i *IssuerFile) openReceiveFile(source string) error {
 }
 
 // readReceiveFile is a placeholder for reading the file for receiving emissions.
-func (i *IssuerFile) readReceiveFile() (map[int64]*domain.EmissionItem, error) {
+func (i *Taxer) readReceiveFile() (map[int64]*domain.EmissionItem, error) {
 	lines := make(map[int64]*domain.EmissionItem)
 	reader := csv.NewReader(i.file)
 	reader.Comma = ';'
@@ -196,7 +196,7 @@ func (i *IssuerFile) readReceiveFile() (map[int64]*domain.EmissionItem, error) {
 }
 
 // getItemFromRecord is a helper function to convert a CSV record to an EmissionItem.
-func (i *IssuerFile) getItemFromRecord(record []string) (*domain.EmissionItem, error) {
+func (i *Taxer) getItemFromRecord(record []string) (*domain.EmissionItem, error) {
 	rpsNum, err := strconv.ParseInt(record[6], 10, 64)
 	if err != nil {
 		return nil, fmt.Errorf("invalid RPS number: %v", err)
@@ -220,7 +220,7 @@ func (i *IssuerFile) getItemFromRecord(record []string) (*domain.EmissionItem, e
 }
 
 // replacePlaceholders replaces placeholders in the file pattern with actual values from the emission.
-func (i *IssuerFile) replacePlaceholders(pattern string, emission *domain.Emission) string {
+func (i *Taxer) replacePlaceholders(pattern string, emission *domain.Emission) string {
 	year := emission.EmissionDate.Format("2006") // Get the year from the emission date
 	month := emission.EmissionDate.Format("01")  // Get the month from the emission date
 	day := emission.EmissionDate.Format("02")    // Get the day from the emission date
@@ -233,7 +233,7 @@ func (i *IssuerFile) replacePlaceholders(pattern string, emission *domain.Emissi
 }
 
 // writeHeader writes the header to the file.
-func (i *IssuerFile) writeHeader(emission *domain.Emission) error {
+func (i *Taxer) writeHeader(emission *domain.Emission) error {
 	i.logger.IPrintf(3, "Writing header for emission ID: %d", emission.ID)
 	ccm := regexp.MustCompile(`[^0-9]`).ReplaceAllString(emission.Vendor.TaxDocument, "")
 	ccmd, _ := strconv.Atoi(ccm)
@@ -261,7 +261,7 @@ func (i *IssuerFile) writeHeader(emission *domain.Emission) error {
 }
 
 // writelines writes the emission lines to the file.
-func (i *IssuerFile) writeItems(emission *domain.Emission) error {
+func (i *Taxer) writeItems(emission *domain.Emission) error {
 	i.logger.IPrintf(3, "Writing items for emission ID: %d", emission.ID)
 	emissionDate, _ := strconv.Atoi(emission.EmissionDate.Format("20060102"))
 	for _, item := range emission.EmissionItems {
@@ -282,7 +282,7 @@ func (i *IssuerFile) writeItems(emission *domain.Emission) error {
 }
 
 // getSendLine is a helper function to convert an EmissionItem to a line.
-func (i *IssuerFile) getSendLine(emissionDate int, item *domain.EmissionItem) line {
+func (i *Taxer) getSendLine(emissionDate int, item *domain.EmissionItem) line {
 	// Convert item fields to the appropriate types and formats
 	document := regexp.MustCompile(`[^0-9]`).ReplaceAllString(*item.Invoice.Customer.Document, "")
 	documentType := 1
@@ -326,7 +326,7 @@ func (i *IssuerFile) getSendLine(emissionDate int, item *domain.EmissionItem) li
 }
 
 // getSendDescription is a helper function to generate a description for the emission item.
-func (i *IssuerFile) getSendDescription(item *domain.EmissionItem) string {
+func (i *Taxer) getSendDescription(item *domain.EmissionItem) string {
 	// Implement logic to generate a description based on the item details
 	ret := ""
 	for _, invItem := range item.Invoice.InvoiceItems {
@@ -339,7 +339,7 @@ func (i *IssuerFile) getSendDescription(item *domain.EmissionItem) string {
 }
 
 // writeFooter writes the footer to the file. This is a placeholder implementation
-func (i *IssuerFile) writeFooter(emission *domain.Emission) error {
+func (i *Taxer) writeFooter(emission *domain.Emission) error {
 	i.logger.IPrintf(3, "Writing footer for emission ID: %d", emission.ID)
 	amount := int(emission.Amount * 100)
 	footer := footer{
@@ -362,7 +362,7 @@ func (i *IssuerFile) writeFooter(emission *domain.Emission) error {
 }
 
 // removeAccents is a helper function to remove accents from a string.
-func (i *IssuerFile) removeAccents(texto string) string {
+func (i *Taxer) removeAccents(texto string) string {
 	// Transforma a string para separar letras dos acentos, remove os acentos e recompõe
 	t := transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
 

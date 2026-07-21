@@ -12,14 +12,14 @@ import (
 // TaxReceive is responsible for handling the business logic of receiving emissions.
 type TaxReceive struct {
 	Base
-	receiver port.Issuer
+	receiver port.Taxer
 }
 
 // NewTaxReceive creates a new instance of TaxReceive.
-func NewTaxReceive(repo port.Repository, logger port.Logger, issuer port.Issuer) *TaxReceive {
+func NewTaxReceive(repo port.Repository, logger port.Logger, taxer port.Taxer) *TaxReceive {
 	return &TaxReceive{
 		Base:     *NewBase(repo, logger),
-		receiver: issuer,
+		receiver: taxer,
 	}
 }
 

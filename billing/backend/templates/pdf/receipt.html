@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<style>
+		/* Configuração base para o comportamento de página A4 */
+		html, body { height: 100%; margin: 0; padding: 0; }
+		body { font-family: Arial, sans-serif; color: #1a1a1a; line-height: 1.5; padding: 20px; box-sizing: border-box; position: relative; }
+		
+		.header-table { width: 100%; border-collapse: collapse; margin-bottom: 25px; }
+		.company-logo { max-height: 85px; display: block; margin: 0 auto 15px auto; }
+		.company-info { text-align: center; font-size: 13px; color: #333; }
+		.company-name { font-size: 18px; font-weight: bold; color: #1a1a1a; margin-bottom: 0px; }
+		
+		/* Título de Recibo centralizado e limpo antes da primeira linha */
+		.document-title { text-align: center; font-size: 24px; font-weight: bold; color: #1a1a1a; text-transform: uppercase; letter-spacing: 1px; margin-top: 5px; margin-bottom: 2px; }
+		
+		/* Subtítulo aproximado de RECIBO */
+		.document-subtitle { text-align: center; font-size: 15px; font-weight: normal; color: #4a5568; margin-top: -5px; margin-bottom: 12px; }
+		
+		/* Linhas finas divisórias sem margens extras para controle total via padding */
+		.divider { border-top: 1px solid #cbd5e1; margin-bottom: 0; }
+		.divider-items { border-top: 1px solid #cbd5e1; margin-top: 0; margin-bottom: 25px; }
+		
+		/* Espaçamento simétrico acima e abaixo do bloco de dados */
+		.details-table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 0; }
+		.details-td { width: 50%; vertical-align: top; padding-top: 12px; padding-bottom: 12px; }
+		
+		.label { font-weight: bold; color: #1a1a1a; }
+		.val { color: #4a5568; }
+		
+		.text-black-bold { color: #1a1a1a !important; font-weight: bold !important; }
+		
+		/* Tabela configurada para expandir dinamicamente horizontalmente */
+		.items-table { border-collapse: collapse; margin-bottom: 20px; margin-top: -15px; min-width: 100%; width: auto; }
+		.items-table th { border-bottom: 2px solid #1a1a1a; padding: 10px 5px; font-size: 14px; font-weight: bold; text-align: left; }
+		.items-table td { padding: 3px 5px; border-bottom: none; font-size: 14px; color: #2d3748; }
+		
+		
+		/* Impede a quebra de linha do texto da descrição */
+		.desc-col { white-space: nowrap; }
+		
+		.total-row-td { border-top: 1px solid #cbd5e1; border-bottom: none !important; padding-top: 15px !important; }
+		
+		/* Bloco de Informações Adicionais em linhas inteiras verticais */
+		.extra-info-container { margin-top: 60px; width: 100%; }
+		
+		/* AJUSTE: Estilização do título em linha separada */
+		.observacao-titulo { font-size: 14px; font-weight: bold; color: #1a1a1a; margin-bottom: 8px; width: 100%; }
+		
+		/* AJUSTE: Lista em formato bullet point e itálico suave ocupando a linha inteira */
+		.observacao-lista { font-size: 13px; color: #4a5568; font-style: italic; width: 100%; margin-top: 0; padding-left: 20px; margin-bottom: 35px; }
+		.observacao-lista li { margin-bottom: 6px; }
+		
+		/* Posicionado de forma limpa abaixo da lista */
+		.signature-box { text-align: left; width: 100%; }
+		.signature-title { font-size: 14px; font-weight: bold; color: #1a1a1a; font-style: normal; }
+		
+		/* Posiciona a frase e a última linha fixa no rodapé absoluto da página */
+		.validation-footer { 
+			position: absolute; 
+			bottom: 20px; 
+			left: 20px; 
+			right: 20px; 
+			text-align: center; 
+			font-size: 11px; 
+			color: #718096; 
+			border-top: 1px solid #cbd5e1; 
+			padding-top: 15px; 
+		}
+	</style>
+</head>
+<body>
+	<!-- Topo com Logo e Dados da Empresa -->
+	<table class="header-table">
+		<tr>
+			<td>
+				<img src="{{.VendorLogoBase64}}" class="company-logo" alt="Logo">
+				<div class="company-info">
+					<div class="company-name">{{.VendorName}}</div>
+					CNPJ: {{.VendorDocument}}<br>
+					Email: {{.VendorEmail}}<br>
+					WhatsApp: {{.VendorWhatsApp}}<br>
+				</div>
+			</td>
+		</tr>
+	</table>
+
+	<!-- Palavra RECIBO isolada e elegante no topo -->
+	<div class="document-title">RECIBO</div>
+	
+	<!-- Subtítulo aproximado de RECIBO -->
+	<div class="document-subtitle">Invoice #{{.InvoiceNumber}}</div>
+
+	<!-- PRIMEIRA LINHA FINA -->
+	<div class="divider"></div>
+
+	<!-- Dados do Cliente e Identificação -->
+	<table class="details-table">
+		<tr>
+			<td class="details-td">
+				<span class="label">{{.CustomerName}}</span><br>
+				<span class="label">CPF/CNPJ:</span> <span class="val">{{.CustomerDocument}}</span><br>
+				<span class="label">Email:</span> <span class="val">{{.CustomerEmail}}</span>
+			</td>
+			<td class="details-td" style="text-align: right;">
+				<span class="label">Emissão :</span> <span class="val">{{br_date .IssueDate}}</span><br>
+				<span class="label">Vencimento:</span> <span class="val">{{br_date .DueDate}}</span><br>
+				<span class="label">Pagamento:</span> <span class="val">{{br_date .PaymentDate}}</span>
+			</td>
+		</tr>
+	</table>
+
+	<!-- SEGUNDA LINHA FINA -->
+	<div class="divider-items"></div>
+
+	<!-- Descrição dos Valores -->
+	<table class="items-table">
+		<thead>
+			<tr>
+				<th>Descrição</th>
+				<th style="text-align: center; width: 50px;">Quantidade</th>
+				<th style="text-align: right; width: 80px;">Valor</th>
+				<th style="text-align: right; width: 110px;">Total</th>
+			</tr>
+		</thead>
+		<tbody>
+        {{range .Items}}
+			<tr>
+				<td class="desc-col">{{.Description}}</td>
+				<td style="text-align: center;">{{.Quantity}}</td>
+				<td style="text-align: right;">{{currency .UnitPrice}}</td>
+				<td style="text-align: right;">{{currency .Total}}</td>
+			</tr>
+        {{end}}
+			<tr>
+				<td colspan="2" class="total-row-td"></td>
+				<td style="text-align: right; font-weight: bold;" class="total-row-td">TOTAL</td>
+				<td style="text-align: right; font-size: 15px;" class="text-black-bold total-row-td">{{br_currency .TotalAmount}}</td>
+			</tr>
+		</tbody>
+	</table>
+
+	<!-- BLOCO DE TEXTOS (Formatado com Título e marcador Bullet) -->
+	<div class="extra-info-container">
+		<div class="observacao-titulo">Notas:</div>
+		<ul class="observacao-lista">
+			<li>A nota fiscal de prestação de serviços correspondente a este pagamento será emitida e enviada posteriormente.</li>
+		</ul>
+		
+		<div class="signature-box">
+			<div class="signature-title">{{.VendorName}}</div>
+		</div>
+	</div>
+
+	<!-- ÚLTIMA LINHA FINA E FRASE FIXADAS COMO RODAPÉ DA PÁGINA -->
+	<div class="validation-footer">
+		Este documento é uma representação do boleto pago e não possui validade fiscal.<br>
+		Gerado por: {{.VendorName}}
+	</div>
+</body>
+</html>
