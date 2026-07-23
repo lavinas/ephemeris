@@ -1,16 +1,20 @@
 package driven
 
 import (
-	"billing/internal/dto"
 	"bytes"
 	"context"
 	"fmt"
 	"html/template"
-	"os"
+	"io"
+	"strings"
 	"time"
+
+	"billing/internal/dto"
+	"billing/internal/port"
 
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/chromedp"
+	"gopkg.in/gomail.v2"
 )
 
 const (
@@ -23,26 +27,23 @@ const (
 	marginRight     = 0.59  // Right margin (~1.5 cm)
 )
 
-// Receipter is responsible for handling the receipt of emissions.
-type Receipter struct {
-	receiptTemplate string
+// Issuer is responsible for handling the receipt of emissions.
+type Issuer struct {
 }
 
-// NewReceipter creates a new instance of Receipter.
-func NewReceipter(receiptPath string) (*Receipter, error) {
-	file, err := os.ReadFile(receiptPath)
-	if err != nil {
-		return nil, err
+// NewIssuer creates a new instance of Issuer.
+func NewIssuer() *Issuer {
+	return &Issuer{}
+}
+
+// GetBase64 generates a receipt for the given data and returns it as a base64-encoded PDF.
+func (r *Issuer) GetBase64(data port.InDTO, html_pdf *string) ([]byte, error) {
+	dtoData, ok := data.(*dto.IssuerData)
+	if !ok {
+		return nil, fmt.Errorf("invalid data type: expected *dto.IssuerData")
 	}
-	receiptTemplate := string(file)
-	return &Receipter{
-		receiptTemplate: receiptTemplate,
-	}, nil
-}
 
-// GenerateReceipt generates a receipt for the given data.
-func (r *Receipter) GetReceiptBase64(data dto.ReceiptData) ([]byte, error) {
-	htmlContent, err := r.getHTML(data)
+	htmlContent, err := r.format(*dtoData, html_pdf)
 	if err != nil {
 		return nil, fmt.Errorf("GeneratingReceiptBase64: %w", err)
 	}
@@ -53,14 +54,56 @@ func (r *Receipter) GetReceiptBase64(data dto.ReceiptData) ([]byte, error) {
 	return pdf, nil
 }
 
+// SendMail sends the generated receipt via email using the provided SMTP configuration.
+func (r *Issuer) SendMail(data port.InDTO, html_pdf *string, html_email *string) error {
+	dtoData, ok := data.(*dto.IssuerData)
+	if !ok {
+		return fmt.Errorf("invalid data type: expected *dto.IssuerData")
+	}
+
+	htmlContent, err := r.format(*dtoData, html_email)
+	if err != nil {
+		return fmt.Errorf("SendMail: %w", err)
+	}
+
+	pdfBase64, err := r.GetBase64(dtoData, html_pdf)
+	if err != nil {
+		return fmt.Errorf("SendMail: %w", err)
+	}
+	return r.send(*dtoData, htmlContent, pdfBase64)
+}
+
+// send sends the generated receipt via email using the provided SMTP configuration.
+func (r *Issuer) send(dtoData dto.IssuerData, htmlContent string, pdfBase64 []byte) error {
+	m := gomail.NewMessage()
+	m.SetHeader("From", dtoData.VendorEmail)
+	m.SetHeader("To", dtoData.CustomerEmail)
+	m.SetHeader("Subject", fmt.Sprintf("Recibo - Invoice %s", dtoData.InvoiceNumber))
+	m.SetBody("text/html", htmlContent)
+	m.Attach(fmt.Sprintf("receipt_%s.pdf", dtoData.InvoiceNumber), gomail.SetCopyFunc(func(w io.Writer) error {
+		_, err := w.Write(pdfBase64)
+		return err
+	}))
+	d := gomail.NewDialer(dtoData.VendorSMTPHost, dtoData.VendorSMTPPort, dtoData.VendorSMTPUsername, dtoData.VendorSMTPPassword)
+
+	if err := d.DialAndSend(m); err != nil {
+		return fmt.Errorf("SendMail: %w", err)
+	}
+	return nil
+}
+
 // getHTML generates the HTML content for the receipt based on the provided data.
-func (r *Receipter) getHTML(data dto.ReceiptData) (string, error) {
+func (r *Issuer) format(data dto.IssuerData, html *string) (string, error) {
 	funcMap := template.FuncMap{
 		"currency": func(amount float64) string {
-			return fmt.Sprintf("%.2f", amount)
+			val := fmt.Sprintf("%.2f", amount)
+			val = strings.Replace(val, ".", ",", 1)
+			return val
 		},
 		"br_currency": func(amount float64) string {
-			return fmt.Sprintf("R$ %.2f", amount)
+			val := fmt.Sprintf("%.2f", amount)
+			val = strings.Replace(val, ".", ",", 1)
+			return "R$ " + val
 		},
 		"br_date": func(date string) string {
 			parsedDate, err := time.Parse("2006-01-02", date)
@@ -70,7 +113,7 @@ func (r *Receipter) getHTML(data dto.ReceiptData) (string, error) {
 			return parsedDate.Format("02/01/2006")
 		},
 	}
-	html_tmpl, err := template.New("receipt").Funcs(funcMap).Parse(r.receiptTemplate)
+	html_tmpl, err := template.New("receipt").Funcs(funcMap).Parse(*html)
 	if err != nil {
 		return "", fmt.Errorf("GeneratingReceiptBase64: %w", err)
 	}
@@ -83,7 +126,7 @@ func (r *Receipter) getHTML(data dto.ReceiptData) (string, error) {
 }
 
 // getPDF generates a PDF file for the given receipt data and saves it to the specified output path.
-func (r *Receipter) getPDF(htmlContent string) ([]byte, error) {
+func (r *Issuer) getPDF(htmlContent string) ([]byte, error) {
 	// start chromedp with custom options
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
 		chromedp.NoSandbox,
