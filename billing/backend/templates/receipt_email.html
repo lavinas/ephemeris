@@ -1,9 +1,77 @@
 <html>
-    <body style="font-family: Arial, sans-serif; font-size: 16px; color: #333;">
-        <p>Olá {{.CustomerName}},</p>
-        <p>Em anexo enviamos o recibo de seu pagamento da fatura com vencimento no dia {{br_date .DueDate}} e paga no dia {{br_date .PaymentDate}} no valor de R$ {{currency .TotalAmount}}, referente às aulas de canto.</p>
-        <p>Emitiremos em breve também a nota fiscal desta fatura.</p>
-        <p>Obrigado mais uma vez,</p>
-        <p>{{.VendorName}}</p>
-    </body>
+<body style="margin: 0; padding: 0; background-color: #f4f5f7; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" width="100%" style="background-color: #f4f5f7; padding: 40px 20px;">
+        <tr>
+            <td align="center">
+                <!-- Caixa Principal do E-mail -->
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width: 600px; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);">
+                    
+                    <!-- Cabeçalho Escuro com o Logo referenciado por CID -->
+                    <tr>
+                        <td align="center" style="background-color: #000000; padding: 25px 20px;">
+                            <img src="cid:{{.VendorLogoBase64}}" alt="Amélia Cardoso" width="220" style="display: block; border: 0; max-width: 100%; height: auto;">
+                        </td>
+                    </tr>
+
+                    <!-- Linha Decorativa Fina em Roxo/Violeta -->
+                    <tr>
+                        <td height="3" style="background-color: #7B5CB7; font-size: 0; line-height: 0;">&nbsp;</td>
+                    </tr>
+
+                    <!-- Corpo do E-mail -->
+                    <tr>
+                        <td style="padding: 40px 30px;">
+                            <h1 style="margin: 0 0 20px 0; font-size: 22px; font-weight: 600; color: #1F2937; line-height: 1.3;">
+                                Olá, {{.CustomerName}}!
+                            </h1>
+                            
+                            <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 1.6; color: #4B5563;">
+                                Confirmamos o recebimento do seu pagamento referente às **aulas de canto**. O recibo digital já está disponível e anexado a este e-mail.
+                            </p>
+
+                            <!-- Painel com os Detalhes do Pagamento -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #F9FAFB; border-radius: 6px; margin-bottom: 24px;">
+                                <tr>
+                                    <td style="padding: 20px;">
+                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                            <tr>
+                                                <td style="font-size: 14px; color: #6B7280; padding-bottom: 8px;">Vencimento:</td>
+                                                <td align="right" style="font-size: 14px; font-weight: 500; color: #1F2937; padding-bottom: 8px;">{{br_date .DueDate}}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="font-size: 14px; color: #6B7280; padding-bottom: 8px;">Data do Pagamento:</td>
+                                                <td align="right" style="font-size: 14px; font-weight: 500; color: #1F2937; padding-bottom: 8px;">{{br_date .PaymentDate}}</td>
+                                            </tr>
+                                            <tr style="border-top: 1px solid #E5E7EB;">
+                                                <td style="font-size: 15px; font-weight: 600; color: #1F2937; padding-top: 12px;">Valor Pago:</td>
+                                                <td align="right" style="font-size: 18px; font-weight: 700; color: #7B5CB7; padding-top: 12px;">R$ {{currency .TotalAmount}}</td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <p style="margin: 0 0 32px 0; font-size: 14px; line-height: 1.5; color: #6B7280; font-style: italic;">
+                                Nota: A nota fiscal correspondente a esta fatura será emitida e enviada em breve.
+                            </p>
+
+                            <p style="margin: 0 0 4px 0; font-size: 15px; color: #4B5563;">Agradecemos a confiança,</p>
+                            <p style="margin: 0; font-size: 16px; font-weight: 600; color: #1F2937;">{{.VendorName}}</p>
+                        </td>
+                    </tr>
+
+                    <!-- Rodapé -->
+                    <tr>
+                        <td style="padding: 0 30px 30px 30px; text-align: center;">
+                            <p style="margin: 0; font-size: 12px; color: #9CA3AF;">
+                                Este é um e-mail automático enviado por {{.VendorName}}. Por favor, não responda a esta mensagem.
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
 </html>

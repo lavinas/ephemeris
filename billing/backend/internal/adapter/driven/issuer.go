@@ -61,6 +61,8 @@ func (r *Issuer) SendMail(data port.InDTO, html_pdf *string, html_email *string)
 		return fmt.Errorf("invalid data type: expected *dto.IssuerData")
 	}
 
+	
+
 	htmlContent, err := r.format(*dtoData, html_email)
 	if err != nil {
 		return fmt.Errorf("SendMail: %w", err)
@@ -70,7 +72,20 @@ func (r *Issuer) SendMail(data port.InDTO, html_pdf *string, html_email *string)
 	if err != nil {
 		return fmt.Errorf("SendMail: %w", err)
 	}
+
+
 	return r.send(*dtoData, htmlContent, pdfBase64)
+}
+
+// attachCIDImage attaches an image to the email message using a Content-ID (CID) reference.
+func (r *Issuer) attachCIDImage(m *gomail.Message, image string) error {
+
+	if image == "" {
+		return fmt.Errorf("attachCIDImage: image path is empty")
+	}
+	// Attach the image to the email with a Content-ID (CID) reference
+	m.Embed(image)
+	return nil
 }
 
 // send sends the generated receipt via email using the provided SMTP configuration.
