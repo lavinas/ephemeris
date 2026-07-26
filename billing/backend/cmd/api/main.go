@@ -34,15 +34,17 @@ func main() {
 	}
 	defer repo.Close()
 	// Issuer initialization
-	issuer := driven.NewTaxer(cfg.GetIssuerFilePath(), cfg.GetIssuerFilePattern(), logger)
+	taxer := driven.NewTaxer(cfg.GetIssuerFilePath(), cfg.GetIssuerFilePattern(), logger)
 	// Biller initialization
 	biller := driven.NewBillerMaroto(logger)
 	// Pixer initialization
 	pixer := driven.NewPixer(logger)
+	// issuer initialization
+	issuer := driven.NewIssuer()
 	// Initialize API Handler
 	os.Setenv("TZ", timezone)
 	logger.IPrintf(0, "starting API server on :8080")
-	apiHandler := driver.NewAPIHandler(":8080", logger, repo, issuer, biller, pixer)
+	apiHandler := driver.NewAPIHandler(":8080", logger, repo, taxer, biller, pixer, issuer)
 	apiHandler.Run(":8080")
 	logger.IPrintf(0, "logger and database closed 2")
 }

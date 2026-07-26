@@ -4,6 +4,11 @@ import (
 	"billing/internal/port"
 )
 
+const (
+	logoPath     = "./images/"
+	templatePath = "./templates/"
+)
+
 // Base is a struct that can be embedded in other service structs to provide common functionality or fields.
 type Base struct {
 	repo   port.Repository

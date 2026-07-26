@@ -100,13 +100,21 @@
 		<tr>
 			<td class="details-td">
 				<span class="label">{{.CustomerName}}</span><br>
+				{{ if .CustomerDocument}}
 				<span class="label">CPF/CNPJ:</span> <span class="val">{{.CustomerDocument}}</span><br>
+				{{ else }}
+				<span class="label">CPF/CNPJ:</span> <span class="val">N/A</span><br>
+				{{ end }}
 				<span class="label">Email:</span> <span class="val">{{.CustomerEmail}}</span>
 			</td>
 			<td class="details-td" style="text-align: right;">
-				<span class="label">Emissão :</span> <span class="val">{{br_date .IssueDate}}</span><br>
+				<span class="label">Emissão :</span> <span class="val">{{br_date .InvoiceDate}}</span><br>
 				<span class="label">Vencimento:</span> <span class="val">{{br_date .DueDate}}</span><br>
+				{{ if .PaymentDate}}
 				<span class="label">Pagamento:</span> <span class="val">{{br_date .PaymentDate}}</span>
+				{{ else }}
+				<span class="label">Pagamento:</span> <span class="val">N/A</span>
+				{{ end }}
 			</td>
 		</tr>
 	</table>

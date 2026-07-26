@@ -1,9 +1,0 @@
-<html>
-    <body style="font-family: Arial, sans-serif; font-size: 16px; color: #333;">
-        <p>Olá {{.CustomerName}},</p>
-        <p>Em anexo enviamos o recibo de seu pagamento da fatura com vencimento no dia {{br_date .DueDate}} e paga no dia {{br_date .PaymentDate}} no valor de R$ {{currency .TotalAmount}}, referente às aulas de canto.</p>
-        <p>Emitiremos em breve também a nota fiscal desta fatura.</p>
-        <p>Obrigado mais uma vez,</p>
-        <p>{{.VendorName}}</p>
-    </body>
-</html>

@@ -8,6 +8,7 @@ import (
 	"html/template"
 	"io"
 	"os"
+	"time"
 )
 
 // This program generates a PDF receipt using the Receipter component.
@@ -24,8 +25,11 @@ func main() {
 		fmt.Println("Error reading logo file:", err)
 		return
 	}
-	logoBase64 := "data:image/png;base64," + base64.StdEncoding.EncodeToString(logoData)
-
+	// logoBase64 := "data:image/png;base64," + base64.StdEncoding.EncodeToString(logoData)
+	logoBase64 := base64.StdEncoding.EncodeToString(logoData)
+	// customerDoc := "044.123.456-78"
+	customerEmail := "lavinas@gmail.com"
+	// paymentDate := time.Date(2026, 6, 15, 0, 0, 0, 0, time.UTC)
 	// Sample data for the receipt
 	data := dto.IssuerData{
 		VendorLogoBase64:   template.URL(logoBase64),
@@ -37,13 +41,14 @@ func main() {
 		VendorSMTPPort:     587,
 		VendorSMTPUsername: "financeiro@ameliacardoso.com.br",
 		VendorSMTPPassword: "pwd22Adm**",
-		InvoiceNumber:      "56766",
+		InvoiceNumber:      56766,
 		CustomerName:       "Paulo Celso Lavinas Barbosa",
-		CustomerDocument:   "044.123.456-78",
-		CustomerEmail:      "lavinas@gmail.com",
-		IssueDate:          "2026-06-01",
-		DueDate:            "2026-06-30",
-		PaymentDate:        "2026-06-15",
+		CustomerNickname:   "paulo_lavinas",
+		CustomerDocument:   nil,
+		CustomerEmail:      &customerEmail,
+		InvoiceDate:        time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC),
+		DueDate:            time.Date(2026, 6, 30, 0, 0, 0, 0, time.UTC),
+		PaymentDate:        nil,
 		Items: []dto.ReceiptItem{
 			{Description: "aulas de canto de 60 minutos em junho de 2026", Quantity: 2, UnitPrice: 300.0, Total: 600.0},
 			{Description: "aulas de piano de 60 minutos em junho de 2026", Quantity: 1, UnitPrice: 20.0, Total: 20.0},
@@ -68,7 +73,7 @@ func main() {
 	htmlEmailContent := string(html_email)
 
 	// Generate the PDF receipt
-	pdf, err := receipter.GetBase64(&data, &htmlPDFContent)
+	pdf, err := receipter.GetBase64(&data, htmlPDFContent)
 	if err != nil {
 		fmt.Println("Error generating PDF receipt:", err)
 		return
@@ -82,7 +87,7 @@ func main() {
 	}
 
 	// Send the receipt via email
-	err = receipter.SendMail(&data, &htmlPDFContent, &htmlEmailContent)
+	err = receipter.SendMail(&data, htmlPDFContent, htmlEmailContent)
 	if err != nil {
 		fmt.Println("Error sending email:", err)
 		return

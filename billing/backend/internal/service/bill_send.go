@@ -12,6 +12,7 @@ import (
 	"billing/internal/port"
 )
 
+// BillSend is responsible for handling the sending of bills to customers.
 type BillSend struct {
 	Base
 	biller port.Biller

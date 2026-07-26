@@ -74,3 +74,9 @@ type Biller interface {
 type Pixer interface {
 	Get(request InDTO) (string, string, error)
 }
+
+// Issuer defines the interface for generating and sending receipts.
+type Issuer interface {
+	GetBase64(data InDTO, html_pdf string) ([]byte, error)
+	SendMail(data InDTO, html_pdf string, html_email string) error
+}

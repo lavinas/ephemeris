@@ -218,3 +218,20 @@ def send_bill(vendor, invoiceID, send_copy):
         return f'Erro na chamada da API: {resposta.status_code} - {resposta.text}'
     resp = resposta.json()
     return f'{resp["status"]} - {resp["message"]}'
+
+
+# send receipt
+def send_receipt(vendor, invoiceID):
+    json_data = {'vendor': vendor, 'invoice_id': invoiceID}
+    try:
+        resposta = requests.post(f'{endpoint}/receipt/send', json=json_data, timeout=15)
+    except ConnectionError as e:
+        return f"Erro: A conexão foi recusada pelo servidor remoto. Detalhes: {e}"
+    except Timeout as e:
+        return f"Erro: A requisição excedeu o tempo limite estabelecido. {e}"
+    except requests.exceptions.RequestException as e:
+        return f"Ocorreu um erro genérico no requests: {e}"
+    if resposta.status_code != 200:
+        return f'Erro na chamada da API: {resposta.status_code} - {resposta.text}'
+    resp = resposta.json()
+    return f'{resp["status"]} - {resp["message"]}'

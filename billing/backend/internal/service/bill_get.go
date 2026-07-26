@@ -18,10 +18,6 @@ type BillGet struct {
 	pixer  port.Pixer
 }
 
-const (
-	logoPath = "./images/"
-)
-
 // NewBillGet creates a new instance of BillGet.
 func NewBillGet(repo port.Repository, logger port.Logger, biller port.Biller, pixer port.Pixer) *BillGet {
 	return &BillGet{
