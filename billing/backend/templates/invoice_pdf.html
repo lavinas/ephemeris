@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Invoice #{{.InvoiceNumber}}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 30px; color: #333; line-height: 1.5; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .logo-img { max-width: 200px; height: auto; margin-bottom: 15px; }
+        .vendor-info { font-size: 14px; margin-bottom: 20px; line-height: 1.3; }
+        .invoice-details { display: table; width: 100%; border-top: 1px solid #ccc; border-bottom: 1px solid #ccc; padding: 15px 0; margin-bottom: 20px; }
+        .details-col { display: table-cell; width: 50%; vertical-align: top; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { padding: 10px; text-align: left; }
+        th { border-bottom: 2px solid #333; font-weight: bold; }
+        td { border-bottom: 1px solid #eee; }
+        .text-right { text-align: right; }
+        .total-row { font-weight: bold; font-size: 16px; }
+        .notes-section { margin-top: 30px; font-size: 13px; }
+        .pix-container { display: flex; align-items: flex-start; gap: 20px; margin-top: 15px; margin-bottom: 15px; }
+        .pix-qr-img { width: 150px; height: 150px; border: 1px solid #ddd; padding: 5px; border-radius: 4px; }
+        .pix-text-details { flex: 1; }
+        .pix-code { background: #f5f5f5; padding: 12px; border-radius: 4px; word-break: break-all; font-family: monospace; font-size: 12px; margin: 8px 0 15px 0; border: 1px solid #ddd; }
+        .bank-details { margin-top: 20px; background: #fafafa; padding: 15px; border-radius: 4px; border-left: 4px solid #0056b3; line-height: 1.4; }
+        .footer { text-align: center; font-size: 11px; color: #777; margin-top: 50px; border-top: 1px solid #ccc; padding-top: 15px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <!-- Renderização do Logo em Base64 -->
+        {{if .VendorLogoBase64}}
+            <img src="data:image/png;base64,{{.VendorLogoBase64}}" alt="Logo {{.VendorName}}" class="logo-img">
+        {{else}}
+            <h2 style="margin-bottom: 5px;">{{.VendorName}}</h2>
+        {{end}}
+        <div class="vendor-info">
+            CNPJ: {{.VendorDocument}}<br>
+            Email: {{.VendorEmail}}<br>
+            WhatsApp: {{.VendorWhatsApp}}
+        </div>
+    </div>
+
+    <div class="invoice-details">
+        <div class="details-col">
+            <strong>{{.CustomerName}}</strong><br>
+            {{if .CustomerDocument}}CPF/CNPJ: {{.CustomerDocument}}{{else}}CPF/CNPJ: N/A{{end}}<br>
+            Email: {{.CustomerEmail}}
+        </div>
+        <div class="details-col text-right">
+            <strong>Invoice # : {{.InvoiceNumber}}</strong><br>
+            Vencimento: {{br_date .DueDate}}<br>
+            Emissão : {{br_date .InvoiceDate}}
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Descrição</th>
+                <th>Quantidade</th>
+                <th class="text-right">Valor</th>
+                <th class="text-right">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .Items}}
+            <tr>
+                <td>{{.Description}}</td>
+                <td>{{.Quantity}}</td>
+                <td class="text-right">{{currency .UnitPrice}}</td>
+                <td class="text-right">{{currency .Total}}</td>
+            </tr>
+            {{end}}
+            <tr class="total-row">
+                <td colspan="3" class="text-right">TOTAL</td>
+                <td class="text-right">{{br_currency .TotalAmount}}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="notes-section">
+        <strong>Notas:</strong>
+        <p>Para pagamento via *Pix, utilize o QrCode ou as opções abaixo:</p>
+        
+        <div class="pix-container">
+            <!-- Renderização do QR Code em Base64 -->
+            {{if .PixQRBase64}}
+                <img src="data:image/png;base64,{{.PixQRBase64}}" alt="QR Code Pix" class="pix-qr-img">
+            {{end}}
+            
+            <div class="pix-text-details">
+                <strong>Código Pix (Copie e Cole o código abaixo):</strong>
+                <div class="pix-code">{{.PixCopyPaste}}</div>
+                
+                <strong>Chave Pix (caso queira pagar diretamente e enviar o comprovante):</strong><br>
+                CNPJ: {{.VendorDocument}} (valor {{br_currency .TotalAmount}})<br>
+                <small>* Por favor, antes de confirmar o pagamento, verifique que o valor é {{br_currency .TotalAmount}} e que o recebedor é {{.VendorTradingName}}</small>
+            </div>
+        </div>
+
+        <div class="bank-details">
+            <strong>Para pagamento via transferência bancária, utilize os dados abaixo:</strong><br>
+            <strong>Banco:</strong> {{.VendorBank}}<br>
+            <strong>Agência:</strong> {{.VendorAgency}}<br>
+            <strong>Conta:</strong> {{.VendorAccount}}<br>
+            {{.VendorName}}<br>
+            CNPJ: {{.VendorDocument}}<br>
+            <strong>Valor:</strong> {{br_currency .TotalAmount}}
+        </div>
+
+        <p style="margin-top: 20px;">Em caso de dúvidas, entre em contato através do email: {{.VendorEmail}} ou whatsapp: {{.VendorWhatsApp}}</p>
+    </div>
+
+    <div class="footer">
+        {{.VendorName}}<br>
+        Este documento é uma representação do boleto e não possui validade fiscal.<br>
+        Gerado por: {{.VendorName}}
+    </div>
+
+</body>
+</html>
