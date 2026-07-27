@@ -87,7 +87,7 @@ func (r *Issuer) SendMail(data port.InDTO, html_pdf string, html_email string) e
 }
 
 // GetReceiptName generates a filename for the receipt PDF based on the invoice number and customer name.
-func (r *Issuer) GetReceiptName(data port.InDTO) string {
+func (r *Issuer) GetName(data port.InDTO) string {
 	dtoData, ok := data.(*dto.IssuerData)
 	if !ok {
 		return "receipt.pdf"
@@ -124,7 +124,7 @@ func (r *Issuer) send(dtoData dto.IssuerData, htmlContent string, pdfBase64 []by
 	m.SetHeader("To", *dtoData.CustomerEmail)
 	m.SetHeader("Subject", r.getEmailSubject(dtoData))
 	m.SetBody("text/html", htmlContent)
-	m.Attach(fmt.Sprintf("receipt_%d.pdf", dtoData.InvoiceNumber), gomail.SetCopyFunc(func(w io.Writer) error {
+	m.Attach(r.GetName(&dtoData), gomail.SetCopyFunc(func(w io.Writer) error {
 		_, err := w.Write(pdfBase64)
 		return err
 	}))

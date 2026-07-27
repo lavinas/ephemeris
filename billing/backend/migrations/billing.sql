@@ -109,12 +109,17 @@ create table invoice (
     email_sent_date date,
     whatsapp_sent_date date,
     cancellation_date date,
+    email_receipt_date date,
+    whatsapp_receipt_date date,
     tax_date date,
     notes text null,
     status int not null default 1,
     created_at timestamp not null,
     updated_at timestamp not null
 );
+
+alter table invoice add column email_receipt_date date,
+    add column whatsapp_receipt_date date;
 
 drop Table if exists invoice_item cascade;
 create table invoice_item (

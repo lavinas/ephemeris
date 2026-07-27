@@ -205,8 +205,8 @@ func (a *PostgresRepository) GetVendor(nickname string) (*domain.Vendor, error) 
 
 // FindInvoices retrieves invoices based on the provided filters and pagination parameters
 func (a *PostgresRepository) FindInvoices(page, pageSize int, customer int64,
-	invoiceDate, dueDate, paymentDate, emailSentDate, whatsappSentDate, taxDate,
-	cancellationDate *string) ([]domain.Invoice, error) {
+	invoiceDate, dueDate, paymentDate, emailSentDate, whatsappSentDate, emailReceiptDate, whatsappReceiptDate,
+	taxDate, cancellationDate *string) ([]domain.Invoice, error) {
 	var invoices []domain.Invoice
 	db := a.DB.Model(&domain.Invoice{}).Preload("InvoiceItems").
 		Preload("Customer")
@@ -244,6 +244,24 @@ func (a *PostgresRepository) FindInvoices(page, pageSize int, customer int64,
 			db = db.Where("whatsapp_sent_date IS NOT NULL")
 		} else {
 			db = db.Where("whatsapp_sent_date::text ILIKE ?", "%"+*whatsappSentDate+"%")
+		}
+	}
+	if emailReceiptDate != nil {
+		if strings.ToLower(*emailReceiptDate) == "null" {
+			db = db.Where("email_receipt_date IS NULL")
+		} else if strings.ToLower(*emailReceiptDate) == "not null" {
+			db = db.Where("email_receipt_date IS NOT NULL")
+		} else {
+			db = db.Where("email_receipt_date::text ILIKE ?", "%"+*emailReceiptDate+"%")
+		}
+	}
+	if whatsappReceiptDate != nil {
+		if strings.ToLower(*whatsappReceiptDate) == "null" {
+			db = db.Where("whatsapp_receipt_date IS NULL")
+		} else if strings.ToLower(*whatsappReceiptDate) == "not null" {
+			db = db.Where("whatsapp_receipt_date IS NOT NULL")
+		} else {
+			db = db.Where("whatsapp_receipt_date::text ILIKE ?", "%"+*whatsappReceiptDate+"%")
 		}
 	}
 	if taxDate != nil {

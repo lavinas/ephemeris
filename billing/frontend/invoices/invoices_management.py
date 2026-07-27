@@ -13,7 +13,7 @@ page_size = 1000
 
 
 # get_df 
-def get_df(vendor, customer, invoicing, due, payment, email_sent, whatsapp_sent, tax, cancellation):
+def get_df(vendor, customer, invoicing, due, payment, email_sent, whatsapp_sent, email_receipt, whatsapp_receipt, tax, cancellation):
    # build request payload
     json_data = {'vendor': vendor, 'page': page, 'page_size': page_size}
     if customer and customer != "":
@@ -30,6 +30,10 @@ def get_df(vendor, customer, invoicing, due, payment, email_sent, whatsapp_sent,
         json_data['email_sent'] = email_sent
     if whatsapp_sent and whatsapp_sent != "":
         json_data['whatsapp_sent'] = whatsapp_sent
+    if email_receipt and email_receipt != "":
+        json_data['email_receipt'] = email_receipt
+    if whatsapp_receipt and whatsapp_receipt != "":
+        json_data['whatsapp_receipt'] = whatsapp_receipt
     if tax and tax != "":
         json_data['tax'] = tax
     if cancellation and cancellation != "":
@@ -59,14 +63,16 @@ def get_df(vendor, customer, invoicing, due, payment, email_sent, whatsapp_sent,
     return df_invoices
 
 # get
-def get(vendor, customer, invoicing, due, payment, email_sent, whatsapp_sent, tax, cancellation):
-    df_invoices = get_df(vendor, customer, invoicing, due, payment, email_sent, whatsapp_sent, tax, cancellation)
+def get(vendor, customer, invoicing, due, payment, email_sent, whatsapp_sent, email_receipt, whatsapp_receipt, tax, cancellation):
+    df_invoices = get_df(vendor, customer, invoicing, due, payment, email_sent, whatsapp_sent, email_receipt, whatsapp_receipt, tax, cancellation)
     if isinstance(df_invoices, str):
-        return df_invoices, 0, 0
+        return df_invoices, 0, 0, 0
     if len(df_invoices) == 0:
-        return 'Nenhuma fatura encontrada.', 0, 0
-    return tabulate(df_invoices, headers='keys', tablefmt='grid', showindex=False), len(df_invoices), \
-        sum(df_invoices['amount'].replace('-', 0).astype(float))
+        return 'Nenhuma fatura encontrada.', 0, 0, 0
+    return tabulate(df_invoices, headers='keys', tablefmt='grid', showindex=False), \
+        len(df_invoices), \
+        sum(df_invoices['amount'].replace('-', 0).astype(float)), \
+        df_invoices.loc[df_invoices['payment'] != '-', 'amount'].replace('-', 0).astype(float).sum()
 
 # insert
 def insert(vendor, customer, invoicing, due, payment, cancellation, notes, items):
@@ -193,7 +199,7 @@ def save_bill(vendor, invoiceID, path):
 
 # save bills
 def save_bills(vendor, customer, invoicing, due, path):
-    df_get = get_df(vendor, customer, invoicing, due, '', '', '', '', '')
+    df_get = get_df(vendor, customer, invoicing, due, '', '', '', '', '', '', '')
     if isinstance(df_get, str):
         return df_get
     for invoice_id in df_get['id']:
@@ -221,8 +227,11 @@ def send_bill(vendor, invoiceID, send_copy):
 
 
 # send receipt
-def send_receipt(vendor, invoiceID):
-    json_data = {'vendor': vendor, 'invoice_id': invoiceID}
+def send_receipt(vendor, invoiceID, email):
+    action = 0
+    if email != '':
+        action = 1
+    json_data = {'vendor': vendor, 'invoice_id': invoiceID, 'action': action, 'email': email}
     try:
         resposta = requests.post(f'{endpoint}/receipt/send', json=json_data, timeout=15)
     except ConnectionError as e:
@@ -235,3 +244,23 @@ def send_receipt(vendor, invoiceID):
         return f'Erro na chamada da API: {resposta.status_code} - {resposta.text}'
     resp = resposta.json()
     return f'{resp["status"]} - {resp["message"]}'
+
+
+def save_receipt(vendor, invoiceID, path):
+    json_data = {'vendor': vendor, 'invoice_id': invoiceID, 'action': 2}
+    try:
+        resposta = requests.post(f'{endpoint}/receipt/send', json=json_data, timeout=5)
+    except ConnectionError as e:
+        return f"Erro: A conexão foi recusada pelo servidor remoto. Detalhes: {e}"
+    except Timeout as e:
+        return f"Erro: A requisição excedeu o tempo limite estabelecido. {e}"
+    except requests.exceptions.RequestException as e:
+        return f"Ocorreu um erro genérico no requests: {e}"
+    if resposta.status_code != 200:
+        return f'Erro na chamada da API: {resposta.status_code} - {resposta.text}'
+    resp = resposta.json()
+    file_path = os_path.join(path, resp['document_name'])
+    file_bin = b64decode(resp['document_base64'])
+    with open(file_path, 'wb') as f:
+        f.write(file_bin)
+    return f'Arquivo salvo com sucesso em: {file_path}'

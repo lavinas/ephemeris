@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"os"
 	"path/filepath"
+	"time"
 
 	"billing/internal/domain"
 	"billing/internal/dto"
@@ -34,35 +35,91 @@ func (s *ReceiptSend) Run(inDTO port.InDTO) port.OutDTO {
 	in, ok := inDTO.(*dto.ReceiptSendRequest)
 	if !ok {
 		s.logger.IPrintf(2, "Invalid input type: expected ReceiptSendRequest")
-		return dto.NewReceiptSendResponse(400, "bad request", "Invalid input type")
+		return dto.NewReceiptSendResponse(400, "bad request", "Invalid input type", nil, nil)
 	}
 	// Validate the input DTO
 	if err := in.Validate(s.repo); err != nil {
 		s.logger.IPrintf(2, "Validation failed: %v", err)
-		return dto.NewReceiptSendResponse(400, "bad request", "Validation failed: "+err.Error())
+		return dto.NewReceiptSendResponse(400, "bad request", "Validation failed: "+err.Error(), nil, nil)
 	}
 	// Retrieve vendor and invoice from the repository
 	vendor, err := s.repo.GetVendor(in.Vendor)
 	if err != nil {
-		return dto.NewReceiptSendResponse(400, "bad request", "vendor not found")
+		return dto.NewReceiptSendResponse(400, "bad request", "vendor not found", nil, nil)
 	}
 	invoice, err := s.repo.GetInvoice(in.InvoiceID)
 	if err != nil {
-		return dto.NewReceiptSendResponse(400, "bad request", "invoice not found")
+		return dto.NewReceiptSendResponse(400, "bad request", "invoice not found", nil, nil)
 	}
-	// Create the IssuerData DTO and send the receipt via email
-	issuerData := s.getIssuerData(vendor, invoice)
-	err = s.issuer.SendMail(issuerData, s.getHTMLTemplate("pdf"), s.getHTMLTemplate("email"))
+	return s.dispatchAction(in, vendor, invoice)
+}
+
+// dispatchAction dispatches the action specified in the ReceiptSendRequest to the appropriate handler.
+func (s *ReceiptSend) dispatchAction(in *dto.ReceiptSendRequest, vendor *domain.Vendor, invoice *domain.Invoice) port.OutDTO {
+	switch in.Action {
+	case 0: // Send email
+		return s.sendEmail(in, vendor, invoice)
+	case 1: // Resend email
+		return s.resendEmail(in, vendor, invoice)
+	case 2: // Get PDF base64
+		return s.getPDFBase64(in, vendor, invoice)
+	default:
+		return dto.NewReceiptSendResponse(400, "bad request", "invalid action", nil, nil)
+	}
+}
+
+// sendEmail handles the action of sending a receipt email to the customer.
+func (s *ReceiptSend) sendEmail(in *dto.ReceiptSendRequest, vendor *domain.Vendor, invoice *domain.Invoice) port.OutDTO {
+	issuerData := s.getIssuerData(vendor, invoice, in.Email)
+	err := s.issuer.SendMail(issuerData, s.getHTMLTemplate("pdf"), s.getHTMLTemplate("email"))
 	if err != nil {
 		s.logger.IPrintf(2, "Error sending receipt: %v", err)
-		return dto.NewReceiptSendResponse(500, "internal server error", "contact support")
+		return dto.NewReceiptSendResponse(500, "internal server error", "contact support", nil, nil)
 	}
-	return dto.NewReceiptSendResponse(200, "success", "")
+	s.registerSendReceiver(invoice)
+	return dto.NewReceiptSendResponse(200, "success", "", nil, nil)
+}
+
+// resendEmail handles the action of resending a receipt email to the customer.
+func (s *ReceiptSend) resendEmail(in *dto.ReceiptSendRequest, vendor *domain.Vendor, invoice *domain.Invoice) port.OutDTO {
+	issuerData := s.getIssuerData(vendor, invoice, in.Email)
+	err := s.issuer.SendMail(issuerData, s.getHTMLTemplate("pdf"), s.getHTMLTemplate("email"))
+	if err != nil {
+		s.logger.IPrintf(2, "Error resending receipt: %v", err)
+		return dto.NewReceiptSendResponse(500, "internal server error", "contact support", nil, nil)
+	}
+	return dto.NewReceiptSendResponse(200, "success", "", nil, nil)
+}
+
+// getPDFBase64 handles the action of generating a PDF receipt and returning it as a base64 string.
+func (s *ReceiptSend) getPDFBase64(in *dto.ReceiptSendRequest, vendor *domain.Vendor, invoice *domain.Invoice) port.OutDTO {
+	issuerData := s.getIssuerData(vendor, invoice, in.Email)
+	pdfBytes, err := s.issuer.GetBase64(issuerData, s.getHTMLTemplate("pdf"))
+	if err != nil {
+		s.logger.IPrintf(2, "Error generating PDF: %v", err)
+		return dto.NewReceiptSendResponse(500, "internal server error", "contact support", nil, nil)
+	}
+	pdfBase64 := base64.StdEncoding.EncodeToString(pdfBytes)
+	documentName := s.issuer.GetName(issuerData)
+	return dto.NewReceiptSendResponse(200, "success", "", &pdfBase64, &documentName)
+}
+
+// registerSendReceiver registers the ReceiptSend service with the provided service registry.
+func (s *ReceiptSend) registerSendReceiver(invoice *domain.Invoice) {
+	invoice.UpdatedAt = time.Now()
+	invoice.EmailReceiptDate = &invoice.UpdatedAt
+	if err := s.repo.Save(invoice); err != nil {
+		s.logger.IPrintf(2, "Error updating invoice after sending receipt: %v", err)
+	}
 }
 
 // getIssuerData creates an IssuerData DTO based on the provided ReceiptSendRequest, Vendor, and Invoice.
-func (s *ReceiptSend) getIssuerData(vendor *domain.Vendor, invoice *domain.Invoice) *dto.IssuerData {
+func (s *ReceiptSend) getIssuerData(vendor *domain.Vendor, invoice *domain.Invoice, email string) *dto.IssuerData {
 	items, totalAmount := s.getReceiptItems(invoice)
+	sendEmail := invoice.Customer.Email
+	if email != "" {
+		sendEmail = &email
+	}
 	return &dto.IssuerData{
 		VendorLogoBase64:   s.getLogoBase64(vendor),
 		VendorName:         vendor.TradingName,
@@ -77,7 +134,7 @@ func (s *ReceiptSend) getIssuerData(vendor *domain.Vendor, invoice *domain.Invoi
 		CustomerName:       invoice.Customer.Name,
 		CustomerNickname:   invoice.Customer.Nickname,
 		CustomerDocument:   invoice.Customer.Document,
-		CustomerEmail:      invoice.Customer.Email,
+		CustomerEmail:      sendEmail,
 		InvoiceDate:        invoice.InvoiceDate,
 		DueDate:            invoice.DueDate,
 		PaymentDate:        invoice.PaymentDate,

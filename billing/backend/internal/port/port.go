@@ -21,8 +21,8 @@ type Repository interface {
 		accountBank, accountAgency, accountNumber *string) ([]domain.Vendor, error)
 	GetVendor(nickname string) (*domain.Vendor, error)
 	FindInvoices(page, pageSize int, customer int64,
-		invoiceDate, dueDate, paymentDate, emailSentDate, whatsappSentDate, taxDate,
-		cancellationDate *string) ([]domain.Invoice, error)
+		invoiceDate, dueDate, paymentDate, emailSentDate, whatsappSentDate, emailReceiptDate, whatsappReceiptDate,
+		taxDate, cancellationDate *string) ([]domain.Invoice, error)
 	GetInvoicesByPeriod(vendorID int64, start, end time.Time) ([]domain.Invoice, error)
 	GetInvoice(id int64) (*domain.Invoice, error)
 	GetEmissions(vendorID int64, invoiceStartDate, invoiceEndDate time.Time) ([]domain.Emission, error)
@@ -79,4 +79,5 @@ type Pixer interface {
 type Issuer interface {
 	GetBase64(data InDTO, html_pdf string) ([]byte, error)
 	SendMail(data InDTO, html_pdf string, html_email string) error
+	GetName(data InDTO) string
 }

@@ -4,21 +4,23 @@ import "time"
 
 // Invoice represents a billing invoice with customer details and amount.
 type Invoice struct {
-	ID               int64         `gorm:"primaryKey"`
-	CustomerID       int64         `gorm:"not null"`
-	Customer         Customer      `gorm:"foreignKey:CustomerID"`
-	Amount           float64       `gorm:"not null"`
-	InvoiceDate      time.Time     `gorm:"not null"`
-	DueDate          time.Time     `gorm:"not null"`
-	PaymentDate      *time.Time    `gorm:"null"`
-	EmailSentDate    *time.Time    `gorm:"null"`
-	WhatsappSentDate *time.Time    `gorm:"null"`
-	TaxDate          *time.Time    `gorm:"null"`
-	CancellationDate *time.Time    `gorm:"null"`
-	Notes            *string       `gorm:"null"`
-	CreatedAt        time.Time     `gorm:"autoCreateTime"`
-	UpdatedAt        time.Time     `gorm:"autoUpdateTime"`
-	InvoiceItems     []InvoiceItem `gorm:"foreignKey:InvoiceID"`
+	ID                  int64         `gorm:"primaryKey"`
+	CustomerID          int64         `gorm:"not null"`
+	Customer            Customer      `gorm:"foreignKey:CustomerID"`
+	Amount              float64       `gorm:"not null"`
+	InvoiceDate         time.Time     `gorm:"not null"`
+	DueDate             time.Time     `gorm:"not null"`
+	PaymentDate         *time.Time    `gorm:"null"`
+	EmailSentDate       *time.Time    `gorm:"null"`
+	WhatsappSentDate    *time.Time    `gorm:"null"`
+	EmailReceiptDate    *time.Time    `gorm:"null"`
+	WhatsappReceiptDate *time.Time    `gorm:"null"`
+	TaxDate             *time.Time    `gorm:"null"`
+	CancellationDate    *time.Time    `gorm:"null"`
+	Notes               *string       `gorm:"null"`
+	CreatedAt           time.Time     `gorm:"autoCreateTime"`
+	UpdatedAt           time.Time     `gorm:"autoUpdateTime"`
+	InvoiceItems        []InvoiceItem `gorm:"foreignKey:InvoiceID"`
 }
 
 // NewInvoice creates a new Invoice instance with the details and calculates the total amount.

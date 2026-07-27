@@ -10,20 +10,22 @@ import (
 
 // InvoiceListRequest represents the data transfer object for listing invoices with pagination and optional filters.
 type InvoiceListRequest struct {
-	Page             int     `json:"page" validate:"required,gt=0"`
-	PageSize         int     `json:"page_size" validate:"required,gt=0"`
-	Customer         *string `json:"customer,omitempty"`
-	CustomerID       int64   `json:"customer_id,omitempty"`
-	Vendor           *string `json:"vendor,omitempty"`
-	VendorID         int64   `json:"vendor_id,omitempty"`
-	InvoiceDate      *string `json:"invoicing,omitempty"`
-	DueDate          *string `json:"due,omitempty"`
-	PaymentDate      *string `json:"payment,omitempty"`
-	EmailSentDate    *string `json:"email_sent,omitempty"`
-	WhatsappSentDate *string `json:"whatsapp_sent,omitempty"`
-	CancellationDate *string `json:"cancellation,omitempty"`
-	TaxDate          *string `json:"tax,omitempty"`
-	Notes            *string `json:"notes,omitempty"`
+	Page                int     `json:"page" validate:"required,gt=0"`
+	PageSize            int     `json:"page_size" validate:"required,gt=0"`
+	Customer            *string `json:"customer,omitempty"`
+	CustomerID          int64   `json:"customer_id,omitempty"`
+	Vendor              *string `json:"vendor,omitempty"`
+	VendorID            int64   `json:"vendor_id,omitempty"`
+	InvoiceDate         *string `json:"invoicing,omitempty"`
+	DueDate             *string `json:"due,omitempty"`
+	PaymentDate         *string `json:"payment,omitempty"`
+	EmailSentDate       *string `json:"email_sent,omitempty"`
+	WhatsappSentDate    *string `json:"whatsapp_sent,omitempty"`
+	EmailReceiptDate    *string `json:"email_receipt,omitempty"`
+	WhatsappReceiptDate *string `json:"whatsapp_receipt,omitempty"`
+	TaxDate             *string `json:"tax,omitempty"`
+	CancellationDate    *string `json:"cancellation,omitempty"`
+	Notes               *string `json:"notes,omitempty"`
 }
 
 // InvoiceListResponse represents the data transfer object for the response of listing invoices.
@@ -34,18 +36,20 @@ type InvoiceListResponse struct {
 
 // InvoiceList represents a single invoice item in the list response.
 type InvoiceList struct {
-	ID               int64                 `json:"id"`
-	Customer         string                `json:"customer"`
-	Amount           float64               `json:"amount"`
-	InvoiceDate      string                `json:"invoicing"`
-	DueDate          string                `json:"due"`
-	PaymentDate      string                `json:"payment"`
-	EmailSentDate    string                `json:"email_sent"`
-	WhatsappSentDate string                `json:"whatsapp_sent"`
-	TaxDate          string                `json:"tax"`
-	CancellationDate string                `json:"cancellation"`
-	Notes            string                `json:"notes"`
-	Items            []InvoiceListListItem `json:"items,omitempty"`
+	ID                  int64                 `json:"id"`
+	Customer            string                `json:"customer"`
+	Amount              float64               `json:"amount"`
+	InvoiceDate         string                `json:"invoicing"`
+	DueDate             string                `json:"due"`
+	PaymentDate         string                `json:"payment"`
+	EmailSentDate       string                `json:"email_sent"`
+	WhatsappSentDate    string                `json:"whatsapp_sent"`
+	EmailReceiptDate    string                `json:"email_receipt"`
+	WhatsappReceiptDate string                `json:"whatsapp_receipt"`
+	TaxDate             string                `json:"tax"`
+	CancellationDate    string                `json:"cancellation"`
+	Notes               string                `json:"notes"`
+	Items               []InvoiceListListItem `json:"items,omitempty"`
 }
 
 // InvoiceListListItem represents a single invoice item in the list response.
@@ -67,7 +71,8 @@ func NewInvoiceListResponse(code int, status, message string,
 
 // NewInvoiceList creates a new instance of InvoiceList with the provided details.
 func NewInvoiceList(id int64, customer string, amount float64, invoiceDate, dueDate time.Time,
-	paymentDate, emailSentDate, whatsappSentDate, taxDate, cancellationDate *time.Time,
+	paymentDate, emailSentDate, whatsappSentDate, emailReceiptDate, whatsappReceiptDate,
+	taxDate, cancellationDate *time.Time,
 	notes *string, items []InvoiceListListItem) InvoiceList {
 	invoiceDateStr := invoiceDate.Format("2006-01-02")
 	dueDateStr := dueDate.Format("2006-01-02")
@@ -83,6 +88,14 @@ func NewInvoiceList(id int64, customer string, amount float64, invoiceDate, dueD
 	if whatsappSentDate != nil {
 		whatsappSentDateStr = whatsappSentDate.Format("2006-01-02")
 	}
+	emailReceiptDateStr := "-"
+	if emailReceiptDate != nil {
+		emailReceiptDateStr = emailReceiptDate.Format("2006-01-02")
+	}
+	whatsappReceiptDateStr := "-"
+	if whatsappReceiptDate != nil {
+		whatsappReceiptDateStr = whatsappReceiptDate.Format("2006-01-02")
+	}
 	taxDateStr := "-"
 	if taxDate != nil {
 		taxDateStr = taxDate.Format("2006-01-02")
@@ -96,18 +109,20 @@ func NewInvoiceList(id int64, customer string, amount float64, invoiceDate, dueD
 		notesStr = *notes
 	}
 	return InvoiceList{
-		ID:               id,
-		Customer:         customer,
-		Amount:           amount,
-		InvoiceDate:      invoiceDateStr,
-		DueDate:          dueDateStr,
-		PaymentDate:      paymentDateStr,
-		EmailSentDate:    emailSentDateStr,
-		WhatsappSentDate: whatsappSentDateStr,
-		TaxDate:          taxDateStr,
-		CancellationDate: cancellationDateStr,
-		Notes:            notesStr,
-		Items:            items,
+		ID:                  id,
+		Customer:            customer,
+		Amount:              amount,
+		InvoiceDate:         invoiceDateStr,
+		DueDate:             dueDateStr,
+		PaymentDate:         paymentDateStr,
+		EmailSentDate:       emailSentDateStr,
+		WhatsappSentDate:    whatsappSentDateStr,
+		EmailReceiptDate:    emailReceiptDateStr,
+		WhatsappReceiptDate: whatsappReceiptDateStr,
+		TaxDate:             taxDateStr,
+		CancellationDate:    cancellationDateStr,
+		Notes:               notesStr,
+		Items:               items,
 	}
 }
 
@@ -193,6 +208,9 @@ func (r *InvoiceListRequest) Reset() {
 	r.PaymentDate = nil
 	r.EmailSentDate = nil
 	r.WhatsappSentDate = nil
+	r.EmailReceiptDate = nil
+	r.WhatsappReceiptDate = nil
 	r.TaxDate = nil
 	r.Notes = nil
+	r.CancellationDate = nil
 }
