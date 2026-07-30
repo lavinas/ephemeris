@@ -100,18 +100,18 @@
 		<tr>
 			<td class="details-td">
 				<span class="label">{{.CustomerName}}</span><br>
-				{{ if .CustomerDocument}}
-				<span class="label">CPF/CNPJ:</span> <span class="val">{{.CustomerDocument}}</span><br>
+				{{ if .CustomerDocumentType}}
+				<span class="label">{{.CustomerDocumentType}}:</span> <span class="val">{{.CustomerDocument}}</span><br>
 				{{ else }}
-				<span class="label">CPF/CNPJ:</span> <span class="val">N/A</span><br>
+				<span class="label">{{.CustomerDocumentType}}:</span> <span class="val">N/A</span><br>
 				{{ end }}
 				<span class="label">Email:</span> <span class="val">{{.CustomerEmail}}</span>
 			</td>
 			<td class="details-td" style="text-align: right;">
 				<span class="label">Emissão :</span> <span class="val">{{br_date .InvoiceDate}}</span><br>
-				<span class="label">Vencimento:</span> <span class="val">{{br_date .DueDate}}</span><br>
-				{{ if .PaymentDate}}
-				<span class="label">Pagamento:</span> <span class="val">{{br_date .PaymentDate}}</span>
+				<span class="label">Vencimento:</span> <span class="val">{{br_date .InvoiceDueDate}}</span><br>
+				{{ if .InvoicePaymentDate}}
+				<span class="label">Pagamento:</span> <span class="val">{{br_date .InvoicePaymentDate}}</span>
 				{{ else }}
 				<span class="label">Pagamento:</span> <span class="val">N/A</span>
 				{{ end }}
@@ -133,7 +133,7 @@
 			</tr>
 		</thead>
 		<tbody>
-        {{range .Items}}
+        {{range .InvoiceItems}}
 			<tr>
 				<td class="desc-col">{{.Description}}</td>
 				<td style="text-align: center;">{{.Quantity}}</td>
@@ -144,7 +144,7 @@
 			<tr>
 				<td colspan="2" class="total-row-td"></td>
 				<td style="text-align: right; font-weight: bold;" class="total-row-td">TOTAL</td>
-				<td style="text-align: right; font-size: 15px;" class="text-black-bold total-row-td">{{br_currency .TotalAmount}}</td>
+				<td style="text-align: right; font-size: 15px;" class="text-black-bold total-row-td">{{br_currency .InvoiceTotalAmount}}</td>
 			</tr>
 		</tbody>
 	</table>

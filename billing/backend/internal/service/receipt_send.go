@@ -116,9 +116,16 @@ func (s *ReceiptSend) registerSendReceiver(invoice *domain.Invoice) {
 // getIssuerData creates an IssuerData DTO based on the provided ReceiptSendRequest, Vendor, and Invoice.
 func (s *ReceiptSend) getIssuerData(vendor *domain.Vendor, invoice *domain.Invoice, email string) *dto.IssuerData {
 	items, totalAmount := s.getReceiptItems(invoice)
-	sendEmail := invoice.Customer.Email
+	sendEmail := ""
+	if invoice.Customer.Email != nil {
+		sendEmail = *invoice.Customer.Email
+	}
 	if email != "" {
-		sendEmail = &email
+		sendEmail = email
+	}
+	document := ""
+	if invoice.Customer.Document != nil {
+		document = *invoice.Customer.Document
 	}
 	return &dto.IssuerData{
 		VendorLogoBase64:   s.getLogoBase64(vendor),
@@ -133,13 +140,13 @@ func (s *ReceiptSend) getIssuerData(vendor *domain.Vendor, invoice *domain.Invoi
 		InvoiceNumber:      invoice.ID,
 		CustomerName:       invoice.Customer.Name,
 		CustomerNickname:   invoice.Customer.Nickname,
-		CustomerDocument:   invoice.Customer.Document,
+		CustomerDocument:   document,
 		CustomerEmail:      sendEmail,
 		InvoiceDate:        invoice.InvoiceDate,
-		DueDate:            invoice.DueDate,
-		PaymentDate:        invoice.PaymentDate,
-		Items:              items,
-		TotalAmount:        totalAmount,
+		InvoiceDueDate:     invoice.DueDate,
+		InvoicePaymentDate: *invoice.PaymentDate,
+		InvoiceItems:       items,
+		InvoiceTotalAmount: totalAmount,
 	}
 }
 

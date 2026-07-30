@@ -11,25 +11,38 @@ import (
 
 // IssuerData represents the data required to generate a receipt.
 type IssuerData struct {
-	VendorLogoBase64   template.URL
-	VendorName         string
-	VendorDocument     string
-	VendorEmail        string
-	VendorWhatsApp     string
+	// vendor information
+	VendorLogoBase64 template.URL
+	VendorName       string
+	VendorDocument   string
+	VendorEmail      string
+	VendorWhatsApp   string
+	// vendor SMTP configuration
 	VendorSMTPHost     string
 	VendorSMTPPort     int
 	VendorSMTPUsername string
 	VendorSMTPPassword string
+	// vendor Pix information
+	VendorPixQRBase64  template.URL
+	VendorPixCopyPaste string
+	VendorPixName      string
+	// vendor bank information
+	VendorBank    string
+	VendorAgency  string
+	VendorAccount string
+	// customer information
+	CustomerNickname     string
+	CustomerName         string
+	CustomerDocumentType string
+	CustomerDocument     string
+	CustomerEmail        string
+	// invoice information
 	InvoiceNumber      int64
-	CustomerNickname   string
-	CustomerName       string
-	CustomerDocument   *string
-	CustomerEmail      *string
 	InvoiceDate        time.Time
-	DueDate            time.Time
-	PaymentDate        *time.Time
-	Items              []ReceiptItem
-	TotalAmount        float64
+	InvoiceDueDate     time.Time
+	InvoicePaymentDate time.Time
+	InvoiceTotalAmount float64
+	InvoiceItems       []ReceiptItem
 }
 
 // ReceiptItem represents an individual item in the receipt.
@@ -51,14 +64,22 @@ func (r *IssuerData) Reset() {
 	r.VendorSMTPPort = 0
 	r.VendorSMTPUsername = ""
 	r.VendorSMTPPassword = ""
-	r.InvoiceNumber = 0
+	r.VendorPixQRBase64 = ""
+	r.VendorPixCopyPaste = ""
+	r.VendorPixName = ""
+	r.VendorBank = ""
+	r.VendorAgency = ""
+	r.VendorAccount = ""
+	r.CustomerNickname = ""
 	r.CustomerName = ""
-	r.CustomerDocument = nil
-	r.CustomerEmail = nil
+	r.CustomerDocumentType = ""
+	r.CustomerDocument = ""
+	r.CustomerEmail = ""
+	r.InvoiceNumber = 0
 	r.InvoiceDate = time.Time{}
-	r.DueDate = time.Time{}
-	r.PaymentDate = nil
-	r.TotalAmount = 0.0
+	r.InvoiceDueDate = time.Time{}
+	r.InvoicePaymentDate = time.Time{}
+	r.InvoiceTotalAmount = 0.0
 }
 
 // Validate checks if the IssuerData fields are valid and returns an error if any required field is missing or invalid.
@@ -100,7 +121,7 @@ func (r *IssuerData) Validate(repo port.Repository) error {
 	if r.InvoiceDate.IsZero() {
 		errors = append(errors, fmt.Errorf("invoice date is required"))
 	}
-	if r.DueDate.IsZero() {
+	if r.InvoiceDueDate.IsZero() {
 		errors = append(errors, fmt.Errorf("due date is required"))
 	}
 	if len(errors) > 0 {

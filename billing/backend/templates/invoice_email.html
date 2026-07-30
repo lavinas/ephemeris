@@ -1,0 +1,90 @@
+<html>
+<body style="margin: 0; padding: 0; background-color: #f4f5f7; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" width="100%" style="background-color: #f4f5f7; padding: 40px 20px;">
+        <tr>
+            <td align="center">
+                <!-- Caixa Principal do E-mail -->
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width: 600px; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);">
+                    
+                    <!-- Cabeçalho Escuro com o Logo referenciado por CID -->
+                    <tr>
+                        <td align="center" style="background-color: #000000; padding: 25px 20px;">
+                            <img src="cid:{{.VendorLogoBase64}}" alt="{{.VendorName}}" width="220" style="display: block; border: 0; max-width: 100%; height: auto;">
+                        </td>
+                    </tr>
+
+                    <!-- Linha Decorativa Fina em Roxo/Violeta -->
+                    <tr>
+                        <td height="3" style="background-color: #7B5CB7; font-size: 0; line-height: 0;">&nbsp;</td>
+                    </tr>
+
+                    <!-- Corpo do E-mail -->
+                    <tr>
+                        <td style="padding: 40px 30px;">
+                            <h1 style="margin: 0 0 20px 0; font-size: 22px; font-weight: 600; color: #1F2937; line-height: 1.3;">
+                                Olá {{.CustomerName}},
+                            </h1>
+                            
+                            <p style="margin: 0 0 16px 0; font-size: 16px; line-height: 1.6; color: #4B5563;">
+                                Obrigado pela confiança, sempre buscamos investir em aperfeiçoamento pedagógico e em tecnologia.
+                            </p>
+
+                            <p style="margin: 0 0 12px 0; font-size: 16px; line-height: 1.6; color: #4B5563;">
+                                Enviamos em anexo a fatura referente ao vencimento em <strong>{{br_date .InvoiceDueDate}}</strong> no valor de <strong>{{br_currency .InvoiceTotalAmount}}</strong>, referente a:
+                            </p>
+
+                            <!-- Lista de Itens Dinâmicos em Bullet Points -->
+                            <ul style="margin: 0 0 24px 0; padding-left: 20px; font-size: 15px; line-height: 1.6; color: #6B7280;">
+                                {{range .InvoiceItems}}
+                                <li style="margin-bottom: 6px; color: #6B7280;">
+                                    {{.Description}} {{if gt .Quantity 1}}({{.Quantity}}x){{end}}
+                                </li>
+                                {{end}}
+                            </ul>
+
+                            <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #4B5563;">
+                                Para sua comodidade, disponibilizamos também aqui o pagamento via Pix. Utilize o QR Code ou copie e cole o código pix que estão abaixo:
+                            </p>
+
+                            <!-- Painel com QR Code e Código Pix Copia e Cola -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #F9FAFB; border-radius: 6px; margin-bottom: 24px;">
+                                <tr>
+                                    <td align="center" style="padding: 24px 20px 15px 20px;">
+                                        <img src="cid:{{.VendorPixQRBase64}}" alt="QR Code Pix" width="150" height="150" style="display: block; border: 1px solid #E5E7EB; padding: 6px; background-color: #ffffff; border-radius: 4px;">
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 0 20px 24px 20px;">
+                                        <div style="font-size: 13px; font-weight: 600; color: #4B5563; margin-bottom: 6px; text-align: left;">Código Pix Copia e Cola:</div>
+                                        <div style="font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 12px; color: #1F2937; background-color: #F3F4F6; padding: 12px; border-radius: 6px; border: 1px solid #E5E7EB; word-break: break-all; text-align: left; line-height: 1.4;">
+                                            {{.VendorPixCopyPaste}}
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Aviso de Segurança Importante -->
+                            <p style="margin: 0 0 32px 0; font-size: 13px; line-height: 1.5; color: #6B7280; font-style: italic; background-color: #FFFBEB; border-left: 4px solid #F59E0B; padding: 10px 12px; border-radius: 0 4px 4px 0;">
+                                <strong>* Atenção:</strong> Antes de confirmar o pagamento no seu banco, verifique se o valor exato é <strong>{{br_currency .InvoiceTotalAmount}}</strong> e se o recebedor final está em nome de <strong>{{.VendorPixName}}</strong>.
+                            </p>
+
+                            <p style="margin: 0 0 4px 0; font-size: 15px; color: #4B5563;">Atenciosamente,</p>
+                            <p style="margin: 0; font-size: 16px; font-weight: 600; color: #1F2937;">{{.VendorName}}</p>
+                        </td>
+                    </tr>
+
+                    <!-- Rodapé -->
+                    <tr>
+                        <td style="padding: 0 30px 30px 30px; text-align: center;">
+                            <p style="margin: 0; font-size: 12px; color: #9CA3AF;">
+                                Este é um e-mail automático enviado por {{.VendorName}}. Por favor, não responda a esta mensagem diretamente.
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

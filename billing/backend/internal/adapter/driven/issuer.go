@@ -64,7 +64,7 @@ func (r *Issuer) SendMail(data port.InDTO, html_pdf string, html_email string) e
 	if !ok {
 		return fmt.Errorf("invalid data type: expected *dto.IssuerData")
 	}
-	if dtoData.CustomerEmail == nil || *dtoData.CustomerEmail == "" {
+	if dtoData.CustomerEmail == "" {
 		return fmt.Errorf("customer email is required")
 	}
 	pdfBase64, err := r.GetBase64(dtoData, html_pdf)
@@ -72,6 +72,10 @@ func (r *Issuer) SendMail(data port.InDTO, html_pdf string, html_email string) e
 		return fmt.Errorf("SendMail: %w", err)
 	}
 	logoImage, logoAlias, err := r.prepareLogoAttachment(dtoData)
+	if err != nil {
+		return fmt.Errorf("SendMail: %w", err)
+	}
+	qrImage, qrAlias, err := r.prepareQRCodeAttachment(dtoData)
 	if err != nil {
 		return fmt.Errorf("SendMail: %w", err)
 	}
@@ -83,7 +87,7 @@ func (r *Issuer) SendMail(data port.InDTO, html_pdf string, html_email string) e
 	if err != nil {
 		return fmt.Errorf("SendMail: %w", err)
 	}
-	return r.send(*dtoData, htmlContent, pdfBase64, logoImage, logoAlias)
+	return r.send(*dtoData, htmlContent, pdfBase64, logoImage, logoAlias, qrImage, qrAlias)
 }
 
 // GetReceiptName generates a filename for the receipt PDF based on the invoice number and customer name.
@@ -92,7 +96,7 @@ func (r *Issuer) GetName(data port.InDTO) string {
 	if !ok {
 		return "receipt.pdf"
 	}
-	return fmt.Sprintf("%s-%s-%s-recibo.pdf", dtoData.DueDate.Format("2006-01-02"),
+	return fmt.Sprintf("%s-%s-%s-recibo.pdf", dtoData.InvoiceDueDate.Format("2006-01-02"),
 		dtoData.InvoiceDate.Format("2006-01-02"), dtoData.CustomerNickname)
 }
 
@@ -117,11 +121,32 @@ func (r *Issuer) prepareLogoAttachment(dtoData *dto.IssuerData) ([]byte, string,
 	return logoBytes, alias, nil
 }
 
+// prepareQRCodeAttachment prepares the QR code attachment for the email.
+func (r *Issuer) prepareQRCodeAttachment(dtoData *dto.IssuerData) ([]byte, string, error) {
+	alias := "qrcode"
+	if dtoData.VendorPixQRBase64 == "" {
+		return nil, "", nil // No QR code provided
+	}
+	img := string(dtoData.VendorPixQRBase64)
+	if strings.HasPrefix(img, "data:image") {
+		parts := strings.SplitN(img, ",", 2)
+		if len(parts) == 2 {
+			img = parts[1]
+		}
+	}
+	qrCodeBytes, err := base64.StdEncoding.DecodeString(img)
+	if err != nil {
+		return nil, "", fmt.Errorf("decoding QR code base64: %w", err)
+	}
+	dtoData.VendorPixQRBase64 = template.URL(alias)
+	return qrCodeBytes, alias, nil
+}
+
 // send sends the generated receipt via email using the provided SMTP configuration.
-func (r *Issuer) send(dtoData dto.IssuerData, htmlContent string, pdfBase64 []byte, logoImage []byte, logoAlias string) error {
+func (r *Issuer) send(dtoData dto.IssuerData, htmlContent string, pdfBase64 []byte, logoImage []byte, logoAlias string, qrImage []byte, qrAlias string) error {
 	m := gomail.NewMessage()
 	m.SetHeader("From", dtoData.VendorEmail)
-	m.SetHeader("To", *dtoData.CustomerEmail)
+	m.SetHeader("To", dtoData.CustomerEmail)
 	m.SetHeader("Subject", r.getEmailSubject(dtoData))
 	m.SetBody("text/html", htmlContent)
 	m.Attach(r.GetName(&dtoData), gomail.SetCopyFunc(func(w io.Writer) error {
@@ -135,6 +160,15 @@ func (r *Issuer) send(dtoData dto.IssuerData, htmlContent string, pdfBase64 []by
 		}), gomail.SetHeader(map[string][]string{
 			"Content-Disposition": {`inline; filename="grafico.png"`},
 			"Content-ID":          {fmt.Sprintf("<%s>", logoAlias)}, // O ID precisa estar entre < >
+		}))
+	}
+	if qrImage != nil {
+		m.Attach("qrcode.png", gomail.SetCopyFunc(func(w io.Writer) error {
+			_, err := w.Write(qrImage)
+			return err
+		}), gomail.SetHeader(map[string][]string{
+			"Content-Disposition": {`inline; filename="qrcode.png"`},
+			"Content-ID":          {fmt.Sprintf("<%s>", qrAlias)}, // O ID precisa estar entre < >
 		}))
 	}
 	d := gomail.NewDialer(dtoData.VendorSMTPHost, dtoData.VendorSMTPPort, dtoData.VendorSMTPUsername, dtoData.VendorSMTPPassword)
