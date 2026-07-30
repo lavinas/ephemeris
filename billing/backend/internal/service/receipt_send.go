@@ -20,7 +20,8 @@ type ReceiptSend struct {
 }
 
 // NewReceiptSend creates a new instance of ReceiptSend.
-func NewReceiptSend(repo port.Repository, logger port.Logger, issuer port.Issuer, piexer port.Pixer) *ReceiptSend {
+func NewReceiptSend(repo port.Repository, logger port.Logger,
+	issuer port.Issuer, piexer port.Pixer) *ReceiptSend {
 	return &ReceiptSend{
 		Base:   *NewBase(repo, logger),
 		issuer: issuer,
@@ -55,7 +56,8 @@ func (s *ReceiptSend) Run(inDTO port.InDTO) port.OutDTO {
 }
 
 // dispatchAction dispatches the action specified in the ReceiptSendRequest to the appropriate handler.
-func (s *ReceiptSend) dispatchAction(in *dto.ReceiptSendRequest, vendor *domain.Vendor, invoice *domain.Invoice) port.OutDTO {
+func (s *ReceiptSend) dispatchAction(in *dto.ReceiptSendRequest,
+	vendor *domain.Vendor, invoice *domain.Invoice) port.OutDTO {
 	switch in.Action {
 	case 0: // Send email
 		return s.sendEmail(in, vendor, invoice)
@@ -69,9 +71,11 @@ func (s *ReceiptSend) dispatchAction(in *dto.ReceiptSendRequest, vendor *domain.
 }
 
 // sendEmail handles the action of sending a receipt email to the customer.
-func (s *ReceiptSend) sendEmail(in *dto.ReceiptSendRequest, vendor *domain.Vendor, invoice *domain.Invoice) port.OutDTO {
+func (s *ReceiptSend) sendEmail(in *dto.ReceiptSendRequest,
+	vendor *domain.Vendor, invoice *domain.Invoice) port.OutDTO {
 	issuerData := s.getIssuerData(vendor, invoice, in.Email)
-	err := s.issuer.SendMail(issuerData, s.getHTMLTemplate("pdf"), s.getHTMLTemplate("email"))
+	err := s.issuer.SendMail(issuerData, "Estúdio Amelia Cardoso - recibo",
+		s.getHTMLTemplate("pdf"), s.getHTMLTemplate("email"))
 	if err != nil {
 		s.logger.IPrintf(2, "Error sending receipt: %v", err)
 		return dto.NewReceiptSendResponse(500, "internal server error", "contact support", nil, nil)
@@ -81,9 +85,11 @@ func (s *ReceiptSend) sendEmail(in *dto.ReceiptSendRequest, vendor *domain.Vendo
 }
 
 // resendEmail handles the action of resending a receipt email to the customer.
-func (s *ReceiptSend) resendEmail(in *dto.ReceiptSendRequest, vendor *domain.Vendor, invoice *domain.Invoice) port.OutDTO {
+func (s *ReceiptSend) resendEmail(in *dto.ReceiptSendRequest,
+	vendor *domain.Vendor, invoice *domain.Invoice) port.OutDTO {
 	issuerData := s.getIssuerData(vendor, invoice, in.Email)
-	err := s.issuer.SendMail(issuerData, s.getHTMLTemplate("pdf"), s.getHTMLTemplate("email"))
+	err := s.issuer.SendMail(issuerData, "Estúdio Amelia Cardoso - recibo",
+		s.getHTMLTemplate("pdf"), s.getHTMLTemplate("email"))
 	if err != nil {
 		s.logger.IPrintf(2, "Error resending receipt: %v", err)
 		return dto.NewReceiptSendResponse(500, "internal server error", "contact support", nil, nil)
@@ -92,7 +98,8 @@ func (s *ReceiptSend) resendEmail(in *dto.ReceiptSendRequest, vendor *domain.Ven
 }
 
 // getPDFBase64 handles the action of generating a PDF receipt and returning it as a base64 string.
-func (s *ReceiptSend) getPDFBase64(in *dto.ReceiptSendRequest, vendor *domain.Vendor, invoice *domain.Invoice) port.OutDTO {
+func (s *ReceiptSend) getPDFBase64(in *dto.ReceiptSendRequest,
+	vendor *domain.Vendor, invoice *domain.Invoice) port.OutDTO {
 	issuerData := s.getIssuerData(vendor, invoice, in.Email)
 	pdfBytes, err := s.issuer.GetBase64(issuerData, s.getHTMLTemplate("pdf"))
 	if err != nil {
@@ -114,7 +121,8 @@ func (s *ReceiptSend) registerSendReceiver(invoice *domain.Invoice) {
 }
 
 // getIssuerData creates an IssuerData DTO based on the provided ReceiptSendRequest, Vendor, and Invoice.
-func (s *ReceiptSend) getIssuerData(vendor *domain.Vendor, invoice *domain.Invoice, email string) *dto.IssuerData {
+func (s *ReceiptSend) getIssuerData(vendor *domain.Vendor,
+	invoice *domain.Invoice, email string) *dto.IssuerData {
 	items, totalAmount := s.getReceiptItems(invoice)
 	sendEmail := ""
 	if invoice.Customer.Email != nil {

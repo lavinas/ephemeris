@@ -50,6 +50,7 @@ func main() {
 		VendorAgency:         "1234-5",
 		VendorAccount:        "67890-1",
 		InvoiceNumber:        56766,
+		CustomerFirstName:    "Paulo",
 		CustomerName:         "Paulo Celso Lavinas Barbosa",
 		CustomerNickname:     "paulo_lavinas",
 		CustomerDocumentType: "CPF",
@@ -66,42 +67,38 @@ func main() {
 	}
 
 	receipter := driven.NewIssuer()
-
-	html_pdf, err := os.ReadFile("./templates/receipt_pdf.html")
+	err = sendEmail(receipter, &data, "Estúdio Amelia Cardoso - fatura", "./templates/invoice_pdf.html", "./templates/invoice_email.html")
 	if err != nil {
-		fmt.Println("Error reading HTML template:", err)
+		fmt.Println("Error generating and sending PDF invoice:", err)
 		return
+	}
+	err = sendEmail(receipter, &data, "Estúdio Amelia Cardoso - recibo", "./templates/receipt_pdf.html", "./templates/receipt_email.html")
+	if err != nil {
+		fmt.Println("Error generating and sending PDF receipt:", err)
+		return
+	}
+	fmt.Println("PDF receipt generated successfully")
+
+}
+
+// writeAndSendEmail generates a PDF receipt and sends it via email using the provided Issuer component.
+func sendEmail(receipter *driven.Issuer, data *dto.IssuerData, subject, pdfPath, emailPath string) error {
+	html_pdf, err := os.ReadFile(pdfPath)
+	if err != nil {
+		return fmt.Errorf("error reading HTML template: %v", err)
 	}
 	htmlPDFContent := string(html_pdf)
 
-	html_email, err := os.ReadFile("./templates/receipt_email.html")
+	html_email, err := os.ReadFile(emailPath)
 	if err != nil {
-		fmt.Println("Error reading email HTML template:", err)
-		return
+		return fmt.Errorf("error reading email HTML template: %v", err)
 	}
 	htmlEmailContent := string(html_email)
 
-	// Generate the PDF receipt
-	pdf, err := receipter.GetBase64(&data, htmlPDFContent)
-	if err != nil {
-		fmt.Println("Error generating PDF receipt:", err)
-		return
-	}
-
-	// Save the PDF to a file
-	err = os.WriteFile("./invoice.pdf", pdf, 0644)
-	if err != nil {
-		fmt.Println("Error saving PDF receipt:", err)
-		return
-	}
-
 	// Send the receipt via email
-	err = receipter.SendMail(&data, htmlPDFContent, htmlEmailContent)
+	err = receipter.SendMail(data, subject, htmlPDFContent, htmlEmailContent)
 	if err != nil {
-		fmt.Println("Error sending email:", err)
-		return
+		return fmt.Errorf("error sending email: %v", err)
 	}
-
-	fmt.Println("PDF receipt generated successfully: receipt.pdf")
-
+	return nil
 }

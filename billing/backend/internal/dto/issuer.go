@@ -32,6 +32,7 @@ type IssuerData struct {
 	VendorAccount string
 	// customer information
 	CustomerNickname     string
+	CustomerFirstName    string
 	CustomerName         string
 	CustomerDocumentType string
 	CustomerDocument     string
@@ -55,7 +56,7 @@ type ReceiptItem struct {
 
 // Reset resets the IssuerData fields to their zero values.
 func (r *IssuerData) Reset() {
-	r.VendorLogoBase64 = ""
+	r.VendorLogoBase64 = template.URL("")
 	r.VendorName = ""
 	r.VendorDocument = ""
 	r.VendorEmail = ""
@@ -64,13 +65,14 @@ func (r *IssuerData) Reset() {
 	r.VendorSMTPPort = 0
 	r.VendorSMTPUsername = ""
 	r.VendorSMTPPassword = ""
-	r.VendorPixQRBase64 = ""
+	r.VendorPixQRBase64 = template.URL("")
 	r.VendorPixCopyPaste = ""
 	r.VendorPixName = ""
 	r.VendorBank = ""
 	r.VendorAgency = ""
 	r.VendorAccount = ""
 	r.CustomerNickname = ""
+	r.CustomerFirstName = ""
 	r.CustomerName = ""
 	r.CustomerDocumentType = ""
 	r.CustomerDocument = ""

@@ -46,20 +46,19 @@ func (r *Issuer) GetBase64(data port.InDTO, html_pdf string) ([]byte, error) {
 	if dtoData.VendorLogoBase64 != "" && !strings.HasPrefix(string(dtoData.VendorLogoBase64), "data:image") {
 		dtoData.VendorLogoBase64 = template.URL("data:image/png;base64," + string(dtoData.VendorLogoBase64))
 	}
-
-	htmlContent, err := r.format(*dtoData, html_pdf)
+	htmlContent, err := r.format(*dtoData, html_pdf, "", "")
 	if err != nil {
-		return nil, fmt.Errorf("GeneratingReceiptBase64: %w", err)
+		return nil, fmt.Errorf("GetBase64: %w", err)
 	}
 	pdf, err := r.getPDF(htmlContent)
 	if err != nil {
-		return nil, fmt.Errorf("GeneratingReceiptBase64: %w", err)
+		return nil, fmt.Errorf("GetBase64: %w", err)
 	}
 	return pdf, nil
 }
 
 // SendMail sends the generated receipt via email using the provided SMTP configuration.
-func (r *Issuer) SendMail(data port.InDTO, html_pdf string, html_email string) error {
+func (r *Issuer) SendMail(data port.InDTO, subject string, html_pdf string, html_email string) error {
 	dtoData, ok := data.(*dto.IssuerData)
 	if !ok {
 		return fmt.Errorf("invalid data type: expected *dto.IssuerData")
@@ -71,23 +70,20 @@ func (r *Issuer) SendMail(data port.InDTO, html_pdf string, html_email string) e
 	if err != nil {
 		return fmt.Errorf("SendMail: %w", err)
 	}
-	logoImage, logoAlias, err := r.prepareLogoAttachment(dtoData)
+	logoImage, logoAlias, err := r.emailLogoAttachment(dtoData, html_email)
 	if err != nil {
 		return fmt.Errorf("SendMail: %w", err)
 	}
-	qrImage, qrAlias, err := r.prepareQRCodeAttachment(dtoData)
+	qrImage, qrAlias, err := r.emailQRCodeAttachment(dtoData, html_email)
 	if err != nil {
 		return fmt.Errorf("SendMail: %w", err)
 	}
-	// Convert the customer's name to only the first name for personalization
-	firstName := strings.Split(dtoData.CustomerName, " ")[0]
-	dtoData.CustomerName = firstName
 
-	htmlContent, err := r.format(*dtoData, html_email)
+	htmlContent, err := r.format(*dtoData, html_email, logoAlias, qrAlias)
 	if err != nil {
 		return fmt.Errorf("SendMail: %w", err)
 	}
-	return r.send(*dtoData, htmlContent, pdfBase64, logoImage, logoAlias, qrImage, qrAlias)
+	return r.send(*dtoData, subject, htmlContent, pdfBase64, logoImage, logoAlias, qrImage, qrAlias)
 }
 
 // GetReceiptName generates a filename for the receipt PDF based on the invoice number and customer name.
@@ -101,10 +97,13 @@ func (r *Issuer) GetName(data port.InDTO) string {
 }
 
 // prepareLogoAttachment prepares the logo attachment for the email.
-func (r *Issuer) prepareLogoAttachment(dtoData *dto.IssuerData) ([]byte, string, error) {
+func (r *Issuer) emailLogoAttachment(dtoData *dto.IssuerData, html_email string) ([]byte, string, error) {
 	alias := "logo"
 	if dtoData.VendorLogoBase64 == "" {
 		return nil, "", nil // No logo provided
+	}
+	if !strings.Contains(html_email, ".VendorLogoBase64") {
+		return nil, "", nil // Logo not referenced in the email template
 	}
 	img := string(dtoData.VendorLogoBase64)
 	if strings.HasPrefix(img, "data:image") {
@@ -117,15 +116,17 @@ func (r *Issuer) prepareLogoAttachment(dtoData *dto.IssuerData) ([]byte, string,
 	if err != nil {
 		return nil, "", fmt.Errorf("decoding logo base64: %w", err)
 	}
-	dtoData.VendorLogoBase64 = template.URL(alias)
 	return logoBytes, alias, nil
 }
 
 // prepareQRCodeAttachment prepares the QR code attachment for the email.
-func (r *Issuer) prepareQRCodeAttachment(dtoData *dto.IssuerData) ([]byte, string, error) {
+func (r *Issuer) emailQRCodeAttachment(dtoData *dto.IssuerData, html_email string) ([]byte, string, error) {
 	alias := "qrcode"
 	if dtoData.VendorPixQRBase64 == "" {
 		return nil, "", nil // No QR code provided
+	}
+	if !strings.Contains(html_email, ".VendorPixQRBase64") {
+		return nil, "", nil // QR code not referenced in the email template
 	}
 	img := string(dtoData.VendorPixQRBase64)
 	if strings.HasPrefix(img, "data:image") {
@@ -138,16 +139,16 @@ func (r *Issuer) prepareQRCodeAttachment(dtoData *dto.IssuerData) ([]byte, strin
 	if err != nil {
 		return nil, "", fmt.Errorf("decoding QR code base64: %w", err)
 	}
-	dtoData.VendorPixQRBase64 = template.URL(alias)
 	return qrCodeBytes, alias, nil
 }
 
 // send sends the generated receipt via email using the provided SMTP configuration.
-func (r *Issuer) send(dtoData dto.IssuerData, htmlContent string, pdfBase64 []byte, logoImage []byte, logoAlias string, qrImage []byte, qrAlias string) error {
+func (r *Issuer) send(dtoData dto.IssuerData, subject string, htmlContent string, pdfBase64 []byte,
+	logoImage []byte, logoAlias string, qrImage []byte, qrAlias string) error {
 	m := gomail.NewMessage()
 	m.SetHeader("From", dtoData.VendorEmail)
 	m.SetHeader("To", dtoData.CustomerEmail)
-	m.SetHeader("Subject", r.getEmailSubject(dtoData))
+	m.SetHeader("Subject", subject)
 	m.SetBody("text/html", htmlContent)
 	m.Attach(r.GetName(&dtoData), gomail.SetCopyFunc(func(w io.Writer) error {
 		_, err := w.Write(pdfBase64)
@@ -171,36 +172,16 @@ func (r *Issuer) send(dtoData dto.IssuerData, htmlContent string, pdfBase64 []by
 			"Content-ID":          {fmt.Sprintf("<%s>", qrAlias)}, // O ID precisa estar entre < >
 		}))
 	}
-	d := gomail.NewDialer(dtoData.VendorSMTPHost, dtoData.VendorSMTPPort, dtoData.VendorSMTPUsername, dtoData.VendorSMTPPassword)
+	d := gomail.NewDialer(dtoData.VendorSMTPHost, dtoData.VendorSMTPPort,
+		dtoData.VendorSMTPUsername, dtoData.VendorSMTPPassword)
 	if err := d.DialAndSend(m); err != nil {
 		return fmt.Errorf("SendMail: %w", err)
 	}
 	return nil
 }
 
-// getEmailSubject generates the email subject for sending the PDF.
-func (r *Issuer) getEmailSubject(dtoData dto.IssuerData) string {
-	porMonth := map[string]string{
-		"January":   "janeiro",
-		"February":  "fevereiro",
-		"March":     "março",
-		"April":     "abril",
-		"May":       "maio",
-		"June":      "junho",
-		"July":      "julho",
-		"August":    "agosto",
-		"September": "setembro",
-		"October":   "outubro",
-		"November":  "novembro",
-		"December":  "dezembro",
-	}
-	month := time.Time(dtoData.InvoiceDate).Format("January")
-	year := time.Time(dtoData.InvoiceDate).Format("2006")
-	return fmt.Sprintf("Estúdio Amelia Cardoso - recibo de sua fatura de %s de %s ", porMonth[month], year)
-}
-
 // getHTML generates the HTML content for the receipt based on the provided data.
-func (r *Issuer) format(data dto.IssuerData, html string) (string, error) {
+func (r *Issuer) format(data dto.IssuerData, html string, logoAlias, qrAlias string) (string, error) {
 	funcMap := template.FuncMap{
 		"currency": func(amount float64) string {
 			val := fmt.Sprintf("%.2f", amount)
@@ -219,6 +200,12 @@ func (r *Issuer) format(data dto.IssuerData, html string) (string, error) {
 	html_tmpl, err := template.New("receipt").Funcs(funcMap).Parse(html)
 	if err != nil {
 		return "", fmt.Errorf("GeneratingReceiptBase64: %w", err)
+	}
+	if logoAlias != "" {
+		data.VendorLogoBase64 = template.URL(fmt.Sprintf("cid:%s", logoAlias))
+	}
+	if qrAlias != "" {
+		data.VendorPixQRBase64 = template.URL(fmt.Sprintf("cid:%s", qrAlias))
 	}
 	var buf bytes.Buffer
 	err = html_tmpl.Execute(&buf, data)
