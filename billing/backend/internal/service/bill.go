@@ -16,6 +16,10 @@ import (
 	"billing/internal/port"
 )
 
+const (
+	pixDescriptionMaxLength = 99
+)
+
 // Bill is responsible for handling the sending of receipts to customers.
 type Bill struct {
 	Base
@@ -130,7 +134,8 @@ func (s *Bill) resendEmail(in *dto.BillRequest,
 		s.logger.IPrintf(2, "Error getting email template: %v", err)
 		return dto.NewBillResponse(500, "internal server error", "contact support", nil, nil)
 	}
-	err = s.issuer.SendMail(issuerData, subject, pdf_template, email_template)
+	documentName := s.getFileName(invoice, in.Doc)
+	err = s.issuer.SendMail(issuerData, subject, documentName, pdf_template, email_template)
 	if err != nil {
 		s.logger.IPrintf(2, "Error resending receipt: %v", err)
 		return dto.NewBillResponse(500, "internal server error", "contact support", nil, nil)
@@ -157,8 +162,23 @@ func (s *Bill) getPDFBase64(in *dto.BillRequest,
 		return dto.NewBillResponse(500, "internal server error", "contact support", nil, nil)
 	}
 	pdfBase64 := base64.StdEncoding.EncodeToString(pdfBytes)
-	documentName := s.issuer.GetName(issuerData)
+	documentName := s.getFileName(invoice, in.Doc)
 	return dto.NewBillResponse(200, "success", "", &pdfBase64, &documentName)
+}
+
+// getFileName generates a filename for the PDF receipt based on the invoice ID and document type.
+func (s *Bill) getFileName(invoice *domain.Invoice, doc int) string {
+	due := invoice.DueDate.Format("2006-01-02")
+	inv := invoice.InvoiceDate.Format("2006-01-02")
+	doctype := map[int]string{
+		0: "invoice",
+		1: "receipt",
+	}
+	docTypeStr, ok := doctype[doc]
+	if !ok {
+		docTypeStr = "document"
+	}
+	return fmt.Sprintf("%s-%s-%s-%s.pdf", due, inv, invoice.Customer.Nickname, docTypeStr)
 }
 
 // registerSendReceiver registers the Bill service with the provided service registry.
@@ -238,7 +258,7 @@ func (s *Bill) getPixStrings(invoice *domain.Invoice, vendor *domain.Vendor) (st
 	idStr := strconv.FormatInt(invoice.ID, 10)
 	dto := &dto.PixRequest{
 		Key:         vendor.PixToken,
-		Description: invoice.InvoiceItems[0].Description,
+		Description: s.getDescription(invoice),
 		Name:        vendor.PixName,
 		City:        vendor.PixCity,
 		Txid:        idStr,          // Use invoice ID as Txid
@@ -250,6 +270,26 @@ func (s *Bill) getPixStrings(invoice *domain.Invoice, vendor *domain.Vendor) (st
 	}
 	s.logger.IPrintf(2, "Pix strings generated successfully")
 	return payload, qrCode, nil
+}
+
+// getDescription returns the description of the first item in the invoice, or an empty string if there are no items.
+func (s *Bill) getDescription(invoice *domain.Invoice) string {
+	if len(invoice.InvoiceItems) == 0 {
+		return ""
+	}
+	ret := invoice.InvoiceItems[0].Description
+	if len(invoice.InvoiceItems) > 1 {
+		ret += " e mais " + strconv.Itoa(len(invoice.InvoiceItems)-1)
+		if len(invoice.InvoiceItems) > 2 {
+			ret += " itens"
+		} else {
+			ret += " item"
+		}
+	}
+	if len(ret) > pixDescriptionMaxLength {
+		ret = ret[:pixDescriptionMaxLength]
+	}
+	return ret
 }
 
 // getFirstName returns the first name from a full name string.

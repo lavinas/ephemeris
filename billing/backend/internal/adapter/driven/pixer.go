@@ -35,14 +35,20 @@ func (p *Pixer) Get(request port.InDTO) (string, string, error) {
 	if !ok {
 		return "", "", errors.New("invalid input type")
 	}
-	key := p.removeAccents(in.Key)
+
+	p.logger.IPrintf(2, "PixRequest details: Key=%s, Description=%s, Name=%s, City=%s, Amount=%.2f, Txid=%s",
+		in.Key, in.Description, in.Name, in.City, in.Amount, in.Txid)
+	key := p.justNumbers(in.Key)
 	desc := p.removeAccents(in.Description)
 	name := p.removeAccents(in.Name)
 	city := p.removeAccents(in.City)
 	Txid := p.removeAccents(in.Txid)
 
-	payload := p.gerarPayloadPix(key, desc, name, city, in.Amount, Txid)
-	qrCode, err := p.gerarQRCode(payload)
+	p.logger.IPrintf(2, "PixRequest details: Key=%s, Description=%s, Name=%s, City=%s, Amount=%.2f, Txid=%s",
+		key, desc, name, city, in.Amount, Txid)
+
+	payload := p.getPayloadPix(key, desc, name, city, in.Amount, Txid)
+	qrCode, err := p.getQRCode(payload)
 	if err != nil {
 		return "", "", err
 	}
@@ -73,7 +79,7 @@ func (p *Pixer) montaCampo(tag string, valor string) string {
 }
 
 // Gera o Payload do Pix Copia e Cola
-func (p *Pixer) gerarPayloadPix(chave string, descricao string, nome string, cidade string, valor float64, txid string) string {
+func (p *Pixer) getPayloadPix(chave string, descricao string, nome string, cidade string, valor float64, txid string) string {
 	// Trata os dados para o padrão aceito pelo Santander
 	nomeTratado := strings.ToUpper(p.removeAccents(nome))
 	if len(nomeTratado) > 25 {
@@ -131,8 +137,19 @@ func (i *Pixer) removeAccents(texto string) string {
 	return resultado
 }
 
+// justNumbers is a helper function to remove all non-numeric characters from a string.
+func (i *Pixer) justNumbers(texto string) string {
+	var numeros strings.Builder
+	for _, r := range texto {
+		if unicode.IsDigit(r) {
+			numeros.WriteRune(r)
+		}
+	}
+	return numeros.String()
+}
+
 // gerarQRCode generates a QR code image from the provided Pix payload and saves it to the specified file path.
-func (p *Pixer) gerarQRCode(payload string) (string, error) {
+func (p *Pixer) getQRCode(payload string) (string, error) {
 	// Gera os bytes do PNG diretamente na memória
 	var pngBytes []byte
 	pngBytes, err := qrcode.Encode(payload, qrcode.Medium, 256)

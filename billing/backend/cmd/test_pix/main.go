@@ -3,6 +3,8 @@ package main
 import (
 	"billing/internal/adapter/driven"
 	"billing/internal/dto"
+	"encoding/base64"
+	"os"
 )
 
 // Main function to test the Pix payment payload generation.
@@ -24,6 +26,17 @@ func main() {
 		println("Error generating Pix payload:", err.Error())
 		return
 	}
+
+	decodedQR, err := base64.StdEncoding.DecodeString(qrCode)
+	if err != nil {
+		println("Error decoding Pix QR code:", err.Error())
+		return
+	}
+
+	if err := os.WriteFile("pix_test.png", decodedQR, 0644); err != nil {
+		println("Error writing Pix QR code to file:", err.Error())
+		return
+	}
+
 	println("Generated Pix Payload:", payload)
-	println("Generated Pix QR Code:", qrCode)
 }

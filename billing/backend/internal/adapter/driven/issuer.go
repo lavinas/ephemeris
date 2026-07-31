@@ -61,7 +61,7 @@ func (r *Issuer) GetBase64(data port.InDTO, html_pdf string) ([]byte, error) {
 }
 
 // SendMail sends the generated receipt via email using the provided SMTP configuration.
-func (r *Issuer) SendMail(data port.InDTO, subject string, html_pdf string, html_email string) error {
+func (r *Issuer) SendMail(data port.InDTO, subject, filename, html_pdf, html_email string) error {
 	dtoData, ok := data.(*dto.IssuerData)
 	if !ok {
 		return fmt.Errorf("invalid data type: expected *dto.IssuerData")
@@ -86,17 +86,7 @@ func (r *Issuer) SendMail(data port.InDTO, subject string, html_pdf string, html
 	if err != nil {
 		return fmt.Errorf("SendMail: %w", err)
 	}
-	return r.send(*dtoData, subject, htmlContent, pdfBase64, logoImage, logoAlias, qrImage, qrAlias)
-}
-
-// GetReceiptName generates a filename for the receipt PDF based on the invoice number and customer name.
-func (r *Issuer) GetName(data port.InDTO) string {
-	dtoData, ok := data.(*dto.IssuerData)
-	if !ok {
-		return "receipt.pdf"
-	}
-	return fmt.Sprintf("%s-%s-%s-recibo.pdf", dtoData.InvoiceDueDate.Format("2006-01-02"),
-		dtoData.InvoiceDate.Format("2006-01-02"), dtoData.CustomerNickname)
+	return r.send(*dtoData, subject, filename, htmlContent, pdfBase64, logoImage, logoAlias, qrImage, qrAlias)
 }
 
 // prepareLogoAttachment prepares the logo attachment for the email.
@@ -146,19 +136,19 @@ func (r *Issuer) emailQRCodeAttachment(dtoData *dto.IssuerData, html_email strin
 }
 
 // send sends the generated receipt via email using the provided SMTP configuration.
-func (r *Issuer) send(dtoData dto.IssuerData, subject string, htmlContent string, pdfBase64 []byte,
+func (r *Issuer) send(dtoData dto.IssuerData, subject, filename, htmlContent string, pdfBase64 []byte,
 	logoImage []byte, logoAlias string, qrImage []byte, qrAlias string) error {
 	m := gomail.NewMessage()
 	m.SetHeader("From", dtoData.VendorEmail)
 	m.SetHeader("To", dtoData.CustomerEmail)
 	m.SetHeader("Subject", subject)
 	m.SetBody("text/html", htmlContent)
-	m.Attach(r.GetName(&dtoData), gomail.SetCopyFunc(func(w io.Writer) error {
+	m.Attach(filename, gomail.SetCopyFunc(func(w io.Writer) error {
 		_, err := w.Write(pdfBase64)
 		return err
 	}))
 	if logoImage != nil {
-		m.Attach("grafico.png", gomail.SetCopyFunc(func(w io.Writer) error {
+		m.Attach(filename, gomail.SetCopyFunc(func(w io.Writer) error {
 			_, err := w.Write(logoImage)
 			return err
 		}), gomail.SetHeader(map[string][]string{

@@ -91,7 +91,7 @@ func main() {
 }
 
 // writeAndSendEmail generates a PDF receipt and sends it via email using the provided Issuer component.
-func sendEmail(receipter *driven.Issuer, data *dto.IssuerData, subject, pdfPath, emailPath string) error {
+func sendEmail(receipter *driven.Issuer, data *dto.IssuerData, subject, docName, pdfPath, emailPath string) error {
 	html_pdf, err := os.ReadFile(pdfPath)
 	if err != nil {
 		return fmt.Errorf("error reading HTML template: %v", err)
@@ -105,7 +105,7 @@ func sendEmail(receipter *driven.Issuer, data *dto.IssuerData, subject, pdfPath,
 	htmlEmailContent := string(html_email)
 
 	// Send the receipt via email
-	err = receipter.SendMail(data, subject, htmlPDFContent, htmlEmailContent)
+	err = receipter.SendMail(data, subject, docName, htmlPDFContent, htmlEmailContent)
 	if err != nil {
 		return fmt.Errorf("error sending email: %v", err)
 	}
