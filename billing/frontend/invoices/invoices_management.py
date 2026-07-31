@@ -196,8 +196,8 @@ def send_bill(vendor, invoiceID, doc, email):
     return f'{resp["status"]} - {resp["message"]}'
 
 
-def save_receipt(vendor, invoiceID, path):
-    json_data = {'vendor': vendor, 'doc': 1, 'invoice_id': invoiceID, 'action': 2}
+def save_bill(vendor, invoiceID, doc, path):
+    json_data = {'vendor': vendor, 'doc': doc, 'invoice_id': invoiceID, 'action': 2}
     try:
         resposta = requests.post(f'{endpoint}/invoice/bill', json=json_data, timeout=5)
     except ConnectionError as e:

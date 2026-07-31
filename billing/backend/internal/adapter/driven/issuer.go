@@ -46,6 +46,9 @@ func (r *Issuer) GetBase64(data port.InDTO, html_pdf string) ([]byte, error) {
 	if dtoData.VendorLogoBase64 != "" && !strings.HasPrefix(string(dtoData.VendorLogoBase64), "data:image") {
 		dtoData.VendorLogoBase64 = template.URL("data:image/png;base64," + string(dtoData.VendorLogoBase64))
 	}
+	if dtoData.VendorPixQRBase64 != "" && !strings.HasPrefix(string(dtoData.VendorPixQRBase64), "data:image") {
+		dtoData.VendorPixQRBase64 = template.URL("data:image/png;base64," + string(dtoData.VendorPixQRBase64))
+	}
 	htmlContent, err := r.format(*dtoData, html_pdf, "", "")
 	if err != nil {
 		return nil, fmt.Errorf("GetBase64: %w", err)

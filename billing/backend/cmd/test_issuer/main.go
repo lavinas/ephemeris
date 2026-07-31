@@ -67,17 +67,26 @@ func main() {
 	}
 
 	receipter := driven.NewIssuer()
-	err = sendEmail(receipter, &data, "Estúdio Amelia Cardoso - fatura", "./templates/invoice_pdf.html", "./templates/invoice_email.html")
+
+	/*
+		err = sendEmail(receipter, &data, "Estúdio Amelia Cardoso - fatura", "./templates/invoice_pdf.html", "./templates/invoice_email.html")
+		if err != nil {
+			fmt.Println("Error generating and sending PDF invoice:", err)
+			return
+		}
+		err = sendEmail(receipter, &data, "Estúdio Amelia Cardoso - recibo", "./templates/receipt_pdf.html", "./templates/receipt_email.html")
+		if err != nil {
+			fmt.Println("Error generating and sending PDF receipt:", err)
+			return
+		}
+	*/
+	err = savePDF(receipter, &data, "./templates/invoice_pdf.html", "./invoice.pdf")
 	if err != nil {
-		fmt.Println("Error generating and sending PDF invoice:", err)
+		fmt.Println("Error generating and saving PDF invoice:", err)
 		return
 	}
-	err = sendEmail(receipter, &data, "Estúdio Amelia Cardoso - recibo", "./templates/receipt_pdf.html", "./templates/receipt_email.html")
-	if err != nil {
-		fmt.Println("Error generating and sending PDF receipt:", err)
-		return
-	}
-	fmt.Println("PDF receipt generated successfully")
+
+	fmt.Println("PDF generated successfully")
 
 }
 
@@ -99,6 +108,26 @@ func sendEmail(receipter *driven.Issuer, data *dto.IssuerData, subject, pdfPath,
 	err = receipter.SendMail(data, subject, htmlPDFContent, htmlEmailContent)
 	if err != nil {
 		return fmt.Errorf("error sending email: %v", err)
+	}
+	return nil
+}
+
+// savePDF generates a PDF receipt and saves it to the specified file path using the provided Issuer component.
+func savePDF(receipter *driven.Issuer, data *dto.IssuerData, templatePath string, pdfPath string) error {
+	html_pdf, err := os.ReadFile(templatePath)
+	if err != nil {
+		return fmt.Errorf("error reading HTML template: %v", err)
+	}
+	htmlPDFContent := string(html_pdf)
+
+	// Generate the PDF receipt
+	pdf, err := receipter.GetBase64(data, htmlPDFContent)
+	if err != nil {
+		return fmt.Errorf("error generating PDF: %v", err)
+	}
+	err = os.WriteFile(pdfPath, pdf, 0644)
+	if err != nil {
+		return fmt.Errorf("error writing PDF file: %v", err)
 	}
 	return nil
 }

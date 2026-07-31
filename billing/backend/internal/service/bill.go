@@ -2,14 +2,14 @@ package service
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"html/template"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
-	"strconv"
-	"errors"
 
 	"billing/internal/domain"
 	"billing/internal/dto"
@@ -20,7 +20,7 @@ import (
 type Bill struct {
 	Base
 	issuer port.Issuer
-	pixer port.Pixer
+	pixer  port.Pixer
 }
 
 // NewBill creates a new instance of Bill.
@@ -29,7 +29,7 @@ func NewBill(repo port.Repository, logger port.Logger,
 	return &Bill{
 		Base:   *NewBase(repo, logger),
 		issuer: issuer,
-		pixer: pixer,
+		pixer:  pixer,
 	}
 }
 
@@ -106,28 +106,9 @@ func (s *Bill) getSubject(docType int, invoiceDate time.Time) string {
 // sendEmail handles the action of sending a receipt email to the customer.
 func (s *Bill) sendEmail(in *dto.BillRequest,
 	vendor *domain.Vendor, invoice *domain.Invoice) port.OutDTO {
-	subject := s.getSubject(in.Doc, invoice.InvoiceDate)
-	issuerData, err := s.getIssuerData(vendor, invoice, in.Email)
-	if err != nil {
-		s.logger.IPrintf(2, "Error getting issuer data: %v", err)
-		return dto.NewBillResponse(500, "internal server error", "contact support", nil, nil)
-	}
-	pdf_template, err := s.getHTMLTemplate("pdf", in.Doc)
-	if err != nil {
-		s.logger.IPrintf(2, "Error getting PDF template: %v", err)
-		return dto.NewBillResponse(500, "internal server error", "contact support", nil, nil)
-	}
-	email_template, err := s.getHTMLTemplate("email", in.Doc)
-	if err != nil {
-		s.logger.IPrintf(2, "Error getting email template: %v", err)
-		return dto.NewBillResponse(500, "internal server error", "contact support", nil, nil)
-	}
-	if err := s.issuer.SendMail(issuerData, subject, pdf_template, email_template); err != nil {
-		s.logger.IPrintf(2, "Error sending receipt: %v", err)
-		return dto.NewBillResponse(500, "internal server error", "contact support", nil, nil)
-	}
+	dto := s.resendEmail(in, vendor, invoice)
 	s.registerSendReceiver(invoice, in.Doc)
-	return dto.NewBillResponse(200, "success", "", nil, nil)
+	return dto
 }
 
 // resendEmail handles the action of resending a receipt email to the customer.
@@ -270,7 +251,6 @@ func (s *Bill) getPixStrings(invoice *domain.Invoice, vendor *domain.Vendor) (st
 	s.logger.IPrintf(2, "Pix strings generated successfully")
 	return payload, qrCode, nil
 }
-
 
 // getFirstName returns the first name from a full name string.
 func (s *Bill) getFirstName(fullName string) string {
