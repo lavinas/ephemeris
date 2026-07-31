@@ -9,25 +9,26 @@ import (
 	"billing/internal/port"
 )
 
-// ReceiptSendRequest represents a request to send a receipt to a customer.
-type ReceiptSendRequest struct {
+// BillRequest represents a request to send a receipt to a customer.
+type BillRequest struct {
 	Vendor    string `json:"vendor"`
 	vendorID  int64  `json:"-" validate:"-"`
 	InvoiceID int64  `json:"invoice_id"`
+	Doc       int    `json:"doc"`    // 0 - Invoice, 1 - Receipt
 	Action    int    `json:"action"` // 0 - send email, 1 - resend email, 2 - get pdf base64
 	Email     string `json:"email"`  // optional, if not provided, the email associated with the invoice will be used. Cannot be used with Action 0 (send email)
 }
 
-// ReceiptSendResponse represents the response after sending a receipt to a customer.
-type ReceiptSendResponse struct {
+// BillResponse represents the response after sending a bill to a customer.
+type BillResponse struct {
 	ResponseBase
 	DocumentBase64 *string `json:"document_base64,omitempty"`
 	DocumentName   *string `json:"document_name,omitempty"`
 }
 
-// NewReceiptSendResponse creates a new instance of ReceiptSendResponse with the provided parameters.
-func NewReceiptSendResponse(statusCode int, statusMessage string, errorMessage string, documentBase64 *string, documentName *string) *ReceiptSendResponse {
-	return &ReceiptSendResponse{
+// NewBillResponse creates a new instance of BillResponse with the provided parameters.
+func NewBillResponse(statusCode int, statusMessage string, errorMessage string, documentBase64 *string, documentName *string) *BillResponse {
+	return &BillResponse{
 		ResponseBase: ResponseBase{
 			HttpCode: statusCode,
 			Status:   statusMessage,
@@ -38,16 +39,22 @@ func NewReceiptSendResponse(statusCode int, statusMessage string, errorMessage s
 	}
 }
 
-// Validate checks if the ReceiptSendRequest has valid data.
-func (r *ReceiptSendRequest) Validate(repo port.Repository) error {
+// Validate checks if the BillRequest has valid data.
+func (r *BillRequest) Validate(repo port.Repository) error {
 	errs := make([]error, 0)
 	if err := r.validateVendor(repo); err != nil {
 		errs = append(errs, err)
 	}
-	if err := r.validateInvoiceID(repo); err != nil {
+	if err := r.validateEmail(); err != nil {
 		errs = append(errs, err)
 	}
-	if err := r.validateEmail(); err != nil {
+	if err := r.validateAction(); err != nil {
+		errs = append(errs, err)
+	}
+	if err := r.validateDoc(); err != nil {
+		errs = append(errs, err)
+	}
+	if err := r.validateInvoice(repo); err != nil {
 		errs = append(errs, err)
 	}
 	if len(errs) > 0 {
@@ -58,7 +65,7 @@ func (r *ReceiptSendRequest) Validate(repo port.Repository) error {
 }
 
 // validateVendor checks if the Vendor is valid and exists in the repository.
-func (r *ReceiptSendRequest) validateVendor(repo port.Repository) error {
+func (r *BillRequest) validateVendor(repo port.Repository) error {
 	if r.Vendor == "" {
 		return errors.New("vendor is required")
 	}
@@ -71,7 +78,7 @@ func (r *ReceiptSendRequest) validateVendor(repo port.Repository) error {
 }
 
 // validateInvoiceID checks if the InvoiceID is valid and exists in the repository.
-func (r *ReceiptSendRequest) validateInvoiceID(repo port.Repository) error {
+func (r *BillRequest) validateInvoice(repo port.Repository) error {
 	if r.InvoiceID <= 0 {
 		return errors.New("invoice_id must be a positive integer")
 	}
@@ -88,14 +95,22 @@ func (r *ReceiptSendRequest) validateInvoiceID(repo port.Repository) error {
 	if invoice.CancellationDate != nil {
 		return errors.New("cannot send receipt for a canceled invoice")
 	}
-	if r.Action == 0 && invoice.EmailReceiptDate != nil {
-		return errors.New("receipt has already been sent for this invoice")
+	if r.Action == 0 {
+		if r.Doc == 0 && invoice.EmailSentDate != nil {
+			return errors.New("email has already been sent for this invoice")
+		}
+		if r.Doc == 1 && invoice.EmailReceiptDate != nil {
+			return errors.New("email has already been sent for this receipt")
+		}
+	}
+	if r.Doc == 1 && invoice.PaymentDate == nil {
+		return errors.New("cannot send receipt for an unpaid invoice")
 	}
 	return nil
 }
 
-// Reset clears the fields of the ReceiptSendRequest.
-func (r *ReceiptSendRequest) Reset() {
+// Reset clears the fields of the BillRequest.
+func (r *BillRequest) Reset() {
 	r.Vendor = ""
 	r.vendorID = 0
 	r.InvoiceID = 0
@@ -103,7 +118,7 @@ func (r *ReceiptSendRequest) Reset() {
 }
 
 // validateEmail checks if the provided email is valid and not already in use.
-func (r *ReceiptSendRequest) validateEmail() error {
+func (r *BillRequest) validateEmail() error {
 	if r.Email == "" {
 		return nil
 	}
@@ -113,6 +128,22 @@ func (r *ReceiptSendRequest) validateEmail() error {
 	_, err := mail.ParseAddress(r.Email)
 	if err != nil {
 		return fmt.Errorf("invalid email format")
+	}
+	return nil
+}
+
+// validateAction checks if the Action is valid.
+func (r *BillRequest) validateAction() error {
+	if r.Action < 0 || r.Action > 2 {
+		return errors.New("action must be 0 (send email), 1 (resend email), or 2 (get pdf base64)")
+	}
+	return nil
+}
+
+// validateDoc checks if the Doc field is valid.
+func (r *BillRequest) validateDoc() error {
+	if r.Doc < 0 || r.Doc > 1 {
+		return errors.New("doc must be 0 (Invoice) or 1 (Receipt)")
 	}
 	return nil
 }

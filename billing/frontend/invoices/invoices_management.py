@@ -176,64 +176,14 @@ def format_date(date_str):
     except Exception as e:
         return date_str
     
-    
-# save bill
-def save_bill(vendor, invoiceID, path):
-    json_data = {'document_type': 1, 'vendor': vendor, 'invoice_id': invoiceID}
-    try:
-        resposta = requests.get(f'{endpoint}/invoice/bill/get', json=json_data, timeout=5)
-    except ConnectionError as e:
-        return f"Erro: A conexão foi recusada pelo servidor remoto. Detalhes: {e}"
-    except Timeout as e:
-        return f"Erro: A requisição excedeu o tempo limite estabelecido. {e}"
-    except requests.exceptions.RequestException as e:
-        return f"Ocorreu um erro genérico no requests: {e}"
-    if resposta.status_code != 200:
-        return f'Erro na chamada da API: {resposta.status_code} - {resposta.text}'
-    resp = resposta.json()
-    file_path = os_path.join(path, resp['document_name'])
-    file_bin = b64decode(resp['document_base64'])
-    with open(file_path, 'wb') as f:
-        f.write(file_bin)
-    return f'Arquivo salvo com sucesso em: {file_path}'
-
-# save bills
-def save_bills(vendor, customer, invoicing, due, path):
-    df_get = get_df(vendor, customer, invoicing, due, '', '', '', '', '', '', '')
-    if isinstance(df_get, str):
-        return df_get
-    for invoice_id in df_get['id']:
-        result = save_bill(vendor, invoice_id, path)
-        if "Erro" in result:
-            return result
-    return "Todos os arquivos foram salvos com sucesso."
-
-
-# send bill
-def send_bill(vendor, invoiceID, send_copy):
-    json_data = {'vendor': vendor, 'invoice_id': invoiceID, 'send_copy': send_copy}
-    try:
-        resposta = requests.post(f'{endpoint}/bill/send', json=json_data, timeout=5)
-    except ConnectionError as e:
-        return f"Erro: A conexão foi recusada pelo servidor remoto. Detalhes: {e}"
-    except Timeout as e:
-        return f"Erro: A requisição excedeu o tempo limite estabelecido. {e}"
-    except requests.exceptions.RequestException as e:
-        return f"Ocorreu um erro genérico no requests: {e}"
-    if resposta.status_code != 200:
-        return f'Erro na chamada da API: {resposta.status_code} - {resposta.text}'
-    resp = resposta.json()
-    return f'{resp["status"]} - {resp["message"]}'
-
-
 # send receipt
-def send_receipt(vendor, invoiceID, email):
+def send_bill(vendor, invoiceID, doc, email):
     action = 0
     if email != '':
         action = 1
-    json_data = {'vendor': vendor, 'invoice_id': invoiceID, 'action': action, 'email': email}
+    json_data = {'vendor': vendor, 'doc': doc, 'invoice_id': invoiceID, 'action': action, 'email': email}
     try:
-        resposta = requests.post(f'{endpoint}/receipt/send', json=json_data, timeout=15)
+        resposta = requests.post(f'{endpoint}/invoice/bill', json=json_data, timeout=15)
     except ConnectionError as e:
         return f"Erro: A conexão foi recusada pelo servidor remoto. Detalhes: {e}"
     except Timeout as e:
@@ -247,9 +197,9 @@ def send_receipt(vendor, invoiceID, email):
 
 
 def save_receipt(vendor, invoiceID, path):
-    json_data = {'vendor': vendor, 'invoice_id': invoiceID, 'action': 2}
+    json_data = {'vendor': vendor, 'doc': 1, 'invoice_id': invoiceID, 'action': 2}
     try:
-        resposta = requests.post(f'{endpoint}/receipt/send', json=json_data, timeout=5)
+        resposta = requests.post(f'{endpoint}/invoice/bill', json=json_data, timeout=5)
     except ConnectionError as e:
         return f"Erro: A conexão foi recusada pelo servidor remoto. Detalhes: {e}"
     except Timeout as e:
