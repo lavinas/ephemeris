@@ -55,15 +55,15 @@ func NewCustomerListResponse(httpCode int, status, message string,
 // NewCustomerDTO creates a new instance of CustomerDTO from the given customer details.
 func NewCustomerDTO(id int64, name, nickname string, status int,
 	document, email, whatsapp *string, createdAt, updatedAt time.Time) CustomerDTO {
-	docStr := ""
+	docStr := "-"
 	if document != nil {
 		docStr = *document
 	}
-	emailStr := ""
+	emailStr := "-"
 	if email != nil {
 		emailStr = *email
 	}
-	whatsappStr := ""
+	whatsappStr := "-"
 	if whatsapp != nil {
 		whatsappStr = *whatsapp
 	}

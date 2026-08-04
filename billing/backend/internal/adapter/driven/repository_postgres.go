@@ -217,7 +217,7 @@ func (a *PostgresRepository) FindInvoices(page, pageSize int, customer int64,
 		db = db.Where("invoice_date::text ILIKE ?", "%"+*invoiceDate+"%")
 	}
 	if dueDate != nil {
-		db = db.Where("due_date IS NULL")
+		db = db.Where("due_date::text ILIKE ?", "%"+*dueDate+"%")
 	}
 	if paymentDate != nil {
 		if strings.ToLower(*paymentDate) == "null" {

@@ -89,7 +89,7 @@ func (r *BillRequest) validateInvoice(repo port.Repository) error {
 	if invoice.Customer.VendorID != r.vendorID {
 		return errors.New("invoice does not belong to the specified vendor")
 	}
-	if invoice.PaymentDate == nil {
+	if r.Doc == 1 && invoice.PaymentDate == nil {
 		return errors.New("cannot send receipt for an unpaid invoice")
 	}
 	if invoice.CancellationDate != nil {
@@ -103,9 +103,7 @@ func (r *BillRequest) validateInvoice(repo port.Repository) error {
 			return errors.New("email has already been sent for this receipt")
 		}
 	}
-	if r.Doc == 1 && invoice.PaymentDate == nil {
-		return errors.New("cannot send receipt for an unpaid invoice")
-	}
+
 	return nil
 }
 
