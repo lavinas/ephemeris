@@ -81,8 +81,8 @@ func (h *APIHandler) mapServices() {
 			service.NewInvoiceUpdate(h.repo, h.logger), h.taxer, h.pixer, h.issuer),
 		"/invoice/bill": *newHandleService(http.MethodPost, &dto.BillRequest{},
 			service.NewBill(h.repo, h.logger, h.issuer, h.pixer), h.taxer, h.pixer, h.issuer),
-		"/tax/send": *newHandleService(http.MethodPost, &dto.TaxSendRequest{},
-			service.NewTaxSend(h.repo, h.logger, h.taxer), h.taxer, h.pixer, h.issuer),
+		"/tax/send": *newHandleService(http.MethodPost, &dto.TaxGenerateRequest{},
+			service.NewTaxGenerate(h.repo, h.logger, h.taxer), h.taxer, h.pixer, h.issuer),
 		"/tax/receive": *newHandleService(http.MethodPost, &dto.TaxReceiveRequest{},
 			service.NewTaxReceive(h.repo, h.logger, h.taxer), h.taxer, h.pixer, h.issuer),
 	}

@@ -36,7 +36,6 @@ const soapEnvelope = `
    </soapenv:Body>
 </soapenv:Envelope>`
 
-
 const xmlRawTemplate = `
 <?xml version="1.0" encoding="UTF-8"?>
 <PedidoEnvioLoteRPS xmlns="http://prefeitura.sp.gov.br">

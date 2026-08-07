@@ -12,7 +12,6 @@ import (
 	"unicode"
 
 	"billing/internal/domain"
-	"billing/internal/port"
 	"github.com/ianlopshire/go-fixedwidth"
 
 	"golang.org/x/text/encoding/charmap"
@@ -80,92 +79,70 @@ type footer struct {
 
 // Taxer is a concrete implementation of the port.
 type Taxer struct {
-	filePath string
-	pattern  string
-	logger   port.Logger
-	file     *os.File
-	writer   *transform.Writer
 }
 
 // NewTaxer creates a new instance of Taxer with the specified file path and logger.
-func NewTaxer(filePath string, filePattern string, logger port.Logger) *Taxer {
-	return &Taxer{
-		filePath: filePath,
-		pattern:  filePattern,
-		logger:   logger,
-	}
+func NewTaxer() *Taxer {
+	return &Taxer{}
 }
 
-// SendEmission sends the emission data to a file and logs the operation.
-func (i *Taxer) SendEmission(emission *domain.Emission) error {
-	i.logger.IPrintf(2, "Sending emission to file: %s", i.filePath)
-	if err := i.openSendFile(emission); err != nil {
+// GetContent generates the content of the emission file as a string.
+func (i *Taxer) GetEmission(emission *domain.Emission, builder *strings.Builder) error {
+	if err := i.getHeaderLine(emission, builder); err != nil {
 		return err
 	}
-	defer i.file.Close()
-	if err := i.writeHeader(emission); err != nil {
+	if err := i.getItems(emission, builder); err != nil {
 		return err
 	}
-	if err := i.writeItems(emission); err != nil {
+	if err := i.getFooter(emission, builder); err != nil {
 		return err
 	}
-	if err := i.writeFooter(emission); err != nil {
-		return err
-	}
-	i.logger.IPrintf(2, "Emission ID: %d, Quantity: %d, Amount: %.2f", emission.ID, emission.Quantity, emission.Amount)
 	return nil
 }
 
 // ReceiveEmission is a placeholder for receiving emissions.
 func (i *Taxer) ReceiveEmission(source string) (map[int64]*domain.EmissionItem, error) {
-	i.logger.IPrintf(2, "Receiving emission from file: %s", source)
-	if err := i.openReceiveFile(source); err != nil {
-		return nil, err
-	}
-	defer i.file.Close()
-	lines, err := i.readReceiveFile()
+	file, err := i.openReceiveFile(source)
 	if err != nil {
 		return nil, err
 	}
-	i.logger.IPrintf(2, "Received %d lines from file: %s", len(lines), source)
+	defer file.Close()
+	lines, err := i.readReceiveFile(file)
+	if err != nil {
+		return nil, err
+	}
 	return lines, nil
 }
 
 // openSendFile is a helper function to open the file for writing.
-func (i *Taxer) openSendFile(emission *domain.Emission) error {
-	file_path := filepath.Join(i.filePath, i.replacePlaceholders(i.pattern, emission))
-	i.logger.IPrintf(3, "Opened file: %s (path: %s, pattern: %s)", file_path, i.filePath, i.pattern)
+func (i *Taxer) openSendFile(emission *domain.Emission, filePath, filePattern string) (*os.File, *transform.Writer, error) {
+	file_path := filepath.Join(filePath, i.replacePlaceholders(filePattern, emission))
 	file, err := os.OpenFile(file_path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 	writer := transform.NewWriter(file, charmap.ISO8859_1.NewEncoder())
 
-	i.file = file
-	i.writer = writer
-
-	return nil
+	return file, writer, nil
 }
 
 // openReceiveFile is a placeholder for opening the file for reading.
-func (i *Taxer) openReceiveFile(source string) error {
+func (i *Taxer) openReceiveFile(source string) (*os.File, error) {
 	file, err := os.Open(source)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	i.file = file
-	return nil
+	return file, nil
 }
 
 // readReceiveFile is a placeholder for reading the file for receiving emissions.
-func (i *Taxer) readReceiveFile() (map[int64]*domain.EmissionItem, error) {
+func (i *Taxer) readReceiveFile(file *os.File) (map[int64]*domain.EmissionItem, error) {
 	lines := make(map[int64]*domain.EmissionItem)
-	reader := csv.NewReader(i.file)
+	reader := csv.NewReader(file)
 	reader.Comma = ';'
 	reader.FieldsPerRecord = -1
 	records, err := reader.ReadAll()
 	if err != nil {
-		i.logger.IPrintf(3, "Error on reading CSV file: %v", err)
 		return nil, err
 	}
 	header := records[0]
@@ -232,9 +209,8 @@ func (i *Taxer) replacePlaceholders(pattern string, emission *domain.Emission) s
 	return pattern
 }
 
-// writeHeader writes the header to the file.
-func (i *Taxer) writeHeader(emission *domain.Emission) error {
-	i.logger.IPrintf(3, "Writing header for emission ID: %d", emission.ID)
+// getHeaderLine is a helper function to convert an Emission to a header line.
+func (i *Taxer) getHeaderLine(emission *domain.Emission, builder *strings.Builder) error {
 	ccm := regexp.MustCompile(`[^0-9]`).ReplaceAllString(emission.Vendor.TaxDocument, "")
 	ccmd, _ := strconv.Atoi(ccm)
 	ed := emission.EmissionDate.Format("20060102")
@@ -250,34 +226,24 @@ func (i *Taxer) writeHeader(emission *domain.Emission) error {
 	if err != nil {
 		return err
 	}
-	line := string(h)
-	line = strings.TrimRight(line, " ") + "\n"
-	if _, err := i.writer.Write([]byte(line)); err != nil {
-		return err
-	}
-
-	i.logger.IPrintf(3, "Header written for emission ID: %d", emission.ID)
+	builder.WriteString(strings.TrimRight(string(h), " ") + "\n")
 	return nil
 }
 
-// writelines writes the emission lines to the file.
-func (i *Taxer) writeItems(emission *domain.Emission) error {
-	i.logger.IPrintf(3, "Writing items for emission ID: %d", emission.ID)
+// getItems is a helper function to convert an Emission to a slice of lines.
+func (i *Taxer) getItems(emission *domain.Emission, builder *strings.Builder) error {
 	emissionDate, _ := strconv.Atoi(emission.EmissionDate.Format("20060102"))
 	for _, item := range emission.EmissionItems {
 		it := i.getSendLine(emissionDate, item)
 		line, err := fixedwidth.Marshal(it)
-		lineStr := string(line)
-		lineStr = strings.TrimRight(lineStr, " ") + "\n"
 		if err != nil {
 			return err
 		}
-		if _, err := i.writer.Write([]byte(lineStr)); err != nil {
-			return err
-		}
-		i.logger.IPrintf(3, "Item written for emission ID: %d, RPS Number: %d", emission.ID, item.RPSNumber)
+		lineStr := string(line)
+		lineStr = strings.TrimRight(lineStr, " ") + "\n"
+
+		builder.WriteString(lineStr)
 	}
-	i.logger.IPrintf(3, "All items written for emission ID: %d", emission.ID)
 	return nil
 }
 
@@ -338,9 +304,8 @@ func (i *Taxer) getSendDescription(item *domain.EmissionItem) string {
 	return ret
 }
 
-// writeFooter writes the footer to the file. This is a placeholder implementation
-func (i *Taxer) writeFooter(emission *domain.Emission) error {
-	i.logger.IPrintf(3, "Writing footer for emission ID: %d", emission.ID)
+// getFooter is a helper function to convert an Emission to a footer line. This is a placeholder implementation
+func (i *Taxer) getFooter(emission *domain.Emission, builder *strings.Builder) error {
 	amount := int(emission.Amount * 100)
 	footer := footer{
 		RegType:       9,
@@ -352,12 +317,7 @@ func (i *Taxer) writeFooter(emission *domain.Emission) error {
 	if err != nil {
 		return err
 	}
-	line := string(f)
-	line = strings.TrimRight(line, " ") + "\n"
-	if _, err := i.writer.Write([]byte(line)); err != nil {
-		return err
-	}
-	i.logger.IPrintf(3, "Footer written for emission ID: %d", emission.ID)
+	builder.WriteString(strings.TrimRight(string(f), " ") + "\n")
 	return nil
 }
 

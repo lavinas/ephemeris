@@ -7,9 +7,8 @@ import (
 
 // JsonConfig represents the configuration structure for the application
 type JsonConfig struct {
-	DB     JsonDBConfig     `json:"db"`
-	Log    JsonLogConfig    `json:"log"`
-	Issuer JsonIssuerConfig `json:"issuer"`
+	DB  JsonDBConfig  `json:"db"`
+	Log JsonLogConfig `json:"log"`
 }
 
 // DBConfig represents the database configuration structure
@@ -29,12 +28,6 @@ type JsonDBConfig struct {
 type JsonLogConfig struct {
 	Output string `json:"output"`
 	Level  int    `json:"level"`
-}
-
-// JsonIssuerConfig represents the issuer configuration structure
-type JsonIssuerConfig struct {
-	FilePath    string `json:"file_path"`
-	FilePattern string `json:"file_pattern"`
 }
 
 // LoadJsonConfig reads the configuration from a JSON file and unmarshals it into a JsonConfig
@@ -73,14 +66,4 @@ func (v *JsonConfig) GetConfigData() (output string, level int) {
 // GetLogOutput returns the log output from the configuration
 func (v *JsonConfig) GetLogData() (output string, level int) {
 	return v.Log.Output, v.Log.Level
-}
-
-// GetIssuerFilePath returns the issuer file path from the configuration
-func (v *JsonConfig) GetIssuerFilePath() string {
-	return v.Issuer.FilePath
-}
-
-// GetIssuerFilePattern returns the issuer file pattern from the configuration
-func (v *JsonConfig) GetIssuerFilePattern() string {
-	return v.Issuer.FilePattern
 }

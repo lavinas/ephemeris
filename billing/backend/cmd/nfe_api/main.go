@@ -11,7 +11,7 @@ import (
 func main() {
 	// 1. Definição do Endpoint oficial (Homologação ou Produção)
 	// Novo WSDL unificado que comporta os layouts atualizados da prefeitura
-	url := "https://nfews.prefeitura.sp.gov.br/lotenfe.asmx" 
+	url := "https://nfews.prefeitura.sp.gov.br/lotenfe.asmx"
 
 	// 2. Carregar o Certificado Digital A1 (Chave e Certificado em formato .pem)
 	cert, err := tls.LoadX509KeyPair("certificado_publico.pem", "chave_privada.pem")
@@ -27,7 +27,6 @@ func main() {
 	}
 	transport := &http.Transport{TLSClientConfig: tlsConfig}
 	client := &http.Client{Transport: transport}
-
 
 	// 4. Executar a requisição HTTP POST para o WebService
 	req, err := http.NewRequest("POST", url, bytes.NewBufferString(soapEnvelope))

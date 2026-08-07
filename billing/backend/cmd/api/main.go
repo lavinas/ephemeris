@@ -34,7 +34,7 @@ func main() {
 	}
 	defer repo.Close()
 	// Issuer initialization
-	taxer := driven.NewTaxer(cfg.GetIssuerFilePath(), cfg.GetIssuerFilePattern(), logger)
+	taxer := driven.NewTaxer()
 	// Biller initialization
 	pixer := driven.NewPixer(logger)
 	// issuer initialization

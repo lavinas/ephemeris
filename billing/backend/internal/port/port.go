@@ -1,6 +1,7 @@
 package port
 
 import (
+	"strings"
 	"time"
 
 	"billing/internal/domain"
@@ -58,7 +59,7 @@ type Service interface {
 
 // Taxer defines the interface for sending emissions to an external system.
 type Taxer interface {
-	SendEmission(emission *domain.Emission) error
+	GetEmission(emission *domain.Emission, builder *strings.Builder) error
 	ReceiveEmission(source string) (map[int64]*domain.EmissionItem, error)
 }
 
