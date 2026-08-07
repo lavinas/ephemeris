@@ -49,9 +49,6 @@ func (r *TaxGenerateRequest) Validate(repo port.Repository) error {
 	if err := r.validateDates(); err != nil {
 		errs = append(errs, err)
 	}
-	if err := r.validateDuplication(repo); err != nil {
-		errs = append(errs, err)
-	}
 	if len(errs) > 0 {
 		err := errors.Join(errs...)
 		return err
@@ -118,23 +115,6 @@ func (r *TaxGenerateRequest) validateDates() error {
 	if len(errs) > 0 {
 		err := errors.Join(errs...)
 		return errors.New(strings.ReplaceAll(err.Error(), "\n", "; "))
-	}
-	return nil
-}
-
-// validateDuplication checks if an emission for the given vendor and period
-// already exists in the repository.
-func (r *TaxGenerateRequest) validateDuplication(repo port.Repository) error {
-	// Implement logic to check for existing emissions in the repository.
-	// This is a placeholder implementation; replace with actual database query.
-	startDate, _ := time.Parse("2006-01-02", r.InvoiceStartDate)
-	endDate, _ := time.Parse("2006-01-02", r.InvoiceEndDate)
-	count, err := repo.GetEmissionsCount(r.VendorID, startDate, endDate)
-	if err != nil {
-		return fmt.Errorf("failed to check for existing emissions: %v", err)
-	}
-	if count > 0 {
-		return fmt.Errorf("an emission for vendor '%s' already exists", r.Vendor)
 	}
 	return nil
 }

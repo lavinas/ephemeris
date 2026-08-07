@@ -44,11 +44,13 @@ func (s *TaxGenerate) Run(inDTO port.InDTO) port.OutDTO {
 	}
 	vendor, err := s.getVendor(sendDTO.Vendor)
 	if err != nil {
-		return dto.NewTaxGenerateResponse(500, "error", "Failed to retrieve vendor", 0, 0, 0.0, "", "")
+		s.logger.IPrintf(1, "Failed to retrieve vendor: %v", err)
+		return dto.NewTaxGenerateResponse(500, "error", "Contact support", 0, 0, 0.0, "", "")
 	}
 	lastRPS, err := s.getLastRSPNumber(vendor.ID, vendor.LastRps)
 	if err != nil {
-		return dto.NewTaxGenerateResponse(500, "error", "Failed to retrieve last RPS number", 0, 0, 0.0, "", "")
+		s.logger.IPrintf(1, "Failed to retrieve last RPS number: %v", err)
+		return dto.NewTaxGenerateResponse(500, "error", "Contact support", 0, 0, 0.0, "", "")
 	}
 	domainEmission, err := s.getEmission(vendor, sendDTO.EmissionDate,
 		sendDTO.InvoiceStartDate, sendDTO.InvoiceEndDate, lastRPS)
@@ -58,7 +60,7 @@ func (s *TaxGenerate) Run(inDTO port.InDTO) port.OutDTO {
 	doc, name, err := s.SendAndSave(domainEmission)
 	if err != nil {
 		s.logger.IPrintf(1, "Failed to send and save emission: %v", err)
-		return dto.NewTaxGenerateResponse(500, "error", "Failed to send and save emission", 0, 0, 0.0, "", "")
+		return dto.NewTaxGenerateResponse(500, "error", "Contact support", 0, 0, 0.0, "", "")
 	}
 	s.logger.IPrintf(1, "Emission sent successfully: ID %d, Quantity %d, Amount %.2f",
 		domainEmission.ID, domainEmission.Quantity, domainEmission.Amount)
@@ -141,14 +143,16 @@ func (s *TaxGenerate) SendAndSave(emission *domain.Emission) (*string, *string, 
 		return nil, nil, err
 	}
 	defer s.repo.RollbackTransaction()
+	s.logger.IPrintf(2, "Transaction started for emission ID: %d", emission.ID)
 	doc, name, err := s.getDocument(emission)
 	if err != nil {
 		return nil, nil, err
 	}
+	s.logger.IPrintf(2, "Emission ID: %d sent successfully, document name: %s", emission.ID, *name)
 	if err := s.repo.Save(emission); err != nil {
 		return nil, nil, err
 	}
-	if err := s.saveInvoices(emission); err != nil {
+	if err := s.updateInvoices(emission); err != nil {
 		return nil, nil, err
 	}
 	if err := s.repo.CommitTransaction(); err != nil {
@@ -159,24 +163,29 @@ func (s *TaxGenerate) SendAndSave(emission *domain.Emission) (*string, *string, 
 }
 
 // saveInvoices updates the invoices associated with the emission in the repository.
-func (s *TaxGenerate) saveInvoices(emission *domain.Emission) error {
+func (s *TaxGenerate) updateInvoices(emission *domain.Emission) error {
 	invoices := make([]domain.Invoice, 0, len(emission.EmissionItems))
 	for _, item := range emission.EmissionItems {
-		invoices = append(invoices, item.Invoice)
+		invoice := item.Invoice
+		invoice.UpdatedAt = time.Now()
+		invoice.TaxDate = &emission.EmissionDate
+		invoices = append(invoices, invoice)
 	}
 	return s.repo.Save(invoices)
 }
 
 // getEmission retrieves the emission data for the specified vendor and date range from the repository.
 func (s *TaxGenerate) getDocument(emission *domain.Emission) (*string, *string, error) {
+	s.logger.IPrintf(2, "Generating document for emission ID: %d", emission.ID)
 	var tax strings.Builder
 	if err := s.sender.GetEmission(emission, &tax); err != nil {
 		return nil, nil, err
 	}
+	s.logger.IPrintf(2, "Document generated for emission ID: %d", emission.ID)
 	taxStr := base64.StdEncoding.EncodeToString([]byte(tax.String()))
 
-	name := "nfe_%s_%s_%d.txt"
-	name = fmt.Sprintf(name, emission.Vendor.Nickname, emission.EmissionDate.Format("2006-01"), emission.ID)
+	name := "nfe_%s_%s.txt"
+	name = fmt.Sprintf(name, emission.Vendor.Nickname, emission.EmissionDate.Format("2006-01-02"))
 
 	return &taxStr, &name, nil
 }

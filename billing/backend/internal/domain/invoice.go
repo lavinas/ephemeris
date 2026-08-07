@@ -93,5 +93,8 @@ func (i *Invoice) IsTaxable() bool {
 	if i.PaymentDate == nil {
 		return false
 	}
+	if i.Customer.Document == nil {
+		return false
+	}
 	return true // Placeholder implementation; replace with actual logic.
 }

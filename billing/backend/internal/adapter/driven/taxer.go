@@ -234,22 +234,27 @@ func (i *Taxer) getHeaderLine(emission *domain.Emission, builder *strings.Builde
 func (i *Taxer) getItems(emission *domain.Emission, builder *strings.Builder) error {
 	emissionDate, _ := strconv.Atoi(emission.EmissionDate.Format("20060102"))
 	for _, item := range emission.EmissionItems {
-		it := i.getSendLine(emissionDate, item)
+		it, err := i.getSendLine(emissionDate, item)
+		if err != nil {
+			return err
+		}
 		line, err := fixedwidth.Marshal(it)
 		if err != nil {
 			return err
 		}
 		lineStr := string(line)
 		lineStr = strings.TrimRight(lineStr, " ") + "\n"
-
 		builder.WriteString(lineStr)
 	}
 	return nil
 }
 
 // getSendLine is a helper function to convert an EmissionItem to a line.
-func (i *Taxer) getSendLine(emissionDate int, item *domain.EmissionItem) line {
+func (i *Taxer) getSendLine(emissionDate int, item *domain.EmissionItem) (line, error) {
 	// Convert item fields to the appropriate types and formats
+	if item.Invoice.Customer.Document == nil {
+		return line{}, fmt.Errorf("missing customer document for RPS number: %d", item.RPSNumber)
+	}
 	document := regexp.MustCompile(`[^0-9]`).ReplaceAllString(*item.Invoice.Customer.Document, "")
 	documentType := 1
 	if len(document) > 11 {
@@ -288,7 +293,7 @@ func (i *Taxer) getSendLine(emissionDate int, item *domain.EmissionItem) line {
 		PostalCode:        " ",
 		Email:             email,
 		Description:       i.getSendDescription(item),
-	}
+	}, nil
 }
 
 // getSendDescription is a helper function to generate a description for the emission item.
