@@ -119,7 +119,6 @@ func (r *TaxGenerateRequest) validateDates() error {
 	return nil
 }
 
-
 // Reset clears the fields of the TaxGenerateRequest.
 func (r *TaxGenerateRequest) Reset() {
 	r.Vendor = ""

@@ -1,10 +1,10 @@
 package service
 
 import (
-	"time"
-	"strings"
 	"encoding/base64"
 	"fmt"
+	"strings"
+	"time"
 
 	"billing/internal/domain"
 	"billing/internal/dto"
@@ -90,7 +90,7 @@ func (s *TaxGenerate) getEmission(vendor *domain.Vendor, emissionDate, startDate
 	quantity := len(emissionItems)
 	emission := domain.NewEmission(vendor, sd, ed, emissionDateParsed,
 		lastRPS+1, lastRPS+int64(quantity), totalAmount, quantity, emissionItems)
-	s.logger.IPrintf(2, "Emission created: ID %d, Quantity %d, Amount %.2f", 
+	s.logger.IPrintf(2, "Emission created: ID %d, Quantity %d, Amount %.2f",
 		emission.ID, emission.Quantity, emission.Amount)
 	return emission, nil
 }

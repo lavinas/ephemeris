@@ -337,7 +337,6 @@ func (a *PostgresRepository) GetEmissions(vendorID int64, invoiceStartDate,
 	return emissions, nil
 }
 
-
 // GetEmissionLastRPS retrieves the last RPS number for a given vendor
 func (a *PostgresRepository) GetEmissionLastRPS(vendorID int64) (int64, error) {
 	var lastRPS int64

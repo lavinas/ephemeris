@@ -9,61 +9,60 @@ import (
 	"billing/internal/port"
 )
 
-// TaxReceive is responsible for handling the business logic of receiving emissions.
-type TaxReceive struct {
+// TaxClear is responsible for handling the business logic of receiving emissions.
+type TaxClear struct {
 	Base
 	receiver port.Taxer
 }
 
-// NewTaxReceive creates a new instance of TaxReceive.
-func NewTaxReceive(repo port.Repository, logger port.Logger, taxer port.Taxer) *TaxReceive {
-	return &TaxReceive{
+// NewTaxClear creates a new instance of TaxClear.
+func NewTaxClear(repo port.Repository, logger port.Logger, taxer port.Taxer) *TaxClear {
+	return &TaxClear{
 		Base:     *NewBase(repo, logger),
 		receiver: taxer,
 	}
 }
 
 // Run processes the request to receive emissions and returns the response.
-func (s *TaxReceive) Run(inDTO port.InDTO) port.OutDTO {
-	s.logger.IPrintf(1, "Running TaxReceive service")
-	receiveDTO, ok := inDTO.(*dto.TaxReceiveRequest)
+func (s *TaxClear) Run(inDTO port.InDTO) port.OutDTO {
+	s.logger.IPrintf(1, "Running TaxClear service")
+	receiveDTO, ok := inDTO.(*dto.TaxClearRequest)
 	if !ok {
 		s.logger.IPrintf(1, "Invalid input type")
-		return dto.NewTaxReceiveResponse(400, "error", "Invalid input type", 0, 0, 0)
+		return dto.NewTaxClearResponse(400, "error", "Invalid input type")
 	}
 	// Validate the input DTO
 	if err := receiveDTO.Validate(s.repo); err != nil {
 		s.logger.IPrintf(1, "Validation error: %v", err)
-		return dto.NewTaxReceiveResponse(400, "error", err.Error(), 0, 0, 0)
+		return dto.NewTaxClearResponse(400, "error", err.Error())
 	}
 	// Call the receiver to process the emission receive
-	fileItems, err := s.receiver.ReceiveEmission(receiveDTO.Source)
+	fileItems, err := s.receiver.ClearEmission(receiveDTO.Base64Source)
 	if err != nil {
 		s.logger.IPrintf(1, "Error receiving emission: %v", err)
-		return dto.NewTaxReceiveResponse(400, "error", err.Error(), 0, 0, 0)
+		return dto.NewTaxClearResponse(400, "error", err.Error())
 	}
 	// Get the domain emission from the DTO
 	emission := receiveDTO.GetDomain()
 	// Merge the received emission items with the existing emission items
 	if err := s.mergeEmissionItems(emission, fileItems); err != nil {
 		s.logger.IPrintf(1, "Error merging emission items: %v", err)
-		return dto.NewTaxReceiveResponse(400, "error", err.Error(), 0, 0, 0)
+		return dto.NewTaxClearResponse(400, "error", err.Error())
 	}
 	// Save the updated emission to the repository
 	if err := s.saveEmission(emission); err != nil {
 		s.logger.IPrintf(1, "Error saving emission: %v", err)
-		return dto.NewTaxReceiveResponse(500, "error", "Failed to save emission", 0, 0, 0)
+		return dto.NewTaxClearResponse(500, "error", "Failed to save emission")
 	}
 	// Process the emission receive logic here
 	s.logger.IPrintf(1, "Emission received successfully: ID %d, Quantity %d, Amount %.2f",
 		emission.ID, emission.Quantity, emission.Amount)
 	// Return a successful response
-	return dto.NewTaxReceiveResponse(200, "success", "Emission received successfully",
-		emission.ID, emission.Quantity, emission.Amount)
+	return dto.NewTaxClearResponse(200, "success", "Emission received successfully")
 }
 
 // mergeEmissionItems merges the received emission items with the existing emission items in the domain model.
-func (s *TaxReceive) mergeEmissionItems(emission *domain.Emission,
+func (s *TaxClear) mergeEmissionItems(emission *domain.Emission,
 	fileItems map[int64]*domain.EmissionItem) error {
 	if len(fileItems) != len(emission.EmissionItems) {
 		return fmt.Errorf("mismatch in number of emission items: expected %d, got %d",
@@ -91,7 +90,7 @@ func (s *TaxReceive) mergeEmissionItems(emission *domain.Emission,
 }
 
 // saveEmission saves the updated emission to the repository.
-func (s *TaxReceive) saveEmission(emission *domain.Emission) error {
+func (s *TaxClear) saveEmission(emission *domain.Emission) error {
 	if err := s.repo.BeginTransaction(); err != nil {
 		s.logger.IPrintf(1, "Error starting transaction: %v", err)
 		return fmt.Errorf("failed to start transaction: %v", err)

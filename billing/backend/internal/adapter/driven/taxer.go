@@ -1,10 +1,10 @@
 package driven
 
 import (
+	"bytes"
+	"encoding/base64"
 	"encoding/csv"
 	"fmt"
-	"os"
-	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -14,7 +14,6 @@ import (
 	"billing/internal/domain"
 	"github.com/ianlopshire/go-fixedwidth"
 
-	"golang.org/x/text/encoding/charmap"
 	"golang.org/x/text/runes"
 	"golang.org/x/text/transform"
 	"golang.org/x/text/unicode/norm"
@@ -101,47 +100,26 @@ func (i *Taxer) GetEmission(emission *domain.Emission, builder *strings.Builder)
 }
 
 // ReceiveEmission is a placeholder for receiving emissions.
-func (i *Taxer) ReceiveEmission(source string) (map[int64]*domain.EmissionItem, error) {
-	file, err := i.openReceiveFile(source)
+func (i *Taxer) ClearEmission(source string) (map[int64]*domain.EmissionItem, error) {
+	decoded, err := base64.StdEncoding.DecodeString(source)
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
-	lines, err := i.readReceiveFile(file)
+	reader := bytes.NewReader(decoded)
+	lines, err := i.readReceiveFile(reader)
 	if err != nil {
 		return nil, err
 	}
 	return lines, nil
 }
 
-// openSendFile is a helper function to open the file for writing.
-func (i *Taxer) openSendFile(emission *domain.Emission, filePath, filePattern string) (*os.File, *transform.Writer, error) {
-	file_path := filepath.Join(filePath, i.replacePlaceholders(filePattern, emission))
-	file, err := os.OpenFile(file_path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
-	if err != nil {
-		return nil, nil, err
-	}
-	writer := transform.NewWriter(file, charmap.ISO8859_1.NewEncoder())
-
-	return file, writer, nil
-}
-
-// openReceiveFile is a placeholder for opening the file for reading.
-func (i *Taxer) openReceiveFile(source string) (*os.File, error) {
-	file, err := os.Open(source)
-	if err != nil {
-		return nil, err
-	}
-	return file, nil
-}
-
 // readReceiveFile is a placeholder for reading the file for receiving emissions.
-func (i *Taxer) readReceiveFile(file *os.File) (map[int64]*domain.EmissionItem, error) {
+func (i *Taxer) readReceiveFile(reader *bytes.Reader) (map[int64]*domain.EmissionItem, error) {
 	lines := make(map[int64]*domain.EmissionItem)
-	reader := csv.NewReader(file)
-	reader.Comma = ';'
-	reader.FieldsPerRecord = -1
-	records, err := reader.ReadAll()
+	csvReader := csv.NewReader(reader)
+	csvReader.Comma = ';'
+	csvReader.FieldsPerRecord = -1
+	records, err := csvReader.ReadAll()
 	if err != nil {
 		return nil, err
 	}
@@ -194,19 +172,6 @@ func (i *Taxer) getItemFromRecord(record []string) (*domain.EmissionItem, error)
 		NFEVerification: &nfeVerification,
 	}
 	return item, nil
-}
-
-// replacePlaceholders replaces placeholders in the file pattern with actual values from the emission.
-func (i *Taxer) replacePlaceholders(pattern string, emission *domain.Emission) string {
-	year := emission.EmissionDate.Format("2006") // Get the year from the emission date
-	month := emission.EmissionDate.Format("01")  // Get the month from the emission date
-	day := emission.EmissionDate.Format("02")    // Get the day from the emission date
-	id := strconv.FormatInt(emission.ID, 10)     // Convert the emission ID to a string
-	pattern = strings.ReplaceAll(pattern, "<yyyy>", year)
-	pattern = strings.ReplaceAll(pattern, "<mm>", month)
-	pattern = strings.ReplaceAll(pattern, "<dd>", day) // Get the day from the emission date
-	pattern = strings.ReplaceAll(pattern, "<id>", id)
-	return pattern
 }
 
 // getHeaderLine is a helper function to convert an Emission to a header line.
