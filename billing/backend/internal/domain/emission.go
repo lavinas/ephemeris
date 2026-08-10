@@ -34,6 +34,7 @@ type EmissionItem struct {
 	NFENumber       *int64     `gorm:"index"`
 	NFEDatetime     *time.Time `gorm:"date"`
 	NFEVerification *string    `gorm:"size:255"`
+	NFEAmount       *float64   `gorm:"type:numeric(15,2)"`
 }
 
 // NewEmission creates a new Emission instance with the provided details.

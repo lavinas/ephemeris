@@ -164,12 +164,17 @@ func (i *Taxer) getItemFromRecord(record []string) (*domain.EmissionItem, error)
 	if err != nil {
 		return nil, fmt.Errorf("invalid NFE datetime: %v", err)
 	}
+	amount, err := strconv.ParseFloat(record[4], 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid NFE amount: %v", err)
+	}
 	nfeVerification := record[3]
 	item := &domain.EmissionItem{
 		RPSNumber:       rpsNum,
 		NFENumber:       &nfeNum,
 		NFEDatetime:     &nfeDateTime,
 		NFEVerification: &nfeVerification,
+		NFEAmount:       &amount,
 	}
 	return item, nil
 }

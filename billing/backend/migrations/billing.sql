@@ -159,8 +159,33 @@ create table emission_item (
     rps_number bigint not null,
     nfe_number bigint,
     nfe_datetime timestamp,
-    nfe_verification varchar(100)
+    nfe_verification varchar(100),
+    nfe_amount numeric(15, 2)
 );
 
+alter table emission_item add column nfe_amount numeric(15,2);
 
+
+
+
+select * from emission_item;
+
+
+select * from emission;
+
+
+select count(1)
+  from emission_item a 
+inner join invoice b
+  on a.invoice_id = b.id
+where a.emission_id = 58;
+
+
+update emission_item set nfe_amount = b.amount
+from invoice b
+where emission_item.invoice_id = b.id
+ and emission_item.emission_id = 58;
+
+
+ select * from emission_item where emission_id = 95;
 

@@ -77,6 +77,7 @@ func (s *TaxClear) mergeEmissionItems(emission *domain.Emission,
 		emission.EmissionItems[i].NFENumber = fileItem.NFENumber
 		emission.EmissionItems[i].NFEDatetime = fileItem.NFEDatetime
 		emission.EmissionItems[i].NFEVerification = fileItem.NFEVerification
+		emission.EmissionItems[i].NFEAmount = fileItem.NFEAmount
 	}
 	emission.UpdatedAt = time.Now()
 	emission.NFEStart = fileItems[emission.EmissionItems[0].RPSNumber].NFENumber

@@ -25,7 +25,7 @@ type TaxClearResponse struct {
 // NewTaxClearResponse creates a new instance of TaxClearResponse.
 func NewTaxClearResponse(httpCode int, status, message string) TaxClearResponse {
 	return TaxClearResponse{
-		ResponseBase:     NewResponseBase(httpCode, status, message),
+		ResponseBase: NewResponseBase(httpCode, status, message),
 	}
 }
 
