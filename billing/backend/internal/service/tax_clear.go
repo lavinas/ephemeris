@@ -64,6 +64,9 @@ func (s *TaxClear) Run(inDTO port.InDTO) port.OutDTO {
 // mergeEmissionItems merges the received emission items with the existing emission items in the domain model.
 func (s *TaxClear) mergeEmissionItems(emission *domain.Emission,
 	fileItems map[int64]*domain.EmissionItem) error {
+	if emission.NFEDatetime != nil {
+		return fmt.Errorf("emission has already been processed with NFE datetime: %v", *emission.NFEDatetime)
+	}
 	if len(fileItems) != len(emission.EmissionItems) {
 		return fmt.Errorf("mismatch in number of emission items: expected %d, got %d",
 			len(emission.EmissionItems), len(fileItems))

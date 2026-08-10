@@ -27,6 +27,12 @@ const (
 	service_code   = 5762
 	aliquot        = 0
 	retention_type = 2
+
+	rps_num_pos    = 6
+	nfe_num_pos    = 1
+	nfe_date_pos   = 2
+	nfe_amount_pos = 26
+	nfe_verif_pos  = 3
 )
 
 // header
@@ -152,23 +158,24 @@ func (i *Taxer) readReceiveFile(reader *bytes.Reader) (map[int64]*domain.Emissio
 
 // getItemFromRecord is a helper function to convert a CSV record to an EmissionItem.
 func (i *Taxer) getItemFromRecord(record []string) (*domain.EmissionItem, error) {
-	rpsNum, err := strconv.ParseInt(record[6], 10, 64)
+	rpsNum, err := strconv.ParseInt(record[rps_num_pos], 10, 64)
 	if err != nil {
 		return nil, fmt.Errorf("invalid RPS number: %v", err)
 	}
-	nfeNum, err := strconv.ParseInt(record[1], 10, 64)
+	nfeNum, err := strconv.ParseInt(record[nfe_num_pos], 10, 64)
 	if err != nil {
 		return nil, fmt.Errorf("invalid NFE number: %v", err)
 	}
-	nfeDateTime, err := time.Parse("02/01/2006 15:04:05", record[2])
+	nfeDateTime, err := time.Parse("02/01/2006 15:04:05", record[nfe_date_pos])
 	if err != nil {
 		return nil, fmt.Errorf("invalid NFE datetime: %v", err)
 	}
-	amount, err := strconv.ParseFloat(record[4], 64)
+	amountStr := strings.Replace(record[nfe_amount_pos], ",", ".", 1) // Replace comma with dot for decimal parsing
+	amount, err := strconv.ParseFloat(amountStr, 64)
 	if err != nil {
 		return nil, fmt.Errorf("invalid NFE amount: %v", err)
 	}
-	nfeVerification := record[3]
+	nfeVerification := record[nfe_verif_pos]
 	item := &domain.EmissionItem{
 		RPSNumber:       rpsNum,
 		NFENumber:       &nfeNum,

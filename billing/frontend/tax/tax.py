@@ -1,7 +1,7 @@
 import requests
 from requests.exceptions import ConnectionError, Timeout
 from os import path as os_path
-from base64 import b64decode
+from base64 import b64decode, b64encode
 
 # Configurações
 endpoint = 'http://localhost:8080'
@@ -29,10 +29,13 @@ def generate (vendor, start_date, end_date, emission_date, path):
   return f'{resp["status"]} - {resp["message"]} - id: {resp["emission_id"]} - qtde: {resp["emission_quantity"]} - valor: {resp["emission_amount"]}'
 
 # receive
-def receive (vendor, id, source):
-  json_data = {'vendor': vendor, 'emission_id': id, 'source': source}
+def clear (vendor, id, source):
+  with open(source, "rb") as file:
+    base64_bytes = b64encode(file.read())
+    base64_string = base64_bytes.decode("utf-8")
+  json_data = {'vendor': vendor, 'emission_id': id, 'source': base64_string}
   try:
-    resposta = requests.post(f'{endpoint}/emission/receive', json=json_data, timeout=5)
+    resposta = requests.post(f'{endpoint}/tax/clear', json=json_data, timeout=5)
   except ConnectionError as e:
     return f"Erro: A conexão foi recusada pelo servidor remoto. Detalhes: {e}"
   except Timeout as e:
@@ -40,4 +43,4 @@ def receive (vendor, id, source):
   except requests.exceptions.RequestException as e:
     return f"Ocorreu um erro genérico no requests: {e}"
   json_data = resposta.json()
-  return f'{json_data["status"]} - {json_data["message"]} - id: {json_data["emission_id"]} - qtde: {json_data["emission_quantity"]} - valor: {json_data["emission_amount"]}' 
+  return f'{json_data["http_code"]} - {json_data["status"]} - {json_data["message"]}'
