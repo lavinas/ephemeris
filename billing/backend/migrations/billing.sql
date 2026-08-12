@@ -30,7 +30,8 @@ create table vendor (
     smtp_port int,
     smtp_user varchar(255),
     smtp_password varchar(255),
-    constraint unique_vendor_document unique(document)
+    constraint unique_vendor_document unique(document),
+    constraint unique_vendor_nickname unique(nickname)
 );
 
 # main vendor
