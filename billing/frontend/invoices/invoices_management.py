@@ -74,6 +74,22 @@ def get(vendor, customer, invoicing, due, payment, email_sent, whatsapp_sent, em
         sum(df_invoices['amount'].replace('-', 0).astype(float)), \
         df_invoices.loc[df_invoices['payment'] != '-', 'amount'].replace('-', 0).astype(float).sum()
 
+def get_overdue(vendor):
+    df = get_df(vendor, '', '', '', 'null', '', '', '', '', '', '')
+    if isinstance(df, str):
+        return df, 0, 0, 0
+    if len(df) == 0:
+        return 'Nenhuma fatura encontrada.', 0, 0, 0
+    df['due'] = pd.to_datetime(df['due'], errors='coerce')
+    df['overdue'] = df['due'] < pd.Timestamp.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    df_overdue = df[df['overdue']]
+    if len(df_overdue) == 0:
+        return 'Nenhuma fatura vencida encontrada.', 0, 0, 0
+    return tabulate(df_overdue, headers='keys', tablefmt='grid', showindex=False), \
+        len(df_overdue), \
+        sum(df_overdue['amount'].replace('-', 0).astype(float)), \
+        df_overdue.loc[df_overdue['payment'] != '-', 'amount'].replace('-', 0).astype(float).sum()
+
 # insert
 def insert(vendor, customer, invoicing, due, payment, cancellation, notes, items):
     invoice = {'vendor': vendor, 'customer': customer, 'invoicing': invoicing,
