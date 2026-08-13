@@ -4,6 +4,7 @@ from tabulate import tabulate
 from requests.exceptions import ConnectionError, Timeout
 from os import path as os_path
 from base64 import b64decode
+import matplotlib.pyplot as plt
 
 
 # Configurações
@@ -230,3 +231,24 @@ def save_bill(vendor, invoiceID, doc, path):
     with open(file_path, 'wb') as f:
         f.write(file_bin)
     return f'Arquivo salvo com sucesso em: {file_path}'
+
+
+def invoicing_graph(vendor, start_date, end_date):
+    df = get_df(vendor, '', '', '', '', '', '', '', '', '', '')
+    df['invoice_dt'] = pd.to_datetime(df['invoicing'], format='%Y-%m-%d')
+    df = df[(df['invoice_dt'] >= start_date) & (df['invoice_dt'] <= end_date)]
+    df['invoice_month'] = df['invoice_dt'].dt.to_period('M')
+    dfsum = df.groupby('invoice_month').agg({'amount': 'sum'}).reset_index()
+    dfsum['amount_fmt'] = dfsum['amount'].map('{:,.2f}'.format)
+    mean_amount = dfsum['amount'].mean()
+    # plt.figure(figsize=(6, 4))
+    bar = plt.bar(dfsum['invoice_month'].astype(str), dfsum['amount'], color='green')
+    plt.bar_label(bar, labels=dfsum['amount_fmt'], label_type='edge', color='green', fontsize=10, padding=3)
+    plt.axhline(mean_amount, color='black', linestyle='--', label=f'{mean_amount:,.2f}')
+    plt.text(-0.45, mean_amount, f'{mean_amount:,.2f}', color='black', fontweight='bold', va='bottom')
+    plt.xlabel('Mês')
+    plt.ylim(1000, max(dfsum['amount']) * 1.15)
+    plt.ylabel('Faturamento (R$)')
+    plt.title(f'Faturamento {vendor}')
+    plt.grid(False)
+    plt.show()
