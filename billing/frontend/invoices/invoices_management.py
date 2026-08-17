@@ -234,7 +234,7 @@ def save_bill(vendor, invoiceID, doc, path):
 
 
 def invoicing_graph(vendor, start_date, end_date):
-    df = get_df(vendor, '', '', '', '', '', '', '', '', '', '')
+    df = get_df(vendor, '', '', '', '', '', '', '', '', '', 'null')
     df['invoice_dt'] = pd.to_datetime(df['invoicing'], format='%Y-%m-%d')
     df = df[(df['invoice_dt'] >= start_date) & (df['invoice_dt'] <= end_date)]
     df['invoice_month'] = df['invoice_dt'].dt.to_period('M')
