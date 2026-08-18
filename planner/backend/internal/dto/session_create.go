@@ -96,11 +96,6 @@ func (r *SessionCreateRequest) validateDate() error {
 
 // validateStatus checks if the provided status is valid.
 func (r *SessionCreateRequest) validateStatus() error {
-	validStatuses := map[string]bool{
-		"realizada":            true,
-		"cancelada_cobrar":     true,
-		"cancelada_nao_cobrar": true,
-	}
 	if !validStatuses[r.Status] {
 		return fmt.Errorf("invalid status, must be one of: realizada, cancelada_cobrar, cancelada_nao_cobrar")
 	}

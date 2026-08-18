@@ -109,3 +109,13 @@ func (a *Repository) Save(model interface{}) error {
 		UpdateAll: true,
 	}).CreateInBatches(model, batchSizeInsertTransaction).Error
 }
+
+// Find is a helper function to find records in the database
+func (a *Repository) Find(model interface{}, page int, pagesize int, conditions ...interface{}) error {
+	db := a.DB
+	if a.Tx != nil {
+		db = a.Tx
+	}
+	offset := (page - 1) * pagesize
+	return db.Offset(offset).Limit(pagesize).Find(model, conditions...).Error
+}

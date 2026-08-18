@@ -38,7 +38,7 @@ func (s *SessionCreate) Run(input port.InDTO) port.OutDTO {
 
 	// Create and return the output DTO with the session ID
 	s.logger.IPrintf(2, "Successfully created session with ID: %d", sessionModel.(*domain.Session).ID)
-	return dto.NewSessionCreateResponse(200, "success", "", sessionModel.(*domain.Session).ID)
+	return dto.NewSessionCreateResponse(200, "success", "session created", sessionModel.(*domain.Session).ID)
 }
 
 // createSessionModel creates a session model from the input DTO.

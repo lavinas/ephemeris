@@ -57,13 +57,15 @@ func (h *Handler) mapServices() {
 		"/ping": *newHandleService(http.MethodGet, nil, service.NewPingService(h.logger)),
 		"/session/create": *newHandleService(http.MethodPost, &dto.SessionCreateRequest{},
 			service.NewSessionCreate(h.repo, h.logger)),
+		"/session/list": *newHandleService(http.MethodGet, &dto.SessionListRequest{},
+			service.NewSessionList(h.repo, h.logger)),
 	}
 }
 
 // Run starts the API server
 func (h *Handler) Run(addr string) {
 	// Set up channel to listen for interrupt signals for graceful shutdown
-	h.logger.IPrintf(1, "Starting API server on %s", addr)	
+	h.logger.IPrintf(1, "Starting API server on %s", addr)
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	server := &http.Server{

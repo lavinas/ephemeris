@@ -1,5 +1,13 @@
 package dto
 
+var (
+	validStatuses = map[string]bool{
+		"realizada":            true,
+		"cancelada_cobrar":     true,
+		"cancelada_nao_cobrar": true,
+	}
+)
+
 // ResponseBase represents the base structure for API responses, containing common fields for status and messages.
 type ResponseBase struct {
 	HttpCode int    `json:"http_code"`
