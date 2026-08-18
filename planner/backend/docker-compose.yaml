@@ -1,39 +1,39 @@
 services:
   # Database service
-  billing_db:
+  planner_db:
     image: postgres:latest
-    container_name: billing_db
+    container_name: planner_db
     restart: always
     environment:
       - POSTGRES_USER=root
       - POSTGRES_PASSWORD=root
-      - POSTGRES_DB=ephemeris
+      - POSTGRES_DB=planner
       - PGDATA=/var/lib/postgresql/data
     networks:
-      - net-billing
+      - net-planner
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - ./.db:/var/lib/postgresql
   # API service
-  billing_api:
+  planner_api:
       build: .
-      container_name: billing_api
+      container_name: planner_api
       restart: always
+      networks:
+        - net-planner
       ports:
-        - "8080:8080"
+        - "8083:8083"
       volumes:
         - ${PWD}:/app
-      networks:
-        - net-billing
       environment:
-        - DB_HOST=billing_db
-        - DB_PORT=5432
+        - DB_HOST=planner_db
+        - DB_PORT=5433
         - DB_USER=root
         - DB_PASSWORD=root
-        - DB_NAME=ephemeris    
+        - DB_NAME=planner
       depends_on:
-        - billing_db
+        - planner_db
 networks:
-  net-billing:
+  net-planner:
     driver: bridge
