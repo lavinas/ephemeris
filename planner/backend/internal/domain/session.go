@@ -86,7 +86,7 @@ func (s *Session) Find(repository port.Repository, page, pagesize int, nickname 
 // Get is a helper function to get a record from the database
 func (s *Session) Get(repository port.Repository, id int64) (bool, error) {
 	conditions := map[string]interface{}{
-		"id = ?":          id,
+		"id = ?":             id,
 		"deleted_at IS NULL": nil,
 	}
 	results, err := repository.Find(1, 1, conditions)

@@ -1,0 +1,37 @@
+{{define "table-rows"}}
+    {{range .Sessions}}
+    <tr id="session-row-{{.ID}}" class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+        <td class="px-6 py-4 font-medium text-slate-900">{{.Nickname}}</td>
+        <td class="px-6 py-4 text-slate-600">{{.Date}}</td>
+        <td class="px-6 py-4 text-slate-600 font-semibold">{{.Minutes}} min</td>
+        <td class="px-6 py-4">
+            {{if .Realizada}}
+                <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">Realizada</span>
+            {{else if .CanceladaCobrar}}
+                <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">Cancelada (Cobrar)</span>
+            {{else if .CanceladaNaoCobrar}}
+                <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">Cancelada (Não Cobrar)</span>
+            {{else}}
+                <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600">Indefinido</span>
+            {{end}}
+        </td>
+        <td class="px-6 py-4 text-slate-500 max-w-xs truncate" title="{{.Comments}}">{{.Comments}}</td>
+        <td class="px-6 py-4 text-right">
+            <button hx-delete="/sessions/delete"
+                    hx-vals='{"id": {{.ID}}}'
+                    hx-target="#session-row-{{.ID}}"
+                    hx-swap="outerHTML"
+                    hx-confirm="Tem certeza que deseja deletar a sessão de {{.Nickname}}?"
+                    class="text-red-500 hover:text-red-700 font-medium text-sm transition-colors">
+                Deletar
+            </button>
+        </td>
+    </tr>
+    {{else}}
+    <tr>
+        <td colspan="6" class="px-6 py-10 text-center text-slate-400 bg-slate-50">
+            Nenhuma sessão encontrada para os filtros informados.
+        </td>
+    </tr>
+    {{end}}
+{{end}}

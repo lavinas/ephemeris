@@ -7,9 +7,10 @@ import (
 	"planner/internal/dto"
 	"planner/internal/port"
 )
+
 // SessionDelete is a service that handles the deletion of sessions.
 type SessionDelete struct {
-	repo port.Repository
+	repo   port.Repository
 	logger port.Logger
 }
 
