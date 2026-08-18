@@ -28,7 +28,7 @@ services:
         - ${PWD}:/app
       environment:
         - DB_HOST=planner_db
-        - DB_PORT=5433
+        - DB_PORT=5432
         - DB_USER=root
         - DB_PASSWORD=root
         - DB_NAME=planner
