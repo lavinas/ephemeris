@@ -7,6 +7,6 @@ type Repository interface {
 	CommitTransaction() error
 	RollbackTransaction() error
 	Save(model interface{}) error
-	Find(model interface{}, page int, pagesize int, conditions ...interface{}) error
+	Find(page, pagesize int, conditions map[string]interface{}) ([]interface{}, error)
 	Close() error
 }

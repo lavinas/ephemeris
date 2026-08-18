@@ -13,7 +13,7 @@ type SessionListRequest struct {
 	Page      int    `json:"page" validate:"required,gt=0"`
 	PageSize  int    `json:"page_size" validate:"required,gt=0"`
 	Nickname  string `json:"nickname,omitempty"`
-	DateStart string `json:"date,omitempty"`
+	DateStart string `json:"date_start,omitempty"`
 	DateEnd   string `json:"date_end,omitempty"`
 	Minutes   int    `json:"minutes,omitempty"`
 	Status    string `json:"status,omitempty"`

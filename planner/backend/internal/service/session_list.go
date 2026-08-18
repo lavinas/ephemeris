@@ -2,9 +2,10 @@ package service
 
 import (
 	"fmt"
+	"planner/internal/domain"
 	"planner/internal/dto"
 	"planner/internal/port"
-	"planner/internal/domain"
+	"time"
 )
 
 // SessionList is a service that handles the retrieval of session lists.
@@ -42,29 +43,13 @@ func (s *SessionList) Run(input port.InDTO) port.OutDTO {
 // findSessions is a helper function to find sessions in the repository based on the input DTO.
 func (s *SessionList) findSessions(input port.InDTO) ([]domain.Session, error) {
 	// Assuming input is of type SessionListRequest
+	var session domain.Session
 	req := input.(*dto.SessionListRequest)
-	conditions := []interface{}{}
-	if req.Nickname != "" {
-		conditions = append(conditions, "nickname = ?", req.Nickname)
-	}
-	if req.DateStart != "" {
-		conditions = append(conditions, "date >=", req.DateStart, req.DateEnd)
-	}
-	if req.DateEnd != "" {
-		conditions = append(conditions, "date <=", req.DateEnd)
-	}
-	if req.Minutes != 0 {
-		conditions = append(conditions, "minutes = ?", req.Minutes)
-	}
-	if req.Status != "" {
-		conditions = append(conditions, "status = ?", req.Status)
-	}
-	if req.Comments != "" {
-		conditions = append(conditions, "comments LIKE ?", "%"+req.Comments+"%")
-	}
-	var sessions []domain.Session
-
-	if err := s.repo.Find(&sessions, req.Page, req.PageSize, conditions...); err != nil {
+	dateStart, _ := time.Parse("2006-01-02", req.DateStart)
+	dateEnd, _ := time.Parse("2006-01-02", req.DateEnd)
+	sessions, err := session.Find(s.repo, req.Page, req.PageSize, req.Nickname, dateStart,
+		dateEnd, req.Minutes, req.Status, req.Comments)
+	if err != nil {
 		return nil, err
 	}
 	return sessions, nil

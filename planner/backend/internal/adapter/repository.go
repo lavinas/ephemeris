@@ -6,6 +6,8 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
+
+	"planner/internal/domain"
 )
 
 const batchSizeInsertTransaction = 100
@@ -111,11 +113,28 @@ func (a *Repository) Save(model interface{}) error {
 }
 
 // Find is a helper function to find records in the database
-func (a *Repository) Find(model interface{}, page int, pagesize int, conditions ...interface{}) error {
+func (a *Repository) Find(page, pagesize int, conditions map[string]interface{}) ([]interface{}, error) {
 	db := a.DB
 	if a.Tx != nil {
 		db = a.Tx
 	}
-	offset := (page - 1) * pagesize
-	return db.Offset(offset).Limit(pagesize).Find(model, conditions...).Error
+	if page > 0 && pagesize > 0 {
+		offset := (page - 1) * pagesize
+		db = db.Offset(offset).Limit(pagesize)
+	}
+	for key, value := range conditions {
+		if value == nil {
+			db = db.Where(key)
+		} else {
+			db = db.Where(key, value)
+		}
+	}
+	var sessions []domain.Session
+	err := db.Find(&sessions).Error
+	// Convert []domain.Session to []interface{}
+	result := make([]interface{}, len(sessions))
+	for i, v := range sessions {
+		result[i] = v
+	}
+	return result, err
 }

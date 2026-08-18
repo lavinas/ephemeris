@@ -59,6 +59,8 @@ func (h *Handler) mapServices() {
 			service.NewSessionCreate(h.repo, h.logger)),
 		"/session/list": *newHandleService(http.MethodGet, &dto.SessionListRequest{},
 			service.NewSessionList(h.repo, h.logger)),
+		"/session/delete": *newHandleService(http.MethodDelete, &dto.SessionDeleteRequest{},
+			service.NewSessionDelete(h.repo, h.logger)),
 	}
 }
 
