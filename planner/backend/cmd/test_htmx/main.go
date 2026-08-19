@@ -1,228 +1,518 @@
 package main
 
 import (
+	"fmt"
 	"html/template"
-	"log"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
 	"sync"
 )
 
-// --- DTOs ATUALIZADOS ---
-
-type SessionListRequest struct {
-	Page               int    `json:"page" validate:"required,gt=0"`
-	PageSize           int    `json:"page_size" validate:"required,gt=0"`
-	Nickname           string `json:"nickname,omitempty"`
-	DateStart          string `json:"date_start,omitempty"`
-	DateEnd            string `json:"date_end,omitempty"`
-	Minutes            int    `json:"minutes,omitempty"`
-	Realizada          bool   `json:"realizada,omitempty"`
-	CanceladaCobrar    bool   `json:"cancelada_cobrar,omitempty"`
-	CanceladaNaoCobrar bool   `json:"cancelada_nao_cobrar,omitempty"`
-	Comments           string `json:"comments,omitempty"`
+type Sessao struct {
+	ID         int
+	Nickname   string
+	Data       string 
+	Duracao    int
+	Status     string
+	Comentario string
 }
 
-type SessionCreateRequest struct {
-	Nickname           string `json:"nickname" validate:"required"`
-	Date               string `json:"date" validate:"required"`
-	Minutes            int    `json:"minutes" validate:"required"`
-	Realizada          bool   `json:"realizada"`
-	CanceladaCobrar    bool   `json:"cancelada_cobrar"`
-	CanceladaNaoCobrar bool   `json:"cancelada_nao_cobrar"`
-	Comments           string `json:"comments,omitempty"`
-}
-
-type SessionDeleteRequest struct {
-	SessionID int64 `json:"id" validate:"required"`
-}
-
-// --- ENTIDADE DO MODELO ---
-
-type Session struct {
-	ID                 int64
-	Nickname           string
-	Date               string
-	Minutes            int
-	Realizada          bool
-	CanceladaCobrar    bool
-	CanceladaNaoCobrar bool
-	Comments           string
+type PaginacaoData struct {
+	Sessoes      []Sessao
+	PaginaAtual  int
+	TotalPaginas int
+	TemAnterior  bool
+	TemProximo   bool
+	PagAnterior  int
+	PagProxima   int
 }
 
 var (
-	sessions     = []Session{}
-	nextID       int64 = 1
-	sessionsMu   sync.Mutex
-	templatesEnv *template.Template
+	mu        sync.Mutex
+	sessoes   = []Sessao{
+		{1, "AnaGamer", "2026-06-01", 60, "realizada", "Boa partida.\nEvoluiu bastante no posicionamento tático e rotações."},
+		{2, "CarlosPro", "2026-06-02", 30, "cancelada/cobrar", "Desistiu em cima da hora do compromisso agendado."},
+		{3, "BiaPlayer", "2026-06-15", 45, "cancelada/não cobrar", "Teve queda generalizada de energia na região onde mora."},
+		{4, "JohnDoe", "2026-06-16", 90, "realizada", "Focado nos objetivos estabelecidos no treinamento."},
+		{5, "PlayerX", "2026-06-17", 60, "realizada", "Treino de mira eficiente com evolução constante."},
+		{6, "GamerPro99", "2026-06-18", 120, "realizada", "Análise de replay detalhada em grupo."},
+		{7, "LucasT", "2026-06-19", 45, "cancelada/cobrar", "Esqueceu do compromisso e não respondeu avisos."},
+	}
+	proximoID   = 8
+	itensPorPag = 5
 )
 
+var tmpl *template.Template
+
 func init() {
-	var err error
-	templatesEnv, err = template.ParseFiles("templates/index.html", "templates/partials.html")
-	if err != nil {
-		log.Fatal("Erro crítico ao compilar os arquivos de template HTML:", err)
+	funcMap := template.FuncMap{
+		"statusClass": func(status string) string {
+			switch status {
+			case "realizada":
+				return "bg-green-600/10 text-green-700 border border-green-600/20"
+			case "cancelada/cobrar":
+				return "bg-amber-600/10 text-amber-700 border border-amber-600/20"
+			case "cancelada/não cobrar":
+				return "bg-rose-600/10 text-rose-700 border border-rose-600/20"
+			default:
+				return "bg-gray-600/10 text-gray-700 border border-gray-600/20"
+			}
+		},
+		// FUNÇÃO CIRURGICAMENTE CORRIGIDA: Extrai os índices isolados para montar DD/MM/YYYY
+		"formatarData": func(dataRaw string) string {
+			partes := strings.Split(dataRaw, "-")
+			if len(partes) != 3 {
+				return dataRaw
+			}
+			return fmt.Sprintf("%s/%s/%s", partes[2], partes[1], partes[0])
+		},
+		"pularLinhas": func(texto string) template.HTML {
+			safeStr := template.HTMLEscapeString(texto)
+			comQuebras := strings.ReplaceAll(safeStr, "\n", "<br>")
+			return template.HTML(comQuebras)
+		},
 	}
 
-	// Carga inicial de testes mapeando os novos estados booleanos
-	sessions = append(sessions, Session{ID: nextID, Nickname: "ArthurPendragon", Date: "2026-08-19", Minutes: 60, Realizada: true, Comments: "Mentoria de arquitetura concluída."})
-	nextID++
-	sessions = append(sessions, Session{ID: nextID, Nickname: "Beatrice_Dev", Date: "2026-08-15", Minutes: 90, CanceladaCobrar: true, Comments: "Cliente faltou em cima da hora."})
-	nextID++
+
+	htmlTemplates := `
+	{{define "index"}}
+	<!DOCTYPE html>
+	<html lang="pt-BR">
+	<head>
+		<meta charset="UTF-8">
+		<title>Dashboard de Sessões</title>
+		<script src="https://tailwindcss.com"></script>
+		<script src="/static/htmx.min.js"></script>
+		<style>
+			.grade-filtros {
+				display: grid !important;
+				grid-template-columns: 2fr 1.5fr 1.5fr 2fr 3.5fr !important;
+				gap: 15px !important;
+				width: 100% !important;
+				box-sizing: border-box !important;
+			}
+			.grade-tabela {
+				display: grid !important;
+				grid-template-columns: 2fr 0.8fr 0.4fr 1.3fr 6.7fr 1.2fr !important;
+				gap: 16px !important;
+				align-items: center !important;
+				width: 100% !important;
+				box-sizing: border-box !important;
+				padding: 16px 24px !important;
+			}
+			.topo-tabela {
+				color: #9ca3af !important;
+				font-size: 11px !important;
+				font-weight: 700 !important;
+				text-transform: uppercase !important;
+				letter-spacing: 0.05em !important;
+				border-bottom: 1px solid #374151 !important;
+				padding-bottom: 12px !important;
+				margin-bottom: 12px !important;
+			}
+			.linha-box {
+				background-color: #f3f4f6 !important;
+				border: 1px solid #e5e7eb !important;
+				border-radius: 8px !important;
+				margin-bottom: 8px !important;
+				color: #1f2937 !important;
+				transition: background-color 0.15s ease !important;
+				box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+			}
+			.linha-box.formulario-add, .linha-box.formulario-edit, .linha-box.aviso-deletar {
+				background-color: #ffffff !important;
+				border: 1px solid #4f46e5 !important;
+				color: #1f2937 !important;
+			}
+			.linha-box.aviso-deletar {
+				border-color: #e11d48 !important; /* Borda vermelha para o aviso */
+			}
+			.linha-box:hover:not(.formulario-add):not(.formulario-edit):not(.aviso-deletar) {
+				background-color: #e5e7eb !important;
+			}
+			.campo-box {
+				background-color: #1f2937 !important;
+				border: 1px solid #374151 !important;
+				padding: 12px !important;
+				border-radius: 8px !important;
+				display: flex !important;
+				flex-direction: column !important;
+			}
+			.campo-box label {
+				display: block !important;
+				font-size: 11px !important;
+				font-weight: 600 !important;
+				color: #9ca3af !important;
+				text-transform: uppercase !important;
+				margin-bottom: 6px !important;
+				letter-spacing: 0.05em !important;
+			}
+			.campo-box input, .campo-box select {
+				width: 100% !important;
+				padding: 8px 12px !important;
+				background-color: #111827 !important;
+				border: 1px solid #4b5563 !important;
+				color: #f3f4f6 !important;
+				border-radius: 6px !important;
+				font-size: 14px !important;
+				outline: none !important;
+				box-sizing: border-box !important;
+			}
+			.input-inline-tabela {
+				width: 100% !important;
+				padding: 6px 10px !important;
+				background-color: #f9fafb !important;
+				border: 1px solid #d1d5db !important;
+				color: #1f2937 !important;
+				border-radius: 6px !important;
+				font-size: 14px !important;
+				outline: none !important;
+				box-sizing: border-box !important;
+			}
+			.campo-box input:focus, .campo-box select:focus {
+				border-color: #6366f1 !important;
+			}
+			.input-inline-tabela:focus {
+				border-color: #4f46e5 !important;
+				background-color: #ffffff !important;
+			}
+			.texto-truncado {
+				white-space: nowrap !important;
+				overflow: hidden !important;
+				text-overflow: ellipsis !important;
+			}
+			.comentario-multilinha {
+				white-space: normal !important;
+				word-break: break-word !important;
+				line-height: 1.4 !important;
+			}
+		</style>
+	</head>
+	<body class="bg-gray-950 text-gray-100 font-sans antialiased min-h-screen py-10 px-4">
+		<div class="max-w-7xl mx-auto bg-gray-900 shadow-2xl rounded-2xl overflow-hidden border border-gray-800 p-8">
+			<form id="filtro-form" hx-post="/tabela" hx-target="#tabela-container" hx-trigger="input delay:200ms, change" class="w-full">
+				<input type="hidden" id="input-pagina-form" name="page" value="1">
+				<div class="grade-filtros">
+					<div class="campo-box">
+						<label>Nickname</label>
+						<input type="text" name="nickname" placeholder="Filtrar usuário...">
+					</div>
+					<div class="campo-box">
+						<label>Data Início</label>
+						<input type="date" name="data_inicio">
+					</div>
+					<div class="campo-box">
+						<label>Data Fim</label>
+						<input type="date" name="data_fim">
+					</div>
+					<div class="campo-box">
+						<label>Status</label>
+						<select name="status">
+							<option value="">Todos os status</option>
+							<option value="realizada">Realizada</option>
+							<option value="cancelada/cobrar">Cancelada/Cobrar</option>
+							<option value="cancelada/não cobrar">Cancelada/Não Cobrar</option>
+						</select>
+					</div>
+					<div class="campo-box">
+						<label>Buscar nos Comentários</label>
+						<input type="text" name="comentario" placeholder="Palavra-chave do comentário...">
+					</div>
+				</div>
+			</form>
+			<div style="height: 40px; width: 100%;"></div>
+			<div class="flex justify-start gap-4">
+				<button hx-get="/sessoes/novo" hx-target="#formulario-cadastro-container" hx-swap="innerHTML" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-2.5 rounded-lg border border-indigo-500 transition duration-150 shadow-md">
+					＋ Adicionar
+				</button>
+				<button hx-post="/tabela/reset" hx-target="#tabela-container" class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-sm px-6 py-2.5 rounded-lg border border-gray-700 transition duration-150 shadow-md">
+					🧹 Limpar Filtros
+				</button>
+			</div>
+			<div id="formulario-cadastro-container" class="mt-4"></div>
+			<div style="height: 50px; width: 100%;"></div>
+			<div id="tabela-container" class="w-full">
+				{{template "tabela" .}}
+			</div>
+		</div>
+	</body>
+	</html>
+	{{end}}
+
+	{{define "formulario_cadastro"}}
+	<form hx-post="/sessoes/salvar" hx-target="#tabela-container" hx-include="#filtro-form" class="linha-box grade-tabela formulario-add text-sm shadow-lg">
+		<div><input type="text" name="add_nickname" placeholder="Nickname..." required class="input-inline-tabela"></div>
+		<div><input type="date" name="add_data" required class="input-inline-tabela"></div>
+		<div><input type="number" name="add_duracao" placeholder="Minutos..." min="1" required class="input-inline-tabela"></div>
+		<div>
+			<select name="add_status" required class="input-inline-tabela">
+				<option value="realizada">Realizada</option>
+				<option value="cancelada/cobrar">Cancelada/Cobrar</option>
+				<option value="cancelada/não cobrar">Cancelada/Não Cobrar</option>
+			</select>
+		</div>
+		<div><textarea name="add_comentario" placeholder="Escreva um comentário..." rows="2" class="input-inline-tabela" style="resize: vertical;"></textarea></div>
+		<div class="flex gap-2 justify-start w-full" style="justify-content: flex-start !important; align-items: center !important;">
+			<button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold text-xs px-3 py-2 rounded-md transition w-16 text-center">Salvar</button>
+			<button type="button" hx-get="/limpar-bloco" hx-target="#formulario-cadastro-container" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs px-3 py-2 rounded-md border border-gray-300 transition w-16 text-center">Cancelar</button>
+		</div>
+	</form>
+	{{end}}
+
+	{{define "tabela"}}
+	<div class="w-full">
+		<div class="grade-tabela topo-tabela">
+			<div>Usuário</div>
+			<div>Data</div>
+			<div>Duração</div>
+			<div>Status</div>
+			<div>Comentários</div>
+			<div style="text-align: left !important; width: 100%;">Ações</div>
+		</div>
+		{{if .Sessoes}}
+			{{range .Sessoes}}
+				{{template "linha_sessao" .}}
+			{{end}}
+			<div style="height: 40px; width: 100%;"></div>
+			<div class="mt-12 flex items-center justify-between bg-gray-800/40 p-4 rounded-xl border border-gray-800 text-sm">
+				<div class="text-gray-400">
+					Página <span class="text-gray-200 font-bold font-mono">{{.PaginaAtual}}</span> de <span class="text-gray-200 font-bold font-mono">{{.TotalPaginas}}</span>
+				</div>
+				<div class="flex gap-2">
+					<button {{if not .TemAnterior}}disabled style="opacity: 0.3; cursor: not-allowed;"{{end}} 
+					        hx-post="/tabela?page={{.PagAnterior}}" hx-target="#tabela-container" hx-include="#filtro-form"
+					        onclick="document.getElementById('input-pagina-form').value='{{.PagAnterior}}'"
+					        class="bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold px-4 py-2 rounded-lg border border-gray-700 transition">
+						◀ Anterior
+					</button>
+					<button {{if not .TemProximo}}disabled style="opacity: 0.3; cursor: not-allowed;"{{end}} 
+					        hx-post="/tabela?page={{.PagProxima}}" hx-target="#tabela-container" hx-include="#filtro-form"
+					        onclick="document.getElementById('input-pagina-form').value='{{.PagProxima}}'"
+					        class="bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold px-4 py-2 rounded-lg border border-gray-700 transition">
+						Próximo ▶
+					</button>
+				</div>
+			</div>
+		{{else}}
+			<div class="bg-gray-900/50 border border-gray-800 rounded-xl py-12 text-center text-gray-500 italic">
+				Nenhum registro corresponde aos filtros selecionados.
+			</div>
+		{{end}}
+	</div>
+	{{end}}
+
+	{{define "linha_sessao"}}
+	<div id="sessao-{{.ID}}" class="linha-box grade-tabela text-sm" style="align-items: start !important; padding-top: 20px; padding-bottom: 20px;">
+		<div class="font-bold text-gray-900 texto-truncado">{{.Nickname}}</div>
+		<div class="text-gray-600 font-mono font-medium">{{formatarData .Data}}</div>
+		<div class="text-gray-700 font-bold font-mono text-base">{{.Duracao}}</div>
+		<div><span class="inline-flex px-2.5 py-1 text-xs font-bold rounded-md uppercase tracking-wide {{statusClass .Status}}">{{.Status}}</span></div>
+		<div class="text-gray-600 comentario-multilinha">{{pularLinhas .Comentario}}</div>
+		<div class="flex gap-2 justify-start w-full" style="justify-content: flex-start !important; align-items: start !important;">
+			<button hx-get="/sessoes/editar?id={{.ID}}" hx-target="#sessao-{{.ID}}" hx-swap="outerHTML" class="text-indigo-600 hover:text-white font-bold text-xs px-2.5 py-1.5 bg-indigo-600/10 hover:bg-indigo-600 rounded-md border border-indigo-600/20 transition shadow-sm w-16 text-center">Editar</button>
+			<!-- Removido o hx-confirm; agora chama a rota de exibição do aviso inline -->
+			<button hx-get="/sessoes/deletar-aviso?id={{.ID}}" hx-target="#sessao-{{.ID}}" hx-swap="outerHTML" class="text-rose-600 hover:text-white font-bold text-xs px-2.5 py-1.5 bg-rose-600/10 hover:bg-rose-600 rounded-md border border-rose-600/20 transition duration-150 shadow-sm w-16 text-center">Deletar</button>
+		</div>
+	</div>
+	{{end}}
+
+	{{define "linha_sessao_edit"}}
+	<form id="sessao-{{.ID}}" hx-post="/sessoes/atualizar?id={{.ID}}" hx-target="#tabela-container" hx-include="#filtro-form" class="linha-box grade-tabela formulario-edit text-sm shadow-md" style="align-items: start !important; padding-top: 20px; padding-bottom: 20px;">
+		<div><input type="text" name="edit_nickname" value="{{.Nickname}}" required class="input-inline-tabela"></div>
+		<div><input type="date" name="edit_data" value="{{.Data}}" required class="input-inline-tabela"></div>
+		<div><input type="number" name="edit_duracao" value="{{.Duracao}}" min="1" required class="input-inline-tabela"></div>
+		<div>
+			<select name="edit_status" required class="input-inline-tabela">
+				<option value="realizada" {{if eq .Status "realizada"}}selected{{end}}>Realizada</option>
+				<option value="cancelada/cobrar" {{if eq .Status "cancelada/cobrar"}}selected{{end}}>Cancelada/Cobrar</option>
+				<option value="cancelada/não cobrar" {{if eq .Status "cancelada/não cobrar"}}selected{{end}}>Cancelada/Não Cobrar</option>
+			</select>
+		</div>
+		<div><textarea name="edit_comentario" rows="2" class="input-inline-tabela" style="resize: vertical;">{{.Comentario}}</textarea></div>
+		<div class="flex gap-2 justify-start w-full" style="justify-content: flex-start !important; align-items: start !important;">
+			<button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold text-xs px-2.5 py-1.5 rounded-md transition shadow-sm w-16 text-center">Salvar</button>
+			<button type="button" hx-get="/sessoes/cancelar-edicao?id={{.ID}}" hx-target="#sessao-{{.ID}}" hx-swap="outerHTML" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs px-2.5 py-1.5 rounded-md border border-gray-300 transition shadow-sm w-16 text-center">Cancelar</button>
+		</div>
+	</form>
+	{{end}}
+
+	<!-- NOVO TEMPLATE: Caixa de confirmação de exclusão que toma o lugar da linha inteira -->
+	{{define "linha_sessao_deletar_aviso"}}
+	<div id="sessao-{{.ID}}" class="linha-box grade-tabela aviso-deletar text-sm bg-rose-50/50 py-5" style="align-items: center !important;">
+		<div class="col-span-5 text-rose-700 font-bold flex items-center gap-2" style="grid-column: span 5 / span 5 !important;">
+			⚠️ Deseja realmente excluir permanentemente a sessão de <span class="underline">{{.Nickname}}</span>?
+		</div>
+		<div class="flex gap-2 justify-end w-full" style="justify-content: flex-end !important;">
+			<button hx-post="/sessoes/deletar?id={{.ID}}" hx-target="#tabela-container" hx-include="#filtro-form" class="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-3 py-2 rounded-md transition shadow-md">
+				Sim, deletar
+			</button>
+			<button hx-get="/sessoes/cancelar-edicao?id={{.ID}}" hx-target="#sessao-{{.ID}}" hx-swap="outerHTML" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs px-3 py-2 rounded-md border border-gray-300 transition shadow-sm">
+				Não
+			</button>
+		</div>
+	</div>
+	{{end}}
+	`
+
+	tmpl = template.Must(template.New("master").Funcs(funcMap).Parse(htmlTemplates))
+}
+
+func paginarSessoes(filtradas []Sessao, paginaAlvo int) PaginacaoData {
+	totalItens := len(filtradas)
+	if totalItens == 0 {
+		return PaginacaoData{Sessoes: []Sessao{}, PaginaAtual: 1, TotalPaginas: 1}
+	}
+	totalPaginas := int(math.Ceil(float64(totalItens) / float64(itensPorPag)))
+	if paginaAlvo < 1 { paginaAlvo = 1 }
+	if paginaAlvo > totalPaginas { paginaAlvo = totalPaginas }
+	inicio := (paginaAlvo - 1) * itensPorPag
+	fim := inicio + itensPorPag
+	if fim > totalItens { fim = totalItens }
+	return PaginacaoData{
+		Sessoes: filtradas[inicio:fim], PaginaAtual: paginaAlvo, TotalPaginas: totalPaginas,
+		TemAnterior: paginaAlvo > 1, TemProximo: paginaAlvo < totalPaginas,
+		PagAnterior: paginaAlvo - 1, PagProxima: paginaAlvo + 1,
+	}
+}
+
+func filtrarSessoes(nickname, dataInicio, dataFim, status, comentario string) []Sessao {
+	mu.Lock()
+	defer mu.Unlock()
+	var resultado []Sessao
+	for _, s := range sessoes {
+		if nickname != "" && !strings.Contains(strings.ToLower(s.Nickname), strings.ToLower(nickname)) { continue }
+		if dataInicio != "" && s.Data < dataInicio { continue }
+		if dataFim != "" && s.Data > dataFim { continue }
+		if status != "" && s.Status != status { continue }
+		if comentario != "" && !strings.Contains(strings.ToLower(s.Comentario), strings.ToLower(comentario)) { continue }
+		resultado = append(resultado, s)
+	}
+	return resultado
 }
 
 func main() {
 	fs := http.FileServer(http.Dir("static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
-	http.HandleFunc("/", handleHome)
-	http.HandleFunc("/sessions", handleCreate)
-	http.HandleFunc("/sessions/search", handleListAndFilter)
-	http.HandleFunc("/sessions/delete", handleDelete)
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" { http.NotFound(w, r); return }
+		mu.Lock()
+		dados := sessoes
+		mu.Unlock()
+		tmpl.ExecuteTemplate(w, "index", paginarSessoes(dados, 1))
+	})
 
-	log.Println("🚀 Servidor com Status Booleanos rodando em http://localhost:8085")
-	if err := http.ListenAndServe(":8085", nil); err != nil {
-		log.Fatal(err)
-	}
-}
+	http.HandleFunc("/tabela", func(w http.ResponseWriter, r *http.Request) {
+		r.ParseForm()
+		pagStr := r.URL.Query().Get("page")
+		if pagStr == "" { pagStr = r.FormValue("page") }
+		pagina, _ := strconv.Atoi(pagStr)
+		if pagina < 1 { pagina = 1 }
 
-func handleHome(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/" {
-		http.NotFound(w, r)
-		return
-	}
-	sessionsMu.Lock()
-	data := map[string]interface{}{"Sessions": sessions}
-	sessionsMu.Unlock()
+		filtradas := filtrarSessoes(r.FormValue("nickname"), r.FormValue("data_inicio"), r.FormValue("data_fim"), r.FormValue("status"), r.FormValue("comentario"))
+		tmpl.ExecuteTemplate(w, "tabela", paginarSessoes(filtradas, pagina))
+	})
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	templatesEnv.ExecuteTemplate(w, "index.html", data)
-}
+	http.HandleFunc("/tabela/reset", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		dados := sessoes
+		mu.Unlock()
+		w.Write([]byte(`<script>document.getElementById("filtro-form").reset(); document.getElementById("input-pagina-form").value="1";</script>`))
+		tmpl.ExecuteTemplate(w, "tabela", paginarSessoes(dados, 1))
+	})
 
-// POST /sessions -> Criação traduzindo a String do Select em Booleanos estruturais
-func handleCreate(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
-		return
-	}
+	http.HandleFunc("/sessoes/novo", func(w http.ResponseWriter, r *http.Request) { tmpl.ExecuteTemplate(w, "formulario_cadastro", nil) })
+	http.HandleFunc("/limpar-bloco", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("")) })
 
-	minutesVal, _ := strconv.Atoi(r.FormValue("minutes"))
-	statusForm := r.FormValue("status_selection")
-
-	// Mapeia a seleção única do HTML para o DTO focado em múltiplos booleanos
-	createDTO := SessionCreateRequest{
-		Nickname:           r.FormValue("nickname"),
-		Date:               r.FormValue("date"),
-		Minutes:            minutesVal,
-		Realizada:          statusForm == "realizada",
-		CanceladaCobrar:    statusForm == "cancelada_cobrar",
-		CanceladaNaoCobrar: statusForm == "cancelada_nao_cobrar",
-		Comments:           r.FormValue("comments"),
-	}
-
-	sessionsMu.Lock()
-	newSession := Session{
-		ID:                 nextID,
-		Nickname:           createDTO.Nickname,
-		Date:               createDTO.Date,
-		Minutes:            createDTO.Minutes,
-		Realizada:          createDTO.Realizada,
-		CanceladaCobrar:    createDTO.CanceladaCobrar,
-		CanceladaNaoCobrar: createDTO.CanceladaNaoCobrar,
-		Comments:           createDTO.Comments,
-	}
-	sessions = append(sessions, newSession)
-	nextID++
-	
-	data := map[string]interface{}{"Sessions": sessions}
-	sessionsMu.Unlock()
-
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	templatesEnv.ExecuteTemplate(w, "table-rows", data)
-}
-
-// GET /sessions/search -> Filtro aplicando os critérios booleanos do SessionListRequest
-func handleListAndFilter(w http.ResponseWriter, r *http.Request) {
-	minutesQuery, _ := strconv.Atoi(r.URL.Query().Get("minutes"))
-	statusFilter := r.URL.Query().Get("status_selection")
-	
-	reqDTO := SessionListRequest{
-		Page:               1,
-		PageSize:           10,
-		Nickname:           r.URL.Query().Get("nickname"),
-		Minutes:            minutesQuery,
-		DateStart:          r.URL.Query().Get("date_start"),
-		DateEnd:            r.URL.Query().Get("date_end"),
-		Realizada:          statusFilter == "realizada",
-		CanceladaCobrar:    statusFilter == "cancelada_cobrar",
-		CanceladaNaoCobrar: statusFilter == "cancelada_nao_cobrar",
-	}
-
-	sessionsMu.Lock()
-	filteredSessions := []Session{}
-
-	for _, s := range sessions {
-		if reqDTO.Nickname != "" && !strings.Contains(strings.ToLower(s.Nickname), strings.ToLower(reqDTO.Nickname)) {
-			continue
+	http.HandleFunc("/sessoes/editar", func(w http.ResponseWriter, r *http.Request) {
+		id, _ := strconv.Atoi(r.URL.Query().Get("id"))
+		mu.Lock()
+		var sSel Sessao
+		for _, s := range sessoes {
+			if s.ID == id { sSel = s; break }
 		}
-		if reqDTO.Minutes > 0 && s.Minutes != reqDTO.Minutes {
-			continue
+		mu.Unlock()
+		tmpl.ExecuteTemplate(w, "linha_sessao_edit", sSel)
+	})
+
+	// ROTA NOVA: Intercepta e renderiza o aviso de confirmação na própria linha
+	http.HandleFunc("/sessoes/deletar-aviso", func(w http.ResponseWriter, r *http.Request) {
+		id, _ := strconv.Atoi(r.URL.Query().Get("id"))
+		mu.Lock()
+		var sSel Sessao
+		for _, s := range sessoes {
+			if s.ID == id { sSel = s; break }
 		}
-		if reqDTO.DateStart != "" && s.Date < reqDTO.DateStart {
-			continue
+		mu.Unlock()
+		tmpl.ExecuteTemplate(w, "linha_sessao_deletar_aviso", sSel)
+	})
+
+	http.HandleFunc("/sessoes/cancelar-edicao", func(w http.ResponseWriter, r *http.Request) {
+		id, _ := strconv.Atoi(r.URL.Query().Get("id"))
+		mu.Lock()
+		var sSel Sessao
+		for _, s := range sessoes {
+			if s.ID == id { sSel = s; break }
 		}
-		if reqDTO.DateEnd != "" && s.Date > reqDTO.DateEnd {
-			continue
-		}
-		
-		// Se um filtro de status específico foi selecionado, valida o booleano correspondente
-		if statusFilter != "" {
-			if statusFilter == "realizada" && !s.Realizada {
-				continue
-			}
-			if statusFilter == "cancelada_cobrar" && !s.CanceladaCobrar {
-				continue
-			}
-			if statusFilter == "cancelada_nao_cobrar" && !s.CanceladaNaoCobrar {
-				continue
+		mu.Unlock()
+		tmpl.ExecuteTemplate(w, "linha_sessao", sSel)
+	})
+
+	http.HandleFunc("/sessoes/atualizar", func(w http.ResponseWriter, r *http.Request) {
+		id, _ := strconv.Atoi(r.URL.Query().Get("id"))
+		r.ParseForm()
+		duracao, _ := strconv.Atoi(r.FormValue("edit_duracao"))
+		mu.Lock()
+		for i, s := range sessoes {
+			if s.ID == id {
+				sessoes[i].Nickname = r.FormValue("edit_nickname")
+				sessoes[i].Data = r.FormValue("edit_data")
+				sessoes[i].Duracao = duracao
+				sessoes[i].Status = r.FormValue("edit_status")
+				sessoes[i].Comentario = r.FormValue("edit_comentario")
+				break
 			}
 		}
+		mu.Unlock()
+		pagina, _ := strconv.Atoi(r.FormValue("page"))
+		filtradas := filtrarSessoes(r.FormValue("nickname"), r.FormValue("data_inicio"), r.FormValue("data_fim"), r.FormValue("status"), r.FormValue("comentario"))
+		tmpl.ExecuteTemplate(w, "tabela", paginarSessoes(filtradas, pagina))
+	})
 
-		filteredSessions = append(filteredSessions, s)
-	}
+	http.HandleFunc("/sessoes/salvar", func(w http.ResponseWriter, r *http.Request) {
+		r.ParseForm()
+		duracao, _ := strconv.Atoi(r.FormValue("add_duracao"))
+		mu.Lock()
+		sessoes = append(sessoes, Sessao{ID: proximoID, Nickname: r.FormValue("add_nickname"), Data: r.FormValue("add_data"), Duracao: duracao, Status: r.FormValue("add_status"), Comentario: r.FormValue("add_comentario")})
+		proximoID++
+		mu.Unlock()
+		pagina, _ := strconv.Atoi(r.FormValue("page"))
+		filtradas := filtrarSessoes(r.FormValue("nickname"), r.FormValue("data_inicio"), r.FormValue("data_fim"), r.FormValue("status"), r.FormValue("comentario"))
+		w.Write([]byte(`<script>document.getElementById("formulario-cadastro-container").innerHTML = "";</script>`))
+		tmpl.ExecuteTemplate(w, "tabela", paginarSessoes(filtradas, pagina))
+	})
 
-	data := map[string]interface{}{"Sessions": filteredSessions}
-	sessionsMu.Unlock()
+	http.HandleFunc("/sessoes/deletar", func(w http.ResponseWriter, r *http.Request) {
+		id, _ := strconv.Atoi(r.URL.Query().Get("id"))
+		mu.Lock()
+		idx := -1
+		for i, s := range sessoes {
+			if s.ID == id { idx = i; break }
+		}
+		if idx != -1 { sessoes = append(sessoes[:idx], sessoes[idx+1:]...) }
+		mu.Unlock()
+		r.ParseForm()
+		pagina, _ := strconv.Atoi(r.FormValue("page"))
+		filtradas := filtrarSessoes(r.FormValue("nickname"), r.FormValue("data_inicio"), r.FormValue("data_fim"), r.FormValue("status"), r.FormValue("comentario"))
+		tmpl.ExecuteTemplate(w, "tabela", paginarSessoes(filtradas, pagina))
+	})
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	templatesEnv.ExecuteTemplate(w, "table-rows", data)
+	fmt.Println("Dashboard Escuro Corrigido com Paginação rodando em http://localhost:8085")
+	http.ListenAndServe(":8085", nil)
 }
 
-func handleDelete(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodDelete {
-		http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
-		return
-	}
-
-	idParsed, _ := strconv.ParseInt(r.FormValue("id"), 10, 64)
-	deleteDTO := SessionDeleteRequest{SessionID: idParsed}
-
-	sessionsMu.Lock()
-	defer sessionsMu.Unlock()
-
-	foundIndex := -1
-	for idx, s := range sessions {
-		if s.ID == deleteDTO.SessionID {
-			foundIndex = idx
-			break
-		}
-	}
-
-	if foundIndex != -1 {
-		sessions = append(sessions[:foundIndex], sessions[foundIndex+1:]...)
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-	http.Error(w, "Sessão não encontrada", http.StatusNotFound)
+func NavFilter(nickname, dI, dF, status, coment string) []Sessao {
+	return filtrarSessoes(nickname, dI, dF, status, coment)
 }

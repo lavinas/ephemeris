@@ -103,7 +103,9 @@ func (r *BillRequest) validateInvoice(repo port.Repository) error {
 			return errors.New("email has already been sent for this receipt")
 		}
 	}
-
+	if r.Action != 2 && invoice.Customer.Email == nil && r.Email == "" {
+		return errors.New("no email address available to send the document")
+	} 
 	return nil
 }
 
