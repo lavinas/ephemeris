@@ -58,7 +58,7 @@ func init() {
 			return template.HTML(comQuebras)
 		},
 	}
-	htmlTemplates, err := os.ReadFile("templates/sessions.html")
+	htmlTemplates, err := os.ReadFile("./web/templates/sessions.html")
 	if err != nil {
 		panic(err)
 	}
@@ -145,8 +145,8 @@ func configurarRegistro(nickname, data, status, comentario string, duracao int) 
 }
 
 func main() {
-	fs := http.FileServer(http.Dir("static"))
-	http.Handle("/static/", http.StripPrefix("/static/", fs))
+	fs := http.FileServer(http.Dir("web/static"))
+	http.Handle("/web/static/", http.StripPrefix("/web/static/", fs))
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
