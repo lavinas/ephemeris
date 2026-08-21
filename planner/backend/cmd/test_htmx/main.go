@@ -5,17 +5,17 @@ import (
 	"html/template"
 	"math"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
-	"os"
 )
 
 type Sessao struct {
 	ID            int
 	Nickname      string
-	Data          string 
+	Data          string
 	DataFormatada string
 	Duracao       int
 	Status        string
@@ -34,8 +34,8 @@ type PaginacaoData struct {
 }
 
 var (
-	mu        sync.Mutex
-	sessoes   = []Sessao{
+	mu      sync.Mutex
+	sessoes = []Sessao{
 		{1, "AnaGamer", "2026-06-01", "01/06/2026", 60, "realizada", "#10b981", "Boa partida.\nEvoluiu bastante no posicionamento tático e rotações."},
 		{2, "CarlosPro", "2026-06-02", "02/06/2026", 30, "cancelada/cobrar", "#f59e0b", "Desistiu em cima da hora do compromisso agendado."},
 		{3, "BiaPlayer", "2026-06-15", "15/06/2026", 45, "cancelada/não cobrar", "#ef4444", "Teve queda generalizada de energia na região onde mora."},
@@ -71,11 +71,17 @@ func paginarSessoes(filtradas []Sessao, paginaAlvo int) PaginacaoData {
 		return PaginacaoData{Sessoes: []Sessao{}, PaginaAtual: 1, TotalPaginas: 1}
 	}
 	totalPaginas := int(math.Ceil(float64(totalItens) / float64(itensPorPag)))
-	if paginaAlvo < 1 { paginaAlvo = 1 }
-	if paginaAlvo > totalPaginas { paginaAlvo = totalPaginas }
+	if paginaAlvo < 1 {
+		paginaAlvo = 1
+	}
+	if paginaAlvo > totalPaginas {
+		paginaAlvo = totalPaginas
+	}
 	inicio := (paginaAlvo - 1) * itensPorPag
 	fim := inicio + itensPorPag
-	if fim > totalItens { fim = totalItens }
+	if fim > totalItens {
+		fim = totalItens
+	}
 	return PaginacaoData{
 		Sessoes: filtradas[inicio:fim], PaginaAtual: paginaAlvo, TotalPaginas: totalPaginas,
 		TemAnterior: paginaAlvo > 1, TemProximo: paginaAlvo < totalPaginas,
@@ -88,15 +94,27 @@ func filtrarSessoes(nickname, dataInicio, dataFim, duracaoFiltro, status, coment
 	defer mu.Unlock()
 	var resultado []Sessao
 	for _, s := range sessoes {
-		if nickname != "" && !strings.Contains(strings.ToLower(s.Nickname), strings.ToLower(nickname)) { continue }
-		if dataInicio != "" && s.Data < dataInicio { continue }
-		if dataFim != "" && s.Data > dataFim { continue }
+		if nickname != "" && !strings.Contains(strings.ToLower(s.Nickname), strings.ToLower(nickname)) {
+			continue
+		}
+		if dataInicio != "" && s.Data < dataInicio {
+			continue
+		}
+		if dataFim != "" && s.Data > dataFim {
+			continue
+		}
 		if duracaoFiltro != "" {
 			dVal, err := strconv.Atoi(duracaoFiltro)
-			if err == nil && s.Duracao != dVal { continue }
+			if err == nil && s.Duracao != dVal {
+				continue
+			}
 		}
-		if status != "" && !strings.Contains(strings.ToLower(s.Status), strings.ToLower(status)) { continue }
-		if comentario != "" && !strings.Contains(strings.ToLower(s.Comentario), strings.ToLower(comentario)) { continue }
+		if status != "" && !strings.Contains(strings.ToLower(s.Status), strings.ToLower(status)) {
+			continue
+		}
+		if comentario != "" && !strings.Contains(strings.ToLower(s.Comentario), strings.ToLower(comentario)) {
+			continue
+		}
 		resultado = append(resultado, s)
 	}
 	return resultado
@@ -110,10 +128,16 @@ func configurarRegistro(nickname, data, status, comentario string, duracao int) 
 	}
 	cor := "#9ca3af"
 	stLimpo := strings.ToLower(strings.TrimSpace(status))
-	if stLimpo == "realizada" { cor = "#10b981" }
-	if stLimpo == "cancelada/cobrar" { cor = "#f59e0b" }
-	if stLimpo == "cancelada/não cobrar" { cor = "#ef4444" }
-	
+	if stLimpo == "realizada" {
+		cor = "#10b981"
+	}
+	if stLimpo == "cancelada/cobrar" {
+		cor = "#f59e0b"
+	}
+	if stLimpo == "cancelada/não cobrar" {
+		cor = "#ef4444"
+	}
+
 	return Sessao{
 		Nickname: nickname, Data: data, DataFormatada: dForm,
 		Duracao: duracao, Status: status, StatusCor: cor, Comentario: comentario,
@@ -125,7 +149,10 @@ func main() {
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/" { http.NotFound(w, r); return }
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
 		mu.Lock()
 		dados := sessoes
 		mu.Unlock()
@@ -135,9 +162,13 @@ func main() {
 	http.HandleFunc("/tabela", func(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 		pagStr := r.URL.Query().Get("page")
-		if pagStr == "" { pagStr = r.FormValue("page") }
+		if pagStr == "" {
+			pagStr = r.FormValue("page")
+		}
 		pagina, _ := strconv.Atoi(pagStr)
-		if pagina < 1 { pagina = 1 }
+		if pagina < 1 {
+			pagina = 1
+		}
 
 		filtradas := filtrarSessoes(r.FormValue("nickname"), r.FormValue("data_inicio"), r.FormValue("data_fim"), r.FormValue("duracao_filtro"), r.FormValue("status"), r.FormValue("comentario"))
 		tmpl.ExecuteTemplate(w, "tabela", paginarSessoes(filtradas, pagina))
@@ -169,7 +200,10 @@ func main() {
 		mu.Lock()
 		var sSel Sessao
 		for _, s := range sessoes {
-			if s.ID == id { sSel = s; break }
+			if s.ID == id {
+				sSel = s
+				break
+			}
 		}
 		mu.Unlock()
 		tmpl.ExecuteTemplate(w, "linha_sessao_edit", sSel)
@@ -180,7 +214,10 @@ func main() {
 		mu.Lock()
 		var sSel Sessao
 		for _, s := range sessoes {
-			if s.ID == id { sSel = s; break }
+			if s.ID == id {
+				sSel = s
+				break
+			}
 		}
 		mu.Unlock()
 		tmpl.ExecuteTemplate(w, "linha_sessao_deletar_aviso", sSel)
@@ -191,7 +228,10 @@ func main() {
 		mu.Lock()
 		var sSel Sessao
 		for _, s := range sessoes {
-			if s.ID == id { sSel = s; break }
+			if s.ID == id {
+				sSel = s
+				break
+			}
 		}
 		mu.Unlock()
 		tmpl.ExecuteTemplate(w, "linha_sessao", sSel)
@@ -204,7 +244,11 @@ func main() {
 		regConfigurado := configurarRegistro(r.FormValue("edit_nickname"), r.FormValue("edit_data"), r.FormValue("edit_status"), r.FormValue("edit_comentario"), duracao)
 		mu.Lock()
 		for i, s := range sessoes {
-			if s.ID == id { sessoes[i] = regConfigurado; sessoes[i].ID = id; break }
+			if s.ID == id {
+				sessoes[i] = regConfigurado
+				sessoes[i].ID = id
+				break
+			}
 		}
 		mu.Unlock()
 		pagina, _ := strconv.Atoi(r.FormValue("page"))
@@ -232,9 +276,14 @@ func main() {
 		mu.Lock()
 		idx := -1
 		for i, s := range sessoes {
-			if s.ID == id { idx = i; break }
+			if s.ID == id {
+				idx = i
+				break
+			}
 		}
-		if idx != -1 { sessoes = append(sessoes[:idx], sessoes[idx+1:]...) }
+		if idx != -1 {
+			sessoes = append(sessoes[:idx], sessoes[idx+1:]...)
+		}
 		mu.Unlock()
 		r.ParseForm()
 		pagina, _ := strconv.Atoi(r.FormValue("page"))

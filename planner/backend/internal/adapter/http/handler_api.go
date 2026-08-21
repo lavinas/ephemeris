@@ -1,25 +1,25 @@
 package http
 
 import (
-	"net/http"
 	"encoding/json"
+	"net/http"
 
-	"planner/internal/port"
 	"planner/internal/dto"
+	"planner/internal/port"
 	"planner/internal/service"
 )
 
 // HandlerApi is an HTTP handler for the API
 type HandlerApi struct {
-	logger   port.Logger
-	repo     port.Repository
+	logger port.Logger
+	repo   port.Repository
 }
 
 // NewHandlerApi creates a new instance of HandlerApi
 func NewHandlerApi(repo port.Repository, logger port.Logger) *HandlerApi {
 	return &HandlerApi{
-		repo:    repo,
-		logger:  logger,
+		repo:   repo,
+		logger: logger,
 	}
 }
 
@@ -84,7 +84,7 @@ func (h *HandlerApi) SessionDelete(w http.ResponseWriter, r *http.Request) {
 	response := service.Run(requestDTO)
 	h.writeResponse(w, response)
 }
-	
+
 // writeResponse writes the given response to the http.ResponseWriter with the appropriate status
 func (h *HandlerApi) writeResponse(w http.ResponseWriter, response port.OutDTO) {
 	responseJSON, err := json.MarshalIndent(response, "", "  ")

@@ -10,21 +10,19 @@ import (
 	"time"
 
 	"planner/internal/port"
-
 )
-
 
 // Handler is an HTTP handler for the API
 type Handler struct {
-	logger   port.Logger
-	repo     port.Repository
+	logger port.Logger
+	repo   port.Repository
 }
 
 // NewHandler creates a new instance of Handler
 func NewHandler(repo port.Repository, logger port.Logger) *Handler {
 	return &Handler{
-		repo:    repo,
-		logger:  logger,
+		repo:   repo,
+		logger: logger,
 	}
 }
 
@@ -52,7 +50,7 @@ func (h *Handler) exec(addr string, mainMux *http.ServeMux) error {
 	var err error
 	go func() {
 		if err2 := server.ListenAndServe(); err2 != nil && err2 != http.ErrServerClosed {
-			err = fmt.Errorf("API server failed: %v", err2) 
+			err = fmt.Errorf("API server failed: %v", err2)
 		}
 	}()
 	// Wait for interrupt signal to gracefully shutdown the server

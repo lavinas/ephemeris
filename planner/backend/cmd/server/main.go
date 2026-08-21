@@ -5,13 +5,13 @@ import (
 	"os"
 
 	"planner/internal/adapter/config"
+	"planner/internal/adapter/http"
 	"planner/internal/adapter/logger"
 	"planner/internal/adapter/repository"
-	"planner/internal/adapter/http"
 )
 
 const (
-	addr = ":8083"
+	addr       = ":8083"
 	configFile = "planner.json"
 )
 
@@ -57,7 +57,3 @@ func startAll() (*logger.Logger, *repository.Repository, *http.Handler, error) {
 	os.Setenv("TZ", timezone)
 	return logger, repo, http.NewHandler(repo, logger), nil
 }
-
-
-
-

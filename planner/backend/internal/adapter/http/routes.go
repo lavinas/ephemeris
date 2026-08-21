@@ -7,10 +7,10 @@ import (
 
 // NewRoutes creates a new instance of Routes with the provided logger and repository.
 func NewRoutes(repo port.Repository, logger port.Logger) *http.ServeMux {
-	mainMux := http.NewServeMux()
+	mux := http.NewServeMux()
 	apiRoutes := NewAPIRoutes(repo, logger)
-	mainMux.Handle("/api/", http.StripPrefix("/api", apiRoutes))
-	return mainMux
+	mux.Handle("/api/", http.StripPrefix("/api", apiRoutes))
+	return mux
 }
 
 // NewAPIRoutes creates a new instance of API routes with the provided logger and repository.
@@ -23,5 +23,3 @@ func NewAPIRoutes(repo port.Repository, logger port.Logger) *http.ServeMux {
 	mux.HandleFunc("/session/delete", handler.SessionDelete)
 	return mux
 }
-
-
