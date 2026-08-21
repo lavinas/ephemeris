@@ -1,0 +1,18 @@
+{
+    "db": {
+        "host": "localhost",
+        "port": 5433,
+        "user": "root",
+        "password": "root",
+        "dbname": "planner",
+        "sslmode": "disable",
+        "timezone": "America/Sao_Paulo",
+        "connect_timeout": 10,
+        "billing_schema": "planner"
+
+    },
+    "log": {
+        "output": "server.log",
+        "level": 10
+    }
+}
