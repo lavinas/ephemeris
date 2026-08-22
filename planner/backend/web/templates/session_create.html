@@ -1,0 +1,28 @@
+<form hx-post="/sessoes/salvar" hx-target="#tabela-container" hx-include="#filtro-form" class="linha-box grade-tabela formulario-add text-sm shadow-lg">
+    <div>
+        <input type="text" name="add_nickname" placeholder="Nickname..." list="lista-nicknames" required class="input-inline-tabela">
+        <datalist id="lista-nicknames">
+            <option value="AnaGamer">
+            <option value="CarlosPro">
+            <option value="BiaPlayer">
+            <option value="JohnDoe">
+            <option value="PlayerX">
+            <option value="GamerPro99">
+            <option value="LucasT">
+        </datalist>
+    </div>
+    <div><input type="date" name="add_data" value="{{.DataPadrao}}" required class="input-inline-tabela"></div>
+    <div><input type="number" name="add_duracao" value="{{.DuracaoPadrao}}" placeholder="Minutos..." min="1" required class="input-inline-tabela" style="text-align: center !important;"></div>
+    <div>
+        <select name="add_status" required class="input-inline-tabela">
+            <option value="realizada">Realizada</option>
+            <option value="cancelada/cobrar">Cancelada/Cobrar</option>
+            <option value="cancelada/não cobrar">Cancelada/Não Cobrar</option>
+        </select>
+    </div>
+    <div><textarea name="add_comentario" placeholder="Escreva um comentário..." rows="2" class="input-inline-tabela" style="resize: vertical;"></textarea></div>
+    <div class="flex gap-2 justify-start w-full" style="justify-content: flex-start !important; align-items: center !important;">
+        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold text-xs px-3 py-2 rounded-md transition w-16 text-center">Salvar</button>
+        <button type="button" hx-get="/limpar-bloco" hx-target="#formulario-cadastro-container" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs px-3 py-2 rounded-md border border-gray-300 transition w-16 text-center">Cancelar</button>
+    </div>
+</form>

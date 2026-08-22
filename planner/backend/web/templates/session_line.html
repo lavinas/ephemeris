@@ -1,0 +1,11 @@
+<div id="sessao-{{.ID}}" class="linha-box grade-tabela text-sm" style="align-items: start !important; padding-top: 20px; padding-bottom: 20px;">
+    <div class="font-bold text-gray-900 texto-truncado">{{.Nickname}}</div>
+    <div class="text-gray-600 font-mono font-medium">{{.DataFormatada}}</div>
+    <div class="text-gray-700 font-bold font-mono text-base" style="text-align: center !important;">{{.Duracao}}</div>
+    <div><span style="--status-color: {{.StatusCor}}; color: var(--status-color) !important;" class="text-xs uppercase tracking-wider font-black">{{.Status}}</span></div>
+    <div class="text-gray-600 comentario-multilinha">{{pularLinhas .Comentario}}</div>
+    <div class="flex gap-2 justify-start w-full" style="justify-content: flex-start !important; align-items: start !important;">
+        <button hx-get="/sessoes/editar?id={{.ID}}" hx-target="#sessao-{{.ID}}" hx-swap="outerHTML" class="text-indigo-600 hover:text-white font-bold text-xs px-2.5 py-1.5 bg-indigo-600/10 hover:bg-indigo-600 rounded-md border border-indigo-600/20 transition shadow-sm w-16 text-center">Editar</button>
+        <button hx-get="/sessoes/deletar-aviso?id={{.ID}}" hx-target="#sessao-{{.ID}}" hx-swap="outerHTML" class="text-rose-600 hover:text-white font-bold text-xs px-2.5 py-1.5 bg-rose-600/10 hover:bg-rose-600 rounded-md border border-rose-600/20 transition duration-150 shadow-sm w-16 text-center">Deletar</button>
+    </div>
+</div>

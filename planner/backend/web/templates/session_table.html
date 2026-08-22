@@ -1,0 +1,25 @@
+<div class="w-full">
+    <div class="grade-tabela topo-tabela">
+        <div>Usuário</div>
+        <div>Data</div>
+        <div style="text-align: center !important;">Duração</div>
+        <div>Status</div>
+        <div>Comentários</div>
+        <div style="text-align: left !important; width: 100%;">Ações</div>
+    </div>
+    {{if .Sessoes}}
+        {{range .Sessoes}}
+            {{template "linha_sessao" .}}
+        {{end}}
+        <div style="height: 40px; width: 100%;"></div>
+        <div class="mt-12 flex items-center justify-between bg-gray-800/40 p-4 rounded-xl border border-gray-800 text-sm">
+            <div class="text-gray-400">Página <span class="text-gray-200 font-bold font-mono">{{.PaginaAtual}}</span> de <span class="text-gray-200 font-bold font-mono">{{.TotalPaginas}}</span></div>
+            <div class="flex gap-2">
+                <button {{if not .TemAnterior}}disabled style="opacity: 0.3; cursor: not-allowed;"{{end}} hx-post="/tabela?page={{.PagAnterior}}" hx-target="#tabela-container" hx-include="#filtro-form" onclick="document.getElementById('input-pagina-form').value='{{.PagAnterior}}'" class="bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold px-4 py-2 rounded-lg border border-gray-700 transition">◀ Anterior</button>
+                <button {{if not .TemProximo}}disabled style="opacity: 0.3; cursor: not-allowed;"{{end}} hx-post="/tabela?page={{.PagProxima}}" hx-target="#tabela-container" hx-include="#filtro-form" onclick="document.getElementById('input-pagina-form').value='{{.PagProxima}}'" class="bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold px-4 py-2 rounded-lg border border-gray-700 transition">Próximo ▶</button>
+            </div>
+        </div>
+    {{else}}
+        <div class="bg-gray-900/50 border border-gray-800 rounded-xl py-12 text-center text-gray-500 italic">Nenhum registro corresponde aos filtros selecionados.</div>
+    {{end}}
+</div>
