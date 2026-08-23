@@ -70,7 +70,7 @@ func (h *HandlerApi) SessionList(w http.ResponseWriter, r *http.Request) {
 
 // SessionDelete handler for the /session/delete endpoint
 func (h *HandlerApi) SessionDelete(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
+	if r.Method != http.MethodDelete {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}

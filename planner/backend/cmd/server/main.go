@@ -23,8 +23,14 @@ func main() {
 		fmt.Printf("Error initializing components: %v\n", err)
 		return
 	}
-	defer repo.Close()
-	defer logger.Close()
+	defer func() { 
+		repo.Close()
+		logger.IPrintf(0, "Repository closed")
+	}()
+	defer func() {
+		logger.IPrintf(0, "Logger closed")
+		logger.Close()
+	}()
 	if err := handler.Run(addr); err != nil {
 		fmt.Printf("Error running server: %v\n", err)
 	}
