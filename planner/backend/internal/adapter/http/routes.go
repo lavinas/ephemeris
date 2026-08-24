@@ -6,13 +6,16 @@ import (
 )
 
 // NewRoutes creates a new instance of Routes with the provided logger and repository.
-func NewRoutes(repo port.Repository, logger port.Logger, htmlTemplate []byte) *http.ServeMux {
+func NewRoutes(repo port.Repository, logger port.Logger, htmlTemplate []byte) (*http.ServeMux, error) {
 	mux := http.NewServeMux()
 	apiRoutes := NewAPIRoutes(repo, logger)
 	mux.Handle("/api/", http.StripPrefix("/api", apiRoutes))
-	htmlRoutes := NewHTMLRoutes(repo, logger, htmlTemplate)
+	htmlRoutes, err := NewHTMLRoutes(repo, logger, htmlTemplate)
+	if err != nil {
+		return nil, err
+	}
 	mux.Handle("/html/", http.StripPrefix("/html", htmlRoutes))
-	return mux
+	return mux, nil
 }
 
 // NewAPIRoutes creates a new instance of API routes with the provided logger and repository.
@@ -27,9 +30,13 @@ func NewAPIRoutes(repo port.Repository, logger port.Logger) *http.ServeMux {
 }
 
 // NewHTMLRoutes creates a new instance of HTML routes with the provided logger and repository.
-func NewHTMLRoutes(repo port.Repository, logger port.Logger, htmlTemplate []byte) *http.ServeMux {
+func NewHTMLRoutes(repo port.Repository, logger port.Logger, htmlTemplate []byte) (*http.ServeMux, error) {
 	mux := http.NewServeMux()
-	handler := NewHandlerHtml(repo, logger, htmlTemplate)
+	handler, err := NewHandlerHtml(repo, logger, htmlTemplate)
+	if err != nil {
+		return nil, err
+	}
 	mux.HandleFunc("/ping", handler.Ping)
-	return mux
+	mux.HandleFunc("/sessions", handler.Sessions)
+	return mux, nil
 }

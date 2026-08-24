@@ -40,7 +40,10 @@ func (h *Handler) Run(addr string) error {
 	if err != nil {
 		return fmt.Errorf("error getting HTML template: %v", err)
 	}
-	mainMux := NewRoutes(h.repo, h.logger, template)
+	mainMux, err := NewRoutes(h.repo, h.logger, template)
+	if err != nil {
+		return fmt.Errorf("error creating routes: %v", err)
+	}
 	h.logger.IPrintf(0, "starting server on %s", addr)
 	if err := h.exec(addr, mainMux); err != nil {
 		return fmt.Errorf("error running server: %v", err)
