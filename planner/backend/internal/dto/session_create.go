@@ -14,6 +14,7 @@ type SessionCreateRequest struct {
 	Nickname string `json:"nickname" validate:"required"`
 	Date     string `json:"date" validate:"required"`
 	Minutes  int    `json:"minutes" validate:"required"`
+	Service  string `json:"service" validate:"required"`
 	Status   string `json:"status" validate:"required"`
 	Comments string `json:"comments,omitempty"`
 }
@@ -43,6 +44,9 @@ func (r *SessionCreateRequest) Validate(repo port.Repository) error {
 		errs = append(errs, err)
 	}
 	if err := r.validateDate(); err != nil {
+		errs = append(errs, err)
+	}
+	if err := r.validateService(); err != nil {
 		errs = append(errs, err)
 	}
 	if err := r.validateStatus(); err != nil {
@@ -98,6 +102,14 @@ func (r *SessionCreateRequest) validateDate() error {
 func (r *SessionCreateRequest) validateStatus() error {
 	if !validStatuses[r.Status] {
 		return fmt.Errorf("invalid status, must be one of: realizada, cancelada_cobrar, cancelada_nao_cobrar")
+	}
+	return nil
+}
+
+// validateService checks if the provided service is valid.
+func (r *SessionCreateRequest) validateService() error {
+	if r.Service == "" {
+		return fmt.Errorf("service is required")
 	}
 	return nil
 }

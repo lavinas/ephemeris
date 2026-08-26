@@ -23,6 +23,7 @@ type Session struct {
 	CustomerNickname string     `gorm:"not null"`
 	SessionDate      time.Time  `gorm:"not null"`
 	SessionMinutes   int        `gorm:"not null"`
+	SessionService   string     `gorm:"not null"`
 	SessionStatus    string     `gorm:"not null"`
 	Comments         *string    `gorm:"type:text"`
 	CreatedAt        time.Time  `gorm:"not null"`
@@ -31,10 +32,11 @@ type Session struct {
 }
 
 // NewSession creates a Session object
-func NewSession(nickname string, date time.Time, minutes int, status string, comments *string) *Session {
+func NewSession(nickname string, date time.Time, minutes int, service string, status string, comments *string) *Session {
 	return &Session{
 		CustomerNickname: nickname,
 		SessionDate:      date,
+		SessionService:   service,
 		SessionStatus:    status,
 		SessionMinutes:   minutes,
 		Comments:         comments,
@@ -108,5 +110,6 @@ func (s *Session) Get(repository port.Repository, id int64) (bool, error) {
 	s.SessionDate = session.SessionDate
 	s.SessionMinutes = session.SessionMinutes
 	s.SessionStatus = session.SessionStatus
+	s.SessionService = session.SessionService
 	return true, nil
 }

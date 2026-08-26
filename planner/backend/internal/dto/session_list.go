@@ -16,6 +16,7 @@ type SessionListRequest struct {
 	DateStart string `json:"date_start,omitempty"`
 	DateEnd   string `json:"date_end,omitempty"`
 	Minutes   int    `json:"minutes,omitempty"`
+	Service   string `json:"service,omitempty"`
 	Status    string `json:"status,omitempty"`
 	Comments  string `json:"comments,omitempty"`
 }
@@ -36,6 +37,7 @@ type Session struct {
 	Date      string `json:"date"`
 	Minutes   int    `json:"minutes"`
 	Status    string `json:"status"`
+	Service   string `json:"service,omitempty"`
 	Comments  string `json:"comments,omitempty"`
 }
 
