@@ -26,37 +26,43 @@ func (s *SessionList) Run(input port.InDTO) port.OutDTO {
 	// Validate the input DTO
 	if err := input.Validate(s.repo); err != nil {
 		s.logger.IPrintf(2, "Validation failed: %v", err)
-		return dto.NewSessionListResponse(400, "error", err.Error(), nil)
+		return dto.NewSessionListResponse(400, "error", err.Error(), nil, 0, 0, 0)
 	}
 	// Retrieve sessions from the repository based on the input DTO
-	sessions, err := s.findSessions(input)
+	sessions, page, pageSize, totalPages, err := s.findSessions(input)
 	if err != nil {
 		s.logger.IPrintf(2, "Failed to retrieve sessions: %v", err)
-		return dto.NewSessionListResponse(500, "error", err.Error(), nil)
+		return dto.NewSessionListResponse(500, "error", err.Error(), nil, 0, 0, 0)
 	}
 	// Create and return the output DTO with the retrieved sessions
 	s.logger.IPrintf(2, "Successfully retrieved %d sessions", len(sessions))
-	message := fmt.Sprintf("retrieve %d registers", len(sessions))
-	return dto.NewSessionListResponse(200, "success", message, s.dtoOut(sessions))
+	dtoOut := s.dtoOut(sessions, page, pageSize, totalPages)
+	s.logger.IPrintf(2, "Returning response: %v", dtoOut)
+	return dtoOut
 }
 
 // findSessions is a helper function to find sessions in the repository based on the input DTO.
-func (s *SessionList) findSessions(input port.InDTO) ([]domain.Session, error) {
+func (s *SessionList) findSessions(input port.InDTO) ([]domain.Session, int, int, int, error) {
 	// Assuming input is of type SessionListRequest
 	var session domain.Session
 	req := input.(*dto.SessionListRequest)
 	dateStart, _ := time.Parse("2006-01-02", req.DateStart)
 	dateEnd, _ := time.Parse("2006-01-02", req.DateEnd)
-	sessions, err := session.Find(s.repo, req.Page, req.PageSize, req.Nickname, dateStart,
+	sessions, total, err := session.Find(s.repo, req.Page, req.PageSize, req.Nickname, dateStart,
 		dateEnd, req.Minutes, req.Status, req.Comments)
 	if err != nil {
-		return nil, err
+		return nil, 0, 0, 0, err
 	}
-	return sessions, nil
+	page := req.Page
+	pageSize := req.PageSize
+	totalPages := int((total + int64(pageSize) - 1) / int64(pageSize))
+	s.logger.IPrintf(2, "Found %d sessions (page %d of %d)", len(sessions), page, totalPages)
+	return sessions, page, pageSize, totalPages, nil
 }
 
+
 // dtoOut is a helper function to convert a slice of Session models to a slice of Session DTOs.
-func (s *SessionList) dtoOut(sessions []domain.Session) []dto.Session {
+func (s *SessionList) dtoOut(sessions []domain.Session, page, pageSize, totalPages int) *dto.SessionListResponse {
 	dtoSessions := make([]dto.Session, len(sessions))
 	for i, session := range sessions {
 		comments := ""
@@ -72,5 +78,6 @@ func (s *SessionList) dtoOut(sessions []domain.Session) []dto.Session {
 			Comments:  comments,
 		}
 	}
-	return dtoSessions
+	message := fmt.Sprintf("retrieve %d registers", len(sessions))
+	return dto.NewSessionListResponse(200, "success", message, dtoSessions, page, pageSize, totalPages)
 }

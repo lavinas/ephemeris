@@ -23,6 +23,9 @@ type SessionListRequest struct {
 // SessionListResponse represents the response containing a list of sessions.
 type SessionListResponse struct {
 	ResponseBase
+	Page int `json:"page"`
+	PageSize int `json:"page_size"`
+	TotalPages int `json:"total_pages"`
 	Sessions []Session `json:"sessions"`
 }
 
@@ -37,14 +40,18 @@ type Session struct {
 }
 
 // NewSessionListResponse creates a new instance of SessionListResponse with the provided parameters.
-func NewSessionListResponse(statusCode int, statusMessage string, errorMessage string, sessions []Session) *SessionListResponse {
+func NewSessionListResponse(statusCode int, statusMessage string, errorMessage string, sessions []Session, 
+	page int, pageSize int, totalPages int) *SessionListResponse {
 	return &SessionListResponse{
 		ResponseBase: ResponseBase{
 			HttpCode: statusCode,
 			Status:   statusMessage,
 			Message:  errorMessage,
 		},
-		Sessions: sessions,
+		Page:       page,
+		PageSize:   pageSize,
+		TotalPages: totalPages,
+		Sessions:   sessions,
 	}
 }
 

@@ -51,7 +51,7 @@ func (Session) TableName() string {
 
 // Find is a helper function to find records in the database
 func (s *Session) Find(repository port.Repository, page, pagesize int, nickname string, startDate, endDate time.Time,
-	minutes int, status string, comments string) ([]Session, error) {
+	minutes int, status string, comments string) ([]Session, int64, error) {
 	conditions := map[string]interface{}{}
 	conditions["deleted_at IS NULL"] = nil
 	if nickname != "" {
@@ -72,15 +72,21 @@ func (s *Session) Find(repository port.Repository, page, pagesize int, nickname 
 	if comments != "" {
 		conditions["comments like ?"] = "%" + comments + "%"
 	}
+	var count int64
+	count, err := repository.FindCount(conditions)
+	if err != nil {
+		return nil, 0, err
+	}
+
 	results, err := repository.Find(page, pagesize, conditions)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	sessions := make([]Session, len(results))
 	for i, v := range results {
 		sessions[i] = v.(Session)
 	}
-	return sessions, nil
+	return sessions, count, nil
 }
 
 // Get is a helper function to get a record from the database

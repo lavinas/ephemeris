@@ -112,6 +112,24 @@ func (a *Repository) Save(model interface{}) error {
 	}).CreateInBatches(model, batchSizeInsertTransaction).Error
 }
 
+// CountFind is a helper function to count records in the database based on conditions
+func (a *Repository) FindCount(conditions map[string]interface{}) (int64, error) {
+	db := a.DB
+	if a.Tx != nil {
+		db = a.Tx
+	}
+	for key, value := range conditions {
+		if value == nil {
+			db = db.Where(key)
+		} else {
+			db = db.Where(key, value)
+		}
+	}
+	var count int64
+	err := db.Model(&domain.Session{}).Count(&count).Error
+	return count, err
+}
+
 // Find is a helper function to find records in the database
 func (a *Repository) Find(page, pagesize int, conditions map[string]interface{}) ([]interface{}, error) {
 	db := a.DB

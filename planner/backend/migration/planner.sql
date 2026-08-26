@@ -3,7 +3,6 @@ create schema if not exists planner;
 
 set search_path to planner;
 
-
 drop table if exists session;
 
 create table  session (
@@ -17,6 +16,5 @@ create table  session (
     updated_at timestamp not null,
     deleted_at timestamp
 );
-
 
 select * from session;
