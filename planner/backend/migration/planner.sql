@@ -5,7 +5,7 @@ set search_path to planner;
 
 drop table if exists session;
 
-create table  session (
+create table session (
     id bigserial primary key,
     customer_nickname varchar(150) not null,
     session_date date not null,
