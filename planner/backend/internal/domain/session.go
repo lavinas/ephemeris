@@ -53,11 +53,11 @@ func (Session) TableName() string {
 
 // Find is a helper function to find records in the database
 func (s *Session) Find(repository port.Repository, page, pagesize int, nickname string, startDate, endDate time.Time,
-	minutes int, status string, comments string) ([]Session, int64, error) {
+	minutes int, service, status string, comments string) ([]Session, int64, error) {
 	conditions := map[string]interface{}{}
 	conditions["deleted_at IS NULL"] = nil
 	if nickname != "" {
-		conditions["customer_nickname = "] = nickname
+		conditions["customer_nickname = ?"] = nickname
 	}
 	if !startDate.IsZero() {
 		conditions["session_date >= ?"] = startDate
@@ -68,6 +68,9 @@ func (s *Session) Find(repository port.Repository, page, pagesize int, nickname 
 	if minutes != 0 {
 		conditions["session_minutes = ?"] = minutes
 	}
+	if service != "" {
+		conditions["session_service = ?"] = service
+	}
 	if status != "" {
 		conditions["session_status = ?"] = status
 	}
@@ -77,7 +80,7 @@ func (s *Session) Find(repository port.Repository, page, pagesize int, nickname 
 	var count int64
 	count, err := repository.FindCount(conditions)
 	if err != nil {
-		return nil, 0, err
+	return nil, 0, err
 	}
 
 	results, err := repository.Find(page, pagesize, conditions)

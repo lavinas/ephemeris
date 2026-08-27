@@ -108,8 +108,8 @@ func (r *SessionCreateRequest) validateStatus() error {
 
 // validateService checks if the provided service is valid.
 func (r *SessionCreateRequest) validateService() error {
-	if r.Service == "" {
-		return fmt.Errorf("service is required")
+	if !validServices[r.Service] {
+		return fmt.Errorf("invalid service, must be one of: aula/canto, aula/piano")
 	}
 	return nil
 }

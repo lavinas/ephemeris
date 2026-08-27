@@ -126,7 +126,7 @@ func (a *Repository) FindCount(conditions map[string]interface{}) (int64, error)
 		}
 	}
 	var count int64
-	err := db.Model(&domain.Session{}).Count(&count).Error
+	err := db.Find(&domain.Session{}).Count(&count).Error
 	return count, err
 }
 

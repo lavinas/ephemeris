@@ -6,6 +6,10 @@ var (
 		"cancelada_cobrar":     true,
 		"cancelada_nao_cobrar": true,
 	}
+	validServices = map[string]bool{
+		"aula/canto": true,
+		"aula/piano":    true,
+	}
 )
 
 // ResponseBase represents the base structure for API responses, containing common fields for status and messages.

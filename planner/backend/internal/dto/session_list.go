@@ -69,6 +69,9 @@ func (r *SessionListRequest) Validate(repo port.Repository) error {
 	if err := r.validateMinutes(); err != nil {
 		errs = append(errs, err)
 	}
+	if err := r.validateService(); err != nil {
+		errs = append(errs, err)
+	}
 	if err := r.validateStatus(); err != nil {
 		errs = append(errs, err)
 	}
@@ -126,6 +129,13 @@ func (r *SessionListRequest) validateDates() error {
 func (r *SessionListRequest) validateMinutes() error {
 	if r.Minutes < 0 {
 		return errors.New("minutes cannot be negative")
+	}
+	return nil
+}
+// validateService checks if the provided service is valid.
+func (r *SessionListRequest) validateService() error {
+	if r.Service != "" && !validServices[r.Service] {
+		return errors.New("invalid service value, must be one of: aula/canto, aula/piano")
 	}
 	return nil
 }

@@ -19,7 +19,7 @@ def get(nickname, date_start, date_end, minutes, service, status, comments):
         "page_size": page_size,
     }
     if nickname != "":
-        params["customer_nickname"] = nickname
+        params["nickname"] = nickname
     if date_start != "":
         params["date_start"] = date_start
     if date_end != "":
@@ -34,15 +34,11 @@ def get(nickname, date_start, date_end, minutes, service, status, comments):
         params["comments"] = comments
     try:
         response = requests.get(f"{endpoint}/list", json=params, timeout=10)
-        response.raise_for_status()
         response = response.json()
     except (ConnectionError, Timeout) as e:
         return(f"Error connecting to the server: {e}")
-    except requests.HTTPError as e:
-        return(f"HTTP error occurred: {e}")
-    except Exception as e:
-        return (f"An error occurred: {e}")
-    
+    except requests.exceptions.RequestException as e:
+        return f"An error occurred with the request: {e}"
     if response.get("http_code") != 200:
         return f"Error: Received status code {response.get('http_code')} with message: {response.get('message')}"
 
@@ -74,3 +70,16 @@ def create(nickname, date, minutes, service, status, comments):
     if response.get("http_code") != 200:
         return f"Error: Received status code {response.get('http_code') } with message: {response.get('message')}"
     return f"Session created successfully with ID: {response.get('session_id')}"
+
+# delete deletes a session with the provided session ID.
+def delete(session_id):
+    try:
+        response = requests.delete(f"{endpoint}/delete", json={"id": session_id}, timeout=10)
+        response = response.json()
+    except (ConnectionError, Timeout) as e:
+        return(f"Error connecting to the server: {e}")
+    except requests.exceptions.RequestException as e:
+        return f"An error occurred with the request: {e}"
+    if response.get("http_code") != 200:
+        return f"Error: Received status code {response.get('http_code') } with message: {response.get('message')}"
+    return f"Session with ID: {session_id} deleted successfully."
