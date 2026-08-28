@@ -84,7 +84,26 @@ def csv_extract_transaction(file_path, init_date=None, end_date=None):
     return stat
 
 # diff 
-def transaction_diff(transactions1, transactions2):
+def transaction_diff(transactions1, transactions2, start_date=None, end_date=None):
+    if start_date:
+        start_date = datetime.strptime(start_date, "%d/%m/%Y")
+    if end_date:
+        end_date = datetime.strptime(end_date, "%d/%m/%Y")
+
+    def filter_by_date(transactions):
+        filtered = []
+        for t in transactions:
+            data_obj = datetime.strptime(t['data'], "%d/%m/%Y")
+            if start_date and data_obj < start_date:
+                continue
+            if end_date and data_obj > end_date:
+                continue
+            filtered.append(t)
+        return filtered
+
+    transactions1 = filter_by_date(transactions1)
+    transactions2 = filter_by_date(transactions2)
+
     set1 = set((t['data'], t['valor'], t['descricao'][:8].upper()) for t in transactions1)
     set2 = set((t['data'], t['valor'], t['descricao'][:8].upper()) for t in transactions2)
     diff1 = [t for t in set1 if t not in set2]
