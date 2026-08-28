@@ -5,18 +5,18 @@
 		<meta charset="UTF-8">
 		<title>Dashboard de Sessões</title>
 		<script src="https://tailwindcss.com"></script>
-		<script src="/web/static/htmx.min.js"></script>
+		<script src="/static/htmx.min.js"></script>
 		<style>
 			.grade-filtros {
 				display: grid !important;
-				grid-template-columns: 1.8fr 1.2fr 1.2fr 1.2fr 1.6fr 2fr !important;
-				gap: 12px !important;
+				grid-template-columns: 1.5fr 1fr 1fr 1fr 1.3fr 1.3fr 2fr !important;
+				gap: 10px !important;
 				width: 100% !important;
 				box-sizing: border-box !important;
 			}
 			.grade-tabela {
 				display: grid !important;
-				grid-template-columns: 2fr 1.2fr 0.8fr 1.2fr 6.1fr 1.2fr !important;
+				grid-template-columns: 2fr 1.2fr 0.8fr 1.2fr 1.4fr 4.7fr 1.2fr !important;
 				gap: 16px !important;
 				align-items: center !important;
 				width: 100% !important;
@@ -100,7 +100,7 @@
 		<div class="max-w-7xl mx-auto bg-gray-900 shadow-2xl rounded-2xl overflow-hidden border border-gray-800 p-8">
 			
 			<div style="width: 100% !important; text-align: center !important; margin-bottom: 35px !important; display: block !important;">
-				<img src="/web/static/logo.png" alt="Logo" style="height: 130px !important; max-height: 130px !important; margin: 0 auto !important; display: inline-block !important; object-fit: contain !important;" onError="this.style.display='none';">
+				<img src="/static/logo.png" alt="Amélia Cardoso Logo" style="height: 130px !important; max-height: 130px !important; margin: 0 auto !important; display: inline-block !important; object-fit: contain !important;" onError="this.style.display='none';">
 			</div>
 
 			<form id="filtro-form" hx-post="/tabela" hx-target="#tabela-container" hx-trigger="input delay:200ms, change" class="w-full">
@@ -119,28 +119,36 @@
 						<input type="date" name="data_fim">
 					</div>
 					<div class="campo-box">
-						<label>Duração (minutos)</label>
-						<input type="number" name="duracao_filtro" placeholder="Ex: 60" min="0">
+						<label>Duração</label>
+						<input type="number" name="duracao_filtro" placeholder="Minutos..." min="0">
 					</div>
 					<div class="campo-box">
 						<label>Status</label>
 						<select name="status">
-							<option value="">Todos os status</option>
+							<option value="">Todos</option>
 							<option value="realizada">Realizada</option>
 							<option value="cancelada/cobrar">Cancelada/Cobrar</option>
 							<option value="cancelada/não cobrar">Cancelada/Não Cobrar</option>
 						</select>
 					</div>
 					<div class="campo-box">
+						<label>Serviço</label>
+						<select name="servico_filtro">
+							<option value="">Todos</option>
+							<option value="aula/canto">Aula/Canto</option>
+							<option value="aula/piano">Aula/Piano</option>
+						</select>
+					</div>
+					<div class="campo-box">
 						<label>Buscar nos Comentários</label>
-						<input type="text" name="comentario" placeholder="Palavra-chave do comentário...">
+						<input type="text" name="comentario" placeholder="Palavra-chave...">
 					</div>
 				</div>
 			</form>
 			<div style="height: 40px; width: 100%;"></div>
 			<div class="flex justify-start gap-4">
-				<button hx-get="/sessoes/novo" hx-target="#formulario-cadastro-container" hx-swap="innerHTML" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-2.5 rounded-lg border border-indigo-500 transition duration-150 shadow-md">＋ Adicionar</button>
-				<button hx-post="/tabela/reset" hx-target="#tabela-container" class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-sm px-6 py-2.5 rounded-lg border border-gray-700 transition duration-150 shadow-md">🧹 Limpar Filtros</button>
+				<button hx-get="/html/sessoes/novo" hx-target="#formulario-cadastro-container" hx-swap="innerHTML" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-2.5 rounded-lg border border-indigo-500 transition duration-150 shadow-md">＋ Adicionar</button>
+				<button hx-post="/html/sessoes/tabela/reset" hx-target="#tabela-container" class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-sm px-6 py-2.5 rounded-lg border border-gray-700 transition duration-150 shadow-md">🧹 Limpar Filtros</button>
 			</div>
 			<div id="formulario-cadastro-container" class="mt-4"></div>
 			<div style="height: 50px; width: 100%;"></div>
@@ -153,26 +161,26 @@
 	{{end}}
 
 	{{define "formulario_cadastro"}}
-	<form hx-post="/sessoes/salvar" hx-target="#tabela-container" hx-include="#filtro-form" class="linha-box grade-tabela formulario-add text-sm shadow-lg">
+	<form hx-post="/html/sessoes/salvar" hx-target="#tabela-container" hx-include="#filtro-form" class="linha-box grade-tabela formulario-add text-sm shadow-lg">
 		<div>
 			<input type="text" name="add_nickname" placeholder="Nickname..." list="lista-nicknames" required class="input-inline-tabela">
 			<datalist id="lista-nicknames">
-				<option value="AnaGamer">
-				<option value="CarlosPro">
-				<option value="BiaPlayer">
-				<option value="JohnDoe">
-				<option value="PlayerX">
-				<option value="GamerPro99">
-				<option value="LucasT">
+				<option value="AnaGamer"><option value="CarlosPro"><option value="BiaPlayer"><option value="JohnDoe"><option value="PlayerX"><option value="GamerPro99"><option value="LucasT">
 			</datalist>
 		</div>
 		<div><input type="date" name="add_data" value="{{.DataPadrao}}" required class="input-inline-tabela"></div>
-		<div><input type="number" name="add_duracao" value="{{.DuracaoPadrao}}" placeholder="Minutos..." min="1" required class="input-inline-tabela" style="text-align: center !important;"></div>
+		<div><input type="number" name="add_duracao" value="{{.DuracaoPadrao}}" min="1" required class="input-inline-tabela" style="text-align: center !important;"></div>
 		<div>
 			<select name="add_status" required class="input-inline-tabela">
 				<option value="realizada">Realizada</option>
 				<option value="cancelada/cobrar">Cancelada/Cobrar</option>
 				<option value="cancelada/não cobrar">Cancelada/Não Cobrar</option>
+			</select>
+		</div>
+		<div>
+			<select name="add_servico" required class="input-inline-tabela">
+				<option value="aula/canto">Aula/Canto</option>
+				<option value="aula/piano">Aula/Piano</option>
 			</select>
 		</div>
 		<div><textarea name="add_comentario" placeholder="Escreva um comentário..." rows="2" class="input-inline-tabela" style="resize: vertical;"></textarea></div>
@@ -190,6 +198,7 @@
 			<div>Data</div>
 			<div style="text-align: center !important;">Duração</div>
 			<div>Status</div>
+			<div>Serviço</div>
 			<div>Comentários</div>
 			<div style="text-align: left !important; width: 100%;">Ações</div>
 		</div>
@@ -217,20 +226,18 @@
 		<div class="text-gray-600 font-mono font-medium">{{.DataFormatada}}</div>
 		<div class="text-gray-700 font-bold font-mono text-base" style="text-align: center !important;">{{.Duracao}}</div>
 		<div><span style="--status-color: {{.StatusCor}}; color: var(--status-color) !important;" class="text-xs uppercase tracking-wider font-black">{{.Status}}</span></div>
+		<div class="text-gray-700 font-medium italic font-mono">{{.Servico}}</div>
 		<div class="text-gray-600 comentario-multilinha">{{pularLinhas .Comentario}}</div>
 		<div class="flex gap-2 justify-start w-full" style="justify-content: flex-start !important; align-items: start !important;">
-			<button hx-get="/sessoes/editar?id={{.ID}}" hx-target="#sessao-{{.ID}}" hx-swap="outerHTML" class="text-indigo-600 hover:text-white font-bold text-xs px-2.5 py-1.5 bg-indigo-600/10 hover:bg-indigo-600 rounded-md border border-indigo-600/20 transition shadow-sm w-16 text-center">Editar</button>
-			<button hx-get="/sessoes/deletar-aviso?id={{.ID}}" hx-target="#sessao-{{.ID}}" hx-swap="outerHTML" class="text-rose-600 hover:text-white font-bold text-xs px-2.5 py-1.5 bg-rose-600/10 hover:bg-rose-600 rounded-md border border-rose-600/20 transition duration-150 shadow-sm w-16 text-center">Deletar</button>
+			<button hx-get="/html/sessoes/editar?id={{.ID}}" hx-target="#sessao-{{.ID}}" hx-swap="outerHTML" class="text-indigo-600 hover:text-white font-bold text-xs px-2.5 py-1.5 bg-indigo-600/10 hover:bg-indigo-600 rounded-md border border-indigo-600/20 transition shadow-sm w-16 text-center">Editar</button>
+			<button hx-get="/html/sessoes/deletar-aviso?id={{.ID}}" hx-target="#sessao-{{.ID}}" hx-swap="outerHTML" class="text-rose-600 hover:text-white font-bold text-xs px-2.5 py-1.5 bg-rose-600/10 hover:bg-rose-600 rounded-md border border-rose-600/20 transition duration-150 shadow-sm w-16 text-center">Deletar</button>
 		</div>
 	</div>
 	{{end}}
 
 	{{define "linha_sessao_edit"}}
 	<form id="sessao-{{.ID}}" hx-post="/sessoes/atualizar?id={{.ID}}" hx-target="#tabela-container" hx-include="#filtro-form" class="linha-box grade-tabela formulario-edit text-sm shadow-md" style="align-items: start !important; padding-top: 20px; padding-bottom: 20px;">
-		<!-- MODIFICADO: Adicionado list="lista-nicknames" para sugerir nomes também na edição -->
-		<div>
-			<input type="text" name="edit_nickname" value="{{.Nickname}}" list="lista-nicknames" required class="input-inline-tabela">
-		</div>
+		<div><input type="text" name="edit_nickname" value="{{.Nickname}}" required class="input-inline-tabela"></div>
 		<div><input type="date" name="edit_data" value="{{.Data}}" required class="input-inline-tabela"></div>
 		<div><input type="number" name="edit_duracao" value="{{.Duracao}}" min="1" required class="input-inline-tabela" style="text-align: center !important;"></div>
 		<div>
@@ -238,6 +245,12 @@
 				<option value="realizada" {{if eq .Status "realizada"}}selected{{end}}>Realizada</option>
 				<option value="cancelada/cobrar" {{if eq .Status "cancelada/cobrar"}}selected{{end}}>Cancelada/Cobrar</option>
 				<option value="cancelada/não cobrar" {{if eq .Status "cancelada/não cobrar"}}selected{{end}}>Cancelada/Não Cobrar</option>
+			</select>
+		</div>
+		<div>
+			<select name="edit_servico" required class="input-inline-tabela">
+				<option value="aula/canto" {{if eq .Servico "aula/canto"}}selected{{end}}>Aula/Canto</option>
+				<option value="aula/piano" {{if eq .Servico "aula/piano"}}selected{{end}}>Aula/Piano</option>
 			</select>
 		</div>
 		<div><textarea name="edit_comentario" rows="2" class="input-inline-tabela" style="resize: vertical;">{{.Comentario}}</textarea></div>
@@ -250,7 +263,7 @@
 
 	{{define "linha_sessao_deletar_aviso"}}
 	<div id="sessao-{{.ID}}" class="linha-box grade-tabela aviso-deletar text-sm bg-rose-50/50 py-5" style="align-items: center !important;">
-		<div class="col-span-5 text-rose-700 font-bold flex items-center gap-2" style="grid-column: span 5 / span 5 !important;">⚠️ Deseja realmente excluir permanentemente a sessão de <span class="underline">{{.Nickname}}</span>?</div>
+		<div class="col-span-6 text-rose-700 font-bold flex items-center gap-2" style="grid-column: span 6 / span 6 !important;">⚠️ Deseja realmente excluir permanentemente a sessão de <span class="underline">{{.Nickname}}</span>?</div>
 		<div class="flex gap-2 justify-end w-full" style="justify-content: flex-end !important;">
 			<button hx-post="/sessoes/deletar?id={{.ID}}" hx-target="#tabela-container" hx-include="#filtro-form" class="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-3 py-2 rounded-md transition shadow-md">Sim, deletar</button>
 			<button hx-get="/sessoes/cancelar-edicao?id={{.ID}}" hx-target="#sessao-{{.ID}}" hx-swap="outerHTML" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs px-3 py-2 rounded-md border border-gray-300 transition shadow-sm">Não</button>

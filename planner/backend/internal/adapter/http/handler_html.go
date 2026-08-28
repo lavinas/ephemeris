@@ -3,8 +3,10 @@ package http
 import (
 	"html/template"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"planner/internal/dto"
 	"planner/internal/port"
@@ -21,6 +23,7 @@ type Sessao struct {
 	Duracao       int
 	Status        string
 	StatusCor     string
+	Servico       string
 	Comentario    string
 }
 
@@ -42,7 +45,7 @@ var (
 		"cancelada/cobrar":     "#f59e0b", // laranja
 		"cancelada/não cobrar": "#ef4444", // vermelho
 	}
-	itensPorPag = 5
+	itensPorPag = 10
 )
 
 // HandlerHtml is an HTTP handler for the HTML pages
@@ -91,8 +94,6 @@ func (h *HandlerHtml) Sessions(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	mu.Lock()
-	defer mu.Unlock()
 	svc := service.NewSessionList(h.repo, h.logger)
 	req := &dto.SessionListRequest{
 		Page:     1,
@@ -118,26 +119,89 @@ func (h *HandlerHtml) Sessions(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// getPageData paginates the filtered sessions based on the target page and items per page
-func (h *HandlerHtml) getPageData(response *dto.SessionListResponse) PaginacaoData {
-	sessions := response.Sessions
-	page := response.Page
-	totalPages := response.TotalPages
+// SessionsCreate handler for the /sessions/create endpoint
+func (h *HandlerHtml) SessionsCreate(w http.ResponseWriter, r *http.Request) {
+	hoje := time.Now().Format("2006-01-02")
+	dadosPadrao := map[string]string{
+		"DataFormatada": hoje,
+		"DataPadrao":    hoje,
+		"DuracaoPadrao": "60",
+	}
+	h.tmpl.ExecuteTemplate(w, "formulario_cadastro", dadosPadrao)
+}
 
+// SessionsSave handler for the /sessions/save endpoint
+func (h *HandlerHtml) SessionsSave(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	minutes, _ := strconv.Atoi(r.FormValue("add_duracao"))
+	nickname := r.FormValue("add_nickname")
+	status := r.FormValue("add_status")
+	form_service := r.FormValue("add_servico")
+	comment := r.FormValue("add_comentario")
+	svc := service.NewSessionCreate(h.repo, h.logger)
+	req := &dto.SessionCreateRequest{
+		Nickname: nickname,
+		Date:     r.FormValue("add_data"),
+		Minutes:  minutes,
+		Service:  form_service,
+		Status:   status,
+		Comments: comment,
+	}
+	respdro := svc.Run(req)
+	if respdro.GetStatusCode() != 200 {
+		http.Error(w, "Failed to retrieve sessions", http.StatusInternalServerError)
+		return
+	}
+	pagina, _ := strconv.Atoi(r.FormValue("page"))
+	svc2 := service.NewSessionList(h.repo, h.logger)
+	req2 := &dto.SessionListRequest{
+		Page:     pagina,
+		PageSize: itensPorPag,
+	}
+	respdro2 := svc2.Run(req2)
+	if respdro2.GetStatusCode() != 200 {
+		http.Error(w, "Failed to retrieve sessions", http.StatusInternalServerError)
+		return
+	}
+	response, ok := respdro2.(*dto.SessionListResponse)
+	if !ok {
+		http.Error(w, "Invalid response type", http.StatusInternalServerError)
+		return
+	}
+	page := h.getPageData(response)
+	h.logger.IPrintf(2, "Rendering 2 for %v", page)
+	w.Write([]byte(`<script>document.getElementById("formulario-cadastro-container").innerHTML = "";</script>`))
+	h.tmpl.ExecuteTemplate(w, "tabela", page)
+	
+}
+
+// getSessionData retrieves the session data based on the provided filters and pagination parameters
+func (h *HandlerHtml) getSessionData(response *dto.SessionListResponse) []Sessao {
+	sessions := response.Sessions
 	pageSessoes := []Sessao{}
 	for _, session := range sessions {
+		formatedDate, _ := time.Parse("2006-01-02", session.Date)
 		ss := Sessao{
 			ID:            session.SessionID,
 			Nickname:      session.Nickname,
 			Data:          session.Date,
-			DataFormatada: session.Date, // Assuming the date is already formatted; adjust if needed
+			DataFormatada: formatedDate.Format("02/01/2006"),
 			Duracao:       session.Minutes,
 			Status:        session.Status,
 			StatusCor:     statusColors[session.Status],
+			Servico:       session.Service,
 			Comentario:    session.Comments,
 		}
 		pageSessoes = append(pageSessoes, ss)
 	}
+	return pageSessoes
+}
+
+// getPageData paginates the filtered sessions based on the target page and items per page
+func (h *HandlerHtml) getPageData(response *dto.SessionListResponse) PaginacaoData {
+	page := response.Page
+	totalPages := response.TotalPages
+	pageSessoes := h.getSessionData(response)
 	ret := PaginacaoData{
 		Sessoes:      pageSessoes,
 		PaginaAtual:  page,

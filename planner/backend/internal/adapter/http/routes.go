@@ -8,6 +8,8 @@ import (
 // NewRoutes creates a new instance of Routes with the provided logger and repository.
 func NewRoutes(repo port.Repository, logger port.Logger, htmlTemplate []byte) (*http.ServeMux, error) {
 	mux := http.NewServeMux()
+	fs := http.FileServer(http.Dir("web/static"))
+	mux.Handle("/static/", http.StripPrefix("/static/", fs))
 	apiRoutes := NewAPIRoutes(repo, logger)
 	mux.Handle("/api/", http.StripPrefix("/api", apiRoutes))
 	htmlRoutes, err := NewHTMLRoutes(repo, logger, htmlTemplate)
@@ -37,6 +39,8 @@ func NewHTMLRoutes(repo port.Repository, logger port.Logger, htmlTemplate []byte
 		return nil, err
 	}
 	mux.HandleFunc("/ping", handler.Ping)
-	mux.HandleFunc("/sessions", handler.Sessions)
+	mux.HandleFunc("/sessoes", handler.Sessions)
+	mux.HandleFunc("/sessoes/novo", handler.SessionsCreate)
+	mux.HandleFunc("/sessoes/salvar", handler.SessionsSave)
 	return mux, nil
 }

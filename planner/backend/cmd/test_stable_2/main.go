@@ -14,11 +14,12 @@ import (
 type Sessao struct {
 	ID            int
 	Nickname      string
-	Data          string
+	Data          string 
 	DataFormatada string
 	Duracao       int
 	Status        string
 	StatusCor     string
+	Servico       string
 	Comentario    string
 }
 
@@ -33,15 +34,15 @@ type PaginacaoData struct {
 }
 
 var (
-	mu      sync.Mutex
-	sessoes = []Sessao{
-		{1, "AnaGamer", "2026-06-01", "01/06/2026", 60, "realizada", "#10b981", "Boa partida.\nEvoluiu bastante no posicionamento tático e rotações."},
-		{2, "CarlosPro", "2026-06-02", "02/06/2026", 30, "cancelada/cobrar", "#f59e0b", "Desistiu em cima da hora do compromisso agendado."},
-		{3, "BiaPlayer", "2026-06-15", "15/06/2026", 45, "cancelada/não cobrar", "#ef4444", "Teve queda generalizada de energia na região onde mora."},
-		{4, "JohnDoe", "2026-06-16", "16/06/2026", 90, "realizada", "#10b981", "Focado nos objetivos estabelecidos no treinamento."},
-		{5, "PlayerX", "2026-06-17", "17/06/2026", 60, "realizada", "#10b981", "Treino de mira eficiente com evolução constante."},
-		{6, "GamerPro99", "2026-06-18", "18/06/2026", 120, "realizada", "#10b981", "Análise de replay detalhada em grupo."},
-		{7, "LucasT", "2026-06-19", "19/06/2026", 45, "cancelada/cobrar", "#f59e0b", "Esqueceu do compromisso e não respondeu avisos."},
+	mu        sync.Mutex
+	sessoes   = []Sessao{
+		{1, "AnaGamer", "2026-06-01", "01/06/2026", 60, "realizada", "#10b981", "aula/canto", "Boa partida.\nEvoluiu bastante no posicionamento tático e rotações."},
+		{2, "CarlosPro", "2026-06-02", "02/06/2026", 30, "cancelada/cobrar", "#f59e0b", "aula/piano", "Desistiu em cima da hora do compromisso agendado."},
+		{3, "BiaPlayer", "2026-06-15", "15/06/2026", 45, "cancelada/não cobrar", "#ef4444", "aula/canto", "Teve queda generalizada de energia na região onde mora."},
+		{4, "JohnDoe", "2026-06-16", "16/06/2026", 90, "realizada", "#10b981", "aula/piano", "Focado nos objetivos estabelecidos no treinamento."},
+		{5, "PlayerX", "2026-06-17", "17/06/2026", 60, "realizada", "#10b981", "aula/canto", "Treino de mira eficiente com evolução constante."},
+		{6, "GamerPro99", "2026-06-18", "18/06/2026", 120, "realizada", "#10b981", "aula/piano", "Análise de replay detalhada em grupo."},
+		{7, "LucasT", "2026-06-19", "19/06/2026", 45, "cancelada/cobrar", "#f59e0b", "aula/canto", "Esqueceu do compromisso e não respondeu avisos."},
 	}
 	proximoID   = 8
 	itensPorPag = 5
@@ -57,8 +58,11 @@ func init() {
 			return template.HTML(comQuebras)
 		},
 	}
+	// Inicialização montada aqui no início para blindar o escopo das variáveis
+	tmpl = template.Must(template.New("master").Funcs(funcMap).Parse(htmlTemplates))
+}
 
-	htmlTemplates := `
+var htmlTemplates = `
 	{{define "index"}}
 	<!DOCTYPE html>
 	<html lang="pt-BR">
@@ -70,14 +74,14 @@ func init() {
 		<style>
 			.grade-filtros {
 				display: grid !important;
-				grid-template-columns: 1.8fr 1.2fr 1.2fr 1.2fr 1.6fr 2fr !important;
-				gap: 12px !important;
+				grid-template-columns: 1.5fr 1fr 1fr 1fr 1.3fr 1.3fr 2fr !important;
+				gap: 10px !important;
 				width: 100% !important;
 				box-sizing: border-box !important;
 			}
 			.grade-tabela {
 				display: grid !important;
-				grid-template-columns: 2fr 1.2fr 0.8fr 1.2fr 6.1fr 1.2fr !important;
+				grid-template-columns: 2fr 1.2fr 0.8fr 1.2fr 1.4fr 4.7fr 1.2fr !important;
 				gap: 16px !important;
 				align-items: center !important;
 				width: 100% !important;
@@ -180,21 +184,29 @@ func init() {
 						<input type="date" name="data_fim">
 					</div>
 					<div class="campo-box">
-						<label>Duração (minutos)</label>
-						<input type="number" name="duracao_filtro" placeholder="Ex: 60" min="0">
+						<label>Duração</label>
+						<input type="number" name="duracao_filtro" placeholder="Minutos..." min="0">
 					</div>
 					<div class="campo-box">
 						<label>Status</label>
 						<select name="status">
-							<option value="">Todos os status</option>
+							<option value="">Todos</option>
 							<option value="realizada">Realizada</option>
 							<option value="cancelada/cobrar">Cancelada/Cobrar</option>
 							<option value="cancelada/não cobrar">Cancelada/Não Cobrar</option>
 						</select>
 					</div>
 					<div class="campo-box">
+						<label>Serviço</label>
+						<select name="servico_filtro">
+							<option value="">Todos</option>
+							<option value="aula/canto">Aula/Canto</option>
+							<option value="aula/piano">Aula/Piano</option>
+						</select>
+					</div>
+					<div class="campo-box">
 						<label>Buscar nos Comentários</label>
-						<input type="text" name="comentario" placeholder="Palavra-chave do comentário...">
+						<input type="text" name="comentario" placeholder="Palavra-chave...">
 					</div>
 				</div>
 			</form>
@@ -215,26 +227,25 @@ func init() {
 
 	{{define "formulario_cadastro"}}
 	<form hx-post="/sessoes/salvar" hx-target="#tabela-container" hx-include="#filtro-form" class="linha-box grade-tabela formulario-add text-sm shadow-lg">
-		<!-- MODIFICADO: Adicionado list="lista-nicknames" para ativar as sugestões automáticas -->
 		<div>
 			<input type="text" name="add_nickname" placeholder="Nickname..." list="lista-nicknames" required class="input-inline-tabela">
 			<datalist id="lista-nicknames">
-				<option value="AnaGamer">
-				<option value="CarlosPro">
-				<option value="BiaPlayer">
-				<option value="JohnDoe">
-				<option value="PlayerX">
-				<option value="GamerPro99">
-				<option value="LucasT">
+				<option value="AnaGamer"><option value="CarlosPro"><option value="BiaPlayer"><option value="JohnDoe"><option value="PlayerX"><option value="GamerPro99"><option value="LucasT">
 			</datalist>
 		</div>
 		<div><input type="date" name="add_data" value="{{.DataPadrao}}" required class="input-inline-tabela"></div>
-		<div><input type="number" name="add_duracao" value="{{.DuracaoPadrao}}" placeholder="Minutos..." min="1" required class="input-inline-tabela" style="text-align: center !important;"></div>
+		<div><input type="number" name="add_duracao" value="{{.DuracaoPadrao}}" min="1" required class="input-inline-tabela" style="text-align: center !important;"></div>
 		<div>
 			<select name="add_status" required class="input-inline-tabela">
 				<option value="realizada">Realizada</option>
 				<option value="cancelada/cobrar">Cancelada/Cobrar</option>
 				<option value="cancelada/não cobrar">Cancelada/Não Cobrar</option>
+			</select>
+		</div>
+		<div>
+			<select name="add_servico" required class="input-inline-tabela">
+				<option value="aula/canto">Aula/Canto</option>
+				<option value="aula/piano">Aula/Piano</option>
 			</select>
 		</div>
 		<div><textarea name="add_comentario" placeholder="Escreva um comentário..." rows="2" class="input-inline-tabela" style="resize: vertical;"></textarea></div>
@@ -252,6 +263,7 @@ func init() {
 			<div>Data</div>
 			<div style="text-align: center !important;">Duração</div>
 			<div>Status</div>
+			<div>Serviço</div>
 			<div>Comentários</div>
 			<div style="text-align: left !important; width: 100%;">Ações</div>
 		</div>
@@ -279,6 +291,7 @@ func init() {
 		<div class="text-gray-600 font-mono font-medium">{{.DataFormatada}}</div>
 		<div class="text-gray-700 font-bold font-mono text-base" style="text-align: center !important;">{{.Duracao}}</div>
 		<div><span style="color: {{.StatusCor}} !important;" class="text-xs uppercase tracking-wider font-black">{{.Status}}</span></div>
+		<div class="text-gray-700 font-medium italic font-mono">{{.Servico}}</div>
 		<div class="text-gray-600 comentario-multilinha">{{pularLinhas .Comentario}}</div>
 		<div class="flex gap-2 justify-start w-full" style="justify-content: flex-start !important; align-items: start !important;">
 			<button hx-get="/sessoes/editar?id={{.ID}}" hx-target="#sessao-{{.ID}}" hx-swap="outerHTML" class="text-indigo-600 hover:text-white font-bold text-xs px-2.5 py-1.5 bg-indigo-600/10 hover:bg-indigo-600 rounded-md border border-indigo-600/20 transition shadow-sm w-16 text-center">Editar</button>
@@ -289,10 +302,7 @@ func init() {
 
 	{{define "linha_sessao_edit"}}
 	<form id="sessao-{{.ID}}" hx-post="/sessoes/atualizar?id={{.ID}}" hx-target="#tabela-container" hx-include="#filtro-form" class="linha-box grade-tabela formulario-edit text-sm shadow-md" style="align-items: start !important; padding-top: 20px; padding-bottom: 20px;">
-		<!-- MODIFICADO: Adicionado list="lista-nicknames" para sugerir nomes também na edição -->
-		<div>
-			<input type="text" name="edit_nickname" value="{{.Nickname}}" list="lista-nicknames" required class="input-inline-tabela">
-		</div>
+		<div><input type="text" name="edit_nickname" value="{{.Nickname}}" required class="input-inline-tabela"></div>
 		<div><input type="date" name="edit_data" value="{{.Data}}" required class="input-inline-tabela"></div>
 		<div><input type="number" name="edit_duracao" value="{{.Duracao}}" min="1" required class="input-inline-tabela" style="text-align: center !important;"></div>
 		<div>
@@ -300,6 +310,12 @@ func init() {
 				<option value="realizada" {{if eq .Status "realizada"}}selected{{end}}>Realizada</option>
 				<option value="cancelada/cobrar" {{if eq .Status "cancelada/cobrar"}}selected{{end}}>Cancelada/Cobrar</option>
 				<option value="cancelada/não cobrar" {{if eq .Status "cancelada/não cobrar"}}selected{{end}}>Cancelada/Não Cobrar</option>
+			</select>
+		</div>
+		<div>
+			<select name="edit_servico" required class="input-inline-tabela">
+				<option value="aula/canto" {{if eq .Servico "aula/canto"}}selected{{end}}>Aula/Canto</option>
+				<option value="aula/piano" {{if eq .Servico "aula/piano"}}selected{{end}}>Aula/Piano</option>
 			</select>
 		</div>
 		<div><textarea name="edit_comentario" rows="2" class="input-inline-tabela" style="resize: vertical;">{{.Comentario}}</textarea></div>
@@ -312,19 +328,14 @@ func init() {
 
 	{{define "linha_sessao_deletar_aviso"}}
 	<div id="sessao-{{.ID}}" class="linha-box grade-tabela aviso-deletar text-sm bg-rose-50/50 py-5" style="align-items: center !important;">
-		<div class="col-span-5 text-rose-700 font-bold flex items-center gap-2" style="grid-column: span 5 / span 5 !important;">⚠️ Deseja realmente excluir permanentemente a sessão de <span class="underline">{{.Nickname}}</span>?</div>
+		<div class="col-span-6 text-rose-700 font-bold flex items-center gap-2" style="grid-column: span 6 / span 6 !important;">⚠️ Deseja realmente excluir permanentemente a sessão de <span class="underline">{{.Nickname}}</span>?</div>
 		<div class="flex gap-2 justify-end w-full" style="justify-content: flex-end !important;">
 			<button hx-post="/sessoes/deletar?id={{.ID}}" hx-target="#tabela-container" hx-include="#filtro-form" class="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-3 py-2 rounded-md transition shadow-md">Sim, deletar</button>
 			<button hx-get="/sessoes/cancelar-edicao?id={{.ID}}" hx-target="#sessao-{{.ID}}" hx-swap="outerHTML" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs px-3 py-2 rounded-md border border-gray-300 transition shadow-sm">Não</button>
 		</div>
 	</div>
 	{{end}}
-
 	`
-
-	tmpl = template.Must(template.New("master").Funcs(funcMap).Parse(htmlTemplates))
-}
-
 func paginarSessoes(filtradas []Sessao, paginaAlvo int) PaginacaoData {
 	totalItens := len(filtradas)
 	if totalItens == 0 {
@@ -343,7 +354,7 @@ func paginarSessoes(filtradas []Sessao, paginaAlvo int) PaginacaoData {
 	}
 }
 
-func filtrarSessoes(nickname, dataInicio, dataFim, duracaoFiltro, status, comentario string) []Sessao {
+func filtrarSessoes(nickname, dataInicio, dataFim, duracaoFiltro, status, servicoFiltro, comentario string) []Sessao {
 	mu.Lock()
 	defer mu.Unlock()
 	var resultado []Sessao
@@ -356,17 +367,19 @@ func filtrarSessoes(nickname, dataInicio, dataFim, duracaoFiltro, status, coment
 			if err == nil && s.Duracao != dVal { continue }
 		}
 		if status != "" && !strings.Contains(strings.ToLower(s.Status), strings.ToLower(status)) { continue }
+		if servicoFiltro != "" && s.Servico != servicoFiltro { continue }
 		if comentario != "" && !strings.Contains(strings.ToLower(s.Comentario), strings.ToLower(comentario)) { continue }
 		resultado = append(resultado, s)
 	}
 	return resultado
 }
 
-func configurarRegistro(nickname, data, status, comentario string, duracao int) Sessao {
+// FUNÇÃO CIRURGICAMENTE CORRIGIDA: Extrai os índices individuais para montar DD/MM/YYYY sem duplicações
+func configurarRegistro(nickname, data, status, servico, comentario string, duracao int) Sessao {
 	partes := strings.Split(data, "-")
 	dForm := data
 	if len(partes) == 3 {
-		dForm = fmt.Sprintf("%s/%s/%s", partes[0], partes[1], partes[2])
+		dForm = fmt.Sprintf("%s/%s/%s", partes[2], partes[1], partes[0])
 	}
 	cor := "#9ca3af"
 	stLimpo := strings.ToLower(strings.TrimSpace(status))
@@ -376,12 +389,11 @@ func configurarRegistro(nickname, data, status, comentario string, duracao int) 
 	
 	return Sessao{
 		Nickname: nickname, Data: data, DataFormatada: dForm,
-		Duracao: duracao, Status: status, StatusCor: cor, Comentario: comentario,
+		Duracao: duracao, Status: status, StatusCor: cor, Servico: servico, Comentario: comentario,
 	}
 }
 
 func main() {
-	// CORREÇÃO: Aponta o servidor de arquivos para a nova pasta 'web/static'
 	fs := http.FileServer(http.Dir("web/static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
@@ -400,7 +412,7 @@ func main() {
 		pagina, _ := strconv.Atoi(pagStr)
 		if pagina < 1 { pagina = 1 }
 
-		filtradas := filtrarSessoes(r.FormValue("nickname"), r.FormValue("data_inicio"), r.FormValue("data_fim"), r.FormValue("duracao_filtro"), r.FormValue("status"), r.FormValue("comentario"))
+		filtradas := filtrarSessoes(r.FormValue("nickname"), r.FormValue("data_inicio"), r.FormValue("data_fim"), r.FormValue("duracao_filtro"), r.FormValue("status"), r.FormValue("servico_filtro"), r.FormValue("comentario"))
 		tmpl.ExecuteTemplate(w, "tabela", paginarSessoes(filtradas, pagina))
 	})
 
@@ -461,28 +473,28 @@ func main() {
 		id, _ := strconv.Atoi(r.URL.Query().Get("id"))
 		r.ParseForm()
 		duracao, _ := strconv.Atoi(r.FormValue("edit_duracao"))
-		regConfigurado := configurarRegistro(r.FormValue("edit_nickname"), r.FormValue("edit_data"), r.FormValue("edit_status"), r.FormValue("edit_comentario"), duracao)
+		regConfigurado := configurarRegistro(r.FormValue("edit_nickname"), r.FormValue("edit_data"), r.FormValue("edit_status"), r.FormValue("edit_servico"), r.FormValue("edit_comentario"), duracao)
 		mu.Lock()
 		for i, s := range sessoes {
 			if s.ID == id { sessoes[i] = regConfigurado; sessoes[i].ID = id; break }
 		}
 		mu.Unlock()
 		pagina, _ := strconv.Atoi(r.FormValue("page"))
-		filtradas := filtrarSessoes(r.FormValue("nickname"), r.FormValue("data_inicio"), r.FormValue("data_fim"), r.FormValue("duracao_filtro"), r.FormValue("status"), r.FormValue("comentario"))
+		filtradas := filtrarSessoes(r.FormValue("nickname"), r.FormValue("data_inicio"), r.FormValue("data_fim"), r.FormValue("duracao_filtro"), r.FormValue("status"), r.FormValue("servico_filtro"), r.FormValue("comentario"))
 		tmpl.ExecuteTemplate(w, "tabela", paginarSessoes(filtradas, pagina))
 	})
 
 	http.HandleFunc("/sessoes/salvar", func(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 		duracao, _ := strconv.Atoi(r.FormValue("add_duracao"))
-		novaSessao := configurarRegistro(r.FormValue("add_nickname"), r.FormValue("add_data"), r.FormValue("add_status"), r.FormValue("add_comentario"), duracao)
+		novaSessao := configurarRegistro(r.FormValue("add_nickname"), r.FormValue("add_data"), r.FormValue("add_status"), r.FormValue("add_servico"), r.FormValue("add_comentario"), duracao)
 		mu.Lock()
 		novaSessao.ID = proximoID
 		sessoes = append(sessoes, novaSessao)
 		proximoID++
 		mu.Unlock()
 		pagina, _ := strconv.Atoi(r.FormValue("page"))
-		filtradas := filtrarSessoes(r.FormValue("nickname"), r.FormValue("data_inicio"), r.FormValue("data_fim"), r.FormValue("duracao_filtro"), r.FormValue("status"), r.FormValue("comentario"))
+		filtradas := filtrarSessoes(r.FormValue("nickname"), r.FormValue("data_inicio"), r.FormValue("data_fim"), r.FormValue("duracao_filtro"), r.FormValue("status"), r.FormValue("servico_filtro"), r.FormValue("comentario"))
 		w.Write([]byte(`<script>document.getElementById("formulario-cadastro-container").innerHTML = "";</script>`))
 		tmpl.ExecuteTemplate(w, "tabela", paginarSessoes(filtradas, pagina))
 	})
@@ -498,15 +510,15 @@ func main() {
 		mu.Unlock()
 		r.ParseForm()
 		pagina, _ := strconv.Atoi(r.FormValue("page"))
-		filtradas := filtrarSessoes(r.FormValue("nickname"), r.FormValue("data_inicio"), r.FormValue("data_fim"), r.FormValue("duracao_filtro"), r.FormValue("status"), r.FormValue("comentario"))
+		filtradas := filtrarSessoes(r.FormValue("nickname"), r.FormValue("data_inicio"), r.FormValue("data_fim"), r.FormValue("duracao_filtro"), r.FormValue("status"), r.FormValue("servico_filtro"), r.FormValue("comentario"))
 		tmpl.ExecuteTemplate(w, "tabela", paginarSessoes(filtradas, pagina))
 	})
 
-	fmt.Println("Dashboard Escuro Corrigido rodando em http://localhost:8085")
+	fmt.Println("Dashboard Escuro Atualizado rodando em http://localhost:8085")
 	http.ListenAndServe(":8085", nil)
 }
 
 func NavFilter(nickname, dI, dF, status, coment string) []Sessao {
-	return filtrarSessoes(nickname, dI, dF, "", status, coment)
+	return filtrarSessoes(nickname, dI, dF, "", status, "", coment)
 }
 
