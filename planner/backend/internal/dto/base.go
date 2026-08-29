@@ -8,7 +8,7 @@ var (
 	}
 	validServices = map[string]bool{
 		"aula/canto": true,
-		"aula/piano":    true,
+		"aula/piano": true,
 	}
 )
 

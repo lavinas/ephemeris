@@ -9,5 +9,6 @@ type Repository interface {
 	Save(model interface{}) error
 	Find(page, pagesize int, conditions map[string]interface{}) ([]interface{}, error)
 	FindCount(conditions map[string]interface{}) (int64, error)
+	FindGroup(conditions map[string]interface{}, groupField string) ([]map[string]interface{}, error)
 	Close() error
 }

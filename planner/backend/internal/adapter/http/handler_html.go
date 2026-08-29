@@ -11,7 +11,6 @@ import (
 	"planner/internal/dto"
 	"planner/internal/port"
 	"planner/internal/service"
-
 )
 
 // Sessao represents a session with its details for rendering in HTML templates.
@@ -122,10 +121,26 @@ func (h *HandlerHtml) Sessions(w http.ResponseWriter, r *http.Request) {
 // SessionsCreate handler for the /sessions/create endpoint
 func (h *HandlerHtml) SessionsCreate(w http.ResponseWriter, r *http.Request) {
 	hoje := time.Now().Format("2006-01-02")
-	dadosPadrao := map[string]string{
+	twoYearsAgo := time.Now().AddDate(-2, 0, 0).Format("2006-01-02")
+	svc := service.NewSessionUsers(h.repo, h.logger)
+	req := &dto.SessionUsersRequest{
+		StartDate: twoYearsAgo,
+	}
+	respdro := svc.Run(req)
+	if respdro.GetStatusCode() != 200 {
+		http.Error(w, "Failed to retrieve session users", http.StatusInternalServerError)
+		return
+	}
+	response, ok := respdro.(*dto.SessionUsersResponse)
+	if !ok {
+		http.Error(w, "Invalid response type", http.StatusInternalServerError)
+		return
+	}
+	dadosPadrao := map[string]interface{}{
 		"DataFormatada": hoje,
 		"DataPadrao":    hoje,
 		"DuracaoPadrao": "60",
+		"Nicknames":     response.Nicknames,
 	}
 	h.tmpl.ExecuteTemplate(w, "formulario_cadastro", dadosPadrao)
 }
@@ -172,7 +187,37 @@ func (h *HandlerHtml) SessionsSave(w http.ResponseWriter, r *http.Request) {
 	h.logger.IPrintf(2, "Rendering 2 for %v", page)
 	w.Write([]byte(`<script>document.getElementById("formulario-cadastro-container").innerHTML = "";</script>`))
 	h.tmpl.ExecuteTemplate(w, "tabela", page)
-	
+
+}
+
+// SessionTableReset handler for the /sessions/table/reset endpoint
+func (h *HandlerHtml) SessionsTableReset(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	pagina, _ := strconv.Atoi(r.FormValue("page"))
+	svc := service.NewSessionList(h.repo, h.logger)
+	req := &dto.SessionListRequest{
+		Page:     pagina,
+		PageSize: itensPorPag,
+	}
+	respdro := svc.Run(req)
+	if respdro.GetStatusCode() != 200 {
+		http.Error(w, "Failed to retrieve sessions", http.StatusInternalServerError)
+		return
+	}
+	response, ok := respdro.(*dto.SessionListResponse)
+	if !ok {
+		http.Error(w, "Invalid response type", http.StatusInternalServerError)
+		return
+	}
+	page := h.getPageData(response)
+	h.logger.IPrintf(2, "Rendering 3 for %v", page)
+	w.Write([]byte(`<script>document.getElementById("filtro-form").reset(); document.getElementById("input-pagina-form").value="1";</script>`))
+	h.tmpl.ExecuteTemplate(w, "tabela", page)
+}
+
+// SessionsBlockReset handler for the /sessions/block/reset endpoint
+func (h *HandlerHtml) SessionsBlockClear(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte(""))
 }
 
 // getSessionData retrieves the session data based on the provided filters and pagination parameters

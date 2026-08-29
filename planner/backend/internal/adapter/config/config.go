@@ -9,6 +9,7 @@ import (
 type Config struct {
 	DB  DBConfig  `json:"db"`
 	Log LogConfig `json:"log"`
+	Web WebConfig `json:"web"`
 }
 
 // DBConfig represents the database configuration structure
@@ -28,6 +29,11 @@ type DBConfig struct {
 type LogConfig struct {
 	Output string `json:"output"`
 	Level  int    `json:"level"`
+}
+
+// WebConfig represents the web server configuration structure
+type WebConfig struct {
+	Addr string `json:"addr"`
 }
 
 // LoadConfig reads the configuration from a JSON file and unmarshals it into a Config
@@ -66,4 +72,9 @@ func (v *Config) GetConfigData() (output string, level int) {
 // GetLogOutput returns the log output from the configuration
 func (v *Config) GetLogData() (output string, level int) {
 	return v.Log.Output, v.Log.Level
+}
+
+// GetWebAddr returns the web server address from the configuration
+func (v *Config) GetWebAddr() string {
+	return v.Web.Addr
 }

@@ -28,6 +28,8 @@ func NewAPIRoutes(repo port.Repository, logger port.Logger) *http.ServeMux {
 	mux.HandleFunc("/session/create", handler.SessionCreate)
 	mux.HandleFunc("/session/list", handler.SessionList)
 	mux.HandleFunc("/session/delete", handler.SessionDelete)
+	mux.HandleFunc("/session/users", handler.SessionUsers)
+	mux.HandleFunc("/ping2", handler.Ping)
 	return mux
 }
 
@@ -42,5 +44,7 @@ func NewHTMLRoutes(repo port.Repository, logger port.Logger, htmlTemplate []byte
 	mux.HandleFunc("/sessoes", handler.Sessions)
 	mux.HandleFunc("/sessoes/novo", handler.SessionsCreate)
 	mux.HandleFunc("/sessoes/salvar", handler.SessionsSave)
+	mux.HandleFunc("/sessoes/tabela/reset", handler.SessionsTableReset)
+	mux.HandleFunc("/sessoes/bloco/limpar", handler.SessionsBlockClear)
 	return mux, nil
 }

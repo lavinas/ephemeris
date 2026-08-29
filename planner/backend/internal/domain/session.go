@@ -80,7 +80,7 @@ func (s *Session) Find(repository port.Repository, page, pagesize int, nickname 
 	var count int64
 	count, err := repository.FindCount(conditions)
 	if err != nil {
-	return nil, 0, err
+		return nil, 0, err
 	}
 
 	results, err := repository.Find(page, pagesize, conditions)
@@ -115,4 +115,35 @@ func (s *Session) Get(repository port.Repository, id int64) (bool, error) {
 	s.SessionStatus = session.SessionStatus
 	s.SessionService = session.SessionService
 	return true, nil
+}
+
+// FindUsers is a helper function to find session users in the database based on conditions
+func (s *Session) FindUsers(repository port.Repository, startDate, endDate time.Time,
+	minutes int, service, status string) ([]string, error) {
+	conditions := map[string]interface{}{}
+	conditions["deleted_at IS NULL"] = nil
+	if !startDate.IsZero() {
+		conditions["session_date >= ?"] = startDate
+	}
+	if !endDate.IsZero() {
+		conditions["session_date <= ?"] = endDate
+	}
+	if minutes != 0 {
+		conditions["session_minutes = ?"] = minutes
+	}
+	if service != "" {
+		conditions["session_service = ?"] = service
+	}
+	if status != "" {
+		conditions["session_status = ?"] = status
+	}
+	results, err := repository.FindGroup(conditions, "customer_nickname")
+	if err != nil {
+		return nil, err
+	}
+	users := []string{}
+	for _, v := range results {
+		users = append(users, v["customer_nickname"].(string))
+	}
+	return users, nil
 }

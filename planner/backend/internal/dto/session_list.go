@@ -24,10 +24,10 @@ type SessionListRequest struct {
 // SessionListResponse represents the response containing a list of sessions.
 type SessionListResponse struct {
 	ResponseBase
-	Page int `json:"page"`
-	PageSize int `json:"page_size"`
-	TotalPages int `json:"total_pages"`
-	Sessions []Session `json:"sessions"`
+	Page       int       `json:"page"`
+	PageSize   int       `json:"page_size"`
+	TotalPages int       `json:"total_pages"`
+	Sessions   []Session `json:"sessions"`
 }
 
 // Session represents a session with its details.
@@ -42,7 +42,7 @@ type Session struct {
 }
 
 // NewSessionListResponse creates a new instance of SessionListResponse with the provided parameters.
-func NewSessionListResponse(statusCode int, statusMessage string, errorMessage string, sessions []Session, 
+func NewSessionListResponse(statusCode int, statusMessage string, errorMessage string, sessions []Session,
 	page int, pageSize int, totalPages int) *SessionListResponse {
 	return &SessionListResponse{
 		ResponseBase: ResponseBase{
@@ -132,6 +132,7 @@ func (r *SessionListRequest) validateMinutes() error {
 	}
 	return nil
 }
+
 // validateService checks if the provided service is valid.
 func (r *SessionListRequest) validateService() error {
 	if r.Service != "" && !validServices[r.Service] {

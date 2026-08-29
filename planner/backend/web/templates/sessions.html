@@ -165,7 +165,9 @@
 		<div>
 			<input type="text" name="add_nickname" placeholder="Nickname..." list="lista-nicknames" required class="input-inline-tabela">
 			<datalist id="lista-nicknames">
-				<option value="AnaGamer"><option value="CarlosPro"><option value="BiaPlayer"><option value="JohnDoe"><option value="PlayerX"><option value="GamerPro99"><option value="LucasT">
+				{{range .Nicknames}}
+					<option value="{{.}}">
+				{{end}}
 			</datalist>
 		</div>
 		<div><input type="date" name="add_data" value="{{.DataPadrao}}" required class="input-inline-tabela"></div>
@@ -186,7 +188,7 @@
 		<div><textarea name="add_comentario" placeholder="Escreva um comentário..." rows="2" class="input-inline-tabela" style="resize: vertical;"></textarea></div>
 		<div class="flex gap-2 justify-start w-full" style="justify-content: flex-start !important; align-items: center !important;">
 			<button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold text-xs px-3 py-2 rounded-md transition w-16 text-center">Salvar</button>
-			<button type="button" hx-get="/limpar-bloco" hx-target="#formulario-cadastro-container" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs px-3 py-2 rounded-md border border-gray-300 transition w-16 text-center">Cancelar</button>
+			<button type="button" hx-get="/html/sessoes/bloco/limpar" hx-target="#formulario-cadastro-container" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs px-3 py-2 rounded-md border border-gray-300 transition w-16 text-center">Cancelar</button>
 		</div>
 	</form>
 	{{end}}
@@ -194,8 +196,8 @@
 	{{define "tabela"}}
 	<div class="w-full">
 		<div class="grade-tabela topo-tabela">
-			<div>Usuário</div>
 			<div>Data</div>
+			<div>Usuário</div>
 			<div style="text-align: center !important;">Duração</div>
 			<div>Status</div>
 			<div>Serviço</div>
@@ -222,8 +224,8 @@
 
 	{{define "linha_sessao"}}
 	<div id="sessao-{{.ID}}" class="linha-box grade-tabela text-sm" style="align-items: start !important; padding-top: 20px; padding-bottom: 20px;">
-		<div class="font-bold text-gray-900 texto-truncado">{{.Nickname}}</div>
 		<div class="text-gray-600 font-mono font-medium">{{.DataFormatada}}</div>
+		<div class="font-bold text-gray-900 texto-truncado">{{.Nickname}}</div>
 		<div class="text-gray-700 font-bold font-mono text-base" style="text-align: center !important;">{{.Duracao}}</div>
 		<div><span style="--status-color: {{.StatusCor}}; color: var(--status-color) !important;" class="text-xs uppercase tracking-wider font-black">{{.Status}}</span></div>
 		<div class="text-gray-700 font-medium italic font-mono">{{.Servico}}</div>

@@ -156,3 +156,25 @@ func (a *Repository) Find(page, pagesize int, conditions map[string]interface{})
 	}
 	return result, err
 }
+
+// FindSessionUsers is a helper function to find session users in the database based on conditions
+func (a *Repository) FindGroup(conditions map[string]interface{}, groupField string) ([]map[string]interface{}, error) {
+	db := a.DB
+	if a.Tx != nil {
+		db = a.Tx
+	}
+	md := db.Model(&domain.Session{})
+	for key, value := range conditions {
+		if value == nil {
+			md = md.Where(key)
+		} else {
+			md = md.Where(key, value)
+		}
+	}
+	qselect := groupField + ", COUNT(1) as count"
+	md = md.Select(qselect)
+	md = md.Group(groupField)
+	var results []map[string]interface{}
+	err := md.Find(&results).Error
+	return results, err
+}

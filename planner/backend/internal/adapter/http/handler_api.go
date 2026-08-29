@@ -85,6 +85,23 @@ func (h *HandlerApi) SessionDelete(w http.ResponseWriter, r *http.Request) {
 	h.writeResponse(w, response)
 }
 
+// SessionUsers handler for the /session/users endpoint
+func (h *HandlerApi) SessionUsers(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	requestDTO := &dto.SessionUsersRequest{}
+	err := json.NewDecoder(r.Body).Decode(requestDTO)
+	if err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+	service := service.NewSessionUsers(h.repo, h.logger)
+	response := service.Run(requestDTO)
+	h.writeResponse(w, response)
+}
+
 // writeResponse writes the given response to the http.ResponseWriter with the appropriate status
 func (h *HandlerApi) writeResponse(w http.ResponseWriter, response port.OutDTO) {
 	responseJSON, err := json.MarshalIndent(response, "", "  ")

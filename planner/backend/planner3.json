@@ -1,7 +1,7 @@
 {
     "db": {
-        "host": "planner_db",
-        "port": 5432,
+        "host": "localhost",
+        "port": 5433,
         "user": "root",
         "password": "root",
         "dbname": "planner",
@@ -16,6 +16,6 @@
         "level": 10
     },
     "web": {
-        "addr": ":8083"
+        "addr": ":8085"
     }
 }
