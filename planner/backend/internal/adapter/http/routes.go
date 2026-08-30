@@ -52,5 +52,6 @@ func NewHTMLRoutes(repo port.Repository, logger port.Logger, htmlTemplate []byte
 	mux.HandleFunc("/sessoes/deletar", handler.SessionsDelete)
 	mux.HandleFunc("/sessoes/editar", handler.SessionsEdit)
 	mux.HandleFunc("/sessoes/atualizar", handler.SessionsUpdate)
+	mux.HandleFunc("/sessoes/tabela", handler.SessionsTable)
 	return mux, nil
 }

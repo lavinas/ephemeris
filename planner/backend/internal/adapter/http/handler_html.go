@@ -13,30 +13,6 @@ import (
 	"planner/internal/service"
 )
 
-// Sessao represents a session with its details for rendering in HTML templates.
-type Sessao struct {
-	ID            int64
-	Nickname      string
-	Data          string
-	DataFormatada string
-	Duracao       int
-	Status        string
-	StatusCor     string
-	Servico       string
-	Comentario    string
-}
-
-// PaginacaoData holds the paginated session data and pagination details for rendering in HTML templates.
-type PaginacaoData struct {
-	Sessoes      []Sessao
-	PaginaAtual  int
-	TotalPaginas int
-	TemAnterior  bool
-	TemProximo   bool
-	PagAnterior  int
-	PagProxima   int
-}
-
 var (
 	mu           sync.Mutex
 	statusColors = map[string]string{
@@ -378,9 +354,17 @@ func (h *HandlerHtml) SessionsTable(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	pagina, _ := strconv.Atoi(r.FormValue("page"))
 	svc := service.NewSessionList(h.repo, h.logger)
+	dur, _ := strconv.Atoi(r.FormValue("duracao_filtro"))
 	req := &dto.SessionListRequest{
 		Page:     pagina,
 		PageSize: itensPorPag,
+		Nickname: r.FormValue("nickname"),
+		DateStart: r.FormValue("data_inicio"),
+		DateEnd:   r.FormValue("data_fim"),
+		Minutes:   dur,
+		Status:    r.FormValue("status"),
+		Service:   r.FormValue("servico"),
+		Comments:  r.FormValue("comentario"),
 	}
 	respdro := svc.Run(req)
 	if respdro.GetStatusCode() != 200 {

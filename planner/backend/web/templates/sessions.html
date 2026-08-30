@@ -103,7 +103,7 @@
 				<img src="/static/logo.png" alt="Amélia Cardoso Logo" style="height: 130px !important; max-height: 130px !important; margin: 0 auto !important; display: inline-block !important; object-fit: contain !important;" onError="this.style.display='none';">
 			</div>
 
-			<form id="filtro-form" hx-post="/tabela" hx-target="#tabela-container" hx-trigger="input delay:200ms, change" class="w-full">
+			<form id="filtro-form" hx-post="/html/sessoes/tabela" hx-target="#tabela-container" hx-trigger="input delay:200ms, change" class="w-full">
 				<input type="hidden" id="input-pagina-form" name="page" value="1">
 				<div class="grade-filtros">
 					<div class="campo-box">
@@ -212,8 +212,8 @@
 			<div class="mt-12 flex items-center justify-between bg-gray-800/40 p-4 rounded-xl border border-gray-800 text-sm">
 				<div class="text-gray-400">Página <span class="text-gray-200 font-bold font-mono">{{.PaginaAtual}}</span> de <span class="text-gray-200 font-bold font-mono">{{.TotalPaginas}}</span></div>
 				<div class="flex gap-2">
-					<button {{if not .TemAnterior}}disabled style="opacity: 0.3; cursor: not-allowed;"{{end}} hx-post="/tabela?page={{.PagAnterior}}" hx-target="#tabela-container" hx-include="#filtro-form" onclick="document.getElementById('input-pagina-form').value='{{.PagAnterior}}'" class="bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold px-4 py-2 rounded-lg border border-gray-700 transition">◀ Anterior</button>
-					<button {{if not .TemProximo}}disabled style="opacity: 0.3; cursor: not-allowed;"{{end}} hx-post="/tabela?page={{.PagProxima}}" hx-target="#tabela-container" hx-include="#filtro-form" onclick="document.getElementById('input-pagina-form').value='{{.PagProxima}}'" class="bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold px-4 py-2 rounded-lg border border-gray-700 transition">Próximo ▶</button>
+					<button {{if not .TemAnterior}}disabled style="opacity: 0.3; cursor: not-allowed;"{{end}} hx-post="/html/sessoes/tabela?page={{.PagAnterior}}" hx-target="#tabela-container" hx-include="#filtro-form" onclick="document.getElementById('input-pagina-form').value='{{.PagAnterior}}'" class="bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold px-4 py-2 rounded-lg border border-gray-700 transition">◀ Anterior</button>
+					<button {{if not .TemProximo}}disabled style="opacity: 0.3; cursor: not-allowed;"{{end}} hx-post="/html/sessoes/tabela?page={{.PagProxima}}" hx-target="#tabela-container" hx-include="#filtro-form" onclick="document.getElementById('input-pagina-form').value='{{.PagProxima}}'" class="bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold px-4 py-2 rounded-lg border border-gray-700 transition">Próximo ▶</button>
 				</div>
 			</div>
 		{{else}}
