@@ -12,6 +12,7 @@ import (
 type SessionListRequest struct {
 	Page      int    `json:"page" validate:"required,gt=0"`
 	PageSize  int    `json:"page_size" validate:"required,gt=0"`
+	SessionID int64  `json:"session_id,omitempty"`
 	Nickname  string `json:"nickname,omitempty"`
 	DateStart string `json:"date_start,omitempty"`
 	DateEnd   string `json:"date_end,omitempty"`
@@ -60,6 +61,9 @@ func NewSessionListResponse(statusCode int, statusMessage string, errorMessage s
 // Validate checks if the SessionListRequest has valid data.
 func (r *SessionListRequest) Validate(repo port.Repository) error {
 	errs := []error{}
+	if err := r.validateSessionID(); err != nil {
+		errs = append(errs, err)
+	}
 	if err := r.validateDates(); err != nil {
 		errs = append(errs, err)
 	}
@@ -78,6 +82,14 @@ func (r *SessionListRequest) Validate(repo port.Repository) error {
 	if len(errs) > 0 {
 		err := errors.Join(errs...)
 		return errors.New(strings.ReplaceAll(err.Error(), "\n", "; "))
+	}
+	return nil
+}
+
+// validateSessionID checks if the provided session ID is valid.
+func (r *SessionListRequest) validateSessionID() error {
+	if r.SessionID < 0 {
+		return errors.New("session_id cannot be negative")
 	}
 	return nil
 }

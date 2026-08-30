@@ -52,10 +52,13 @@ func (Session) TableName() string {
 }
 
 // Find is a helper function to find records in the database
-func (s *Session) Find(repository port.Repository, page, pagesize int, nickname string, startDate, endDate time.Time,
+func (s *Session) Find(repository port.Repository, page, pagesize int, id int64, nickname string, startDate, endDate time.Time,
 	minutes int, service, status string, comments string) ([]Session, int64, error) {
 	conditions := map[string]interface{}{}
 	conditions["deleted_at IS NULL"] = nil
+	if id != 0 {
+		conditions["id = ?"] = id
+	}
 	if nickname != "" {
 		conditions["customer_nickname = ?"] = nickname
 	}
@@ -92,29 +95,6 @@ func (s *Session) Find(repository port.Repository, page, pagesize int, nickname 
 		sessions[i] = v.(Session)
 	}
 	return sessions, count, nil
-}
-
-// Get is a helper function to get a record from the database
-func (s *Session) Get(repository port.Repository, id int64) (bool, error) {
-	conditions := map[string]interface{}{
-		"id = ?":             id,
-		"deleted_at IS NULL": nil,
-	}
-	results, err := repository.Find(1, 1, conditions)
-	if err != nil {
-		return false, err
-	}
-	if len(results) == 0 {
-		return false, nil
-	}
-	session := results[0].(Session)
-	s.ID = session.ID
-	s.CustomerNickname = session.CustomerNickname
-	s.SessionDate = session.SessionDate
-	s.SessionMinutes = session.SessionMinutes
-	s.SessionStatus = session.SessionStatus
-	s.SessionService = session.SessionService
-	return true, nil
 }
 
 // FindUsers is a helper function to find session users in the database based on conditions

@@ -31,18 +31,18 @@ func (s *SessionDelete) Run(InDto port.InDTO) port.OutDTO {
 	}
 	session := &domain.Session{}
 	sessionID := InDto.(*dto.SessionDeleteRequest).SessionID
-	exists, err := session.Get(s.repo, sessionID)
+	ret, count, err := session.Find(s.repo, 1, 1, sessionID, "", time.Time{}, time.Time{}, 0, "", "", "")
 	if err != nil {
 		s.logger.IPrintf(2, "Error checking session existence: %v", err)
 		return dto.NewSessionDeleteResponse(500, "Internal Server Error", err.Error())
 	}
-	if !exists {
+	if count == 0 {
 		return dto.NewSessionDeleteResponse(404, "Not Found", "session not found")
 	}
 	// Perform soft delete by setting DeletedAt to current time
 	now := time.Now()
-	session.DeletedAt = &now
-	err = s.repo.Save(session)
+	ret[0].DeletedAt = &now
+	err = s.repo.Save(&ret[0])
 	if err != nil {
 		s.logger.IPrintf(2, "Error saving session: %v", err)
 		return dto.NewSessionDeleteResponse(500, "Internal Server Error", err.Error())

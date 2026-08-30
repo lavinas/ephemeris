@@ -50,7 +50,7 @@ func (s *SessionList) findSessions(input port.InDTO) ([]domain.Session, int, int
 	req := input.(*dto.SessionListRequest)
 	dateStart, _ := time.Parse("2006-01-02", req.DateStart)
 	dateEnd, _ := time.Parse("2006-01-02", req.DateEnd)
-	sessions, total, err := session.Find(s.repo, req.Page, req.PageSize, req.Nickname, dateStart,
+	sessions, total, err := session.Find(s.repo, req.Page, req.PageSize, req.SessionID, req.Nickname, dateStart,
 		dateEnd, req.Minutes, req.Service, req.Status, req.Comments)
 	if err != nil {
 		return nil, 0, 0, 0, err

@@ -220,6 +220,78 @@ func (h *HandlerHtml) SessionsBlockClear(w http.ResponseWriter, r *http.Request)
 	w.Write([]byte(""))
 }
 
+// SessionDeleteWarning handler for the /sessions/delete/warning endpoint
+func (h *HandlerHtml) SessionsDeleteWarning(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.Atoi(r.URL.Query().Get("id"))
+	svc := service.NewSessionList(h.repo, h.logger)
+	req := &dto.SessionListRequest{
+		Page:      1,
+		PageSize:  itensPorPag,
+		SessionID: int64(id),
+	}
+	respdro := svc.Run(req)
+	response, ok := respdro.(*dto.SessionListResponse)
+	if !ok || len(response.Sessions) == 0 {
+		http.Error(w, "Session not found", http.StatusNotFound)
+		return
+	}
+	sSel := h.getSessionData(response)[0]
+	h.tmpl.ExecuteTemplate(w, "linha_sessao_deletar_aviso", sSel)
+}
+
+// SessionsDelete handler for the /sessions/delete endpoint
+func (h *HandlerHtml) SessionsDelete(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.Atoi(r.URL.Query().Get("id"))
+	svc := service.NewSessionDelete(h.repo, h.logger)
+	req := &dto.SessionDeleteRequest{
+		SessionID: int64(id),
+	}
+	respdro := svc.Run(req)
+	if respdro.GetStatusCode() != 200 {
+		http.Error(w, "Failed to delete session", http.StatusInternalServerError)
+		return
+	}
+	pagina, _ := strconv.Atoi(r.FormValue("page"))
+	svc2 := service.NewSessionList(h.repo, h.logger)
+	req2 := &dto.SessionListRequest{
+		Page:     pagina,
+		PageSize: itensPorPag,
+	}
+	respdro2 := svc2.Run(req2)
+	if respdro2.GetStatusCode() != 200 {
+		http.Error(w, "Failed to retrieve sessions", http.StatusInternalServerError)
+		return
+	}
+	response, ok := respdro2.(*dto.SessionListResponse)
+	if !ok {
+		http.Error(w, "Invalid response type", http.StatusInternalServerError)
+		return
+	}
+	page := h.getPageData(response)
+	h.logger.IPrintf(2, "Rendering 4 for %v", page)
+	w.Write([]byte(`<script>document.getElementById("formulario-cadastro-container").innerHTML = "";</script>`))
+	h.tmpl.ExecuteTemplate(w, "tabela", page)
+}
+
+// SessionsCancelEdition handler for the /sessions/cancel/edition endpoint
+func (h *HandlerHtml) SessionsCancelEdit(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.Atoi(r.URL.Query().Get("id"))
+	svc := service.NewSessionList(h.repo, h.logger)
+	req := &dto.SessionListRequest{
+		Page:      1,
+		PageSize:  itensPorPag,
+		SessionID: int64(id),
+	}
+	respdro := svc.Run(req)
+	response, ok := respdro.(*dto.SessionListResponse)
+	if !ok || len(response.Sessions) == 0 {
+		http.Error(w, "Session not found", http.StatusNotFound)
+		return
+	}
+	sSel := h.getSessionData(response)[0]
+	h.tmpl.ExecuteTemplate(w, "linha_sessao", sSel)
+}
+
 // getSessionData retrieves the session data based on the provided filters and pagination parameters
 func (h *HandlerHtml) getSessionData(response *dto.SessionListResponse) []Sessao {
 	sessions := response.Sessions
