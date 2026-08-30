@@ -238,9 +238,16 @@
 	{{end}}
 
 	{{define "linha_sessao_edit"}}
-	<form id="sessao-{{.ID}}" hx-post="/sessoes/atualizar?id={{.ID}}" hx-target="#tabela-container" hx-include="#filtro-form" class="linha-box grade-tabela formulario-edit text-sm shadow-md" style="align-items: start !important; padding-top: 20px; padding-bottom: 20px;">
-		<div><input type="text" name="edit_nickname" value="{{.Nickname}}" required class="input-inline-tabela"></div>
+	<form id="sessao-{{.ID}}" hx-post="/html/sessoes/atualizar?id={{.ID}}" hx-target="#tabela-container" hx-include="#filtro-form" class="linha-box grade-tabela formulario-edit text-sm shadow-md" style="align-items: start !important; padding-top: 20px; padding-bottom: 20px;">
 		<div><input type="date" name="edit_data" value="{{.Data}}" required class="input-inline-tabela"></div>
+		<div>
+			<input type="text" name="edit_nickname" value="{{.Nickname}}" required class="input-inline-tabela" list="lista-nicknames-edit">
+			<datalist id="lista-nicknames-edit">
+					{{range .Nicknames}}
+						<option value="{{.}}"></option>
+					{{end}}
+			</datalist>
+		</div>
 		<div><input type="number" name="edit_duracao" value="{{.Duracao}}" min="1" required class="input-inline-tabela" style="text-align: center !important;"></div>
 		<div>
 			<select name="edit_status" required class="input-inline-tabela">
@@ -258,7 +265,7 @@
 		<div><textarea name="edit_comentario" rows="2" class="input-inline-tabela" style="resize: vertical;">{{.Comentario}}</textarea></div>
 		<div class="flex gap-2 justify-start w-full" style="justify-content: flex-start !important; align-items: start !important;">
 			<button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold text-xs px-2.5 py-1.5 rounded-md transition shadow-sm w-16 text-center">Salvar</button>
-			<button type="button" hx-get="/sessoes/cancelar-edicao?id={{.ID}}" hx-target="#sessao-{{.ID}}" hx-swap="outerHTML" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs px-2.5 py-1.5 rounded-md border border-gray-300 transition shadow-sm w-16 text-center">Cancelar</button>
+			<button type="button" hx-get="/html/sessoes/cancelar-edicao?id={{.ID}}" hx-target="#sessao-{{.ID}}" hx-swap="outerHTML" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs px-2.5 py-1.5 rounded-md border border-gray-300 transition shadow-sm w-16 text-center">Cancelar</button>
 		</div>
 	</form>
 	{{end}}

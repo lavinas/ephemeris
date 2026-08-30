@@ -50,5 +50,7 @@ func NewHTMLRoutes(repo port.Repository, logger port.Logger, htmlTemplate []byte
 	mux.HandleFunc("/sessoes/deletar-aviso", handler.SessionsDeleteWarning)
 	mux.HandleFunc("/sessoes/cancelar-edicao", handler.SessionsCancelEdit)
 	mux.HandleFunc("/sessoes/deletar", handler.SessionsDelete)
+	mux.HandleFunc("/sessoes/editar", handler.SessionsEdit)
+	mux.HandleFunc("/sessoes/atualizar", handler.SessionsUpdate)
 	return mux, nil
 }

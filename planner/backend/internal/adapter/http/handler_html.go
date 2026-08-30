@@ -273,6 +273,87 @@ func (h *HandlerHtml) SessionsDelete(w http.ResponseWriter, r *http.Request) {
 	h.tmpl.ExecuteTemplate(w, "tabela", page)
 }
 
+// SessionsEdit handler for the /sessions/edit endpoint
+func (h *HandlerHtml) SessionsEdit(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.Atoi(r.URL.Query().Get("id"))
+	svc := service.NewSessionList(h.repo, h.logger)
+	req := &dto.SessionListRequest{
+		Page:      1,
+		PageSize:  itensPorPag,
+		SessionID: int64(id),
+	}
+	respdro := svc.Run(req)
+	response, ok := respdro.(*dto.SessionListResponse)
+	if !ok || len(response.Sessions) == 0 {
+		http.Error(w, "Session not found", http.StatusNotFound)
+		return
+	}
+	svc2 := service.NewSessionUsers(h.repo, h.logger)
+	req2 := &dto.SessionUsersRequest{
+		StartDate: time.Now().AddDate(-2, 0, 0).Format("2006-01-02"),
+	}
+	respdro2 := svc2.Run(req2)
+	if respdro2.GetStatusCode() != 200 {
+		http.Error(w, "Failed to retrieve session users", http.StatusInternalServerError)
+		return
+	}
+	response2, ok := respdro2.(*dto.SessionUsersResponse)
+	if !ok {
+		http.Error(w, "Invalid response type", http.StatusInternalServerError)
+		return
+	}
+	dadosPadrao := h.getSessionData(response)[0]
+	dadosPadrao["Nicknames"] = response2.Nicknames
+	h.tmpl.ExecuteTemplate(w, "linha_sessao_edit", dadosPadrao)
+}
+
+// SessionsUpdate handler for the /sessions/update endpoint.
+func (h *HandlerHtml) SessionsUpdate(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	id, _ := strconv.Atoi(r.URL.Query().Get("id"))
+	minutes, _ := strconv.Atoi(r.FormValue("edit_duracao"))
+	nickname := r.FormValue("edit_nickname")
+
+	status := r.FormValue("edit_status")
+	form_service := r.FormValue("edit_servico")
+	comment := r.FormValue("edit_comentario")
+	svc := service.NewSessionUpdate(h.repo, h.logger)
+	req := &dto.SessionUpdateRequest{
+		ID:       int64(id),
+		Nickname: nickname,
+		Date:     r.FormValue("edit_data"),
+		Minutes:  minutes,
+		Service:  form_service,
+		Status:   status,
+		Comments: comment,
+	}
+	respdro := svc.Run(req)
+	if respdro.GetStatusCode() != 200 {
+		http.Error(w, "Failed to update session", http.StatusInternalServerError)
+		return
+	}
+	pagina, _ := strconv.Atoi(r.FormValue("page"))
+	svc2 := service.NewSessionList(h.repo, h.logger)
+	req2 := &dto.SessionListRequest{
+		Page:     pagina,
+		PageSize: itensPorPag,
+	}
+	respdro2 := svc2.Run(req2)
+	if respdro2.GetStatusCode() != 200 {
+		http.Error(w, "Failed to retrieve sessions", http.StatusInternalServerError)
+		return
+	}
+	response, ok := respdro2.(*dto.SessionListResponse)
+	if !ok {
+		http.Error(w, "Invalid response type", http.StatusInternalServerError)
+		return
+	}
+	page := h.getPageData(response)
+	h.logger.IPrintf(2, "Rendering 5 for %v", page)
+	w.Write([]byte(`<script>document.getElementById("formulario-cadastro-container").innerHTML = "";</script>`))
+	h.tmpl.ExecuteTemplate(w, "tabela", page)
+}
+
 // SessionsCancelEdition handler for the /sessions/cancel/edition endpoint
 func (h *HandlerHtml) SessionsCancelEdit(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(r.URL.Query().Get("id"))
@@ -292,41 +373,46 @@ func (h *HandlerHtml) SessionsCancelEdit(w http.ResponseWriter, r *http.Request)
 	h.tmpl.ExecuteTemplate(w, "linha_sessao", sSel)
 }
 
-// getSessionData retrieves the session data based on the provided filters and pagination parameters
-func (h *HandlerHtml) getSessionData(response *dto.SessionListResponse) []Sessao {
+
+// getsessionData2 retrieves the session data based on the provided filters and pagination parameters
+func (h *HandlerHtml) getSessionData(response *dto.SessionListResponse) []map[string]interface{} {
 	sessions := response.Sessions
-	pageSessoes := []Sessao{}
+	if len(sessions) == 0 {
+		return nil
+	}
+	result := []map[string]interface{}{}
 	for _, session := range sessions {
 		formatedDate, _ := time.Parse("2006-01-02", session.Date)
-		ss := Sessao{
-			ID:            session.SessionID,
-			Nickname:      session.Nickname,
-			Data:          session.Date,
-			DataFormatada: formatedDate.Format("02/01/2006"),
-			Duracao:       session.Minutes,
-			Status:        session.Status,
-			StatusCor:     statusColors[session.Status],
-			Servico:       session.Service,
-			Comentario:    session.Comments,
+		ss := map[string]interface{}{
+			"ID":            session.SessionID,
+			"Nickname":      session.Nickname,
+			"Data":          session.Date,
+			"DataFormatada": formatedDate.Format("02/01/2006"),
+			"Duracao":       session.Minutes,
+			"Status":        session.Status,
+			"StatusCor":     statusColors[session.Status],
+			"Servico":       session.Service,
+			"Comentario":    session.Comments,
 		}
-		pageSessoes = append(pageSessoes, ss)
+		result = append(result, ss)
 	}
-	return pageSessoes
+	return result
 }
 
-// getPageData paginates the filtered sessions based on the target page and items per page
-func (h *HandlerHtml) getPageData(response *dto.SessionListResponse) PaginacaoData {
+// getPageData2 paginates the filtered sessions based on the target page and items per page
+func (h *HandlerHtml) getPageData(response *dto.SessionListResponse) map[string]interface{} {
 	page := response.Page
 	totalPages := response.TotalPages
 	pageSessoes := h.getSessionData(response)
-	ret := PaginacaoData{
-		Sessoes:      pageSessoes,
-		PaginaAtual:  page,
-		TotalPaginas: totalPages,
-		TemAnterior:  page > 1,
-		TemProximo:   page < totalPages,
-		PagAnterior:  page - 1,
-		PagProxima:   page + 1,
+	ret := map[string]interface{}{
+		"Sessoes":      pageSessoes,
+		"PaginaAtual":  page,
+		"TotalPaginas": totalPages,
+		"TemAnterior":  page > 1,
+		"TemProximo":   page < totalPages,
+		"PagAnterior":  page - 1,
+		"PagProxima":   page + 1,
 	}
 	return ret
 }
+

@@ -105,7 +105,7 @@ func (r *BillRequest) validateInvoice(repo port.Repository) error {
 	}
 	if r.Action != 2 && invoice.Customer.Email == nil && r.Email == "" {
 		return errors.New("no email address available to send the document")
-	} 
+	}
 	return nil
 }
 
