@@ -41,8 +41,8 @@ var (
 	mu           sync.Mutex
 	statusColors = map[string]string{
 		"realizada":            "#10b981", // verde
-		"cancelada/cobrar":     "#f59e0b", // laranja
-		"cancelada/não cobrar": "#ef4444", // vermelho
+		"cancelada_cobrar":     "#f59e0b", // laranja
+		"cancelada_nao_cobrar": "#ef4444", // vermelho
 	}
 	itensPorPag = 10
 )

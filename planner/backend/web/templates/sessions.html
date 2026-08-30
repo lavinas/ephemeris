@@ -127,8 +127,8 @@
 						<select name="status">
 							<option value="">Todos</option>
 							<option value="realizada">Realizada</option>
-							<option value="cancelada/cobrar">Cancelada/Cobrar</option>
-							<option value="cancelada/não cobrar">Cancelada/Não Cobrar</option>
+							<option value="cancelada_cobrar">Cancelada/Cobrar</option>
+							<option value="cancelada_nao_cobrar">Cancelada/Não Cobrar</option>
 						</select>
 					</div>
 					<div class="campo-box">
@@ -175,8 +175,8 @@
 		<div>
 			<select name="add_status" required class="input-inline-tabela">
 				<option value="realizada">Realizada</option>
-				<option value="cancelada/cobrar">Cancelada/Cobrar</option>
-				<option value="cancelada/não cobrar">Cancelada/Não Cobrar</option>
+				<option value="cancelada_cobrar">Cancelada/Cobrar</option>
+				<option value="cancelada_nao_cobrar">Cancelada/Não Cobrar</option>
 			</select>
 		</div>
 		<div>
@@ -245,8 +245,8 @@
 		<div>
 			<select name="edit_status" required class="input-inline-tabela">
 				<option value="realizada" {{if eq .Status "realizada"}}selected{{end}}>Realizada</option>
-				<option value="cancelada/cobrar" {{if eq .Status "cancelada/cobrar"}}selected{{end}}>Cancelada/Cobrar</option>
-				<option value="cancelada/não cobrar" {{if eq .Status "cancelada/não cobrar"}}selected{{end}}>Cancelada/Não Cobrar</option>
+				<option value="cancelada_cobrar" {{if eq .Status "cancelada_cobrar"}}selected{{end}}>Cancelada/Cobrar</option>
+				<option value="cancelada_nao_cobrar" {{if eq .Status "cancelada_nao_cobrar"}}selected{{end}}>Cancelada/Não Cobrar</option>
 			</select>
 		</div>
 		<div>
