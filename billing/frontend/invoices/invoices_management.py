@@ -253,3 +253,34 @@ def invoicing_graph(vendor, start_date, end_date):
     plt.title(f'Faturamento {vendor}')
     plt.grid(False)
     plt.show()
+    
+
+# get_paid
+def get_paid(vendor, customer, invoicing, payment_value, payment_date):
+   if vendor == '':
+       return 'O campo "vendor" é obrigatório.'
+   if customer == '':
+       return 'O campo "customer" é obrigatório.'
+   if invoicing == '':
+       return 'O campo "invoicing" é obrigatório.'
+   if payment_value == '':
+       return 'O campo "payment_value" é obrigatório.'
+   if payment_date == '':
+       return 'O campo "payment_date" é obrigatório.'
+   invoice = get_df(vendor, customer, invoicing, '', '', '', '', '', '', '', '')
+   if isinstance(invoice, str):
+       return invoice
+   if len(invoice) != 1:
+       return f'Esperava exatamente uma fatura, mas encontrou {len(invoice)}.'
+   invoice = invoice.iloc[0]
+   id = int(invoice['id'])
+   value = float(invoice['amount'])
+   if payment_value != value:
+       return f'Valor do pagamento ({payment_value}) não corresponde ao valor da fatura ({value}).'
+   resp = update(vendor, id, '', '', payment_date, '', '', '', '')
+   if not resp.startswith('success'):
+       return resp
+   resp = send_bill(vendor, id, 1, '')
+   if not resp.startswith('success'):
+       return resp
+   return f'Pagamento registrado e enviado com sucesso.'
