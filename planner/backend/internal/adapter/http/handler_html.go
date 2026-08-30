@@ -373,6 +373,29 @@ func (h *HandlerHtml) SessionsCancelEdit(w http.ResponseWriter, r *http.Request)
 	h.tmpl.ExecuteTemplate(w, "linha_sessao", sSel)
 }
 
+// SessionsTable handler for the /sessions/table endpoint
+func (h *HandlerHtml) SessionsTable(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	pagina, _ := strconv.Atoi(r.FormValue("page"))
+	svc := service.NewSessionList(h.repo, h.logger)
+	req := &dto.SessionListRequest{
+		Page:     pagina,
+		PageSize: itensPorPag,
+	}
+	respdro := svc.Run(req)
+	if respdro.GetStatusCode() != 200 {
+		http.Error(w, "Failed to retrieve sessions", http.StatusInternalServerError)
+		return
+	}
+	response, ok := respdro.(*dto.SessionListResponse)
+	if !ok {
+		http.Error(w, "Invalid response type", http.StatusInternalServerError)
+		return
+	}
+	page := h.getPageData(response)
+	h.logger.IPrintf(2, "Rendering 6 for %v", page)
+	h.tmpl.ExecuteTemplate(w, "tabela", page)
+}
 
 // getsessionData2 retrieves the session data based on the provided filters and pagination parameters
 func (h *HandlerHtml) getSessionData(response *dto.SessionListResponse) []map[string]interface{} {
