@@ -169,10 +169,9 @@ func (h *HandlerHtml) SessionsSave(w http.ResponseWriter, r *http.Request) {
 // SessionTableReset handler for the /sessions/table/reset endpoint
 func (h *HandlerHtml) SessionsTableReset(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
-	pagina, _ := strconv.Atoi(r.FormValue("page"))
 	svc := service.NewSessionList(h.repo, h.logger)
 	req := &dto.SessionListRequest{
-		Page:     pagina,
+		Page:     1,
 		PageSize: itensPorPag,
 	}
 	respdro := svc.Run(req)
@@ -363,7 +362,7 @@ func (h *HandlerHtml) SessionsTable(w http.ResponseWriter, r *http.Request) {
 		DateEnd:   r.FormValue("data_fim"),
 		Minutes:   dur,
 		Status:    r.FormValue("status"),
-		Service:   r.FormValue("servico"),
+		Service:   r.FormValue("servico_filtro"),
 		Comments:  r.FormValue("comentario"),
 	}
 	respdro := svc.Run(req)
