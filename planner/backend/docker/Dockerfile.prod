@@ -1,0 +1,32 @@
+# --- Estágio de Compilação ---
+FROM golang:1.26-alpine AS builder
+
+RUN apk add --no-cache git gcc musl-dev
+
+WORKDIR /app
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+# AJUSTADO: Agora aponta corretamente para ./cmd/server
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o main ./cmd/server/main.go
+
+# --- Estágio de Execução ---
+FROM alpine:3.20
+
+RUN apk add --no-cache ca-certificates tzdata
+
+WORKDIR /app
+
+# Usuário não-root por segurança
+RUN adduser -D -g '' appuser
+COPY --from=builder /app/main .
+
+USER appuser
+
+# Sua porta interna configurada
+EXPOSE 8083
+
+CMD ["./main"]

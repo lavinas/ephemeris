@@ -2,7 +2,7 @@ services:
   # Database service
   planner_db:
     image: postgres:latest
-    container_name: planner_db_dev
+    container_name: planner_db_prod
     restart: always
     environment:
       - POSTGRES_USER=root
@@ -19,8 +19,8 @@ services:
   planner_api:
       build:
         context: .
-        dockerfile: docker/Dockerfile.dev
-      container_name: planner_api_dev
+        dockerfile: docker/Dockerfile.prod
+      container_name: planner_api_prod
       restart: always
       networks:
         - net-planner-dev
