@@ -1,32 +1,46 @@
-# --- Estágio de Compilação ---
+# --- Estágio 1: Compilação (Builder) ---
 FROM golang:1.26-alpine AS builder
 
+# Instala ferramentas essenciais do Linux para compilação (se necessário)
 RUN apk add --no-cache git gcc musl-dev
 
 WORKDIR /app
 
+# 1. Copia e baixa as dependências primeiro (aproveita o cache de camadas do Docker)
 COPY go.mod go.sum ./
 RUN go mod download
 
+# 2. Copia todo o código-fonte do projeto para o container
 COPY . .
 
-# AJUSTADO: Agora aponta corretamente para ./cmd/server
+# 3. Compila o binário estático puro apontando para o seu cmd/server
+# O sinalizador -ldflags="-w -s" remove informações de debug para reduzir o tamanho do arquivo
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o main ./cmd/server/main.go
 
-# --- Estágio de Execução ---
+
+# --- Estágio 2: Execução (Imagem Final de Produção) ---
 FROM alpine:3.20
 
+# Instala certificados de segurança e fusos horários básicos
 RUN apk add --no-cache ca-certificates tzdata
 
 WORKDIR /app
 
-# Usuário não-root por segurança
+# Segurança: Cria um usuário comum para rodar o app (evita rodar como root)
 RUN adduser -D -g '' appuser
+
+# 4. Copia APENAS o binário compilado do estágio anterior
 COPY --from=builder /app/main .
 
+# 5. COPIA O SEU ARQUIVO DE CONFIGURAÇÃO LOCAL PARA DENTRO DO CONTAINER
+# Ajuste o nome abaixo para o arquivo real que você usa (ex: .env, config.json, config.yaml)
+COPY --from=builder /app/.env . 
+
+# Define o usuário não-privilegiado
 USER appuser
 
-# Sua porta interna configurada
+# Informa que o container escuta na porta 8083
 EXPOSE 8083
 
+# Comando para iniciar a sua API
 CMD ["./main"]
