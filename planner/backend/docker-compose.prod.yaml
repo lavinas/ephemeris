@@ -10,7 +10,7 @@ services:
       - POSTGRES_DB=planner
       - PGDATA=/var/lib/postgresql/data
     networks:
-      - net-planner-dev
+      - net-planner-prod
     ports:
       - "5433:5432"
     volumes:
@@ -23,7 +23,7 @@ services:
       container_name: planner_api_prod
       restart: always
       networks:
-        - net-planner-dev
+        - net-planner-prod
       ports:
         - "8083:8083"
       volumes:
@@ -37,5 +37,5 @@ services:
       depends_on:
         - planner_db
 networks:
-  net-planner-dev:
+  net-planner-prod:
     driver: bridge
