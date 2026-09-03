@@ -12,12 +12,8 @@ services:
     networks:
       - net-planner-prod
     ports:
-      # Aberto globalmente para que as outras 2 máquinas da sua rede interna 
-      # acessem o banco diretamente via DBeaver/pgAdmin
       - "5433:5432"
     volumes:
-      # SOLUÇÃO 1: Trocado de ./.db para um volume nomeado gerenciado pelo Docker.
-      # Isso resolve definitivamente o erro de 'Permission Denied'.
       - pg_production_data:/var/lib/postgresql/data
 
   # API service
@@ -30,18 +26,16 @@ services:
     networks:
       - net-planner-prod
     ports:
-      # Porta 8083 aberta globalmente para que qualquer máquina da rede
-      # acesse o app digitando http://IP-DO-UBUNTU:8083 no navegador
       - "8083:8083"
-    # Sem blocos de 'environment' ou 'volumes', lendo seu arquivo interno de config
+    volumes:
+      # ADICIONADO: Sincroniza a pasta de logs local com a interna do container
+      - ./tmp:/app/tmp
     depends_on:
       - planner_db
 
-# ADICIONADO: Declaração obrigatória do volume nomeado que o Docker vai gerenciar
 volumes:
   pg_production_data:
 
 networks:
   net-planner-prod:
     driver: bridge
-
