@@ -134,8 +134,8 @@ def reconciliate(df_invoices, df_sessions):
     # Both dataframes contain ``status_row``; pandas adds suffixes during the
     # merge, so the unsuffixed column is not available here.
     df_merged = df_merged[[
-        'status_row_invoice', 'month', 'customer', 'service', 'minutes',
-        'payment', 'preview', 'done', 
+        'month','status_row_invoice', 'customer', 'service',
+         'minutes', 'payment', 'preview', 'done', 
     ]].rename(columns={'status_row_invoice': 'status_row'})
     df_merged['preview'] = pd.to_numeric(df_merged['preview'], errors='coerce')
     df_merged['done'] = pd.to_numeric(df_merged['done'], errors='coerce').fillna(0).astype(int)
@@ -155,5 +155,9 @@ def extras(df_invoices, df_sessions, invoicing_month):
         indicator=True
     )
     df_extras = df_merged[df_merged['_merge'] == 'left_only']
-    df_extras = df_extras[['customer', 'service', 'minutes', 'done']]
+    # Both dataframes contain ``month``; pandas suffixes the columns after the
+    # merge, so the session month must be selected explicitly.
+    df_extras = df_extras[[
+        'month_session', 'customer', 'service', 'minutes', 'done'
+    ]].rename(columns={'month_session': 'month'})
     return df_extras
