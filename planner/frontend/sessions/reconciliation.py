@@ -135,7 +135,7 @@ def reconciliate(df_invoices, df_sessions):
     # merge, so the unsuffixed column is not available here.
     df_merged = df_merged[[
         'status_row_invoice', 'month', 'customer', 'service', 'minutes',
-        'preview', 'done'
+        'payment', 'preview', 'done', 
     ]].rename(columns={'status_row_invoice': 'status_row'})
     df_merged['preview'] = pd.to_numeric(df_merged['preview'], errors='coerce')
     df_merged['done'] = pd.to_numeric(df_merged['done'], errors='coerce').fillna(0).astype(int)
