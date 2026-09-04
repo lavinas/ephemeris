@@ -15,12 +15,28 @@ def get_sessions(invoicing, file):
     df['status'] = df['Status das aulas'].apply(lambda x: 'realizada' if x in ('done', 'realizada') else ('reposicao' if x in ('reposicao',) else ('cancelada/cobrar' if x in ('faltou', 'missed') else 'ignorar')))
     df['Data'] = pd.to_datetime(df['Data'], errors='coerce')
     ano_ref, mes_ref = map(int, invoicing.split('-'))
-    df = df[(df['Data'].dt.year == ano_ref) & (df['Data'].dt.month == mes_ref)]
+    this_month = (ano_ref, mes_ref)
+    last_month = (ano_ref, mes_ref - 1) if mes_ref > 1 else (ano_ref - 1, 12)
+    df = df[
+        df['Data'].apply(
+            lambda date: (date.year, date.month) in (this_month, last_month)
+            if pd.notna(date) else False
+        )
+    ]
     df['minutes'] = df['Service'].apply(lambda x: 60 if x in ('canto_60', 'piano_60', 'Canto') else (30 if x in ('canto_30', 'piano_30') else 45 if x in ('canto_45', 'canto_60, canto_45') else 0))    
     df['service'] = df['Service'].apply(lambda x: 'aula/piano' if x in ('piano_60', 'piano_30', 'piano_45') else 'aula/canto')
     df['status_row'] = df.apply(lambda row: 'error' if row['minutes'] == 0 or row['status'] == 'ignorar' else 'ok', axis=1)
+    df['status_type'] = df.apply(lambda row: 'realizada/reposicao' if row['status'] in ['realizada', 'reposicao'] else row['status'], axis=1)
+    df['month'] = df['Data'].dt.strftime('%Y-%m')
     df = df.drop(columns=['Status das aulas', 'Service'])
-    return df
+    df = df.rename(columns={'nome cliente': 'customer'})
+    df_sum = (
+        df[['customer', 'service', 'minutes', 'status_row', 'status_type', 'month']]
+        .value_counts(dropna=False)
+        .rename('done')
+        .reset_index()
+    )
+    return df_sum
 
 # get_invoices
 def get_invoices(vendor, invoicing):
@@ -41,7 +57,7 @@ def get_invoices(vendor, invoicing):
     if 'invoices' not in json_data or len(json_data['invoices']) == 0:
         return 'Nenhuma fatura encontrada.'
     # get items from invoices and merge with invoices data
-    df_invoices = pd.DataFrame(json_data['invoices'], columns=['customer', 'invoicing', 'amount', 'items'])
+    df_invoices = pd.DataFrame(json_data['invoices'], columns=['customer', 'invoicing', 'payment', 'amount', 'items'])
     df_invoices = df_invoices.fillna('-')
 
     if 'items' in df_invoices.columns:
@@ -73,10 +89,10 @@ def get_invoices(vendor, invoicing):
             if match:
                 mes_nome = match.group(1).lower()
                 ano = match.group(2)
-                return f'{meses_map[mes_nome]:02d}/{ano}'
+                return f'{ano}-{meses_map[mes_nome]:02d}'
             match = re.search(r'\b(\d{2})/(\d{2})/(\d{4})\b', description)
             if match:
-                return f'{match.group(2)}/{match.group(3)}'
+                return f'{match.group(3)}-{match.group(2)}'
             return float('nan')
 
         def extract_minutos(description):
@@ -97,9 +113,47 @@ def get_invoices(vendor, invoicing):
                 return 'aula/piano'
             return float('nan')
 
-        df_invoices['mes_referencia'] = df_invoices['description'].apply(extract_mes_referencia)
-        df_invoices['minutos'] = df_invoices['description'].apply(extract_minutos)
-        df_invoices['tipo_servico'] = df_invoices['description'].apply(extract_tipo_servico)
-        df_invoices['status_row'] = df_invoices[['mes_referencia', 'minutos', 'tipo_servico']].isna().any(axis=1).map({True: 'error', False: 'ok'})
+        df_invoices['month'] = df_invoices['description'].apply(extract_mes_referencia)     
+        df_invoices['minutes'] = df_invoices['description'].apply(extract_minutos)
+        df_invoices['service'] = df_invoices['description'].apply(extract_tipo_servico)
+        df_invoices['payment'] = df_invoices['payment'].apply(lambda x: 'paid' if pd.notna(x) and (x != '') else 'not paid')
+        df_invoices['status_row'] = df_invoices[['month', 'minutes', 'service']].isna().any(axis=1).map({True: 'error', False: 'ok'})
+        df_invoices = df_invoices.rename(columns={'quantity': 'preview'})
 
     return df_invoices
+
+# reconciliate
+def reconciliate(df_invoices, df_sessions):
+    df_merged = df_invoices.merge(
+        df_sessions,
+        how='left',
+        left_on=['customer', 'service', 'month', 'minutes'],
+        right_on=['customer', 'service', 'month', 'minutes'],
+        suffixes=('_invoice', '_session')
+    )
+    # Both dataframes contain ``status_row``; pandas adds suffixes during the
+    # merge, so the unsuffixed column is not available here.
+    df_merged = df_merged[[
+        'status_row_invoice', 'month', 'customer', 'service', 'minutes',
+        'preview', 'done'
+    ]].rename(columns={'status_row_invoice': 'status_row'})
+    df_merged['preview'] = pd.to_numeric(df_merged['preview'], errors='coerce')
+    df_merged['done'] = pd.to_numeric(df_merged['done'], errors='coerce').fillna(0).astype(int)
+    df_merged['balance'] = df_merged['preview'] - df_merged['done']
+    return df_merged
+
+# extras
+def extras(df_invoices, df_sessions, invoicing_month):
+    df_sessions = df_sessions.reset_index()
+    df_sessions = df_sessions[df_sessions['month'] == invoicing_month]
+    df_merged = df_sessions.merge(
+        df_invoices,
+        how='left',
+        left_on=['customer', 'service', 'minutes'],
+        right_on=['customer', 'service', 'minutes'],
+        suffixes=('_session', '_invoice'),
+        indicator=True
+    )
+    df_extras = df_merged[df_merged['_merge'] == 'left_only']
+    df_extras = df_extras[['customer', 'service', 'minutes', 'done']]
+    return df_extras
