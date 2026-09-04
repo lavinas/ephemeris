@@ -76,7 +76,7 @@ def get(vendor, customer, invoicing, due, payment, email_sent, whatsapp_sent, em
         df_invoices.loc[df_invoices['payment'] != '-', 'amount'].replace('-', 0).astype(float).sum()
 
 def get_overdue(vendor):
-    df = get_df(vendor, '', '', '', 'null', '', '', '', '', '', '')
+    df = get_df(vendor, '', '', '', 'null', '', '', '', '', '', 'null')
     if isinstance(df, str):
         return df, 0, 0, 0
     if len(df) == 0:

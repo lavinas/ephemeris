@@ -36,7 +36,7 @@ def get_sessions(invoicing, file):
         .rename('done')
         .reset_index()
     )
-    return df_sum
+    return df, df_sum
 
 # get_invoices
 def get_invoices(vendor, invoicing):
@@ -57,7 +57,7 @@ def get_invoices(vendor, invoicing):
     if 'invoices' not in json_data or len(json_data['invoices']) == 0:
         return 'Nenhuma fatura encontrada.'
     # get items from invoices and merge with invoices data
-    df_invoices = pd.DataFrame(json_data['invoices'], columns=['customer', 'invoicing', 'payment', 'amount', 'items'])
+    df_invoices = pd.DataFrame(json_data['invoices'], columns=['customer', 'invoicing', 'due', 'payment', 'amount', 'items'])
     df_invoices = df_invoices.fillna('-')
 
     if 'items' in df_invoices.columns:
