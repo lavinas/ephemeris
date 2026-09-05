@@ -14,7 +14,7 @@ DB_PASSWORD="root"
 # Salva na pasta /home/seu_usuario/backups/postgres
 BACKUP_DIR="$HOME/backups/postgres"
 DATA_HORA=$(date +"%Y%m%d_%H%M%S")
-NOME_ARQUIVO="backup_${DB_NAME}_${DATA_HORA}.dump"
+NOME_ARQUIVO="planner_${DB_NAME}_${DATA_HORA}.dump"
 CAMINHO_FINAL="${BACKUP_DIR}/${NOME_ARQUIVO}"
 
 # Garante que a pasta de destino existe na sua máquina de fora
