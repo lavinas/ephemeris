@@ -60,7 +60,7 @@ func (s *Session) Find(repository port.Repository, page, pagesize int, id int64,
 		conditions["id = ?"] = id
 	}
 	if nickname != "" {
-		conditions["customer_nickname = ?"] = nickname
+		conditions["customer_nickname like ?"] = "%" + nickname + "%"
 	}
 	if !startDate.IsZero() {
 		conditions["session_date >= ?"] = startDate

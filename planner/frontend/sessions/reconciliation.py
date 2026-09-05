@@ -10,19 +10,23 @@ page_size = 1000
 
 
 # get_sessions
-def get_sessions(invoicing, file): 
-    df = pd.read_excel(file, sheet_name=0, usecols=range(1, 5))
-    df['status'] = df['Status das aulas'].apply(lambda x: 'realizada' if x in ('done', 'realizada') else ('reposicao' if x in ('reposicao',) else ('cancelada/cobrar' if x in ('faltou', 'missed') else 'ignorar')))
+def get_sessions(invoicing, file, comments=False): 
+    final_range = range(1, 6) if comments else range(1, 5)
+    df = pd.read_excel(file, sheet_name=0, usecols=final_range)
+    if comments:
+        df.rename(columns={'Comentários das aulas': 'comments'}, inplace=True)
+    df['status'] = df['Status das aulas'].apply(lambda x: 'realizada' if x in ('done', 'realizada') else ('realizada' if x in ('reposicao',) else ('cancelada_cobrar' if x in ('faltou', 'missed') else 'ignorar')))
     df['Data'] = pd.to_datetime(df['Data'], errors='coerce')
-    ano_ref, mes_ref = map(int, invoicing.split('-'))
-    this_month = (ano_ref, mes_ref)
-    last_month = (ano_ref, mes_ref - 1) if mes_ref > 1 else (ano_ref - 1, 12)
-    df = df[
-        df['Data'].apply(
-            lambda date: (date.year, date.month) in (this_month, last_month)
-            if pd.notna(date) else False
-        )
-    ]
+    if invoicing:
+        ano_ref, mes_ref = map(int, invoicing.split('-'))
+        this_month = (ano_ref, mes_ref)
+        last_month = (ano_ref, mes_ref - 1) if mes_ref > 1 else (ano_ref - 1, 12)
+        df = df[
+            df['Data'].apply(
+                lambda date: (date.year, date.month) in (this_month, last_month)
+                if pd.notna(date) else False
+            )
+        ]
     df['minutes'] = df['Service'].apply(lambda x: 60 if x in ('canto_60', 'piano_60', 'Canto') else (30 if x in ('canto_30', 'piano_30') else 45 if x in ('canto_45', 'canto_60, canto_45') else 0))    
     df['service'] = df['Service'].apply(lambda x: 'aula/piano' if x in ('piano_60', 'piano_30', 'piano_45') else 'aula/canto')
     df['status_row'] = df.apply(lambda row: 'error' if row['minutes'] == 0 or row['status'] == 'ignorar' else 'ok', axis=1)
