@@ -2,6 +2,7 @@ package repository
 
 import (
 	"fmt"
+
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -131,10 +132,20 @@ func (a *Repository) FindCount(conditions map[string]interface{}) (int64, error)
 }
 
 // Find is a helper function to find records in the database
-func (a *Repository) Find(page, pagesize int, conditions map[string]interface{}) ([]interface{}, error) {
+func (a *Repository) Find(page, pagesize int, conditions map[string]interface{}, orderBy ...string) ([]interface{}, error) {
 	db := a.DB
 	if a.Tx != nil {
 		db = a.Tx
+	}
+	if len(orderBy) > 0 {
+		for _, order := range orderBy {
+			if order != "" {
+				db = db.Order(order)
+			}
+		}
+	}
+	if len(orderBy) > 0 && orderBy[0] != "" {
+		db = db.Order(orderBy[0])
 	}
 	if page > 0 && pagesize > 0 {
 		offset := (page - 1) * pagesize

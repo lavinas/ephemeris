@@ -1,12 +1,10 @@
 package service
 
 import (
-	"cmp"
 	"fmt"
 	"planner/internal/domain"
 	"planner/internal/dto"
 	"planner/internal/port"
-	"slices"
 	"time"
 )
 
@@ -80,12 +78,6 @@ func (s *SessionList) dtoOut(sessions []domain.Session, page, pageSize, totalPag
 			Comments:  comments,
 		}
 	}
-	slices.SortFunc(dtoSessions, func(a, b dto.Session) int {
-		if cmp := cmp.Compare(a.Date, b.Date); cmp != 0 {
-			return cmp
-		}
-		return cmp.Compare(a.Nickname, b.Nickname)
-	})
 
 	message := fmt.Sprintf("retrieve %d registers", len(sessions))
 	return dto.NewSessionListResponse(200, "success", message, dtoSessions, page, pageSize, totalPages)
