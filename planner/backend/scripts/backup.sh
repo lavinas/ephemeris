@@ -17,6 +17,7 @@ DATA_HORA=$(date +"%Y%m%d_%H%M%S")
 NOME_ARQUIVO="backup_${DB_NAME}_${DATA_HORA}.dump"
 CAMINHO_FINAL="${BACKUP_DIR}/${NOME_ARQUIVO}"
 
+
 # Garante que a pasta de destino existe na sua máquina de fora
 mkdir -p "$BACKUP_DIR"
 
