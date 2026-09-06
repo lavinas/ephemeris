@@ -1,6 +1,7 @@
 ## Planejamento 
 
 ### 0. Manutenções
+* Ajustar horário do servidor
 * Colocar backend billing em produção
 * Fazer log por dia
 * Script para fazer backup automático do banco e do log pata billing e para o planner 
