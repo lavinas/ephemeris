@@ -2,9 +2,10 @@
 
 ### 0. Manutenções
 * Ajustar horário do servidor - OK
-* Colocar backend billing em produção
-* Fazer log por dia
-* Script para fazer backup automático do banco e do log pata billing e para o planner 
+* Colocar backend billing em produção - OK
+* Fazer bakup automatico de banco para billing e planner 
+* Fazer log por dia 
+* Script para fazer backup automático de log pata billing e para o planner 
 
 ### 1. Incluir Criar cliente e serviço no billing e planner
 
