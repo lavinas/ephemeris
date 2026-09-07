@@ -3,7 +3,8 @@
 ### 0. Manutenções
 * Ajustar horário do servidor - OK
 * Colocar backend billing em produção - OK
-* Fazer bakup automatico de banco para billing e planner 
+* Fazer bakup automatico de banco para billing e planner - OK
+* Criar past web no billing e colocar as pastas images e templates (como no planner)
 * Fazer log por dia 
 * Script para fazer backup automático de log pata billing e para o planner 
 

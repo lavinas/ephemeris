@@ -9,23 +9,37 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o main ./cmd/server/main
 
 # --- Estágio 2: Execução (Imagem Final) ---
 FROM alpine:3.20
-RUN apk add --no-cache ca-certificates tzdata
-WORKDIR /app
-RUN adduser -D -g '' appuser
 
-# 1. Copia o binário e o arquivo de configuração
+# 1. INSTALA O CHROMIUM E FONTES (Crucial para o chromedp rodar no Alpine)
+RUN apk add --no-cache \
+    ca-certificates \
+    tzdata \
+    chromium \
+    ttf-freefont \
+    font-noto
+
+WORKDIR /app
+
+# 2. Cria o usuário do sistema (Dica: o Chrome precisa de permissões de leitura/escrita)
+RUN adduser -D -g '' appuser && \
+    mkdir -p /app/templates /app/images && \
+    chown -R appuser:appuser /app
+
+# Copia o binário e o arquivo de configuração
 COPY --from=builder /app/main .
 COPY --from=builder /app/billing.json . 
 
-# 2. ADICIONADO: Copia as pastas de templates e estáticos para dentro do container
-# (later) COPY --from=builder /app/web/templates ./web/templates
-# (later) COPY --from=builder /app/web/static ./web/static
+# Copia as pastas de templates e imagens
 COPY --from=builder /app/templates ./templates
 COPY --from=builder /app/images ./images
 
+# Altera a propriedade dos arquivos copiados para o appuser
+RUN chown -R appuser:appuser /app
 
 USER appuser
 EXPOSE 8083
+
+# 3. VARIÁVEL DE AMBIENTE (Opcional, ajuda o chromedp a localizar o Chromium se necessário)
+ENV CHROME_BIN=/usr/bin/chromium-browser
+
 CMD ["./main"]
-
-
