@@ -1,0 +1,28 @@
+# --- Estágio 1: Compilação (Builder) ---
+FROM golang:1.26-alpine AS builder
+RUN apk add --no-cache git gcc musl-dev
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o main ./cmd/server/main.go
+
+# --- Estágio 2: Execução (Imagem Final) ---
+FROM alpine:3.20
+RUN apk add --no-cache ca-certificates tzdata
+WORKDIR /app
+RUN adduser -D -g '' appuser
+
+# 1. Copia o binário e o arquivo de configuração
+COPY --from=builder /app/main .
+COPY --from=builder /app/planner.json . 
+
+# 2. ADICIONADO: Copia as pastas de templates e estáticos para dentro do container
+COPY --from=builder /app/web/templates ./web/templates
+COPY --from=builder /app/web/static ./web/static
+
+USER appuser
+EXPOSE 8083
+CMD ["./main"]
+
+

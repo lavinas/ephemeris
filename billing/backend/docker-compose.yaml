@@ -2,7 +2,7 @@ services:
   # Database service
   billing_db:
     image: postgres:latest
-    container_name: billing_db
+    container_name: billing_db_dev
     restart: always
     environment:
       - POSTGRES_USER=root
@@ -10,22 +10,24 @@ services:
       - POSTGRES_DB=ephemeris
       - PGDATA=/var/lib/postgresql/data
     networks:
-      - net-billing
+      - net-billing-dev
     ports:
       - "5432:5432"
     volumes:
       - ./.db:/var/lib/postgresql
   # API service
   billing_api:
-      build: .
-      container_name: billing_api
+      build:
+        context: .
+        dockerfile: docker/Dockerfile.dev
+      container_name: billing_api_dev
       restart: always
       ports:
         - "8080:8080"
       volumes:
         - ${PWD}:/app
       networks:
-        - net-billing
+        - net-billing-dev
       environment:
         - DB_HOST=billing_db
         - DB_PORT=5432
@@ -35,5 +37,5 @@ services:
       depends_on:
         - billing_db
 networks:
-  net-billing:
+  net-billing-dev:
     driver: bridge

@@ -1,0 +1,41 @@
+services:
+  # Database service
+  billing_db:
+    image: postgres:latest
+    container_name: billing_db_prod
+    restart: always
+    environment:
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_DB=billing
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    networks:
+      - net-billing-prod
+    ports:
+      - "5433:5432"
+    volumes:
+      - pg_production_data:/var/lib/postgresql/data
+
+  # API service
+  billing_api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.prod
+    container_name: billing_api_prod
+    restart: always
+    networks:
+      - net-billing-prod
+    ports:
+      - "8080:8080"
+    volumes:
+      # ADICIONADO: Sincroniza a pasta de logs local com a interna do container
+      - ./tmp:/app/tmp
+    depends_on:
+      - billing_db
+
+volumes:
+  pg_production_data:
+
+networks:
+  net-billing-prod:
+    driver: bridge
