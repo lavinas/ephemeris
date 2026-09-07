@@ -20,6 +20,9 @@ COPY --from=builder /app/billing.json .
 # 2. ADICIONADO: Copia as pastas de templates e estáticos para dentro do container
 # (later) COPY --from=builder /app/web/templates ./web/templates
 # (later) COPY --from=builder /app/web/static ./web/static
+COPY --from=builder /app/templates ./templates
+COPY --from=builder /app/images ./images
+
 
 USER appuser
 EXPOSE 8083
