@@ -18,8 +18,8 @@ COPY --from=builder /app/main .
 COPY --from=builder /app/planner.json . 
 
 # 2. ADICIONADO: Copia as pastas de templates e estáticos para dentro do container
-COPY --from=builder /app/web/templates ./web/templates
-COPY --from=builder /app/web/static ./web/static
+# (later) COPY --from=builder /app/web/templates ./web/templates
+# (later) COPY --from=builder /app/web/static ./web/static
 
 USER appuser
 EXPOSE 8083
