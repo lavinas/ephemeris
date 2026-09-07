@@ -3,9 +3,9 @@
 # ==========================================
 # CONFIGURAÇÕES DO BANCO E CONTAINER
 # ==========================================
-CONTAINER_NAME="billing_db"
+CONTAINER_NAME="billing_db_dev"
 DB_USER="root"
-DB_NAME="ephemeris"
+DB_NAME="billing"
 DB_PASSWORD="root"
 
 # ==========================================
