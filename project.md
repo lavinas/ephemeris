@@ -4,6 +4,8 @@
 * Ajustar horário do servidor - OK - 07/09/2026
 * Colocar backend billing em produção - OK - 07/09/2026
 * Fazer bakup automatico de banco para billing e planner - OK - 07/09/2026
+* Classificar sessoes por dia desc e id desc
+* Integrar o antigravitty no vscode de forma otima
 * Fazer log por dia 
 * Script para fazer backup automático de log pata billing e para o planner 
 * Criar past web no billing e colocar as pastas images e templates (como no planner)

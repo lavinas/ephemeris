@@ -267,7 +267,7 @@ def get_paid(vendor, customer, invoicing, payment_value, payment_date):
        return 'O campo "payment_value" é obrigatório.'
    if payment_date == '':
        return 'O campo "payment_date" é obrigatório.'
-   invoice = get_df(vendor, customer, invoicing, '', '', '', '', '', '', '', '')
+   invoice = get_df(vendor, customer, invoicing, '', '', '', '', '', '', '', 'null')
    if isinstance(invoice, str):
        return invoice
    if len(invoice) != 1:
