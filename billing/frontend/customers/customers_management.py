@@ -7,6 +7,7 @@ from os import path
 # Configurações
 endpoint = 'http://192.168.1.138:8080'
 # endpoint = 'http://localhost:8080'
+
 page = 1
 page_size = 1000
 

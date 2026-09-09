@@ -85,7 +85,7 @@ func (s *Session) Find(repository port.Repository, page, pagesize int, id int64,
 	if err != nil {
 		return nil, 0, err
 	}
-	orders := []string{"session_date desc", "customer_nickname"}
+	orders := []string{"session_date desc", "id desc"}
 	results, err := repository.Find(page, pagesize, conditions, orders...)
 	if err != nil {
 		return nil, 0, err
