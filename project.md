@@ -6,7 +6,8 @@
 * Fazer bakup automatico de banco para billing e planner - OK - 07/09/2026
 * Classificar sessoes por dia desc e id desc - OK - 09/09/2026
 * Integrar o antigravitty no vscode de forma otima - OK - 09/09/2026
-* Fazer log por dia 
+* Fazer log por dia - OK - 09/09/2026
+* Revisar log billing e planner
 * Script para fazer backup automático de log pata billing e para o planner 
 * Criar past web no billing e colocar as pastas images e templates (como no planner)
 
