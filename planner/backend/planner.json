@@ -12,8 +12,8 @@
 
     },
     "log": {
-        "output": "./tmp/api.log",
-        "level": 10
+        "output": "./log/planner.log",
+        "level": 0
     },
     "web": {
         "addr": ":8083"

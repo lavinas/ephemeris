@@ -18,7 +18,7 @@ func main() {
 	}
 	// Initialize the logger
 	logOutput, logLevel := cfg.GetLogData()
-	logger, err := driven.NewSimpleLogger(logOutput, logLevel)
+	logger, err := driven.NewLogger2(logOutput, logLevel)
 	if err != nil {
 		fmt.Printf("Error initializing logger: %v\n", err)
 		return

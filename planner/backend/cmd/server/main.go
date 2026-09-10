@@ -37,7 +37,7 @@ func main() {
 }
 
 // initComponents initializes the logger and repository components
-func startAll() (*logger.Logger, *repository.Repository, *http.Handler, *config.Config, error) {
+func startAll() (*logger.Logger2, *repository.Repository, *http.Handler, *config.Config, error) {
 	// Initialize Config
 	cfg, err := config.NewConfig(configFile)
 	if err != nil {
@@ -46,7 +46,7 @@ func startAll() (*logger.Logger, *repository.Repository, *http.Handler, *config.
 	}
 	// Initialize the logger
 	logOutput, logLevel := cfg.GetLogData()
-	logger, err := logger.NewLogger(logOutput, logLevel)
+	logger, err := logger.NewLogger2(logOutput, logLevel)
 	if err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("error initializing logger: %v", err)
 	}

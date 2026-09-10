@@ -9,7 +9,7 @@ import (
 
 // Main function to test the Pix payment payload generation.
 func main() {
-	logger, _ := driven.NewSimpleLogger("stdout", 0)
+	logger, _ := driven.NewLogger2("stdout", 0)
 	pixToken := driven.NewPixer(logger)
 
 	request := &dto.PixRequest{
