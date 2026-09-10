@@ -29,7 +29,7 @@ services:
       - "8080:8080"
     volumes:
       # ADICIONADO: Sincroniza a pasta de logs local com a interna do container
-      - ./tmp:/app/tmp
+      - ./log:/app/log
     depends_on:
       - billing_db
 
