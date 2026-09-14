@@ -13,7 +13,7 @@ RUN go mod download
 
 COPY . .
 
-EXPOSE 8080
+EXPOSE 8081
 
 CMD ["sh", "-c", "sleep 5 && air"]
 

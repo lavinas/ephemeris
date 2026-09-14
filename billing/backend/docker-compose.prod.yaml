@@ -26,7 +26,7 @@ services:
     networks:
       - net-billing-prod
     ports:
-      - "8080:8080"
+      - "8081:8081"
     volumes:
       # ADICIONADO: Sincroniza a pasta de logs local com a interna do container
       - ./log:/app/log

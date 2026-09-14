@@ -4,7 +4,7 @@ from os import path as os_path
 from base64 import b64decode, b64encode
 
 # Configurações
-endpoint = 'http://localhost:8080'
+endpoint = 'http://localhost:8081'
 page = 1
 page_size = 1000
 

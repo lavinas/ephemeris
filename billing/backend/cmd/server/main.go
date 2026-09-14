@@ -41,8 +41,8 @@ func main() {
 	issuer := driven.NewIssuer()
 	// Initialize API Handler
 	os.Setenv("TZ", timezone)
-	logger.IPrintf(0, "starting API server on :8080")
-	apiHandler := driver.NewAPIHandler(":8080", logger, repo, taxer, pixer, issuer)
-	apiHandler.Run(":8080")
+	logger.IPrintf(0, "starting API server on :8081")
+	apiHandler := driver.NewAPIHandler(":8081", logger, repo, taxer, pixer, issuer)
+	apiHandler.Run(":8081")
 	logger.IPrintf(0, "logger and database closed 2")
 }
