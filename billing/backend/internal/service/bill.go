@@ -111,6 +111,9 @@ func (s *Bill) getSubject(docType int, invoiceDate time.Time) string {
 func (s *Bill) sendEmail(in *dto.BillRequest,
 	vendor *domain.Vendor, invoice *domain.Invoice) port.OutDTO {
 	dto := s.resendEmail(in, vendor, invoice)
+	if dto.GetStatusCode() != 200 {
+		return dto
+	}
 	s.registerSendReceiver(invoice, in.Doc)
 	return dto
 }
