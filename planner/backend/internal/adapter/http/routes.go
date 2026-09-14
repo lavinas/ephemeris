@@ -12,11 +12,12 @@ func NewRoutes(repo port.Repository, logger port.Logger, htmlTemplate []byte) (*
 	mux.Handle("/static/", http.StripPrefix("/static/", fs))
 	apiRoutes := NewAPIRoutes(repo, logger)
 	mux.Handle("/api/", http.StripPrefix("/api", apiRoutes))
-	htmlRoutes, err := NewHTMLRoutes(repo, logger, htmlTemplate)
+	htmlRoutes, htmlHandler, err := NewHTMLRoutes(repo, logger, htmlTemplate)
 	if err != nil {
 		return nil, err
 	}
 	mux.Handle("/html/", http.StripPrefix("/html", htmlRoutes))
+	mux.HandleFunc("/", htmlHandler.Index)
 	return mux, nil
 }
 
@@ -35,14 +36,15 @@ func NewAPIRoutes(repo port.Repository, logger port.Logger) *http.ServeMux {
 }
 
 // NewHTMLRoutes creates a new instance of HTML routes with the provided logger and repository.
-func NewHTMLRoutes(repo port.Repository, logger port.Logger, htmlTemplate []byte) (*http.ServeMux, error) {
+func NewHTMLRoutes(repo port.Repository, logger port.Logger, htmlTemplate []byte) (*http.ServeMux, *HandlerHtml, error) {
 	mux := http.NewServeMux()
 	handler, err := NewHandlerHtml(repo, logger, htmlTemplate)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	mux.HandleFunc("/ping", handler.Ping)
 	mux.HandleFunc("/sessoes", handler.Sessions)
+	mux.HandleFunc("/sessoes/", handler.Sessions)
 	mux.HandleFunc("/sessoes/novo", handler.SessionsCreate)
 	mux.HandleFunc("/sessoes/salvar", handler.SessionsSave)
 	mux.HandleFunc("/sessoes/tabela/reset", handler.SessionsTableReset)
@@ -53,5 +55,5 @@ func NewHTMLRoutes(repo port.Repository, logger port.Logger, htmlTemplate []byte
 	mux.HandleFunc("/sessoes/editar", handler.SessionsEdit)
 	mux.HandleFunc("/sessoes/atualizar", handler.SessionsUpdate)
 	mux.HandleFunc("/sessoes/tabela", handler.SessionsTable)
-	return mux, nil
+	return mux, handler, nil
 }

@@ -50,6 +50,19 @@ func NewHandlerHtml(repo port.Repository, logger port.Logger, tdata []byte) (*Ha
 	}, nil
 }
 
+// Index handles requests to the root "/" endpoint, serving the static dashboard page.
+func (h *HandlerHtml) Index(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" && r.URL.Path != "/index.html" {
+		http.NotFound(w, r)
+		return
+	}
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	http.ServeFile(w, r, "web/static/index.html")
+}
+
 // Ping handler for the /ping endpoint
 func (h *HandlerHtml) Ping(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -355,9 +368,9 @@ func (h *HandlerHtml) SessionsTable(w http.ResponseWriter, r *http.Request) {
 	svc := service.NewSessionList(h.repo, h.logger)
 	dur, _ := strconv.Atoi(r.FormValue("duracao_filtro"))
 	req := &dto.SessionListRequest{
-		Page:     pagina,
-		PageSize: itensPorPag,
-		Nickname: r.FormValue("nickname"),
+		Page:      pagina,
+		PageSize:  itensPorPag,
+		Nickname:  r.FormValue("nickname"),
 		DateStart: r.FormValue("data_inicio"),
 		DateEnd:   r.FormValue("data_fim"),
 		Minutes:   dur,
@@ -421,4 +434,3 @@ func (h *HandlerHtml) getPageData(response *dto.SessionListResponse) map[string]
 	}
 	return ret
 }
-

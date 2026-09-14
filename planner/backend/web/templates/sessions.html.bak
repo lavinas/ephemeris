@@ -94,13 +94,15 @@
 			.input-inline-tabela:focus { border-color: #4f46e5 !important; background-color: #ffffff !important; }
 			.texto-truncado { white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
 			.comentario-multilinha { white-space: normal !important; word-break: break-word !important; line-height: 1.4 !important; }
-			html, body {
-				background-color: #ffffff !important;
-			}
 		</style>
 	</head>
 	<body class="bg-gray-950 text-gray-100 font-sans antialiased min-h-screen py-10 px-4">
 		<div class="max-w-7xl mx-auto bg-gray-900 shadow-2xl rounded-2xl overflow-hidden border border-gray-800 p-8">
+			
+			<div style="width: 100% !important; text-align: center !important; margin-bottom: 35px !important; display: block !important;">
+				<img src="/static/logo.png" alt="Logo" style="height: 130px !important; max-height: 130px !important; margin: 0 auto !important; display: inline-block !important; object-fit: contain !important;" onError="this.style.display='none';">
+			</div>
+
 			<form id="filtro-form" hx-post="/html/sessoes/tabela" hx-target="#tabela-container" hx-trigger="input delay:200ms, change" class="w-full">
 				<input type="hidden" id="input-pagina-form" name="page" value="1">
 				<div class="grade-filtros">
