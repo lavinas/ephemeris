@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 
 # Configurações
-endpoint = 'http://192.168.1.138:8080'
+endpoint = 'http://192.168.1.138:8081'
 #endpoint = 'http://localhost:8081'
 page = 1
 page_size = 1000
