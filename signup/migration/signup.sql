@@ -1,9 +1,7 @@
--- Active: 1778275768971@@localhost@5432@ephemeris@billing
+create database signup;
 
-create database ephemeris;
-
-create SCHEMA if not exists billing;
-set search_path to billing;
+create SCHEMA if not exists signup;
+set search_path to signup;
 
 # vendor table
 drop table if exists vendor cascade;
@@ -98,68 +96,3 @@ create table customer (
     constraint unique_customer_document unique(vendor_id, document),
     constraint unique_customer_nickname unique(vendor_id, nickname)
 );
-
-drop Table if exists invoice cascade;
-create table invoice (
-    id bigserial primary key,
-    customer_id bigint not null references customer(id) on delete cascade,
-    amount numeric(15, 2) not null,
-    invoice_date date not null,
-    due_date date not null,
-    payment_date date,
-    email_sent_date date,
-    whatsapp_sent_date date,
-    cancellation_date date,
-    email_receipt_date date,
-    whatsapp_receipt_date date,
-    tax_date date,
-    notes text null,
-    status int not null default 1,
-    created_at timestamp not null,
-    updated_at timestamp not null
-);
-
-drop Table if exists invoice_item cascade;
-create table invoice_item (
-    id bigserial primary key,
-    invoice_id bigint not null references invoice(id) on delete cascade,
-    price numeric(15, 2) not null,
-    quantity int not null,
-    description varchar(255) not null,
-    created_at timestamp not null,
-    updated_at timestamp not null
-);
-
-
-drop Table if exists emission cascade;
-create table emission (
-    id bigserial primary key,
-    vendor_id bigint not null references vendor(id) on delete cascade,
-    emission_date date not null ,
-    period_start date not null,
-    period_end date not null,
-    rps_start bigint not null,
-    rps_end bigint not null,
-    nfe_start bigint,
-    nfe_end bigint,
-    nfe_datetime timestamp,
-    amount numeric(15, 2) not null,
-    quantity int not null,
-    created_at timestamp not null,
-    updated_at timestamp not null
-);
-
-drop Table if exists emission_item cascade;
-create table emission_item (
-    id bigserial primary key,
-    emission_id bigint not null references emission(id) on delete cascade,
-    invoice_id bigint not null references invoice(id) on delete cascade,
-    rps_number bigint not null,
-    nfe_number bigint,
-    nfe_datetime timestamp,
-    nfe_verification varchar(100),
-    nfe_amount numeric(15, 2)
-);
-
-
-

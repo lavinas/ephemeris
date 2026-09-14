@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 
 # Configurações
 endpoint = 'http://localhost:8083/api/session'
+# endpoint = 'http://192.168.1.138:8083/api/session'
 page = 1
 page_size = 1000
 

@@ -4,7 +4,8 @@ import json
 from requests.exceptions import ConnectionError, Timeout
 
 # Configurações
-endpoint = 'http://localhost:8081'
+# endpoint = 'http://localhost:8083'
+endpoint = 'http://192.168.1.138:8083'
 page = 1
 page_size = 1000
 
