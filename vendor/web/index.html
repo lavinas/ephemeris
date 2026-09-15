@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Ephemeris</title>
+	<style>
+		* {
+			box-sizing: border-box;
+			margin: 0;
+			padding: 0;
+		}
+
+		html, body {
+			width: 100%;
+			height: 100%;
+			overflow: hidden;
+			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+			background-color: #000000;
+			color: #f3f4f6;
+		}
+
+		.layout-container {
+			display: flex;
+			flex-direction: row;
+			width: 100vw;
+			height: 100vh;
+			overflow: hidden;
+		}
+
+		/* Menu lateral esquerdo (contendo logo e links) */
+		.sidebar {
+			width: 220px;
+			min-width: 220px;
+			height: 100vh;
+			background-color: #000000;
+			border-right: 1px solid #1f2937;
+			display: flex;
+			flex-direction: column;
+			padding: 8px 12px 20px;
+			box-sizing: border-box;
+		}
+
+		.sidebar-logo {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			padding: 0 8px 16px;
+			border-bottom: 1px solid #1f2937;
+			margin-bottom: 16px;
+		}
+
+		.sidebar-logo .logo {
+			max-width: 100%;
+			height: 66px;
+			max-height: 70px;
+			object-fit: contain;
+			display: block;
+		}
+
+		.menu-nav {
+			display: flex;
+			flex-direction: column;
+			gap: 8px;
+		}
+
+		.menu-link {
+			display: flex;
+			align-items: center;
+			gap: 12px;
+			padding: 10px 16px;
+			color: #9ca3af;
+			text-decoration: none;
+			border-radius: 8px;
+			font-size: 14px;
+			font-weight: 500;
+			transition: background-color 0.15s ease, color 0.15s ease;
+			cursor: pointer;
+		}
+
+		.menu-link:hover {
+			background-color: #111827;
+			color: #ffffff;
+		}
+
+		.menu-link.active {
+			background-color: #1f2937;
+			color: #ffffff;
+			font-weight: 600;
+		}
+
+		.menu-link svg {
+			width: 18px;
+			height: 18px;
+			flex-shrink: 0;
+		}
+
+		/* Container do htmx - inicia diretamente no topo */
+		.content-frame-container {
+			flex: 1;
+			height: 100vh;
+			background-color: #ffffff;
+			position: relative;
+			overflow-y: auto; /* Permite rolagem do conteúdo do Go se for grande */
+			color: #000000;    /* Garante legibilidade do texto que vem do Go */
+		}
+	</style>
+</head>
+<body>
+	<!-- Importação local do HTMX (Evita depender da internet na rede Wi-Fi) -->
+	<script src="/static/js/htmx.min.js"></script>
+
+	<div class="layout-container">
+		<!-- Menu Lateral: Logo e Navegação -->
+		<aside class="sidebar">
+			<div class="sidebar-logo">
+				<!-- Organizado: Busca a logo dentro da pasta static -->
+				<img src="/static/logo.png" alt="Logo" class="logo" onerror="this.style.display='none';">
+			</div>
+			<nav class="menu-nav">
+				<!-- HTMX controla a requisição: busca em /html/sessoes e joga dentro do #conteudo-principal -->
+				<a hx-get="/html/sessoes" hx-target="#conteudo-principal" class="menu-link active">
+					<svg xmlns="http://w3.org" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.253M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+					</svg>
+					<span>Sessões</span>
+				</a>
+			</nav>
+		</aside>
+
+		<!-- Substituído iframe por DIV de carregamento dinâmico -->
+		<!-- hx-trigger="load" faz disparar a busca automática assim que o usuário abre a página -->
+		<main class="content-frame-container" id="conteudo-principal" hx-get="/html/sessoes" hx-trigger="load">
+			<div style="padding: 20px; color: #6b7280;">Carregando sessões...</div>
+		</main>
+	</div>
+
+	<script>
+		// Gerenciamento visual de links ativos no menu
+		document.querySelectorAll('.menu-link').forEach(link => {
+			link.addEventListener('click', function() {
+				document.querySelectorAll('.menu-link').forEach(l => l.classList.remove('active'));
+				this.classList.add('active');
+			});
+		});
+	</script>
+</body>
+</html>

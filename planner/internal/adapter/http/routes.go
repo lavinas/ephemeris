@@ -38,10 +38,13 @@ func NewAPIRoutes(repo port.Repository, logger port.Logger) *http.ServeMux {
 // NewHTMLRoutes creates a new instance of HTML routes with the provided logger and repository.
 func NewHTMLRoutes(repo port.Repository, logger port.Logger, htmlTemplate []byte) (*http.ServeMux, *HandlerHtml, error) {
 	mux := http.NewServeMux()
+	logger.IPrintf(0, "Initializing HTML routes")
 	handler, err := NewHandlerHtml(repo, logger, htmlTemplate)
 	if err != nil {
+		logger.IPrintf(0, "Failed to initialize HTML handler: %v", err)
 		return nil, nil, err
 	}
+	logger.IPrintf(0, "HTML handler initialized successfully")
 	mux.HandleFunc("/ping", handler.Ping)
 	mux.HandleFunc("/sessoes", handler.Sessions)
 	mux.HandleFunc("/sessoes/", handler.Sessions)

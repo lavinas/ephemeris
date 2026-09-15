@@ -24,6 +24,7 @@ services:
       restart: always
       networks:
         - net-planner-dev
+        - ephemeris-network
       ports:
         - "8083:8083"
       volumes:
@@ -39,3 +40,5 @@ services:
 networks:
   net-planner-dev:
     driver: bridge
+  ephemeris-network:
+    external: true

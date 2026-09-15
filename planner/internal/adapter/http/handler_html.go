@@ -39,6 +39,7 @@ func NewHandlerHtml(repo port.Repository, logger port.Logger, tdata []byte) (*Ha
 			return template.HTML(comQuebras)
 		},
 	}
+	logger.IPrintf(0, "Passou")
 	tmpl, err := template.New("index").Funcs(funcMap).Parse(string(tdata))
 	if err != nil {
 		return nil, err
@@ -99,7 +100,15 @@ func (h *HandlerHtml) Sessions(w http.ResponseWriter, r *http.Request) {
 	}
 	page := h.getPageData(response)
 	h.logger.IPrintf(2, "Rendering for %v", page)
-	err := h.tmpl.ExecuteTemplate(w, "index", page)
+	// adjusting
+	template := "index_complete"
+	if r.Header.Get("HX-Request") == "true" {
+		h.logger.IPrintf(2, "HTMX request detected, using partial template")
+		template = "index"
+	} else {
+		h.logger.IPrintf(2, "Standard request detected, using complete template")
+	}
+	err := h.tmpl.ExecuteTemplate(w, template, page)
 	if err != nil {
 		h.logger.IPrintf(2, "Failed to render template: %v", err)
 		http.Error(w, "Failed to render template", http.StatusInternalServerError)

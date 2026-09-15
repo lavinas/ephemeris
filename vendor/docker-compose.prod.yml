@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  nginx-server:
+    image: nginx:alpine
+    container_name: nginx-porteiro-prod
+    ports:
+      # Vincula o Docker diretamente para responder apenas no IP de produção correto
+      - "192.168.1.138:80:80" 
+    volumes:
+      - ./web:/usr/share/nginx/html
+      # Carrega o arquivo específico de produção com os bloqueios de IP
+      - ./nginx.prod.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - ephemeris-network
+    restart: always # Garante que o painel reinicie sozinho se o servidor cair
+
+networks:
+  ephemeris-network:
+    name: ephemeris-network

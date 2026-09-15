@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  nginx-server:
+    image: nginx:alpine
+    container_name: nginx-porteiro-dev
+    ports:
+      - "80:80" 
+    volumes:
+      - ./web:/usr/share/nginx/html
+      # Carrega o arquivo específico de desenvolvimento
+      - ./nginx.dev.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - ephemeris-network
+
+networks:
+  ephemeris-network:
+    name: ephemeris-network

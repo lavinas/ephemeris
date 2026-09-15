@@ -16,7 +16,10 @@ const (
 	// ServerShutdownTimeout is the timeout duration for server shutdown
 	ServerShutdownTimeout = 10 * time.Second
 
-	htmlTemplatePath = "./web/templates/sessions.html"
+	// htmlTemplatePath = "./web/templates/sessions3.html"
+
+	htmlTemplatePath = "/app/web/templates/sessions3.html"
+
 )
 
 // Handler is an HTTP handler for the API
@@ -40,6 +43,7 @@ func (h *Handler) Run(addr string) error {
 	if err != nil {
 		return fmt.Errorf("error getting HTML template: %v", err)
 	}
+	h.logger.IPrintf(0, "HTML template loaded successfully")
 	mainMux, err := NewRoutes(h.repo, h.logger, template)
 	if err != nil {
 		return fmt.Errorf("error creating routes: %v", err)

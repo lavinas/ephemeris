@@ -31,7 +31,7 @@ func main() {
 		logger.IPrintf(0, "Repository closed")
 	}()
 	if err := handler.Run(cfg.GetWebAddr()); err != nil {
-		fmt.Printf("Error running server: %v\n", err)
+		logger.IPrintf(0, "Error running server: %v", err)
 	}
 
 }
