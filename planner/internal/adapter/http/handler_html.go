@@ -100,11 +100,13 @@ func (h *HandlerHtml) Sessions(w http.ResponseWriter, r *http.Request) {
 	}
 	page := h.getPageData(response)
 	h.logger.IPrintf(2, "Rendering for %v", page)
-	// adjusting
-	template := "index_complete"
+	// Se a requisição vem do HTMX (header HX-Request), retorna apenas o fragmento
+	// interno (sem html/head/body) para ser injetado no div do frame pai.
+	// Se for acesso direto ao navegador, retorna a página completa.
+	template := "index"
 	if r.Header.Get("HX-Request") == "true" {
-		h.logger.IPrintf(2, "HTMX request detected, using partial template")
-		template = "index"
+		h.logger.IPrintf(2, "HTMX request detected, using fragment template")
+		template = "fragment"
 	} else {
 		h.logger.IPrintf(2, "Standard request detected, using complete template")
 	}

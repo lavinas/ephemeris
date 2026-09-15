@@ -1,9 +1,8 @@
-version: '3.8'
-
 services:
   nginx-server:
     image: nginx:alpine
     container_name: nginx-porteiro-prod
+    restart: always
     ports:
       # Vincula o Docker diretamente para responder apenas no IP de produção correto
       - "192.168.1.138:80:80" 

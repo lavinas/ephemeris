@@ -28,7 +28,7 @@
 			overflow: hidden;
 		}
 
-		/* Menu lateral esquerdo (contendo logo e links) */
+		/* ── Sidebar ─────────────────────────────────────────── */
 		.sidebar {
 			width: 220px;
 			min-width: 220px;
@@ -39,25 +39,89 @@
 			flex-direction: column;
 			padding: 8px 12px 20px;
 			box-sizing: border-box;
+			/* Transição suave de largura */
+			transition: width 0.25s ease, min-width 0.25s ease, padding 0.25s ease;
+			overflow: hidden;
+		}
+
+		/* Estado recolhido */
+		.sidebar.collapsed {
+			width: 56px;
+			min-width: 56px;
+			padding: 8px 8px 20px;
+		}
+
+		/* ── Cabeçalho da sidebar: logo + botão toggle ──────── */
+		.sidebar-header {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding: 0 4px 16px;
+			border-bottom: 1px solid #1f2937;
+			margin-bottom: 16px;
+			min-height: 50px;
 		}
 
 		.sidebar-logo {
 			display: flex;
 			align-items: center;
 			justify-content: center;
-			padding: 0 8px 16px;
-			border-bottom: 1px solid #1f2937;
-			margin-bottom: 16px;
+			flex: 1;
+			overflow: hidden;
+			transition: opacity 0.2s ease, width 0.25s ease;
 		}
 
 		.sidebar-logo .logo {
 			max-width: 100%;
-			height: 66px;
-			max-height: 70px;
+			height: 42px;
+			max-height: 46px;
 			object-fit: contain;
 			display: block;
+			transition: opacity 0.2s ease;
 		}
 
+		/* Quando recolhido, esconde a logo */
+		.sidebar.collapsed .sidebar-logo {
+			width: 0;
+			opacity: 0;
+			pointer-events: none;
+		}
+
+		/* ── Botão toggle ───────────────────────────────────── */
+		.sidebar-toggle {
+			flex-shrink: 0;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			width: 28px;
+			height: 28px;
+			border-radius: 6px;
+			border: 1px solid #374151;
+			background: transparent;
+			color: #6b7280;
+			cursor: pointer;
+			transition: background-color 0.15s ease, color 0.15s ease, transform 0.25s ease;
+			margin-left: 4px;
+		}
+
+		.sidebar-toggle:hover {
+			background-color: #111827;
+			color: #ffffff;
+		}
+
+		/* Gira o ícone quando recolhido */
+		.sidebar.collapsed .sidebar-toggle {
+			transform: rotate(180deg);
+			margin-left: 0;
+		}
+
+		.sidebar-toggle svg {
+			width: 14px;
+			height: 14px;
+			flex-shrink: 0;
+		}
+
+		/* ── Itens de navegação ─────────────────────────────── */
 		.menu-nav {
 			display: flex;
 			flex-direction: column;
@@ -68,7 +132,7 @@
 			display: flex;
 			align-items: center;
 			gap: 12px;
-			padding: 10px 16px;
+			padding: 10px 12px;
 			color: #9ca3af;
 			text-decoration: none;
 			border-radius: 8px;
@@ -76,6 +140,8 @@
 			font-weight: 500;
 			transition: background-color 0.15s ease, color 0.15s ease;
 			cursor: pointer;
+			white-space: nowrap;
+			overflow: hidden;
 		}
 
 		.menu-link:hover {
@@ -95,48 +161,118 @@
 			flex-shrink: 0;
 		}
 
-		/* Container do htmx - inicia diretamente no topo */
+		/* Label do menu: some suavemente ao recolher */
+		.menu-link .menu-label {
+			transition: opacity 0.15s ease, max-width 0.25s ease;
+			max-width: 160px;
+			opacity: 1;
+			overflow: hidden;
+		}
+
+		.sidebar.collapsed .menu-link .menu-label {
+			max-width: 0;
+			opacity: 0;
+		}
+
+		/* Tooltip no estado recolhido */
+		.menu-link {
+			position: relative;
+		}
+
+		.sidebar.collapsed .menu-link::after {
+			content: attr(data-tooltip);
+			position: absolute;
+			left: 56px;
+			top: 50%;
+			transform: translateY(-50%);
+			background-color: #1f2937;
+			color: #f3f4f6;
+			font-size: 12px;
+			font-weight: 500;
+			padding: 5px 10px;
+			border-radius: 6px;
+			border: 1px solid #374151;
+			white-space: nowrap;
+			pointer-events: none;
+			opacity: 0;
+			transition: opacity 0.15s ease;
+			z-index: 100;
+		}
+
+		.sidebar.collapsed .menu-link:hover::after {
+			opacity: 1;
+		}
+
+		/* ── Área de conteúdo ───────────────────────────────── */
 		.content-frame-container {
 			flex: 1;
 			height: 100vh;
 			background-color: #ffffff;
 			position: relative;
-			overflow-y: auto; /* Permite rolagem do conteúdo do Go se for grande */
-			color: #000000;    /* Garante legibilidade do texto que vem do Go */
+			overflow-y: auto;
+			color: #000000;
+			transition: flex 0.25s ease;
 		}
 	</style>
 </head>
 <body>
-	<!-- Importação local do HTMX (Evita depender da internet na rede Wi-Fi) -->
+	<!-- Importação local do HTMX -->
 	<script src="/static/js/htmx.min.js"></script>
 
 	<div class="layout-container">
-		<!-- Menu Lateral: Logo e Navegação -->
-		<aside class="sidebar">
-			<div class="sidebar-logo">
-				<!-- Organizado: Busca a logo dentro da pasta static -->
-				<img src="/static/logo.png" alt="Logo" class="logo" onerror="this.style.display='none';">
+		<!-- Menu Lateral -->
+		<aside class="sidebar" id="sidebar">
+
+			<!-- Cabeçalho: Logo + Botão toggle -->
+			<div class="sidebar-header">
+				<div class="sidebar-logo">
+					<img src="/static/logo.png" alt="Logo" class="logo" onerror="this.style.display='none';">
+				</div>
+				<button class="sidebar-toggle" id="sidebar-toggle" title="Recolher menu" onclick="toggleSidebar()">
+					<!-- Seta apontando para a esquerda (← recolhe); girará 180° quando recolhido -->
+					<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+					</svg>
+				</button>
 			</div>
+
+			<!-- Navegação -->
 			<nav class="menu-nav">
-				<!-- HTMX controla a requisição: busca em /html/sessoes e joga dentro do #conteudo-principal -->
-				<a hx-get="/html/sessoes" hx-target="#conteudo-principal" class="menu-link active">
-					<svg xmlns="http://w3.org" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+				<a hx-get="/html/sessoes" hx-target="#conteudo-principal"
+				   class="menu-link active"
+				   data-tooltip="Sessões">
+					<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
 						<path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.253M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
 					</svg>
-					<span>Sessões</span>
+					<span class="menu-label">Sessões</span>
 				</a>
 			</nav>
 		</aside>
 
-		<!-- Substituído iframe por DIV de carregamento dinâmico -->
-		<!-- hx-trigger="load" faz disparar a busca automática assim que o usuário abre a página -->
-		<main class="content-frame-container" id="conteudo-principal" hx-get="/html/sessoes" hx-trigger="load">
+		<!-- Conteúdo principal carregado via HTMX -->
+		<main class="content-frame-container" id="conteudo-principal"
+		      hx-get="/html/sessoes" hx-trigger="load">
 			<div style="padding: 20px; color: #6b7280;">Carregando sessões...</div>
 		</main>
 	</div>
 
 	<script>
-		// Gerenciamento visual de links ativos no menu
+		// ── Toggle da sidebar ──────────────────────────────────────────
+		function toggleSidebar() {
+			const sidebar = document.getElementById('sidebar');
+			const isCollapsed = sidebar.classList.toggle('collapsed');
+			// Persiste preferência
+			localStorage.setItem('sidebar-collapsed', isCollapsed ? '1' : '0');
+		}
+
+		// Restaura estado salvo ao carregar a página
+		(function() {
+			if (localStorage.getItem('sidebar-collapsed') === '1') {
+				document.getElementById('sidebar').classList.add('collapsed');
+			}
+		})();
+
+		// ── Links ativos no menu ───────────────────────────────────────
 		document.querySelectorAll('.menu-link').forEach(link => {
 			link.addEventListener('click', function() {
 				document.querySelectorAll('.menu-link').forEach(l => l.classList.remove('active'));

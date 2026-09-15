@@ -18,7 +18,7 @@ const (
 
 	// htmlTemplatePath = "./web/templates/sessions3.html"
 
-	htmlTemplatePath = "/app/web/templates/sessions3.html"
+	htmlTemplatePath = "/app/web/templates/sessions.html"
 
 )
 
