@@ -5,6 +5,8 @@ services:
     ports:
       # Vincula o Docker diretamente para responder apenas no IP de produção correto
       - "192.168.1.138:80:80" 
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # Permite acessar serviços expostos no host
     volumes:
       - ./web:/usr/share/nginx/html
       # Carrega o arquivo específico de produção com os bloqueios de IP
