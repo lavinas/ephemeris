@@ -1,0 +1,44 @@
+services:
+  # Database service
+  signup_db:
+    image: postgres:latest
+    container_name: signup_db_dev
+    restart: always
+    environment:
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_DB=signup
+      - PGDATA=/var/lib/postgresql/data
+    networks:
+      - net-signup-dev
+    ports:
+      - "5434:5432"
+    volumes:
+      - ./.db:/var/lib/postgresql
+  # API service
+  signup_api:
+      build:
+        context: .
+        dockerfile: docker/Dockerfile.dev
+      container_name: signup_api_dev
+      restart: always
+      networks:
+        - net-signup-dev
+        - ephemeris-network
+      ports:
+        - "8082:8082"
+      volumes:
+        - ${PWD}:/app
+      environment:
+        - DB_HOST=signup_db
+        - DB_PORT=5432
+        - DB_USER=root
+        - DB_PASSWORD=root
+        - DB_NAME=signup
+      depends_on:
+        - signup_db
+networks:
+  net-signup-dev:
+    driver: bridge
+  ephemeris-network:
+    external: true

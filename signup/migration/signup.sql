@@ -1,3 +1,4 @@
+-- Active: 1789776426609@@127.0.0.1@5434@signup
 create database signup;
 
 create SCHEMA if not exists signup;
@@ -33,52 +34,33 @@ create table vendor (
 );
 
 # main vendor
+insert into vendor (nickname, legal_name, trading_name, document, tax_document, account_bank, account_agency, account_number, pix_token, pix_name, pix_city, logo_name, email, whatsapp, last_rps, smtp_host, smtp_port, smtp_user, smtp_password, created_at, updated_at) values
+('estudio_amelia', 'Cardoso e Barbosa Serviços Musicais e Tecnologia LTDA', 'Estúdio Amélia Cardoso', '27.928.875/0001-04', '5.727.888-1', '033 - Santander', '0985', '13001001-4', '27.928.875/0001-04', 'Estúdio Vocal Amélia Cardoso', 'São Paulo', 'logo_amelia.png', 'financeiro@ameliacardoso.com.br', '(11) 98088-8399', 2435, 'smtp.zoho.com', 465, 'financeiro@ameliacardoso.com.br', 'pwd22Adm**', now(), now());
 
-insert into vendor (nickname, 
-                    legal_name, 
-                    trading_name, 
-                    document, 
-                    tax_document, 
-                    account_bank, 
-                    account_agency, 
-                    account_number, 
-                    pix_token, 
-                    pix_name, 
-                    pix_city, 
-                    logo_name, 
-                    email, 
-                    whatsapp, 
-                    last_rps,
-                    smtp_host,
-                    smtp_port,
-                    smtp_user,
-                    smtp_password,
-                    created_at,
-                    updated_at
-                    ) 
-            values (
-                    'estudio_amelia',
-                    'Cardoso e Barbosa Serviços Musicais e Tecnologia LTDA',
-                    'Estúdio Amélia Cardoso',
-                    '27.928.875/0001-04',
-                    '5.727.888-1',
-                    '033 - Santander',
-                    '0985',
-                    '13001001-4',
-                    '27.928.875/0001-04',
-                    'Estúdio Vocal Amélia Cardoso',
-                    'São Paulo',
-                    'logo_amelia.png',
-                    'financeiro@ameliacardoso.com.br',
-                    '(11) 98088-8399',
-                    2435,
-                    'smtp.zoho.com',
-                    465,
-                    'financeiro@ameliacardoso.com.br',
-                    'pwd22Adm**',
-                    now(),
-                    now()
-            );
+-- users table 
+drop table if exists users cascade;
+create table users (
+    id bigserial primary key,
+    vendor_id bigint not null references vendor(id) on delete cascade,
+    name varchar(150) not null,
+    username varchar(150) not null,
+    pass_hash varchar(255) not null,
+    email varchar(150) null,
+    whatsapp varchar(20) null,
+    created_at timestamp not null,
+    updated_at timestamp not null,
+    status int not null default 1,
+    constraint unique_user_email unique(vendor_id, email),
+    constraint unique_user_username unique(vendor_id, username)
+);
+
+
+SELECT nspname 
+FROM pg_extension e 
+JOIN pg_namespace n ON e.extnamespace = n.oid 
+WHERE e.extname = 'pgcrypto';
+
+CREATE EXTENSION pgcrypto;
 
 # customer table
 drop table if exists customer cascade;
