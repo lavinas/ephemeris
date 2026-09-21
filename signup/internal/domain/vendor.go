@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"fmt"
 	"time"
 
 	"signup/internal/port"
@@ -59,27 +60,26 @@ func NewVendor(nickname, legalName, tradingName, document, taxDocument, accountB
 	}
 }
 
-// Get methods for Vendor can be added here as needed.
-func (v *Vendor) GetByNickname(repo port.Repository, nickname string) bool {
-	conditions := map[string]interface{}{}
-	conditions["nickname = ?"] = nickname	
-	resp, err := repo.Find(1, 1, conditions)
-	if err != nil {
-		return false
-	}
-	if len(resp) == 0 {
-		return false
-	}
-	vendor, ok := resp[0].(*Vendor)
-	if !ok {
-		return false
-	}
-	*v = *vendor
-	return true
-}
-
-
 // TableName specifies the table name for Vendor model.
 func (Vendor) TableName() string {
 	return "vendor"
+}
+
+// Get methods for Vendor can be added here as needed.
+func (v *Vendor) GetByNickname(repo port.Repository, nickname string) (bool, error) {
+	conditions := map[string]interface{}{}
+	conditions["nickname = ?"] = nickname
+	resp, err := repo.Find(v, conditions, 1, 1)
+	if err != nil {
+		return false, err
+	}
+	if len(resp) == 0 {
+		return false, nil
+	}
+	vendor, ok := resp[0].(*Vendor)
+	if !ok {
+		return false, fmt.Errorf("failed to cast to Vendor")
+	}
+	*v = *vendor
+	return true, nil
 }

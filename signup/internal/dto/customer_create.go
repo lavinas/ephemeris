@@ -3,12 +3,11 @@ package dto
 import (
 	"errors"
 	"fmt"
-	"net/mail"
 	"strings"
 
+	"github.com/klassmann/cpfcnpj"
 	"signup/internal/domain"
 	"signup/internal/port"
-	"github.com/klassmann/cpfcnpj"
 )
 
 const (
@@ -19,13 +18,8 @@ const (
 
 // CustomerCreateRequest represents the request payload for creating a new customer.
 type CustomerCreateRequest struct {
-	Vendor   string                       `json:"vendor" validate:"required"`
-	VendorID int64                        `json:"-" validate:"-"`
-	Items    []*CustomerCreateRequestItem `json:"items" validate:"required,dive"`
-}
-
-// CustomerCreateRequestItem represents an individual customer creation request item.
-type CustomerCreateRequestItem struct {
+	Vendor   string `json:"vendor" validate:"required"`
+	VendorID int64  `json:"-" validate:"-"`
 	Name     string `json:"name" validate:"required"`
 	Nickname string `json:"nickname" validate:"required"`
 	Document string `json:"document" validate:"required"`
@@ -51,75 +45,13 @@ func (r *CustomerCreateRequest) Validate(repo port.Repository) error {
 	if err := r.validateVendor(repo); err != nil {
 		errs = append(errs, err)
 	}
-	if err := r.validateItems(repo); err != nil {
-		errs = append(errs, err...)
-	}
-	if len(errs) > 0 {
-		err := errors.Join(errs...)
-		return errors.New(strings.ReplaceAll(err.Error(), "\n", "; "))
-	}
-	return nil
-}
-
-// validateVendor checks if the provided vendor is valid and exists in the system.
-func (r *CustomerCreateRequest) validateVendor(repo port.Repository) error {
-	if r.Vendor == "" {
-		return errors.New("vendor is required")
-	}
-	vendor := domain.Vendor{}
-	resp, err := repo.Find(1, 1, map[string]interface{}{"nickname = ?": r.Vendor})
-	if err != nil {
-		return fmt.Errorf("failed to validate vendor: %v", err)
-	}
-	if len(resp) == 0 {
-		return fmt.Errorf("vendor '%s' does not exist", r.Vendor)
-	}
-	vendorPtr, ok := resp[0].(*domain.Vendor)
-	if !ok {
-		return fmt.Errorf("failed to cast to Vendor")
-	}
-	vendor = *vendorPtr
-	r.VendorID = vendor.ID
-	return nil
-}
-
-// validateItems validate items and duplicated items in the request
-func (r *CustomerCreateRequest) validateItems(repo port.Repository) []error {
-	if len(r.Items) == 0 {
-		return []error{errors.New("at least one item is required")}
-	}
-	if len(r.Items) > requestLimit {
-		return []error{fmt.Errorf("number of items exceeds the limit of %d", requestLimit)}
-	}
-	documents := make(map[string]bool, len(r.Items))
-	nicknames := make(map[string]bool, len(r.Items))
-	errs := make([]error, 0)
-	for i, item := range r.Items {
-		if err := item.Validate(repo, r.VendorID); err != nil {
-			errs = append(errs, fmt.Errorf("item %d: %v", i, err))
-		}
-		if item.Document != "" && documents[item.Document] {
-			errs = append(errs, fmt.Errorf("item %d: duplicate document '%s'", i, item.Document))
-		}
-		if item.Nickname != "" && nicknames[item.Nickname] {
-			errs = append(errs, fmt.Errorf("item %d: duplicate nickname '%s'", i, item.Nickname))
-		}
-		documents[item.Document] = true
-		nicknames[item.Nickname] = true
-	}
-	return errs
-}
-
-// Validate checks if the CustomerCreateRequestItem has all required fields and valid data.
-func (r *CustomerCreateRequestItem) Validate(repo port.Repository, vendorID int64) error {
-	errs := make([]error, 0)
 	if err := r.validateName(); err != nil {
 		errs = append(errs, err)
 	}
-	if err := r.validateNickname(repo, vendorID); err != nil {
+	if err := r.validateNickname(repo); err != nil {
 		errs = append(errs, err)
 	}
-	if err := r.validateDocument(repo, vendorID); err != nil {
+	if err := r.validateDocument(repo); err != nil {
 		errs = append(errs, err)
 	}
 	if err := r.validateEmail(); err != nil {
@@ -135,17 +67,23 @@ func (r *CustomerCreateRequestItem) Validate(repo port.Repository, vendorID int6
 	return nil
 }
 
-// GetDomain converts the CustomerCreateRequest to a slice of domain.Customer entities.
-func (r *CustomerCreateRequest) GetDomain() interface{} {
-	customers := make([]domain.Customer, len(r.Items))
-	for i, item := range r.Items {
-		customers[i] = *item.GetDomain(r.VendorID)
+// validateVendor checks if the provided vendor is valid and exists in the system.
+func (r *CustomerCreateRequest) validateVendor(repo port.Repository) error {
+	if r.Vendor == "" {
+		return errors.New("vendor is required")
 	}
-	return &customers
+	vendor := domain.Vendor{}
+	if ok, err := vendor.GetByNickname(repo, r.Vendor); err != nil {
+		return fmt.Errorf("failed to validate vendor: %v", err)
+	} else if !ok {
+		return fmt.Errorf("vendor '%s' does not exist", r.Vendor)
+	}
+	r.VendorID = vendor.ID
+	return nil
 }
 
 // GetDomain converts the CustomerCreateRequestItem to a domain.Customer entity.
-func (r *CustomerCreateRequestItem) GetDomain(vendorID int64) *domain.Customer {
+func (r *CustomerCreateRequest) GetDomain() port.Domain {
 	var document, email, whatsapp *string
 	if r.Document != "" {
 		document = &r.Document
@@ -156,11 +94,18 @@ func (r *CustomerCreateRequestItem) GetDomain(vendorID int64) *domain.Customer {
 	if r.Whatsapp != "" {
 		whatsapp = &r.Whatsapp
 	}
-	return domain.NewCustomer(vendorID, &r.Name, &r.Nickname, document, email, whatsapp)
+	return domain.NewCustomer(r.VendorID, &r.Name, &r.Nickname, document, email, whatsapp)
+}
+
+// GetOutDTO converts the CustomerCreateRequest to a CustomerCreateResponse DTO.
+func (r *CustomerCreateRequest) GetOutDTO(httpCode int, status, message string, data interface{}) port.OutDTO {
+	return &CustomerCreateResponse{
+		ResponseBase: NewResponseBase(httpCode, status, message),
+	}
 }
 
 // validateName checks if the provided name is valid.
-func (r *CustomerCreateRequestItem) validateName() error {
+func (r *CustomerCreateRequest) validateName() error {
 	if r.Name == "" {
 		return errors.New("name is required")
 	}
@@ -168,19 +113,24 @@ func (r *CustomerCreateRequestItem) validateName() error {
 }
 
 // validateNickname checks if the provided nickname is valid and not already in use.
-func (r *CustomerCreateRequestItem) validateNickname(repo port.Repository, vendorID int64) error {
+func (r *CustomerCreateRequest) validateNickname(repo port.Repository) error {
 	if r.Nickname == "" {
 		return errors.New("nickname is required")
 	}
+	if r.Nickname != strings.ToLower(r.Nickname) || strings.Contains(r.Nickname, " ") {
+		return errors.New("nickname must be lowercase and must not contain spaces")
+	}
 	var c domain.Customer
-	if c.GetByNickname(repo, vendorID, r.Nickname) {
+	if ok, err := c.GetByNickname(repo, r.VendorID, r.Nickname); err != nil {
+		return fmt.Errorf("failed to validate nickname: %v", err)
+	} else if ok {
 		return fmt.Errorf("nickname is already in use")
 	}
 	return nil
 }
 
 // validateDocument checks if the provided document is valid and not already in use.
-func (r *CustomerCreateRequestItem) validateDocument(repo port.Repository, vendorID int64) error {
+func (r *CustomerCreateRequest) validateDocument(repo port.Repository) error {
 	if r.Document == "" {
 		return nil
 	}
@@ -188,14 +138,16 @@ func (r *CustomerCreateRequestItem) validateDocument(repo port.Repository, vendo
 		return err
 	}
 	var c domain.Customer
-	if c.GetByDocument(repo, vendorID, r.Document) {
+	if ok, err := c.GetByDocument(repo, r.VendorID, r.Document); err != nil {
+		return fmt.Errorf("failed to validate document: %v", err)
+	} else if ok {
 		return fmt.Errorf("document is already in use")
 	}
 	return nil
 }
 
 // validateCpfCnpj checks if the provided document is a valid CPF or CNPJ.
-func (r *CustomerCreateRequestItem) validateCpfCnpj() error {
+func (r *CustomerCreateRequest) validateCpfCnpj() error {
 	cpf := cpfcnpj.NewCPF(r.Document)
 	if cpf.IsValid() {
 		r.Document = cpf.String()
@@ -210,19 +162,18 @@ func (r *CustomerCreateRequestItem) validateCpfCnpj() error {
 }
 
 // validateEmail checks if the provided email is valid and not already in use.
-func (r *CustomerCreateRequestItem) validateEmail() error {
+func (r *CustomerCreateRequest) validateEmail() error {
 	if r.Email == "" {
 		return nil
 	}
-	_, err := mail.ParseAddress(r.Email)
-	if err != nil {
-		return fmt.Errorf("invalid email format")
+	if err := ValidateEmail(r.Email); err != nil {
+		return err
 	}
 	return nil
 }
 
 // validateWhatsapp checks if the provided WhatsApp number is valid and not already in use.
-func (r *CustomerCreateRequestItem) validateWhatsapp() error {
+func (r *CustomerCreateRequest) validateWhatsapp() error {
 	if r.Whatsapp == "" {
 		return nil
 	}
@@ -237,11 +188,4 @@ func (r *CustomerCreateRequestItem) validateWhatsapp() error {
 		return nil
 	}
 	return fmt.Errorf("invalid WhatsApp number format")
-}
-
-// Reset resets the fields of the CustomerCreateRequest to their zero values.
-func (r *CustomerCreateRequest) Reset() {
-	r.Vendor = ""
-	r.VendorID = 0
-	r.Items = nil
 }

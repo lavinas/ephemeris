@@ -7,8 +7,6 @@ type Repository interface {
 	CommitTransaction() error
 	RollbackTransaction() error
 	Save(model interface{}) error
-	Find(page, pagesize int, conditions map[string]interface{}, orderBy ...string) ([]interface{}, error)
-	FindCount(conditions map[string]interface{}) (int64, error)
-	FindGroup(conditions map[string]interface{}, groupField string) ([]map[string]interface{}, error)
+	Find(model interface{}, conditions map[string]interface{}, page, pagesize int, orderBy ...string) ([]interface{}, error)
 	Close() error
 }

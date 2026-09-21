@@ -7,7 +7,6 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
-
 )
 
 const batchSizeInsertTransaction = 100
@@ -112,9 +111,8 @@ func (a *Repository) Save(model interface{}) error {
 	}).CreateInBatches(model, batchSizeInsertTransaction).Error
 }
 
-
 // Find is a helper function to find records in the database
-func (a *Repository) Find(page, pagesize int, conditions map[string]interface{}, orderBy ...string) ([]interface{}, error) {
+func (a *Repository) Find(model interface{}, conditions map[string]interface{}, page, pagesize int, orderBy ...string) ([]interface{}, error) {
 	db := a.DB
 	if a.Tx != nil {
 		db = a.Tx
@@ -140,9 +138,7 @@ func (a *Repository) Find(page, pagesize int, conditions map[string]interface{},
 			db = db.Where(key, value)
 		}
 	}
-	var sessions []interface{}
-	err := db.Find(&sessions).Error
-	return sessions, err
+	var results []interface{}
+	err := db.Find(&results).Error
+	return results, err
 }
-
-

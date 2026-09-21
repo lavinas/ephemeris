@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"signup/internal/port"
 	"signup/internal/domain"
+	"signup/internal/port"
 )
 
 // CustomerListRequest represents the data transfer object for listing customers with pagination.
@@ -39,8 +39,6 @@ type CustomerDTO struct {
 	Email     string `json:"email"`
 	Whatsapp  string `json:"whatsapp"`
 	Status    int    `json:"status"`
-	CreatedAt string `json:"created_at"`
-	UpdatedAt string `json:"updated_at"`
 }
 
 // NewCustomerListResponse creates a new instance of CustomerListResponse with the provided
@@ -77,8 +75,6 @@ func NewCustomerDTO(id int64, name, nickname string, status int,
 		Email:     emailStr,
 		Whatsapp:  whatsappStr,
 		Status:    status,
-		CreatedAt: createdAt.Format("2006-01-02 15:04:05"),
-		UpdatedAt: updatedAt.Format("2006-01-02 15:04:05"),
 	}
 }
 
@@ -104,39 +100,28 @@ func (r *CustomerListRequest) Validate(repo port.Repository) error {
 	return nil
 }
 
+// GetDomain converts the CustomerListRequest to a domain.Customer entity.
+func (r *CustomerListRequest) GetDomain() port.Domain {
+	return domain.NewCustomer(r.VendorID, r.Name, r.Nickname, r.Document, r.Email, r.Whatsapp)
+}
+
+// GetOutDTO constructs an output DTO for the customer list request.
+func (r *CustomerListRequest) GetOutDTO(httpCode int, status, message string, data interface{}) port.OutDTO {
+	customers, _ := data.([]CustomerDTO)
+	return NewCustomerListResponse(httpCode, status, message, customers)
+}
+
 // validateVendor checks if the provided vendor is valid and exists in the system.
 func (r *CustomerListRequest) validateVendor(repo port.Repository) error {
 	if r.Vendor == "" {
 		return errors.New("vendor is required")
 	}
 	vendor := domain.Vendor{}
-	resp, err := repo.Find(1, 1, map[string]interface{}{"nickname = ?": r.Vendor})
-
-	if err != nil {
+	if ok, err := vendor.GetByNickname(repo, r.Vendor); err != nil {
 		return fmt.Errorf("failed to validate vendor: %v", err)
-	}
-	if len(resp) == 0 {
+	} else if !ok {
 		return fmt.Errorf("vendor '%s' does not exist", r.Vendor)
 	}
-	vendorPtr, ok := resp[0].(*domain.Vendor)
-	if !ok {
-		return fmt.Errorf("failed to cast to Vendor")
-	}
-	vendor = *vendorPtr
 	r.VendorID = vendor.ID
 	return nil
-}
-
-// Reset resets the fields of the CustomerListRequest to their zero values.
-func (r *CustomerListRequest) Reset() {
-	r.Page = 0
-	r.PageSize = 0
-	r.Vendor = ""
-	r.VendorID = 0
-	r.Name = nil
-	r.Nickname = nil
-	r.Document = nil
-	r.Status = nil
-	r.Email = nil
-	r.Whatsapp = nil
 }

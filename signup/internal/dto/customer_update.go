@@ -78,18 +78,11 @@ func (r *CustomerUpdateRequest) ValidateVendor(repo port.Repository) error {
 		return fmt.Errorf("vendor is required")
 	}
 	vendor := domain.Vendor{}
-	resp, err := repo.Find(1, 1, map[string]interface{}{"nickname = ?": r.Vendor})
-	if err != nil {
+	if ok, err := vendor.GetByNickname(repo, r.Vendor); err != nil {
 		return fmt.Errorf("failed to validate vendor: %v", err)
-	}
-	if len(resp) == 0 {
+	} else if !ok {
 		return fmt.Errorf("vendor '%s' does not exist", r.Vendor)
 	}
-	vendorPtr, ok := resp[0].(*domain.Vendor)
-	if !ok {
-		return fmt.Errorf("failed to cast to Vendor")
-	}
-	vendor = *vendorPtr
 	r.vendorID = vendor.ID
 	return nil
 }
@@ -103,7 +96,9 @@ func (r *CustomerUpdateRequest) validateNickname(repo port.Repository) error {
 		return fmt.Errorf("nickname is required")
 	}
 	var customer domain.Customer
-	if !customer.GetByNickname(repo, r.vendorID, r.Nickname) {
+	if ok, err := customer.GetByNickname(repo, r.vendorID, r.Nickname); err != nil {
+		return fmt.Errorf("failed to validate nickname: %v", err)
+	} else if !ok {
 		return fmt.Errorf("customer with nickname '%s' does not exist", r.Nickname)
 	}
 	r.customer = &customer
@@ -133,7 +128,9 @@ func (r *CustomerUpdateRequest) validateDocument(repo port.Repository) error {
 		return err
 	}
 	var customer domain.Customer
-	if !customer.GetByDocument(repo, r.vendorID, *r.Document) {
+	if ok, err := customer.GetByDocument(repo, r.vendorID, *r.Document); err != nil {
+		return fmt.Errorf("failed to validate document: %v", err)
+	} else if !ok {
 		return nil
 	}
 	if customer.ID == r.customer.ID {

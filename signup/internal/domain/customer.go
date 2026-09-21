@@ -3,6 +3,7 @@ package domain
 import (
 	"time"
 
+	"fmt"
 	"signup/internal/port"
 )
 
@@ -35,35 +36,66 @@ func NewCustomer(vendorID int64, name, nickname, document, email, whatsapp *stri
 	}
 }
 
-// GetByNickname retrieves a customer by their nickname.
-func (c *Customer) GetByNickname(repo port.Repository, vendorID int64, nickname string) bool {
-	resp, err := repo.Find(1, 1, map[string]interface{}{"nickname = ?": nickname, "vendor_id = ?": vendorID})
-	if err != nil || len(resp) == 0 {
-		return false
-	}
-	customer, ok := resp[0].(*Customer)
-	if !ok {
-		return false
-	}
-	*c = *customer
-	return true
-}
-
-// GetByDocument retrieves a customer by their document.
-func (c *Customer) GetByDocument(repo port.Repository, vendorID int64, document string) bool {
-	resp, err := repo.Find(1, 1, map[string]interface{}{"document = ?": document, "vendor_id = ?": vendorID})
-	if err != nil || len(resp) == 0 {
-		return false
-	}
-	customer, ok := resp[0].(*Customer)
-	if !ok {
-		return false
-	}
-	*c = *customer
-	return true
-}
-
 // TableName specifies the table name for Customer model.
 func (Customer) TableName() string {
 	return "customer"
+}
+
+// GetByNickname retrieves a customer by their nickname.
+func (c *Customer) GetByNickname(repo port.Repository, vendorID int64, nickname string) (bool, error) {
+	conditions := map[string]interface{}{"nickname = ?": nickname, "vendor_id = ?": vendorID}
+	resp, err := repo.Find(c, conditions, 1, 1)
+	if err != nil {
+		return false, err
+	}
+	if len(resp) == 0 {
+		return false, nil
+	}
+	customer, ok := resp[0].(*Customer)
+	if !ok {
+		return false, fmt.Errorf("failed to cast to Customer")
+	}
+	*c = *customer
+	return true, nil
+}
+
+// GetByDocument retrieves a customer by their document.
+func (c *Customer) GetByDocument(repo port.Repository, vendorID int64, document string) (bool, error) {
+	conditions := map[string]interface{}{"document = ?": document, "vendor_id = ?": vendorID}
+	resp, err := repo.Find(c, conditions, 1, 1)
+	if err != nil {
+		return false, err
+	}
+	if len(resp) == 0 {
+		return false, nil
+	}
+	customer, ok := resp[0].(*Customer)
+	if !ok {
+		return false, fmt.Errorf("failed to cast to Customer")
+	}
+	*c = *customer
+	return true, nil
+}
+
+// Find retrieves customers based on the specified conditions.
+func (c *Customer) Find(repo port.Repository) ([]port.Domain, error) {
+	conditions := map[string]interface{}{}
+	resp, err := repo.Find(c, conditions, 0, 0)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]port.Domain, len(resp))
+	for i, r := range resp {
+		customer, ok := r.(*Customer)
+		if !ok {
+			return nil, fmt.Errorf("failed to cast to Customer")
+		}
+		out[i] = customer
+	}
+	return out, nil
+}
+
+// Save persists the customer instance to the repository.
+func (c *Customer) Save(repo port.Repository) error {
+	return repo.Save(c)
 }

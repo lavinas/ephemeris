@@ -3,6 +3,8 @@ package dto
 import (
 	"fmt"
 	"github.com/nyaruka/phonenumbers"
+	"net/mail"
+	"strings"
 )
 
 // ResponseBase represents the base structure for API responses, containing common fields for status and messages.
@@ -40,4 +42,15 @@ func ValidateCellNumber(phone string) (string, error) {
 		return "", fmt.Errorf("phone number is not a mobile number")
 	}
 	return phonenumbers.Format(num, phonenumbers.E164), nil
+}
+
+
+func ValidateEmail(email string) error {
+	if email != strings.ToLower(email) || strings.Contains(email, " ") {
+		return fmt.Errorf("email must be lowercase and must not contain spaces")
+	}
+	if _, err := mail.ParseAddress(email); err != nil {
+		return fmt.Errorf("invalid email format")
+	}
+	return nil
 }
