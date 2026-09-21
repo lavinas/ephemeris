@@ -5,20 +5,20 @@ import (
 	"signup/internal/port"
 )
 
-// CustomerList is responsible for handling the business logic of listing customers.
-type CustomerList struct {
+// List is responsible for handling the business logic of listing customers.
+type List struct {
 	Base
 }
 
-// NewCustomerList creates a new instance of CustomerList.
-func NewCustomerList(repo port.Repository, logger port.Logger) *CustomerList {
-	return &CustomerList{
+// NewList creates a new instance of List.
+func NewList(repo port.Repository, logger port.Logger) *List {
+	return &List{
 		Base: *NewBase(repo, logger),
 	}
 }
 
 // Run processes the request to list customers and returns the response.
-func (s *CustomerList) Run(inDTO port.InDTO) port.OutDTO {
+func (s *List) Run(inDTO port.InDTO) port.OutDTO {
 	s.logger.IPrintf(2, "Processing list customer request: %v", inDTO)
 	// Validate input
 	if err := inDTO.Validate(s.repo); err != nil {

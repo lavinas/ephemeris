@@ -5,20 +5,20 @@ import (
 	"fmt"
 )
 
-// CustomerCreate is responsible for handling the business logic of creating customers.
-type CustomerCreate struct {
+// Save is responsible for handling the business logic of creating customers.
+type Save struct {
 	Base
 }
 
-// NewCustomerCreate creates a new instance of CustomerCreate.
-func NewCustomerCreate(repo port.Repository, logger port.Logger) *CustomerCreate {
-	return &CustomerCreate{
+// NewSave creates a new instance of Save.
+func NewSave(repo port.Repository, logger port.Logger) *Save {
+	return &Save{
 		Base: *NewBase(repo, logger),
 	}
 }
 
 // Run processes a batch of customer creation requests and returns the responses.
-func (s *CustomerCreate) Run(inDTO port.InDTO) port.OutDTO {
+func (s *Save) Run(inDTO port.InDTO) port.OutDTO {
 	s.logger.IPrintf(2, "Processing create request: %v", inDTO)
 	// Type assertion to the expected DTO type
 	// Validate input
