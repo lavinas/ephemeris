@@ -5,13 +5,29 @@ import (
 	"github.com/nyaruka/phonenumbers"
 	"net/mail"
 	"strings"
+
+	"signup/internal/port"
+
+	"golang.org/x/crypto/bcrypt"
 )
+
+// RequestBase embeds Repository.
+type RequestBase struct {
+	Repo port.Repository
+}
 
 // ResponseBase represents the base structure for API responses, containing common fields for status and messages.
 type ResponseBase struct {
 	HttpCode int    `json:"http_code"`
 	Status   string `json:"status"`
 	Message  string `json:"message"`
+}
+
+// NewRequestBase creates a new instance of RequestBase with the provided repository.
+func NewRequestBase(repo port.Repository) RequestBase {
+	return RequestBase{
+		Repo: repo,
+	}
 }
 
 // NewResponseBase creates a new instance of ResponseBase with the provided HTTP code, status, and message.
@@ -44,7 +60,7 @@ func ValidateCellNumber(phone string) (string, error) {
 	return phonenumbers.Format(num, phonenumbers.E164), nil
 }
 
-
+// ValidateEmail checks if the provided email is valid and not already in use.
 func ValidateEmail(email string) error {
 	if email != strings.ToLower(email) || strings.Contains(email, " ") {
 		return fmt.Errorf("email must be lowercase and must not contain spaces")
@@ -53,4 +69,13 @@ func ValidateEmail(email string) error {
 		return fmt.Errorf("invalid email format")
 	}
 	return nil
+}
+
+// HashPassword hashes the provided password.
+func HashPassword(password string) (string, error) {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", fmt.Errorf("failed to hash password: %w", err)
+	}
+	return string(hashedPassword), nil
 }

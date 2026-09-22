@@ -21,13 +21,13 @@ func NewList(repo port.Repository, logger port.Logger) *List {
 func (s *List) Run(inDTO port.InDTO) port.OutDTO {
 	s.logger.IPrintf(2, "Processing list customer request: %v", inDTO)
 	// Validate input
-	if err := inDTO.Validate(s.repo); err != nil {
+	if err := inDTO.Validate(); err != nil {
 		s.logger.IPrintf(2, "Validation failed: %v", err)
 		return inDTO.GetOutDTO(400, "bad request",
 			fmt.Sprintf("Validation failed: %v", err), nil)
 	}
 	domain := inDTO.GetDomain()
-	found, err := domain.Find(s.repo)
+	found, err := domain.Find()
 	if err != nil {
 		s.logger.IPrintf(2, "Failed to find customers: %v", err)
 		return inDTO.GetOutDTO(500, "internal error", "contact support please", nil)

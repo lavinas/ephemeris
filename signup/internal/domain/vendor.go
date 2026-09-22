@@ -9,6 +9,7 @@ import (
 
 // Vendor represents a supplier or service provider with their banking details and contact info.
 type Vendor struct {
+	DomainBase
 	ID            int64     `gorm:"primaryKey"`
 	Nickname      string    `gorm:"not null;unique"`
 	LegalName     string    `gorm:"not null"`
@@ -34,9 +35,12 @@ type Vendor struct {
 }
 
 // NewVendor represents the input data required to create a new vendor.
-func NewVendor(nickname, legalName, tradingName, document, taxDocument, accountBank, accountAgency, accountNumber, pixToken, pixName,
-	pixCity, logoName, email, whatsapp, smtpHost string, smtpPort int, smtpUser, smtpPassword string) *Vendor {
+func NewVendor(repo port.Repository, nickname, legalName, tradingName,
+	document, taxDocument, accountBank, accountAgency, accountNumber,
+	pixToken, pixName, pixCity, logoName, email, whatsapp,
+	smtpHost string, smtpPort int, smtpUser, smtpPassword string) *Vendor {
 	return &Vendor{
+		DomainBase:    DomainBase{Repo: repo},
 		Nickname:      nickname,
 		LegalName:     legalName,
 		TradingName:   tradingName,
@@ -60,16 +64,40 @@ func NewVendor(nickname, legalName, tradingName, document, taxDocument, accountB
 	}
 }
 
+// StartVendor represents the input data required to create a new vendor.
+func StartVendor(repo port.Repository) *Vendor {
+	return &Vendor{DomainBase: DomainBase{Repo: repo}}
+}
+
 // TableName specifies the table name for Vendor model.
 func (Vendor) TableName() string {
 	return "vendor"
 }
 
 // Get methods for Vendor can be added here as needed.
-func (v *Vendor) GetByNickname(repo port.Repository, nickname string) (bool, error) {
+func (v *Vendor) GetByNickname(nickname string) (bool, error) {
 	conditions := map[string]interface{}{}
 	conditions["nickname = ?"] = nickname
-	resp, err := repo.Find(v, conditions, 1, 1)
+	resp, err := v.Repo.Find(v, conditions, 1, 1)
+	if err != nil {
+		return false, err
+	}
+	if len(resp) == 0 {
+		return false, nil
+	}
+	vendor, ok := resp[0].(*Vendor)
+	if !ok {
+		return false, fmt.Errorf("failed to cast to Vendor")
+	}
+	*v = *vendor
+	return true, nil
+}
+
+// GetByID retrieves a vendor by their ID.
+func (v *Vendor) GetByID(id int64) (bool, error) {
+	conditions := map[string]interface{}{}
+	conditions["id = ?"] = id
+	resp, err := v.Repo.Find(v, conditions, 1, 1)
 	if err != nil {
 		return false, err
 	}

@@ -18,13 +18,21 @@ const (
 
 // CustomerCreateRequest represents the request payload for creating a new customer.
 type CustomerCreateRequest struct {
-	Vendor   string `json:"vendor" validate:"required"`
-	VendorID int64  `json:"-" validate:"-"`
-	Name     string `json:"name" validate:"required"`
-	Nickname string `json:"nickname" validate:"required"`
-	Document string `json:"document" validate:"required"`
-	Email    string `json:"email" validate:"required,email"`
-	Whatsapp string `json:"whatsapp" validate:"required"`
+	RequestBase `json:"-" validate:"-"`
+	Vendor      string `json:"vendor" validate:"required"`
+	VendorID    int64  `json:"-" validate:"-"`
+	Name        string `json:"name" validate:"required"`
+	Nickname    string `json:"nickname" validate:"required"`
+	Document    string `json:"document" validate:"required"`
+	Email       string `json:"email" validate:"required,email"`
+	Whatsapp    string `json:"whatsapp" validate:"required"`
+}
+
+// NewCustomerCreateRequest creates a new instance of CustomerCreateRequest
+func NewCustomerCreateRequest(repo port.Repository) *CustomerCreateRequest {
+	return &CustomerCreateRequest{
+		RequestBase: NewRequestBase(repo),
+	}
 }
 
 // CustomerCreateResponse represents the response payload after creating a new customer.
@@ -40,18 +48,18 @@ func NewCustomerCreateResponse(httpCode int, status, message string) CustomerCre
 }
 
 // Validate checks if the CustomerCreateRequest has all required fields and valid data.
-func (r *CustomerCreateRequest) Validate(repo port.Repository) error {
+func (r *CustomerCreateRequest) Validate() error {
 	errs := make([]error, 0)
-	if err := r.validateVendor(repo); err != nil {
+	if err := r.validateVendor(); err != nil {
 		errs = append(errs, err)
 	}
 	if err := r.validateName(); err != nil {
 		errs = append(errs, err)
 	}
-	if err := r.validateNickname(repo); err != nil {
+	if err := r.validateNickname(); err != nil {
 		errs = append(errs, err)
 	}
-	if err := r.validateDocument(repo); err != nil {
+	if err := r.validateDocument(); err != nil {
 		errs = append(errs, err)
 	}
 	if err := r.validateEmail(); err != nil {
@@ -68,12 +76,12 @@ func (r *CustomerCreateRequest) Validate(repo port.Repository) error {
 }
 
 // validateVendor checks if the provided vendor is valid and exists in the system.
-func (r *CustomerCreateRequest) validateVendor(repo port.Repository) error {
+func (r *CustomerCreateRequest) validateVendor() error {
 	if r.Vendor == "" {
 		return errors.New("vendor is required")
 	}
-	vendor := domain.Vendor{}
-	if ok, err := vendor.GetByNickname(repo, r.Vendor); err != nil {
+	vendor := domain.StartVendor(r.Repo)
+	if ok, err := vendor.GetByNickname(r.Vendor); err != nil {
 		return fmt.Errorf("failed to validate vendor: %v", err)
 	} else if !ok {
 		return fmt.Errorf("vendor '%s' does not exist", r.Vendor)
@@ -94,7 +102,7 @@ func (r *CustomerCreateRequest) GetDomain() port.Domain {
 	if r.Whatsapp != "" {
 		whatsapp = &r.Whatsapp
 	}
-	return domain.NewCustomer(r.VendorID, &r.Name, &r.Nickname, document, email, whatsapp)
+	return domain.NewCustomer(r.Repo, r.VendorID, &r.Name, &r.Nickname, document, email, whatsapp)
 }
 
 // GetOutDTO converts the CustomerCreateRequest to a CustomerCreateResponse DTO.
@@ -113,7 +121,7 @@ func (r *CustomerCreateRequest) validateName() error {
 }
 
 // validateNickname checks if the provided nickname is valid and not already in use.
-func (r *CustomerCreateRequest) validateNickname(repo port.Repository) error {
+func (r *CustomerCreateRequest) validateNickname() error {
 	if r.Nickname == "" {
 		return errors.New("nickname is required")
 	}
@@ -121,7 +129,7 @@ func (r *CustomerCreateRequest) validateNickname(repo port.Repository) error {
 		return errors.New("nickname must be lowercase and must not contain spaces")
 	}
 	var c domain.Customer
-	if ok, err := c.GetByNickname(repo, r.VendorID, r.Nickname); err != nil {
+	if ok, err := c.GetByNickname(r.VendorID, r.Nickname); err != nil {
 		return fmt.Errorf("failed to validate nickname: %v", err)
 	} else if ok {
 		return fmt.Errorf("nickname is already in use")
@@ -130,7 +138,7 @@ func (r *CustomerCreateRequest) validateNickname(repo port.Repository) error {
 }
 
 // validateDocument checks if the provided document is valid and not already in use.
-func (r *CustomerCreateRequest) validateDocument(repo port.Repository) error {
+func (r *CustomerCreateRequest) validateDocument() error {
 	if r.Document == "" {
 		return nil
 	}
@@ -138,7 +146,7 @@ func (r *CustomerCreateRequest) validateDocument(repo port.Repository) error {
 		return err
 	}
 	var c domain.Customer
-	if ok, err := c.GetByDocument(repo, r.VendorID, r.Document); err != nil {
+	if ok, err := c.GetByDocument(r.VendorID, r.Document); err != nil {
 		return fmt.Errorf("failed to validate document: %v", err)
 	} else if ok {
 		return fmt.Errorf("document is already in use")

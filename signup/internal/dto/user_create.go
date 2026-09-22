@@ -11,13 +11,19 @@ import (
 
 // UserCreateRequest represents the request payload for creating a new user.
 type UserCreateRequest struct {
-	Vendor   string `json:"vendor" validate:"required"`
-	VendorID int64  `json:"_"`
-	Name     string `json:"name" validate:"required"`
-	Username string `json:"username" validate:"required"`
-	Password string `json:"password" validate:"required"`
-	Email    string `json:"email" validate:"required,email"`
-	Whatsapp string `json:"whatsapp" validate:"required"`
+	RequestBase `json:"-"`
+	Vendor      string `json:"vendor" validate:"required"`
+	VendorID    int64  `json:"_"`
+	Name        string `json:"name" validate:"required"`
+	Username    string `json:"username" validate:"required"`
+	Password    string `json:"password" validate:"required"`
+	Email       string `json:"email" validate:"required,email"`
+	Whatsapp    string `json:"whatsapp" validate:"required"`
+}
+
+// NewUserCreateRequest creates a new instance of UserCreateRequest.
+func NewUserCreateRequest(repo port.Repository) *UserCreateRequest {
+	return &UserCreateRequest{RequestBase: RequestBase{Repo: repo}}
 }
 
 // UserCreateResponse represents the response payload after creating a new user.
@@ -33,21 +39,21 @@ func NewUserCreateResponse(httpCode int, status, message string) UserCreateRespo
 }
 
 // Validate checks if the UserCreateRequest has all required fields and valid data.
-func (r *UserCreateRequest) Validate(repo port.Repository) error {
+func (r *UserCreateRequest) Validate() error {
 	errs := []error{}
-	if err := r.validateVendor(repo); err != nil {
+	if err := r.validateVendor(); err != nil {
 		errs = append(errs, fmt.Errorf("vendor is required"))
 	}
 	if err := r.validateName(); err != nil {
 		errs = append(errs, fmt.Errorf("name is required"))
 	}
-	if err := r.validateUser(repo); err != nil {
+	if err := r.validateUser(); err != nil {
 		errs = append(errs, fmt.Errorf("username is required"))
 	}
 	if err := r.validatePassword(); err != nil {
 		errs = append(errs, fmt.Errorf("password is required"))
 	}
-	if err := r.validateEmail(repo); err != nil {
+	if err := r.validateEmail(); err != nil {
 		errs = append(errs, fmt.Errorf("email is required"))
 	}
 	if err := r.validateWhatsapp(); err != nil {
@@ -60,13 +66,25 @@ func (r *UserCreateRequest) Validate(repo port.Repository) error {
 	return nil
 }
 
+// GetDomain returns the domain model of the user.
+func (r *UserCreateRequest) GetDomain() port.Domain {
+	var email, whatsapp *string
+	if r.Email != "" {
+		email = &r.Email
+	}
+	if r.Whatsapp != "" {
+		whatsapp = &r.Whatsapp
+	}
+	return domain.NewUser(r.Repo, r.VendorID, r.Name, r.Username, r.Password, email, whatsapp)
+}
+
 // validateVendor checks if the provided vendor is valid.
-func (r *UserCreateRequest) validateVendor(repo port.Repository) error {
+func (r *UserCreateRequest) validateVendor() error {
 	if r.Vendor == "" {
 		return errors.New("vendor is required")
 	}
-	vendor := domain.Vendor{}
-	if ok, err := vendor.GetByNickname(repo, r.Vendor); err != nil || !ok {
+	vendor := domain.StartVendor(r.Repo)
+	if ok, err := vendor.GetByNickname(r.Vendor); err != nil || !ok {
 		return errors.New("invalid vendor")
 	}
 	r.VendorID = vendor.ID
@@ -82,7 +100,7 @@ func (r *UserCreateRequest) validateName() error {
 }
 
 // validateUser checks if the provided user data is valid.
-func (r *UserCreateRequest) validateUser(repo port.Repository) error {
+func (r *UserCreateRequest) validateUser() error {
 	if r.Username == "" {
 		return errors.New("username is required")
 	}
@@ -91,8 +109,8 @@ func (r *UserCreateRequest) validateUser(repo port.Repository) error {
 		return errors.New("username must be lowercase and must not contain spaces")
 	}
 	// if it contains spaces, the previous condition will catch it
-	user := domain.User{}
-	if ok, err := user.GetByUsername(repo, r.VendorID, r.Username); err != nil {
+	user := domain.StartUser(r.Repo)
+	if ok, err := user.GetByUsername(r.VendorID, r.Username); err != nil {
 		return fmt.Errorf("error checking username: %w", err)
 	} else if ok {
 		return fmt.Errorf("username already exists")
@@ -111,11 +129,16 @@ func (r *UserCreateRequest) validatePassword() error {
 	if len(r.Password) < 8 {
 		return errors.New("password must be at least 8 characters long")
 	}
+	var err error
+	r.Password, err = HashPassword(r.Password)
+	if err != nil {
+		return fmt.Errorf("error hashing password: %w", err)
+	}
 	return nil
 }
 
 // validateEmail checks if the provided email is valid.
-func (r *UserCreateRequest) validateEmail(repo port.Repository) error {
+func (r *UserCreateRequest) validateEmail() error {
 	if r.Email == "" {
 		return nil
 	}
@@ -123,8 +146,8 @@ func (r *UserCreateRequest) validateEmail(repo port.Repository) error {
 		return err
 	}
 	// check if email already exists for the vendor
-	user := domain.User{}
-	if ok, err := user.GetByEmail(repo, r.VendorID, r.Email); err != nil {
+	user := domain.StartUser(r.Repo)
+	if ok, err := user.GetByEmail(r.VendorID, r.Email); err != nil {
 		return fmt.Errorf("error checking email: %w", err)
 	} else if ok {
 		return fmt.Errorf("email already exists")

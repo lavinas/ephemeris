@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/mail"
 	"strings"
-	"time"
 
 	"signup/internal/domain"
 	"signup/internal/port"
@@ -15,15 +14,23 @@ import (
 
 // CustomerUpdateRequest represents the request payload for updating an existing customer.
 type CustomerUpdateRequest struct {
-	Vendor   string           `json:"vendor" validate:"required"`
-	vendorID int64            `json:"-" validate:"-"`
-	Nickname string           `json:"nickname" validate:"required"`
-	Name     *string          `json:"name" validate:"required"`
-	Document *string          `json:"document" validate:"required"`
-	Email    *string          `json:"email" validate:"required,email"`
-	Whatsapp *string          `json:"whatsapp" validate:"required"`
-	Status   *int             `json:"status" validate:"required"`
-	customer *domain.Customer `json:"-" validate:"-"`
+	RequestBase `json:"-" validate:"-"`
+	Vendor      string           `json:"vendor" validate:"required"`
+	vendorID    int64            `json:"-" validate:"-"`
+	Nickname    string           `json:"nickname" validate:"required"`
+	Name        *string          `json:"name" validate:"required"`
+	Document    *string          `json:"document" validate:"required"`
+	Email       *string          `json:"email" validate:"required,email"`
+	Whatsapp    *string          `json:"whatsapp" validate:"required"`
+	Status      *int             `json:"status" validate:"required"`
+	customer    *domain.Customer `json:"-" validate:"-"`
+}
+
+// NewCustomerUpdateRequest creates a new instance of CustomerUpdateRequest
+func NewCustomerUpdateRequest(repo port.Repository) *CustomerUpdateRequest {
+	return &CustomerUpdateRequest{
+		RequestBase: NewRequestBase(repo),
+	}
 }
 
 // CustomerUpdateResponse represents the response payload after updating an existing customer.
@@ -39,18 +46,18 @@ func NewCustomerUpdateResponse(httpCode int, status, message string) CustomerUpd
 }
 
 // Validate checks if the CustomerUpdateRequest has all required fields and valid data.
-func (r *CustomerUpdateRequest) Validate(repo port.Repository) error {
+func (r *CustomerUpdateRequest) Validate() error {
 	errs := make([]error, 0)
-	if err := r.ValidateVendor(repo); err != nil {
+	if err := r.validateVendor(); err != nil {
 		errs = append(errs, err)
 	}
-	if err := r.validateNickname(repo); err != nil {
+	if err := r.validateNickname(); err != nil {
 		errs = append(errs, err)
 	}
 	if err := r.validateName(); err != nil {
 		errs = append(errs, err)
 	}
-	if err := r.validateDocument(repo); err != nil {
+	if err := r.validateDocument(); err != nil {
 		errs = append(errs, err)
 	}
 	if err := r.validateWhatsapp(); err != nil {
@@ -72,13 +79,36 @@ func (r *CustomerUpdateRequest) Validate(repo port.Repository) error {
 	return nil
 }
 
+// GetDomain returns the domain model of the customer.
+func (r *CustomerUpdateRequest) GetDomain() port.Domain {
+	if r.customer == nil {
+		return nil
+	}
+	if r.Name != nil {
+		r.customer.Name = *r.Name
+	}
+	if r.Document != nil {
+		r.customer.Document = r.Document
+	}
+	if r.Email != nil {
+		r.customer.Email = r.Email
+	}
+	if r.Whatsapp != nil {
+		r.customer.Whatsapp = r.Whatsapp
+	}
+	if r.Status != nil {
+		r.customer.Status = *r.Status
+	}
+	return r.customer
+}
+
 // ValidateVendor checks if the provided vendor is valid and sets the vendorID.
-func (r *CustomerUpdateRequest) ValidateVendor(repo port.Repository) error {
+func (r *CustomerUpdateRequest) validateVendor() error {
 	if r.Vendor == "" {
 		return fmt.Errorf("vendor is required")
 	}
-	vendor := domain.Vendor{}
-	if ok, err := vendor.GetByNickname(repo, r.Vendor); err != nil {
+	vendor := domain.StartVendor(r.Repo)
+	if ok, err := vendor.GetByNickname(r.Vendor); err != nil {
 		return fmt.Errorf("failed to validate vendor: %v", err)
 	} else if !ok {
 		return fmt.Errorf("vendor '%s' does not exist", r.Vendor)
@@ -88,20 +118,20 @@ func (r *CustomerUpdateRequest) ValidateVendor(repo port.Repository) error {
 }
 
 // validateNickname checks if the provided nickname is not already used by another customer.
-func (r *CustomerUpdateRequest) validateNickname(repo port.Repository) error {
+func (r *CustomerUpdateRequest) validateNickname() error {
 	if r.vendorID == 0 {
 		return nil // Vendor validation will catch this error
 	}
 	if r.Nickname == "" {
 		return fmt.Errorf("nickname is required")
 	}
-	var customer domain.Customer
-	if ok, err := customer.GetByNickname(repo, r.vendorID, r.Nickname); err != nil {
+	customer := domain.StartCustomer(r.Repo)
+	if ok, err := customer.GetByNickname(r.vendorID, r.Nickname); err != nil {
 		return fmt.Errorf("failed to validate nickname: %v", err)
 	} else if !ok {
 		return fmt.Errorf("customer with nickname '%s' does not exist", r.Nickname)
 	}
-	r.customer = &customer
+	r.customer = customer
 	return nil
 }
 
@@ -117,7 +147,7 @@ func (r *CustomerUpdateRequest) validateName() error {
 }
 
 // validateDocument checks if the provided document is valid and not used by another customer.
-func (r *CustomerUpdateRequest) validateDocument(repo port.Repository) error {
+func (r *CustomerUpdateRequest) validateDocument() error {
 	if r.Document == nil {
 		return nil
 	}
@@ -127,8 +157,8 @@ func (r *CustomerUpdateRequest) validateDocument(repo port.Repository) error {
 	if err := r.validateCpfCnpj(); err != nil {
 		return err
 	}
-	var customer domain.Customer
-	if ok, err := customer.GetByDocument(repo, r.vendorID, *r.Document); err != nil {
+	customer := domain.StartCustomer(r.Repo)
+	if ok, err := customer.GetByDocument(r.vendorID, *r.Document); err != nil {
 		return fmt.Errorf("failed to validate document: %v", err)
 	} else if !ok {
 		return nil
@@ -208,30 +238,6 @@ func (r *CustomerUpdateRequest) validateAtLeastOneField() error {
 		return fmt.Errorf("at least one field must be provided for update")
 	}
 	return nil
-}
-
-// GetModel constructs a map of the fields to be updated based on the non-empty fields
-func (r *CustomerUpdateRequest) GetDomain() interface{} {
-	if r.customer == nil {
-		return nil
-	}
-	if r.Name != nil {
-		r.customer.Name = *r.Name
-	}
-	if r.Document != nil {
-		r.customer.Document = r.Document
-	}
-	if r.Email != nil {
-		r.customer.Email = r.Email
-	}
-	if r.Whatsapp != nil {
-		r.customer.Whatsapp = r.Whatsapp
-	}
-	if r.Status != nil {
-		r.customer.Status = *r.Status
-	}
-	r.customer.UpdatedAt = time.Now()
-	return r.customer
 }
 
 // Reset resets the fields of the CustomerUpdateRequest to their zero values.

@@ -8,6 +8,7 @@ import (
 )
 
 type Customer struct {
+	DomainBase
 	ID        int64     `gorm:"primaryKey;autoIncrement"`
 	VendorID  int64     `gorm:"not null;index"`
 	Name      string    `gorm:"not null"`
@@ -21,19 +22,25 @@ type Customer struct {
 }
 
 // NewCustomer creates a new Customer instance with the provided details.
-func NewCustomer(vendorID int64, name, nickname, document, email, whatsapp *string) *Customer {
+func NewCustomer(repo port.Repository, vendorID int64, name, nickname, document, email, whatsapp *string) *Customer {
 	return &Customer{
-		ID:        0,
-		VendorID:  vendorID,
-		Name:      *name,
-		Nickname:  *nickname,
-		Status:    1,
-		Document:  document,
-		Email:     email,
-		Whatsapp:  whatsapp,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		DomainBase: DomainBase{Repo: repo},
+		ID:         0,
+		VendorID:   vendorID,
+		Name:       *name,
+		Nickname:   *nickname,
+		Status:     1,
+		Document:   document,
+		Email:      email,
+		Whatsapp:   whatsapp,
+		CreatedAt:  time.Now(),
+		UpdatedAt:  time.Now(),
 	}
+}
+
+// StartCustomer represents the input data required to create a new customer.
+func StartCustomer(repo port.Repository) *Customer {
+	return &Customer{DomainBase: DomainBase{Repo: repo}}
 }
 
 // TableName specifies the table name for Customer model.
@@ -42,9 +49,9 @@ func (Customer) TableName() string {
 }
 
 // GetByNickname retrieves a customer by their nickname.
-func (c *Customer) GetByNickname(repo port.Repository, vendorID int64, nickname string) (bool, error) {
+func (c *Customer) GetByNickname(vendorID int64, nickname string) (bool, error) {
 	conditions := map[string]interface{}{"nickname = ?": nickname, "vendor_id = ?": vendorID}
-	resp, err := repo.Find(c, conditions, 1, 1)
+	resp, err := c.Repo.Find(c, conditions, 1, 1)
 	if err != nil {
 		return false, err
 	}
@@ -60,9 +67,9 @@ func (c *Customer) GetByNickname(repo port.Repository, vendorID int64, nickname 
 }
 
 // GetByDocument retrieves a customer by their document.
-func (c *Customer) GetByDocument(repo port.Repository, vendorID int64, document string) (bool, error) {
+func (c *Customer) GetByDocument(vendorID int64, document string) (bool, error) {
 	conditions := map[string]interface{}{"document = ?": document, "vendor_id = ?": vendorID}
-	resp, err := repo.Find(c, conditions, 1, 1)
+	resp, err := c.Repo.Find(c, conditions, 1, 1)
 	if err != nil {
 		return false, err
 	}
@@ -78,9 +85,30 @@ func (c *Customer) GetByDocument(repo port.Repository, vendorID int64, document 
 }
 
 // Find retrieves customers based on the specified conditions.
-func (c *Customer) Find(repo port.Repository) ([]port.Domain, error) {
+func (c *Customer) Find() ([]port.Domain, error) {
 	conditions := map[string]interface{}{}
-	resp, err := repo.Find(c, conditions, 0, 0)
+	if c.VendorID > 0 {
+		conditions["vendor_id = ?"] = c.VendorID
+	}
+	if c.Name != "" {
+		conditions["name like ?"] = "%" + c.Name + "%"
+	}
+	if c.Nickname != "" {
+		conditions["nickname like ?"] = "%" + c.Nickname + "%"
+	}
+	if c.Document != nil {
+		conditions["document like ?"] = "%" + *c.Document + "%"
+	}
+	if c.Email != nil {
+		conditions["email like ?"] = "%" + *c.Email + "%"
+	}
+	if c.Whatsapp != nil {
+		conditions["whatsapp like ?"] = "%" + *c.Whatsapp + "%"
+	}
+	if c.Status != 0 {
+		conditions["status = ?"] = c.Status
+	}
+	resp, err := c.Repo.Find(c, conditions, 0, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +123,59 @@ func (c *Customer) Find(repo port.Repository) ([]port.Domain, error) {
 	return out, nil
 }
 
+// Validate validates customer data before saving.
+func (c *Customer) Validate() error {
+	if c.VendorID == 0 {
+		return fmt.Errorf("vendor_id is required")
+	}
+	vendor := Vendor{}
+	if _, err := vendor.GetByID(c.VendorID); err != nil {
+		return fmt.Errorf("vendor not found")
+	}
+	if c.Name == "" {
+		return fmt.Errorf("name is required")
+	}
+	if c.Nickname == "" {
+		return fmt.Errorf("nickname is required")
+	}
+	if c.Nickname != "" {
+		if err := c.ValidateNickname(c.Nickname); err != nil {
+			return fmt.Errorf("nickname is invalid")
+		}
+	}
+	if c.Document != nil {
+		if newDoc, err := c.ValidateCpfCnpj(*c.Document); err != nil {
+			return fmt.Errorf("document is invalid")
+		} else {
+			c.Document = &newDoc
+		}
+	}
+	if c.Email != nil {
+		if err := c.ValidateEmail(*c.Email); err != nil {
+			return fmt.Errorf("email is invalid")
+		}
+	}
+	if c.Whatsapp != nil {
+		if _, err := c.ValidateCellNumber(*c.Whatsapp); err != nil {
+			return fmt.Errorf("whatsapp is invalid")
+		}
+	}
+	if c.CreatedAt.IsZero() {
+		return fmt.Errorf("created_at is required")
+	}
+	if c.UpdatedAt.IsZero() {
+		return fmt.Errorf("updated_at is required")
+	}
+	if c.Status != 1 && c.Status != 0 {
+		return fmt.Errorf("status is invalid")
+	}
+	return nil
+}
+
 // Save persists the customer instance to the repository.
-func (c *Customer) Save(repo port.Repository) error {
-	return repo.Save(c)
+func (c *Customer) Save() error {
+	if err := c.Validate(); err != nil {
+		return err
+	}
+	return c.Repo.Save(c)
 }

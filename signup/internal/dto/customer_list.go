@@ -12,16 +12,24 @@ import (
 
 // CustomerListRequest represents the data transfer object for listing customers with pagination.
 type CustomerListRequest struct {
-	Page     int     `json:"page" validate:"required,gt=0"`
-	PageSize int     `json:"page_size" validate:"required,gt=0"`
-	Vendor   string  `json:"vendor" validate:"required"`
-	VendorID int64   `json:"-" validate:"-"`
-	Name     *string `json:"name,omitempty"`
-	Nickname *string `json:"nickname,omitempty"`
-	Document *string `json:"document,omitempty"`
-	Status   *int    `json:"status,omitempty"`
-	Email    *string `json:"email,omitempty"`
-	Whatsapp *string `json:"whatsapp,omitempty"`
+	RequestBase `json:"-" validate:"-"`
+	Page        int     `json:"page" validate:"required,gt=0"`
+	PageSize    int     `json:"page_size" validate:"required,gt=0"`
+	Vendor      string  `json:"vendor" validate:"required"`
+	VendorID    int64   `json:"-" validate:"-"`
+	Name        *string `json:"name,omitempty"`
+	Nickname    *string `json:"nickname,omitempty"`
+	Document    *string `json:"document,omitempty"`
+	Status      *int    `json:"status,omitempty"`
+	Email       *string `json:"email,omitempty"`
+	Whatsapp    *string `json:"whatsapp,omitempty"`
+}
+
+// NewCustomerListRequest creates a new instance of CustomerListRequest with the provided repository.
+func NewCustomerListRequest(repo port.Repository) *CustomerListRequest {
+	return &CustomerListRequest{
+		RequestBase: NewRequestBase(repo),
+	}
 }
 
 // CustomerListResponse represents the data transfer object for the response after listing customers.
@@ -32,13 +40,13 @@ type CustomerListResponse struct {
 
 // CustomerDTO represents the data transfer object for a customer in the list response.
 type CustomerDTO struct {
-	ID        int64  `json:"id"`
-	Nickname  string `json:"nickname"`
-	Name      string `json:"name"`
-	Document  string `json:"document"`
-	Email     string `json:"email"`
-	Whatsapp  string `json:"whatsapp"`
-	Status    int    `json:"status"`
+	ID       int64  `json:"id"`
+	Nickname string `json:"nickname"`
+	Name     string `json:"name"`
+	Document string `json:"document"`
+	Email    string `json:"email"`
+	Whatsapp string `json:"whatsapp"`
+	Status   int    `json:"status"`
 }
 
 // NewCustomerListResponse creates a new instance of CustomerListResponse with the provided
@@ -68,18 +76,18 @@ func NewCustomerDTO(id int64, name, nickname string, status int,
 	}
 
 	return CustomerDTO{
-		ID:        id,
-		Nickname:  nickname,
-		Name:      name,
-		Document:  docStr,
-		Email:     emailStr,
-		Whatsapp:  whatsappStr,
-		Status:    status,
+		ID:       id,
+		Nickname: nickname,
+		Name:     name,
+		Document: docStr,
+		Email:    emailStr,
+		Whatsapp: whatsappStr,
+		Status:   status,
 	}
 }
 
 // Validate validates the CustomerListRequest fields using the provided validator.
-func (r *CustomerListRequest) Validate(repo port.Repository) error {
+func (r *CustomerListRequest) Validate() error {
 	errs := make([]error, 0)
 	if r.Page <= 0 {
 		errs = append(errs, fmt.Errorf("page must be greater than 0"))
@@ -87,7 +95,7 @@ func (r *CustomerListRequest) Validate(repo port.Repository) error {
 	if r.PageSize <= 0 {
 		errs = append(errs, fmt.Errorf("page_size must be greater than 0"))
 	}
-	if err := r.validateVendor(repo); err != nil {
+	if err := r.validateVendor(r.Repo); err != nil {
 		errs = append(errs, err)
 	}
 	if r.Status != nil && *r.Status != 1 && *r.Status != 0 && *r.Status != -1 {
@@ -102,7 +110,7 @@ func (r *CustomerListRequest) Validate(repo port.Repository) error {
 
 // GetDomain converts the CustomerListRequest to a domain.Customer entity.
 func (r *CustomerListRequest) GetDomain() port.Domain {
-	return domain.NewCustomer(r.VendorID, r.Name, r.Nickname, r.Document, r.Email, r.Whatsapp)
+	return domain.NewCustomer(r.Repo, r.VendorID, r.Name, r.Nickname, r.Document, r.Email, r.Whatsapp)
 }
 
 // GetOutDTO constructs an output DTO for the customer list request.
@@ -116,8 +124,8 @@ func (r *CustomerListRequest) validateVendor(repo port.Repository) error {
 	if r.Vendor == "" {
 		return errors.New("vendor is required")
 	}
-	vendor := domain.Vendor{}
-	if ok, err := vendor.GetByNickname(repo, r.Vendor); err != nil {
+	vendor := domain.StartVendor(repo)
+	if ok, err := vendor.GetByNickname(r.Vendor); err != nil {
 		return fmt.Errorf("failed to validate vendor: %v", err)
 	} else if !ok {
 		return fmt.Errorf("vendor '%s' does not exist", r.Vendor)

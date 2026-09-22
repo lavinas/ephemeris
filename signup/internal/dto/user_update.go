@@ -3,21 +3,30 @@ package dto
 import (
 	"errors"
 	"fmt"
-	"strings"
 
-	"signup/internal/port"
 	"signup/internal/domain"
+	"signup/internal/port"
 )
 
 // UserUpdateRequest represents the request payload for updating a user's information.
 type UserUpdateRequest struct {
-	Vendor   string `json:"vendor,omitempty"`
-	VendorID int64  `json:"-" validate:"-"`
-	Username string `json:"username,omitempty"`
-	Name     *string `json:"name,omitempty"`
-	Email    *string `json:"email,omitempty"`
-	Whatsapp *string `json:"whatsapp,omitempty"`
-	Status   *int    `json:"status,omitempty"`
+	RequestBase `json:"-" validate:"-"`
+	Vendor      string       `json:"vendor,omitempty"`
+	VendorID    int64        `json:"-" validate:"-"`
+	Username    string       `json:"username,omitempty"`
+	Password    *string      `json:"password,omitempty"`
+	Name        *string      `json:"name,omitempty"`
+	Email       *string      `json:"email,omitempty"`
+	Whatsapp    *string      `json:"whatsapp,omitempty"`
+	Status      *int         `json:"status,omitempty"`
+	user        *domain.User `json:"-"`
+}
+
+// NewUserUpdateRequest creates a new UserUpdateRequest.
+func NewUserUpdateRequest(repo port.Repository) *UserUpdateRequest {
+	return &UserUpdateRequest{
+		RequestBase: NewRequestBase(repo),
+	}
 }
 
 // UserUpdateResponse represents the response payload for updating a user's information.
@@ -33,11 +42,11 @@ func NewUserUpdateResponse(httpCode int, status, message string) UserUpdateRespo
 }
 
 // Validate checks if the UserUpdateRequest has valid fields.
-func (r *UserUpdateRequest) Validate(repo port.Repository) error {
-	if err := r.validateVendor(repo); err != nil {
+func (r *UserUpdateRequest) Validate() error {
+	if err := r.validateVendor(); err != nil {
 		return err
 	}
-	if err := r.validateUsername(repo); err != nil {
+	if err := r.validateUsername(); err != nil {
 		return err
 	}
 	if err := r.validateName(); err != nil {
@@ -55,13 +64,33 @@ func (r *UserUpdateRequest) Validate(repo port.Repository) error {
 	return nil
 }
 
-// validateVendor checks if the vendor field is valid.
-func (r *UserUpdateRequest) validateVendor(repo port.Repository) error {
-	if strings.TrimSpace(r.Vendor) == "" {
-		return errors.New("vendor cannot be empty")
+// GetDomain returns the domain entity.
+func (r *UserUpdateRequest) GetDomain() port.Domain {
+	if r.user == nil {
+		return nil
 	}
-	var vendor domain.Vendor
-	if ok, err := vendor.GetByNickname(repo, r.Vendor); err != nil {
+	if r.Name != nil {
+		r.user.Name = *r.Name
+	}
+	if r.Password != nil {
+		r.user.PassHash = *r.Password
+	}
+	if r.Email != nil {
+		r.user.Email = r.Email
+	}
+	if r.Whatsapp != nil {
+		r.user.Whatsapp = r.Whatsapp
+	}
+	if r.Status != nil {
+		r.user.Status = r.Status
+	}
+	return r.user
+}
+
+// validateVendor checks if the vendor field is valid.
+func (r *UserUpdateRequest) validateVendor() error {
+	vendor := domain.StartVendor(r.Repo)
+	if ok, err := vendor.GetByNickname(r.Vendor); err != nil {
 		return fmt.Errorf("invalid vendor: %w", err)
 	} else if !ok {
 		return errors.New("vendor not found")
@@ -71,16 +100,34 @@ func (r *UserUpdateRequest) validateVendor(repo port.Repository) error {
 }
 
 // validateUsername checks if the username field is valid.
-func (r *UserUpdateRequest) validateUsername(repo port.Repository) error {
-	if strings.TrimSpace(r.Username) == "" {
-		return errors.New("username cannot be empty")
-	}
-	var user domain.User
-	if ok, err := user.GetByUsername(repo, r.VendorID, r.Username); err != nil {
+func (r *UserUpdateRequest) validateUsername() error {
+	user := domain.StartUser(r.Repo)
+	if ok, err := user.GetByUsername(r.VendorID, r.Username); err != nil {
 		return fmt.Errorf("invalid username: %w", err)
 	} else if !ok {
 		return errors.New("username not found")
 	}
+	r.user = user
+	return nil
+}
+
+// validatePassword checks if the provided password is not empty and has a valid format.
+func (r *UserUpdateRequest) validatePassword() error {
+	if r.Password == nil {
+		return nil
+	}
+	if *r.Password == "" {
+		return fmt.Errorf("password cannot be empty")
+	}
+	if len(*r.Password) < 8 {
+		return fmt.Errorf("password must be at least 8 characters long")
+	}
+	var err error
+	hashedPass, err := HashPassword(*r.Password)
+	if err != nil {
+		return fmt.Errorf("error hashing password: %w", err)
+	}
+	r.Password = &hashedPass
 	return nil
 }
 

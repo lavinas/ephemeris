@@ -9,4 +9,3 @@ func main() {
 	fmt.Println("Olá, Go!")
 	fmt.Println(time.Now())
 }
-
