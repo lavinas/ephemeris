@@ -7,5 +7,5 @@ type Domain interface {
 	// Save persists the domain entity using the provided repository.
 	Save() error
 	// Find retrieves domain entities based on the specified conditions using the provided repository.
-	Find() ([]Domain, error)
+	Find(page, pagesize int) ([]Domain, error)
 }

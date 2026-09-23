@@ -109,14 +109,40 @@ func (r *CustomerListRequest) Validate() error {
 }
 
 // GetDomain converts the CustomerListRequest to a domain.Customer entity.
-func (r *CustomerListRequest) GetDomain() port.Domain {
-	return domain.NewCustomer(r.Repo, r.VendorID, r.Name, r.Nickname, r.Document, r.Email, r.Whatsapp)
+func (r *CustomerListRequest) GetDomain() (port.Domain, error) {
+	customer := domain.StartCustomer(r.Repo)
+	customer.VendorID = r.VendorID
+	if r.Name != nil {
+		customer.Name = *r.Name
+	}
+	if r.Nickname != nil {
+		customer.Nickname = *r.Nickname
+	}
+	customer.Document = r.Document
+	customer.Email = r.Email
+	customer.Whatsapp = r.Whatsapp
+	customer.Status = r.Status
+	return customer, nil
 }
 
 // GetOutDTO constructs an output DTO for the customer list request.
 func (r *CustomerListRequest) GetOutDTO(httpCode int, status, message string, data interface{}) port.OutDTO {
-	customers, _ := data.([]CustomerDTO)
-	return NewCustomerListResponse(httpCode, status, message, customers)
+	var customers []CustomerDTO
+	if list, ok := data.([]port.Domain); ok {
+		for _, d := range list {
+			if c, ok := d.(*domain.Customer); ok {
+				customers = append(customers, NewCustomerDTO(c.ID, c.Name, c.Nickname, *c.Status, c.Document, c.Email, c.Whatsapp, c.CreatedAt, c.UpdatedAt))
+			}
+		}
+		return NewCustomerListResponse(httpCode, status, message, customers)
+	}
+	return NewCustomerListResponse(httpCode, status, message, []CustomerDTO{})
+}
+
+// GetPageParams returns the pagination parameters.
+// returns (page, pageSize)
+func (r *CustomerListRequest) GetPageParams() (int, int) {
+	return r.Page, r.PageSize
 }
 
 // validateVendor checks if the provided vendor is valid and exists in the system.

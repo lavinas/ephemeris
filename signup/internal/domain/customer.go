@@ -16,20 +16,21 @@ type Customer struct {
 	Document  *string   `gorm:"unique"`
 	Email     *string   `gorm:"null"`
 	Whatsapp  *string   `gorm:"null"`
-	Status    int       `gorm:"not null"`
+	Status    *int       `gorm:"not null"`
 	CreatedAt time.Time `gorm:"not null"`
 	UpdatedAt time.Time `gorm:"not null"`
 }
 
 // NewCustomer creates a new Customer instance with the provided details.
 func NewCustomer(repo port.Repository, vendorID int64, name, nickname, document, email, whatsapp *string) *Customer {
+	status := 1
 	return &Customer{
 		DomainBase: DomainBase{Repo: repo},
 		ID:         0,
 		VendorID:   vendorID,
 		Name:       *name,
 		Nickname:   *nickname,
-		Status:     1,
+		Status:     &status,
 		Document:   document,
 		Email:      email,
 		Whatsapp:   whatsapp,
@@ -85,7 +86,7 @@ func (c *Customer) GetByDocument(vendorID int64, document string) (bool, error) 
 }
 
 // Find retrieves customers based on the specified conditions.
-func (c *Customer) Find() ([]port.Domain, error) {
+func (c *Customer) Find(page, pageSize int) ([]port.Domain, error) {
 	conditions := map[string]interface{}{}
 	if c.VendorID > 0 {
 		conditions["vendor_id = ?"] = c.VendorID
@@ -105,10 +106,10 @@ func (c *Customer) Find() ([]port.Domain, error) {
 	if c.Whatsapp != nil {
 		conditions["whatsapp like ?"] = "%" + *c.Whatsapp + "%"
 	}
-	if c.Status != 0 {
-		conditions["status = ?"] = c.Status
+	if c.Status != nil {
+		conditions["status = ?"] = *c.Status
 	}
-	resp, err := c.Repo.Find(c, conditions, 0, 0)
+	resp, err := c.Repo.Find(c, conditions, page, pageSize)
 	if err != nil {
 		return nil, err
 	}
@@ -128,8 +129,8 @@ func (c *Customer) Validate() error {
 	if c.VendorID == 0 {
 		return fmt.Errorf("vendor_id is required")
 	}
-	vendor := Vendor{}
-	if _, err := vendor.GetByID(c.VendorID); err != nil {
+	vendor := StartVendor(c.Repo)
+	if ok, err := vendor.GetByID(c.VendorID); err != nil || !ok {
 		return fmt.Errorf("vendor not found")
 	}
 	if c.Name == "" {
@@ -166,8 +167,8 @@ func (c *Customer) Validate() error {
 	if c.UpdatedAt.IsZero() {
 		return fmt.Errorf("updated_at is required")
 	}
-	if c.Status != 1 && c.Status != 0 {
-		return fmt.Errorf("status is invalid")
+	if c.Status == nil || (*c.Status != 1 && *c.Status != 0) {
+		return fmt.Errorf("status is required or invalid")
 	}
 	return nil
 }

@@ -65,9 +65,9 @@ func (r *UserUpdateRequest) Validate() error {
 }
 
 // GetDomain returns the domain entity.
-func (r *UserUpdateRequest) GetDomain() port.Domain {
+func (r *UserUpdateRequest) GetDomain() (port.Domain, error) {
 	if r.user == nil {
-		return nil
+		return nil, errors.New("user not found")
 	}
 	if r.Name != nil {
 		r.user.Name = *r.Name
@@ -84,7 +84,19 @@ func (r *UserUpdateRequest) GetDomain() port.Domain {
 	if r.Status != nil {
 		r.user.Status = r.Status
 	}
-	return r.user
+	return r.user, nil
+}
+
+// GetOutDTO converts the CustomerCreateRequest to a CustomerCreateResponse DTO.
+func (r *UserUpdateRequest) GetOutDTO(httpCode int, status, message string, data interface{}) port.OutDTO {
+	return &UserUpdateResponse{
+		ResponseBase: NewResponseBase(httpCode, status, message),
+	}
+}
+
+// GetPageParams returns the pagination parameters.
+func (r *UserUpdateRequest) GetPageParams() (int, int) {
+	return 1, 1
 }
 
 // validateVendor checks if the vendor field is valid.

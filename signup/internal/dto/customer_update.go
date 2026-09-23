@@ -80,9 +80,9 @@ func (r *CustomerUpdateRequest) Validate() error {
 }
 
 // GetDomain returns the domain model of the customer.
-func (r *CustomerUpdateRequest) GetDomain() port.Domain {
+func (r *CustomerUpdateRequest) GetDomain() (port.Domain, error) {
 	if r.customer == nil {
-		return nil
+		return nil, errors.New("customer not found")
 	}
 	if r.Name != nil {
 		r.customer.Name = *r.Name
@@ -97,9 +97,21 @@ func (r *CustomerUpdateRequest) GetDomain() port.Domain {
 		r.customer.Whatsapp = r.Whatsapp
 	}
 	if r.Status != nil {
-		r.customer.Status = *r.Status
+		r.customer.Status = r.Status
 	}
-	return r.customer
+	return r.customer, nil
+}
+
+// GetOutDTO converts the CustomerCreateRequest to a CustomerCreateResponse DTO.
+func (r *CustomerUpdateRequest) GetOutDTO(httpCode int, status, message string, data interface{}) port.OutDTO {
+	return &CustomerUpdateResponse{
+		ResponseBase: NewResponseBase(httpCode, status, message),
+	}
+}
+
+// GetPageParams returns the pagination parameters.
+func (r *CustomerUpdateRequest) GetPageParams() (int, int) {
+	return 1, 1
 }
 
 // ValidateVendor checks if the provided vendor is valid and sets the vendorID.

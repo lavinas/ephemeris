@@ -32,6 +32,7 @@ func NewUserListRequest(repo port.Repository) *UserListRequest {
 
 // UserListResponse represents the response payload for listing users.
 type UserListResponse struct {
+	ResponseBase
 	Users      []UserListItem `json:"users"`
 	TotalCount int            `json:"total_count"`
 }
@@ -46,11 +47,14 @@ type UserListItem struct {
 	Status   int    `json:"status"`
 }
 
-// NewUserListResponse creates a new UserListResponse with the given users and total count.
-func NewUserListResponse(users []UserListItem, totalCount int) *UserListResponse {
-	return &UserListResponse{
-		Users:      users,
-		TotalCount: totalCount,
+// NewUserListResponse creates a new instance of CustomerListResponse with the provided
+// HTTP code, status, message, and customers.
+func NewUserListResponse(httpCode int, status, message string,
+	customers []UserListItem) UserListResponse {
+	return UserListResponse{
+		ResponseBase: NewResponseBase(httpCode, status, message),
+		Users:        customers,
+		TotalCount:   len(customers),
 	}
 }
 
@@ -88,6 +92,54 @@ func (r *UserListRequest) Validate() error {
 		return errors.New(strings.ReplaceAll(err.Error(), "\n", "; "))
 	}
 	return nil
+}
+
+// GetDomain converts the UserListRequest to a domain.User entity.
+func (r *UserListRequest) GetDomain() (port.Domain, error) {
+	user := domain.StartUser(r.Repo)
+	user.VendorID = r.VendorID
+	if r.Name != nil {
+		user.Name = *r.Name
+	}
+	if r.Username != nil {
+		user.Username = *r.Username
+	}
+	user.Email = r.Email
+	user.Whatsapp = r.Whatsapp
+	user.Status = r.Status
+	return user, nil
+}
+
+// GetOutDTO constructs an output DTO for the user list request.
+func (r *UserListRequest) GetOutDTO(httpCode int, status, message string, data interface{}) port.OutDTO {
+	var users []UserListItem
+	if list, ok := data.([]port.Domain); ok {
+		for _, d := range list {
+			if u, ok := d.(*domain.User); ok {
+				email := "-"
+				if u.Email != nil {
+					email = *u.Email
+				}
+				whatsapp := "-"
+				if u.Whatsapp != nil {
+					whatsapp = *u.Whatsapp
+				}
+				statusVal := 0
+				if u.Status != nil {
+					statusVal = *u.Status
+				}
+				users = append(users, NewUserListItem(u.ID, u.Username, u.Name, email, whatsapp, statusVal))
+			}
+		}
+		return NewUserListResponse(httpCode, status, message, users)
+	}
+	return NewUserListResponse(httpCode, status, message, []UserListItem{})
+}
+
+// GetPageParams returns the pagination parameters.
+// return (page, pageSize)
+func (r *UserListRequest) GetPageParams() (int, int) {
+	return r.Page, r.PageSize
 }
 
 // validatePage checks if the provided page number is valid.

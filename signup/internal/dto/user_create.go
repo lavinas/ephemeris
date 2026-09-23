@@ -67,7 +67,7 @@ func (r *UserCreateRequest) Validate() error {
 }
 
 // GetDomain returns the domain model of the user.
-func (r *UserCreateRequest) GetDomain() port.Domain {
+func (r *UserCreateRequest) GetDomain() (port.Domain, error) {
 	var email, whatsapp *string
 	if r.Email != "" {
 		email = &r.Email
@@ -75,7 +75,19 @@ func (r *UserCreateRequest) GetDomain() port.Domain {
 	if r.Whatsapp != "" {
 		whatsapp = &r.Whatsapp
 	}
-	return domain.NewUser(r.Repo, r.VendorID, r.Name, r.Username, r.Password, email, whatsapp)
+	return domain.NewUser(r.Repo, r.VendorID, r.Name, r.Username, r.Password, email, whatsapp), nil
+}
+
+// GetOutDTO converts the UserCreateRequest to a UserCreateResponse DTO.
+func (r *UserCreateRequest) GetOutDTO(httpCode int, status, message string, data interface{}) port.OutDTO {
+	return &UserCreateResponse{
+		ResponseBase: NewResponseBase(httpCode, status, message),
+	}
+}
+
+// GetPageParams returns the pagination parameters.
+func (r *UserCreateRequest) GetPageParams() (int, int) {
+	return 1, 1
 }
 
 // validateVendor checks if the provided vendor is valid.

@@ -75,6 +75,33 @@ func (r *CustomerCreateRequest) Validate() error {
 	return nil
 }
 
+// GetDomain converts the CustomerCreateRequestItem to a domain.Customer entity.
+func (r *CustomerCreateRequest) GetDomain() (port.Domain, error) {
+	var document, email, whatsapp *string
+	if r.Document != "" {
+		document = &r.Document
+	}
+	if r.Email != "" {
+		email = &r.Email
+	}
+	if r.Whatsapp != "" {
+		whatsapp = &r.Whatsapp
+	}
+	return domain.NewCustomer(r.Repo, r.VendorID, &r.Name, &r.Nickname, document, email, whatsapp), nil
+}
+
+// GetOutDTO converts the CustomerCreateRequest to a CustomerCreateResponse DTO.
+func (r *CustomerCreateRequest) GetOutDTO(httpCode int, status, message string, data interface{}) port.OutDTO {
+	return &CustomerCreateResponse{
+		ResponseBase: NewResponseBase(httpCode, status, message),
+	}
+}
+
+// GetPageParams returns the pagination parameters.
+func (r *CustomerCreateRequest) GetPageParams() (int, int) {
+	return 1, 1
+}
+
 // validateVendor checks if the provided vendor is valid and exists in the system.
 func (r *CustomerCreateRequest) validateVendor() error {
 	if r.Vendor == "" {
@@ -88,28 +115,6 @@ func (r *CustomerCreateRequest) validateVendor() error {
 	}
 	r.VendorID = vendor.ID
 	return nil
-}
-
-// GetDomain converts the CustomerCreateRequestItem to a domain.Customer entity.
-func (r *CustomerCreateRequest) GetDomain() port.Domain {
-	var document, email, whatsapp *string
-	if r.Document != "" {
-		document = &r.Document
-	}
-	if r.Email != "" {
-		email = &r.Email
-	}
-	if r.Whatsapp != "" {
-		whatsapp = &r.Whatsapp
-	}
-	return domain.NewCustomer(r.Repo, r.VendorID, &r.Name, &r.Nickname, document, email, whatsapp)
-}
-
-// GetOutDTO converts the CustomerCreateRequest to a CustomerCreateResponse DTO.
-func (r *CustomerCreateRequest) GetOutDTO(httpCode int, status, message string, data interface{}) port.OutDTO {
-	return &CustomerCreateResponse{
-		ResponseBase: NewResponseBase(httpCode, status, message),
-	}
 }
 
 // validateName checks if the provided name is valid.
@@ -128,7 +133,7 @@ func (r *CustomerCreateRequest) validateNickname() error {
 	if r.Nickname != strings.ToLower(r.Nickname) || strings.Contains(r.Nickname, " ") {
 		return errors.New("nickname must be lowercase and must not contain spaces")
 	}
-	var c domain.Customer
+	c := domain.StartCustomer(r.Repo)
 	if ok, err := c.GetByNickname(r.VendorID, r.Nickname); err != nil {
 		return fmt.Errorf("failed to validate nickname: %v", err)
 	} else if ok {
@@ -145,7 +150,7 @@ func (r *CustomerCreateRequest) validateDocument() error {
 	if err := r.validateCpfCnpj(); err != nil {
 		return err
 	}
-	var c domain.Customer
+	c := domain.StartCustomer(r.Repo)
 	if ok, err := c.GetByDocument(r.VendorID, r.Document); err != nil {
 		return fmt.Errorf("failed to validate document: %v", err)
 	} else if ok {

@@ -3,7 +3,8 @@ package port
 // InDTO represents a generic data transfer object for input of service methods.
 type InDTO interface {
 	Validate() error
-	GetDomain() Domain
+	GetDomain() (Domain, error)
+	GetPageParams() (int, int)
 	GetOutDTO(httpCode int, status, message string, data interface{}) OutDTO
 }
 

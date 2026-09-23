@@ -26,8 +26,14 @@ func (s *List) Run(inDTO port.InDTO) port.OutDTO {
 		return inDTO.GetOutDTO(400, "bad request",
 			fmt.Sprintf("Validation failed: %v", err), nil)
 	}
-	domain := inDTO.GetDomain()
-	found, err := domain.Find()
+	domain, err := inDTO.GetDomain()
+	if err != nil {
+		s.logger.IPrintf(2, "Failed to get domain: %v", err)
+		return inDTO.GetOutDTO(400, "bad request",
+			fmt.Sprintf("Failed to get domain: %v", err), nil)
+	}
+	page, pageSize := inDTO.GetPageParams()
+	found, err := domain.Find(page, pageSize)
 	if err != nil {
 		s.logger.IPrintf(2, "Failed to find customers: %v", err)
 		return inDTO.GetOutDTO(500, "internal error", "contact support please", nil)

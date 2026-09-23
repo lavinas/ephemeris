@@ -1,0 +1,21 @@
+{
+    "db": {
+        "host": "signup_db",
+        "port": 5432,
+        "user": "root",
+        "password": "root",
+        "dbname": "signup",
+        "sslmode": "disable",
+        "timezone": "America/Sao_Paulo",
+        "connect_timeout": 10,
+        "billing_schema": "signup"
+
+    },
+    "log": {
+        "output": "./log/signup.log",
+        "level": 0
+    },
+    "web": {
+        "addr": ":8082"
+    }
+}

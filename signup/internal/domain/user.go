@@ -87,8 +87,8 @@ func (u *User) Validate() error {
 	if u.VendorID <= 0 {
 		return fmt.Errorf("vendor ID is required")
 	}
-	vendor := Vendor{}
-	if _, err := vendor.GetByID(u.VendorID); err != nil {
+	vendor := StartVendor(u.Repo)
+	if ok, err := vendor.GetByID(u.VendorID); err != nil || !ok {
 		return fmt.Errorf("vendor not found")
 	}
 	if u.Name == "" {
@@ -131,7 +131,7 @@ func (u *User) Validate() error {
 	return nil
 }
 
-func (u *User) Find() ([]port.Domain, error) {
+func (u *User) Find(page, pageSize int) ([]port.Domain, error) {
 	conditions := map[string]interface{}{}
 	if u.VendorID > 0 {
 		conditions["vendor_id = ?"] = u.VendorID
@@ -151,7 +151,7 @@ func (u *User) Find() ([]port.Domain, error) {
 	if u.Status != nil {
 		conditions["status = ?"] = *u.Status
 	}
-	result, err := u.Repo.Find(u, conditions, 0, 0)
+	result, err := u.Repo.Find(u, conditions, page, pageSize)
 	if err != nil {
 		return nil, err
 	}
