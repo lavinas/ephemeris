@@ -112,7 +112,7 @@ func (r *UserListRequest) GetDomain() (port.Domain, error) {
 
 // GetOutDTO constructs an output DTO for the user list request.
 func (r *UserListRequest) GetOutDTO(httpCode int, status, message string, data interface{}) port.OutDTO {
-	var users []UserListItem
+	users := make([]UserListItem, 0, 10)
 	if list, ok := data.([]port.Domain); ok {
 		for _, d := range list {
 			if u, ok := d.(*domain.User); ok {

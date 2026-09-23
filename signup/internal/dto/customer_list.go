@@ -127,7 +127,7 @@ func (r *CustomerListRequest) GetDomain() (port.Domain, error) {
 
 // GetOutDTO constructs an output DTO for the customer list request.
 func (r *CustomerListRequest) GetOutDTO(httpCode int, status, message string, data interface{}) port.OutDTO {
-	var customers []CustomerDTO
+	customers := make([]CustomerDTO, 0, 10)
 	if list, ok := data.([]port.Domain); ok {
 		for _, d := range list {
 			if c, ok := d.(*domain.Customer); ok {

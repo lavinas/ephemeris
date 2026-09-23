@@ -12,7 +12,7 @@ import (
 
 // DomainBase represents the base structure for all domain models.
 type DomainBase struct {
-	Repo port.Repository
+	Repo port.Repository `gorm:"-" json:"-"`
 }
 
 // ValidatePhoneNumber checks if the provided phone number is valid and formats it to E.164 standard.

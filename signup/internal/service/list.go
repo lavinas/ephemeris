@@ -38,5 +38,7 @@ func (s *List) Run(inDTO port.InDTO) port.OutDTO {
 		s.logger.IPrintf(2, "Failed to find customers: %v", err)
 		return inDTO.GetOutDTO(500, "internal error", "contact support please", nil)
 	}
-	return inDTO.GetOutDTO(200, "success", "Customers listed successfully", found)
+	out := inDTO.GetOutDTO(200, "success", "Customers listed successfully", found)
+	s.logger.IPrintf(2, "returned %v", out)
+	return out
 }

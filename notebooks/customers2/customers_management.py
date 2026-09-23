@@ -6,7 +6,7 @@ from os import path
 
 # Configurações
 # endpoint = 'http://192.168.1.138:8081'
-endpoint = 'http://localhost:8082'
+endpoint = 'http://localhost:8082/api'
 
 page = 1
 page_size = 1000
@@ -54,9 +54,8 @@ def get(vendor, status, nickname, name, document, email, whatsapp):
 
 # insert
 def insert(vendor, nickname, name, document, email, whatsapp):
-    json_data = {'vendor': vendor, 'items': [{'nickname': nickname, 'name': name, 
-                                              'document': document, 'email': email, 
-                                              'whatsapp': whatsapp}]}
+    json_data = {'vendor': vendor, 'nickname': nickname, 'name': name, 'document': document, 
+                 'email': email, 'whatsapp': whatsapp}
     try:
         resposta = requests.post(f'{endpoint}/customer/create', json=json_data, timeout=5)
     except ConnectionError as e:
@@ -65,6 +64,8 @@ def insert(vendor, nickname, name, document, email, whatsapp):
         return f"Erro: A requisição excedeu o tempo limite estabelecido. {e}"
     except requests.exceptions.RequestException as e:
         return f"Ocorreu um erro genérico no requests: {e}"
+    if resposta.status_code != 200:
+        return f'Erro na chamada da API: {resposta.status_code} - {resposta.text}'
     json_data = resposta.json()
     return f'{json_data["status"]} - {json_data["message"]}'
 
@@ -93,6 +94,8 @@ def update(id, vendor, nickname, name, document, email, whatsapp, status):
         return f"Erro: A requisição excedeu o tempo limite estabelecido. {e}"
     except requests.exceptions.RequestException as e:
         return f"Ocorreu um erro genérico no requests: {e}"
+    if resposta.status_code != 200:
+        return f'Erro na chamada da API: {resposta.status_code} - {resposta.text}'
     json_data = resposta.json()
     return f'{json_data["status"]} - {json_data["message"]}'
  

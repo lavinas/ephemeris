@@ -2,6 +2,7 @@ package repository
 
 import (
 	"fmt"
+	"reflect"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -138,7 +139,21 @@ func (a *Repository) Find(model interface{}, conditions map[string]interface{}, 
 			db = db.Where(key, value)
 		}
 	}
+	modelType := reflect.TypeOf(model)
+	if modelType.Kind() == reflect.Ptr {
+		modelType = modelType.Elem()
+	}
+	sliceType := reflect.SliceOf(reflect.PtrTo(modelType))
+	resultsValue := reflect.New(sliceType)
+
+	err := db.Model(model).Find(resultsValue.Interface()).Error
+
 	var results []interface{}
-	err := db.Find(&results).Error
+	if err == nil {
+		slice := resultsValue.Elem()
+		for i := 0; i < slice.Len(); i++ {
+			results = append(results, slice.Index(i).Interface())
+		}
+	}
 	return results, err
 }

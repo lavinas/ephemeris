@@ -3,9 +3,9 @@ package http
 import (
 	"encoding/json"
 	"net/http"
+	"signup/internal/dto"
 	"signup/internal/port"
 	"signup/internal/service"
-	"signup/internal/dto"
 )
 
 // HandlerApi is an HTTP handler for the API
@@ -52,7 +52,7 @@ func (h *HandlerApi) CustomerCreate(w http.ResponseWriter, r *http.Request) {
 
 // CustomerUpdate is a handler for the /customer/update endpoint
 func (h *HandlerApi) CustomerUpdate(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
+	if r.Method != http.MethodPatch {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}

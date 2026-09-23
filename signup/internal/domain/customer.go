@@ -16,7 +16,7 @@ type Customer struct {
 	Document  *string   `gorm:"unique"`
 	Email     *string   `gorm:"null"`
 	Whatsapp  *string   `gorm:"null"`
-	Status    *int       `gorm:"not null"`
+	Status    *int      `gorm:"not null"`
 	CreatedAt time.Time `gorm:"not null"`
 	UpdatedAt time.Time `gorm:"not null"`
 }
