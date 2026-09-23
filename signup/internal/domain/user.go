@@ -62,7 +62,7 @@ func (u *User) GetByUsername(vendorID int64, username string) (bool, error) {
 	if len(result) == 0 {
 		return false, nil
 	}
-	*u = *(result[0].(*User))
+	u.load(result[0].(*User))
 	return true, nil
 }
 
@@ -79,7 +79,7 @@ func (u *User) GetByEmail(vendorID int64, email string) (bool, error) {
 	if len(result) == 0 {
 		return false, nil
 	}
-	*u = *(result[0].(*User))
+	u.load(result[0].(*User))
 	return true, nil
 }
 
@@ -165,4 +165,18 @@ func (u *User) Find(page, pageSize int) ([]port.Domain, error) {
 // Save persists the user instance to the repository.
 func (u *User) Save() error {
 	return u.Repo.Save(u)
+}
+
+// load loads all fields from a user
+func (u *User) load(user *User) {
+	u.ID = user.ID
+	u.VendorID = user.VendorID
+	u.Name = user.Name
+	u.Username = user.Username
+	u.PassHash = user.PassHash
+	u.Email = user.Email
+	u.Whatsapp = user.Whatsapp
+	u.Status = user.Status
+	u.CreatedAt = user.CreatedAt
+	u.UpdatedAt = user.UpdatedAt
 }

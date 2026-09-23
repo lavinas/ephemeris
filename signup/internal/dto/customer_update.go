@@ -251,16 +251,3 @@ func (r *CustomerUpdateRequest) validateAtLeastOneField() error {
 	}
 	return nil
 }
-
-// Reset resets the fields of the CustomerUpdateRequest to their zero values.
-func (r *CustomerUpdateRequest) Reset() {
-	r.Vendor = ""
-	r.vendorID = 0
-	r.Nickname = ""
-	r.Name = nil
-	r.Document = nil
-	r.Email = nil
-	r.Whatsapp = nil
-	r.Status = nil
-	r.customer = nil
-}

@@ -201,7 +201,7 @@ def send_bill(vendor, invoiceID, doc, email):
         action = 1
     json_data = {'vendor': vendor, 'doc': doc, 'invoice_id': invoiceID, 'action': action, 'email': email}
     try:
-        resposta = requests.post(f'{endpoint}/invoice/bill', json=json_data, timeout=15)
+        resposta = requests.post(f'{endpoint}/invoice/bill', json=json_data, timeout=30)
     except ConnectionError as e:
         return f"Erro: A conexão foi recusada pelo servidor remoto. Detalhes: {e}"
     except Timeout as e:

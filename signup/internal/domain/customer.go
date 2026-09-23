@@ -59,11 +59,7 @@ func (c *Customer) GetByNickname(vendorID int64, nickname string) (bool, error) 
 	if len(resp) == 0 {
 		return false, nil
 	}
-	customer, ok := resp[0].(*Customer)
-	if !ok {
-		return false, fmt.Errorf("failed to cast to Customer")
-	}
-	*c = *customer
+	c.load(resp[0].(*Customer))
 	return true, nil
 }
 
@@ -77,11 +73,7 @@ func (c *Customer) GetByDocument(vendorID int64, document string) (bool, error) 
 	if len(resp) == 0 {
 		return false, nil
 	}
-	customer, ok := resp[0].(*Customer)
-	if !ok {
-		return false, fmt.Errorf("failed to cast to Customer")
-	}
-	*c = *customer
+	c.load(resp[0].(*Customer))
 	return true, nil
 }
 
@@ -179,4 +171,18 @@ func (c *Customer) Save() error {
 		return err
 	}
 	return c.Repo.Save(c)
+}
+
+// load loads all fields from a customer
+func (c *Customer) load(customer *Customer) {
+	c.ID = customer.ID
+	c.VendorID = customer.VendorID
+	c.Name = customer.Name
+	c.Nickname = customer.Nickname
+	c.Document = customer.Document
+	c.Email = customer.Email
+	c.Whatsapp = customer.Whatsapp
+	c.Status = customer.Status
+	c.CreatedAt = customer.CreatedAt
+	c.UpdatedAt = customer.UpdatedAt
 }

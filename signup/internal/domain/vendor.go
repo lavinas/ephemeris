@@ -89,7 +89,7 @@ func (v *Vendor) GetByNickname(nickname string) (bool, error) {
 	if !ok {
 		return false, fmt.Errorf("failed to cast to Vendor")
 	}
-	*v = *vendor
+	v.load(vendor)
 	return true, nil
 }
 
@@ -104,10 +104,33 @@ func (v *Vendor) GetByID(id int64) (bool, error) {
 	if len(resp) == 0 {
 		return false, nil
 	}
-	vendor, ok := resp[0].(*Vendor)
-	if !ok {
-		return false, fmt.Errorf("failed to cast to Vendor")
-	}
-	*v = *vendor
+	v.load(resp[0].(*Vendor))
 	return true, nil
+}
+
+
+// load loads all fields from a vendor
+func (v *Vendor) load(vendor *Vendor) {
+	v.ID = vendor.ID
+	v.Nickname = vendor.Nickname
+	v.LegalName = vendor.LegalName
+	v.TradingName = vendor.TradingName
+	v.Document = vendor.Document
+	v.TaxDocument = vendor.TaxDocument
+	v.AccountBank = vendor.AccountBank
+	v.AccountAgency = vendor.AccountAgency
+	v.AccountNumber = vendor.AccountNumber
+	v.PixToken = vendor.PixToken
+	v.PixName = vendor.PixName
+	v.PixCity = vendor.PixCity
+	v.LogoName = vendor.LogoName
+	v.Email = vendor.Email
+	v.Whatsapp = vendor.Whatsapp
+	v.LastRps = vendor.LastRps
+	v.SmtpHost = vendor.SmtpHost
+	v.SmtpPort = vendor.SmtpPort
+	v.SmtpUser = vendor.SmtpUser
+	v.SmtpPassword = vendor.SmtpPassword
+	v.CreatedAt = vendor.CreatedAt
+	v.UpdatedAt = vendor.UpdatedAt
 }

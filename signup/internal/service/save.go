@@ -27,19 +27,16 @@ func (s *Save) Run(inDTO port.InDTO) port.OutDTO {
 		return inDTO.GetOutDTO(400, "bad request",
 			fmt.Sprintf("Validation failed: %v", err), nil)
 	}
-	s.logger.IPrintf(2, "Validation passed: %v", inDTO)
 	domain, err := inDTO.GetDomain()
 	if err != nil {
 		s.logger.IPrintf(2, "Failed to get domain: %v", err)
 		return inDTO.GetOutDTO(400, "bad request",
 			fmt.Sprintf("Failed to get domain: %v", err), nil)
 	}
-	s.logger.IPrintf(2, "Domain got: %v", domain)
 	if err := domain.Validate(); err != nil {
 		s.logger.IPrintf(2, "Validation failed: %v", err)
 		return inDTO.GetOutDTO(500, "internal error", "contact support please", nil)
 	}
-	s.logger.IPrintf(2, "Domain validated: %v", domain)
 	if err := domain.Save(); err != nil {
 		s.logger.IPrintf(2, "Failed to save customer: %v", err)
 		return inDTO.GetOutDTO(500, "internal error", "contact support please", nil)

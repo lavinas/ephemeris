@@ -120,7 +120,7 @@ func (h *HandlerApi) UserList(w http.ResponseWriter, r *http.Request) {
 
 // UserUpdate is a handler for the /user/update endpoint
 func (h *HandlerApi) UserUpdate(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
+	if r.Method != http.MethodPatch {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
