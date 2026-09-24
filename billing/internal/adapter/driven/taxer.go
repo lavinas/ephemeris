@@ -203,7 +203,8 @@ func (i *Taxer) getHeaderLine(emission *domain.Emission, builder *strings.Builde
 	if err != nil {
 		return err
 	}
-	builder.WriteString(strings.TrimRight(string(h), " ") + "\n")
+	builder.WriteString(strings.TrimRight(string(h), " "))
+	builder.WriteString("\n")
 	return nil
 }
 
@@ -299,7 +300,8 @@ func (i *Taxer) getFooter(emission *domain.Emission, builder *strings.Builder) e
 	if err != nil {
 		return err
 	}
-	builder.WriteString(strings.TrimRight(string(f), " ") + "\n")
+	builder.WriteString(strings.TrimRight(string(f), " "))
+	builder.WriteString("\n")
 	return nil
 }
 

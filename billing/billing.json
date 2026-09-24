@@ -9,10 +9,14 @@
         "timezone": "America/Sao_Paulo",
         "connect_timeout": 10,
         "billing_schema": "billing"
-
     },
     "log": {
         "output": "./log/billing.log",
         "level": 0
+    },
+    "nats": {
+        "url": "nats://nats:4222",
+        "queue_group": "billing-customer-sync",
+        "enabled": true
     }
 }

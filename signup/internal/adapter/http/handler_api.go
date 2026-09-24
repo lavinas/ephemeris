@@ -10,15 +10,17 @@ import (
 
 // HandlerApi is an HTTP handler for the API
 type HandlerApi struct {
-	logger port.Logger
-	repo   port.Repository
+	logger    port.Logger
+	repo      port.Repository
+	publisher port.CustomerEventPublisher
 }
 
 // NewHandlerApi creates a new instance of HandlerApi
-func NewHandlerApi(repo port.Repository, logger port.Logger) *HandlerApi {
+func NewHandlerApi(repo port.Repository, logger port.Logger, publisher port.CustomerEventPublisher) *HandlerApi {
 	return &HandlerApi{
-		repo:   repo,
-		logger: logger,
+		repo:      repo,
+		logger:    logger,
+		publisher: publisher,
 	}
 }
 
@@ -45,7 +47,7 @@ func (h *HandlerApi) CustomerCreate(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
-	service := service.NewSave(h.repo, h.logger)
+	service := service.NewSave(h.repo, h.logger, h.publisher)
 	response := service.Run(requestDTO)
 	h.writeResponse(w, response)
 }
@@ -62,7 +64,7 @@ func (h *HandlerApi) CustomerUpdate(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
-	service := service.NewSave(h.repo, h.logger)
+	service := service.NewSave(h.repo, h.logger, h.publisher)
 	response := service.Run(requestDTO)
 	h.writeResponse(w, response)
 }
@@ -96,7 +98,7 @@ func (h *HandlerApi) UserCreate(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
-	service := service.NewSave(h.repo, h.logger)
+	service := service.NewSave(h.repo, h.logger, h.publisher)
 	response := service.Run(requestDTO)
 	h.writeResponse(w, response)
 }
@@ -130,7 +132,7 @@ func (h *HandlerApi) UserUpdate(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
-	service := service.NewSave(h.repo, h.logger)
+	service := service.NewSave(h.repo, h.logger, h.publisher)
 	response := service.Run(requestDTO)
 	h.writeResponse(w, response)
 }

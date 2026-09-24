@@ -1,6 +1,7 @@
 package port
 
 import (
+	"context"
 	"strings"
 	"time"
 
@@ -71,4 +72,10 @@ type Pixer interface {
 type Issuer interface {
 	GetBase64(data InDTO, html_pdf string) ([]byte, error)
 	SendMail(data InDTO, subject, filename, html_pdf, html_email string) error
+}
+
+// EventConsumer defines the interface for an asynchronous event consumer.
+type EventConsumer interface {
+	Start(ctx context.Context) error
+	Close() error
 }

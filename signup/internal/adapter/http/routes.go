@@ -5,20 +5,20 @@ import (
 	"signup/internal/port"
 )
 
-// NewRoutes creates a new instance of Routes with the provided logger and repository.
-func NewRoutes(repo port.Repository, logger port.Logger, htmlTemplate []byte) (*http.ServeMux, error) {
+// NewRoutes creates a new instance of Routes with the provided logger, repository, and publisher.
+func NewRoutes(repo port.Repository, logger port.Logger, publisher port.CustomerEventPublisher, htmlTemplate []byte) (*http.ServeMux, error) {
 	mux := http.NewServeMux()
 	fs := http.FileServer(http.Dir("web/static"))
 	mux.Handle("/static/", http.StripPrefix("/static/", fs))
-	apiRoutes := NewAPIRoutes(repo, logger)
+	apiRoutes := NewAPIRoutes(repo, logger, publisher)
 	mux.Handle("/api/", http.StripPrefix("/api", apiRoutes))
 	return mux, nil
 }
 
-// NewAPIRoutes creates a new instance of API routes with the provided logger and repository.
-func NewAPIRoutes(repo port.Repository, logger port.Logger) *http.ServeMux {
+// NewAPIRoutes creates a new instance of API routes with the provided logger, repository, and publisher.
+func NewAPIRoutes(repo port.Repository, logger port.Logger, publisher port.CustomerEventPublisher) *http.ServeMux {
 	mux := http.NewServeMux()
-	handler := NewHandlerApi(repo, logger)
+	handler := NewHandlerApi(repo, logger, publisher)
 	mux.HandleFunc("/ping", handler.Ping)
 	mux.HandleFunc("/customer/create", handler.CustomerCreate)
 	mux.HandleFunc("/customer/update", handler.CustomerUpdate)

@@ -1,6 +1,7 @@
 package dto
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/mail"
@@ -250,4 +251,40 @@ func (r *CustomerUpdateRequest) validateAtLeastOneField() error {
 		return fmt.Errorf("at least one field must be provided for update")
 	}
 	return nil
+}
+
+// EmitEvent publishes the customer updated event using the provided publisher.
+func (r *CustomerUpdateRequest) EmitEvent(ctx context.Context, publisher port.CustomerEventPublisher) error {
+	if publisher == nil {
+		return nil
+	}
+	var name string
+	if r.Name != nil {
+		name = *r.Name
+	} else if r.customer != nil {
+		name = r.customer.Name
+	}
+	data := port.CustomerEventData{
+		Name:     name,
+		Nickname: r.Nickname,
+		Document: r.Document,
+		Email:    r.Email,
+		Whatsapp: r.Whatsapp,
+		Status:   r.Status,
+	}
+	if r.customer != nil {
+		if data.Document == nil {
+			data.Document = r.customer.Document
+		}
+		if data.Email == nil {
+			data.Email = r.customer.Email
+		}
+		if data.Whatsapp == nil {
+			data.Whatsapp = r.customer.Whatsapp
+		}
+		if data.Status == nil {
+			data.Status = r.customer.Status
+		}
+	}
+	return publisher.PublishCustomerUpdated(ctx, r.Vendor, data)
 }

@@ -7,9 +7,10 @@ import (
 
 // Config represents the configuration structure for the application
 type Config struct {
-	DB  DBConfig  `json:"db"`
-	Log LogConfig `json:"log"`
-	Web WebConfig `json:"web"`
+	DB   DBConfig   `json:"db"`
+	Log  LogConfig  `json:"log"`
+	Web  WebConfig  `json:"web"`
+	NATS NATSConfig `json:"nats"`
 }
 
 // DBConfig represents the database configuration structure
@@ -34,6 +35,12 @@ type LogConfig struct {
 // WebConfig represents the web server configuration structure
 type WebConfig struct {
 	Addr string `json:"addr"`
+}
+
+// NATSConfig represents the NATS messaging configuration structure
+type NATSConfig struct {
+	URL     string `json:"url"`
+	Enabled bool   `json:"enabled"`
 }
 
 // LoadConfig reads the configuration from a JSON file and unmarshals it into a Config
@@ -77,4 +84,9 @@ func (v *Config) GetLogData() (output string, level int) {
 // GetWebAddr returns the web server address from the configuration
 func (v *Config) GetWebAddr() string {
 	return v.Web.Addr
+}
+
+// GetNATSData returns the NATS configuration
+func (v *Config) GetNATSData() (url string, enabled bool) {
+	return v.NATS.URL, v.NATS.Enabled
 }

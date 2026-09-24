@@ -7,8 +7,9 @@ import (
 
 // JsonConfig represents the configuration structure for the application
 type JsonConfig struct {
-	DB  JsonDBConfig  `json:"db"`
-	Log JsonLogConfig `json:"log"`
+	DB   JsonDBConfig   `json:"db"`
+	Log  JsonLogConfig  `json:"log"`
+	NATS JsonNATSConfig `json:"nats"`
 }
 
 // DBConfig represents the database configuration structure
@@ -28,6 +29,13 @@ type JsonDBConfig struct {
 type JsonLogConfig struct {
 	Output string `json:"output"`
 	Level  int    `json:"level"`
+}
+
+// JsonNATSConfig represents the NATS messaging configuration structure
+type JsonNATSConfig struct {
+	URL        string `json:"url"`
+	QueueGroup string `json:"queue_group"`
+	Enabled    bool   `json:"enabled"`
 }
 
 // LoadJsonConfig reads the configuration from a JSON file and unmarshals it into a JsonConfig
@@ -66,4 +74,9 @@ func (v *JsonConfig) GetConfigData() (output string, level int) {
 // GetLogOutput returns the log output from the configuration
 func (v *JsonConfig) GetLogData() (output string, level int) {
 	return v.Log.Output, v.Log.Level
+}
+
+// GetNATSData returns the NATS configuration
+func (v *JsonConfig) GetNATSData() (url, queueGroup string, enabled bool) {
+	return v.NATS.URL, v.NATS.QueueGroup, v.NATS.Enabled
 }

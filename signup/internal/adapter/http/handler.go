@@ -21,15 +21,17 @@ const (
 
 // Handler is an HTTP handler for the API
 type Handler struct {
-	logger port.Logger
-	repo   port.Repository
+	logger    port.Logger
+	repo      port.Repository
+	publisher port.CustomerEventPublisher
 }
 
 // NewHandler creates a new instance of Handler
-func NewHandler(repo port.Repository, logger port.Logger) *Handler {
+func NewHandler(repo port.Repository, logger port.Logger, publisher port.CustomerEventPublisher) *Handler {
 	return &Handler{
-		repo:   repo,
-		logger: logger,
+		repo:      repo,
+		logger:    logger,
+		publisher: publisher,
 	}
 }
 
@@ -41,7 +43,7 @@ func (h *Handler) Run(addr string) error {
 		return fmt.Errorf("error getting HTML template: %v", err)
 	}
 	h.logger.IPrintf(0, "HTML template loaded successfully")
-	mainMux, err := NewRoutes(h.repo, h.logger, template)
+	mainMux, err := NewRoutes(h.repo, h.logger, h.publisher, template)
 	if err != nil {
 		return fmt.Errorf("error creating routes: %v", err)
 	}

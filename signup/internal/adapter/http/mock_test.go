@@ -1,12 +1,14 @@
 package http
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"sync"
 	"time"
 
 	"signup/internal/domain"
+	"signup/internal/port"
 )
 
 type mockLogger struct {
@@ -263,4 +265,23 @@ func (m *memoryRepo) Find(model interface{}, conditions map[string]interface{}, 
 	}
 
 	return results, nil
+}
+
+type mockPublisher struct {
+	PublishedCreated []port.CustomerEventData
+	PublishedUpdated []port.CustomerEventData
+}
+
+func (m *mockPublisher) PublishCustomerCreated(ctx context.Context, vendor string, data port.CustomerEventData) error {
+	m.PublishedCreated = append(m.PublishedCreated, data)
+	return nil
+}
+
+func (m *mockPublisher) PublishCustomerUpdated(ctx context.Context, vendor string, data port.CustomerEventData) error {
+	m.PublishedUpdated = append(m.PublishedUpdated, data)
+	return nil
+}
+
+func (m *mockPublisher) Close() error {
+	return nil
 }

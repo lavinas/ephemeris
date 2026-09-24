@@ -15,8 +15,17 @@ import (
 func setupTestRouter() (*http.ServeMux, *memoryRepo, *mockLogger) {
 	repo := newMemoryRepo()
 	logger := newMockLogger()
-	router := NewAPIRoutes(repo, logger)
+	pub := &mockPublisher{}
+	router := NewAPIRoutes(repo, logger, pub)
 	return router, repo, logger
+}
+
+func setupTestRouterWithPublisher() (*http.ServeMux, *memoryRepo, *mockLogger, *mockPublisher) {
+	repo := newMemoryRepo()
+	logger := newMockLogger()
+	pub := &mockPublisher{}
+	router := NewAPIRoutes(repo, logger, pub)
+	return router, repo, logger, pub
 }
 
 func executeRequest(router *http.ServeMux, method, path string, body []byte) *httptest.ResponseRecorder {
@@ -160,7 +169,7 @@ func TestCustomerUpdate_MethodNotAllowed(t *testing.T) {
 
 func TestCustomerUpdate_BadRequest_InvalidJSON(t *testing.T) {
 	router, _, _ := setupTestRouter()
-	rec := executeRequest(router, http.MethodPost, "/customer/update", []byte("invalid-json"))
+	rec := executeRequest(router, http.MethodPatch, "/customer/update", []byte("invalid-json"))
 
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("expected 400 Bad Request, got %d", rec.Code)
@@ -175,7 +184,7 @@ func TestCustomerUpdate_CustomerNotFound(t *testing.T) {
 		"nickname": "nonexistent",
 		"name": "New Name"
 	}`)
-	rec := executeRequest(router, http.MethodPost, "/customer/update", payload)
+	rec := executeRequest(router, http.MethodPatch, "/customer/update", payload)
 
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("expected 400 Bad Request for nonexistent customer, got %d", rec.Code)
@@ -211,7 +220,7 @@ func TestCustomerUpdate_Success(t *testing.T) {
 		"name": "New Name Updated",
 		"whatsapp": "+5511999997777"
 	}`)
-	rec := executeRequest(router, http.MethodPost, "/customer/update", payload)
+	rec := executeRequest(router, http.MethodPatch, "/customer/update", payload)
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200 OK, got %d. Body: %s", rec.Code, rec.Body.String())
@@ -454,7 +463,7 @@ func TestUserUpdate_MethodNotAllowed(t *testing.T) {
 
 func TestUserUpdate_BadRequest_InvalidJSON(t *testing.T) {
 	router, _, _ := setupTestRouter()
-	rec := executeRequest(router, http.MethodPost, "/user/update", []byte("invalid-json"))
+	rec := executeRequest(router, http.MethodPatch, "/user/update", []byte("invalid-json"))
 
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("expected 400 Bad Request, got %d", rec.Code)
@@ -469,7 +478,7 @@ func TestUserUpdate_UserNotFound(t *testing.T) {
 		"username": "nonexistent",
 		"name": "New Name"
 	}`)
-	rec := executeRequest(router, http.MethodPost, "/user/update", payload)
+	rec := executeRequest(router, http.MethodPatch, "/user/update", payload)
 
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("expected 400 Bad Request for nonexistent user, got %d", rec.Code)
@@ -503,7 +512,7 @@ func TestUserUpdate_Success(t *testing.T) {
 		"username": "johndoe",
 		"name": "John Doe Senior"
 	}`)
-	rec := executeRequest(router, http.MethodPost, "/user/update", payload)
+	rec := executeRequest(router, http.MethodPatch, "/user/update", payload)
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200 OK, got %d. Body: %s", rec.Code, rec.Body.String())
@@ -646,5 +655,96 @@ func TestAPIRoutesRegistration(t *testing.T) {
 				t.Errorf("route %s was expected to return 404, got %d", tc.path, rec.Code)
 			}
 		})
+	}
+}
+
+func TestCustomerCreate_EmitsEvent(t *testing.T) {
+	router, repo, _, pub := setupTestRouterWithPublisher()
+
+	// Seed vendor
+	repo.Vendors[1] = &domain.Vendor{
+		ID:       1,
+		Nickname: "acme",
+	}
+
+	payload := []byte(`{
+		"vendor": "acme",
+		"name": "Sync Client",
+		"nickname": "syncclient",
+		"document": "11144477735",
+		"email": "sync@example.com",
+		"whatsapp": "+5511999998888"
+	}`)
+
+	rec := executeRequest(router, http.MethodPost, "/customer/create", payload)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	if len(pub.PublishedCreated) != 1 {
+		t.Fatalf("expected 1 event published, got %d", len(pub.PublishedCreated))
+	}
+
+	event := pub.PublishedCreated[0]
+	if event.Nickname != "syncclient" {
+		t.Errorf("expected nickname 'syncclient', got '%s'", event.Nickname)
+	}
+	if event.Name != "Sync Client" {
+		t.Errorf("expected name 'Sync Client', got '%s'", event.Name)
+	}
+}
+
+func TestCustomerUpdate_EmitsEvent(t *testing.T) {
+	router, repo, _, pub := setupTestRouterWithPublisher()
+
+	repo.Vendors[1] = &domain.Vendor{
+		ID:       1,
+		Nickname: "acme",
+	}
+
+	doc := "11144477735"
+	email := "sync@example.com"
+	phone := "+5511999998888"
+	status := 1
+	existing := &domain.Customer{
+		DomainBase: domain.DomainBase{Repo: repo},
+		ID:         10,
+		VendorID:   1,
+		Name:       "Sync Client",
+		Nickname:   "syncclient",
+		Document:   &doc,
+		Email:      &email,
+		Whatsapp:   &phone,
+		Status:     &status,
+		CreatedAt:  time.Now(),
+		UpdatedAt:  time.Now(),
+	}
+	repo.Customers[existing.ID] = existing
+
+	payload := []byte(`{
+		"vendor": "acme",
+		"nickname": "syncclient",
+		"name": "Sync Client Updated",
+		"whatsapp": "+5511988887777"
+	}`)
+
+	rec := executeRequest(router, http.MethodPatch, "/customer/update", payload)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	if len(pub.PublishedUpdated) != 1 {
+		t.Fatalf("expected 1 update event published, got %d", len(pub.PublishedUpdated))
+	}
+
+	event := pub.PublishedUpdated[0]
+	if event.Nickname != "syncclient" {
+		t.Errorf("expected nickname 'syncclient', got '%s'", event.Nickname)
+	}
+	if event.Name != "Sync Client Updated" {
+		t.Errorf("expected name 'Sync Client Updated', got '%s'", event.Name)
+	}
+	if event.Whatsapp == nil || *event.Whatsapp != "+5511988887777" {
+		t.Errorf("expected updated whatsapp, got %v", event.Whatsapp)
 	}
 }

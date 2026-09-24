@@ -1,6 +1,7 @@
 package dto
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -201,4 +202,31 @@ func (r *CustomerCreateRequest) validateWhatsapp() error {
 		return nil
 	}
 	return fmt.Errorf("invalid WhatsApp number format")
+}
+
+// EmitEvent publishes the customer created event using the provided publisher.
+func (r *CustomerCreateRequest) EmitEvent(ctx context.Context, publisher port.CustomerEventPublisher) error {
+	if publisher == nil {
+		return nil
+	}
+	var doc, email, whatsapp *string
+	if r.Document != "" {
+		doc = &r.Document
+	}
+	if r.Email != "" {
+		email = &r.Email
+	}
+	if r.Whatsapp != "" {
+		whatsapp = &r.Whatsapp
+	}
+	status := 1
+	data := port.CustomerEventData{
+		Name:     r.Name,
+		Nickname: r.Nickname,
+		Document: doc,
+		Email:    email,
+		Whatsapp: whatsapp,
+		Status:   &status,
+	}
+	return publisher.PublishCustomerCreated(ctx, r.Vendor, data)
 }

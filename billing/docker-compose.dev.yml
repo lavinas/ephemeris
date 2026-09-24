@@ -28,6 +28,7 @@ services:
         - ${PWD}:/app
       networks:
         - net-billing-dev
+        - ephemeris-network
       environment:
         - DB_HOST=billing_db
         - DB_PORT=5432
@@ -39,3 +40,5 @@ services:
 networks:
   net-billing-dev:
     driver: bridge
+  ephemeris-network:
+    external: true
