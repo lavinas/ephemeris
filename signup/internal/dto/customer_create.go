@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-
-	"github.com/klassmann/cpfcnpj"
 	"signup/internal/domain"
 	"signup/internal/port"
 )
@@ -148,9 +146,11 @@ func (r *CustomerCreateRequest) validateDocument() error {
 	if r.Document == "" {
 		return nil
 	}
-	if err := r.validateCpfCnpj(); err != nil {
+	doc, err := ValidateDocument(r.Document, "all")
+	if err != nil {
 		return err
 	}
+	r.Document = doc
 	c := domain.StartCustomer(r.Repo)
 	if ok, err := c.GetByDocument(r.VendorID, r.Document); err != nil {
 		return fmt.Errorf("failed to validate document: %v", err)
@@ -158,21 +158,6 @@ func (r *CustomerCreateRequest) validateDocument() error {
 		return fmt.Errorf("document is already in use")
 	}
 	return nil
-}
-
-// validateCpfCnpj checks if the provided document is a valid CPF or CNPJ.
-func (r *CustomerCreateRequest) validateCpfCnpj() error {
-	cpf := cpfcnpj.NewCPF(r.Document)
-	if cpf.IsValid() {
-		r.Document = cpf.String()
-		return nil
-	}
-	cnpj := cpfcnpj.NewCNPJ(r.Document)
-	if cnpj.IsValid() {
-		r.Document = cnpj.String()
-		return nil
-	}
-	return fmt.Errorf("invalid document format")
 }
 
 // validateEmail checks if the provided email is valid and not already in use.

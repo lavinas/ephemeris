@@ -8,6 +8,7 @@ import (
 
 	"signup/internal/port"
 
+	"github.com/klassmann/cpfcnpj"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -78,4 +79,22 @@ func HashPassword(password string) (string, error) {
 		return "", fmt.Errorf("failed to hash password: %w", err)
 	}
 	return string(hashedPassword), nil
+}
+
+// ValidateDocument checks if the provided document is a valid CPF or CNPJ.
+func ValidateDocument(document string, docType string) (string, error) {
+// validateCpfCnpj checks if the provided document is a valid CPF or CNPJ.
+	if docType == "cpf" || docType == "all" {
+		cpf := cpfcnpj.NewCPF(document)
+		if cpf.IsValid() {
+			return cpf.String(), nil
+		}
+	}
+	if docType == "cnpj" || docType == "all" {
+		cnpj := cpfcnpj.NewCNPJ(document)
+		if cnpj.IsValid() {
+			return cnpj.String(), nil
+		}
+	}
+	return "", fmt.Errorf("invalid document format")
 }

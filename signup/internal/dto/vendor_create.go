@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/klassmann/cpfcnpj"
 	"signup/internal/domain"
 	"signup/internal/port"
 )
@@ -172,9 +171,12 @@ func (r *VendorCreateRequest) validateDocument() error {
 	if r.Document == "" {
 		return errors.New("document is required")
 	}
-	if err := r.validateCpfCnpj(); err != nil {
+	doc, err := ValidateDocument(r.Document, "cnpj")
+	if err != nil {
+		err = fmt.Errorf("%v (only cnpj is accepted)", err)
 		return err
 	}
+	r.Document = doc
 	v := domain.StartVendor(r.Repo)
 	if ok, err := v.GetByDocument(r.Document); err != nil {
 		return fmt.Errorf("failed to validate document: %v", err)
@@ -246,21 +248,6 @@ func (r *VendorCreateRequest) validateLogoName() error {
 		return errors.New("logo_name is required")
 	}
 	return nil
-}
-
-// validateCpfCnpj checks if the provided document is a valid CPF or CNPJ.
-func (r *VendorCreateRequest) validateCpfCnpj() error {
-	cpf := cpfcnpj.NewCPF(r.Document)
-	if cpf.IsValid() {
-		r.Document = cpf.String()
-		return nil
-	}
-	cnpj := cpfcnpj.NewCNPJ(r.Document)
-	if cnpj.IsValid() {
-		r.Document = cnpj.String()
-		return nil
-	}
-	return fmt.Errorf("invalid document format")
 }
 
 // validateEmail checks if the provided email is valid.

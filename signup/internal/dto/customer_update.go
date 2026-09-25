@@ -10,7 +10,6 @@ import (
 	"signup/internal/domain"
 	"signup/internal/port"
 
-	"github.com/klassmann/cpfcnpj"
 )
 
 // CustomerUpdateRequest represents the request payload for updating an existing customer.
@@ -167,9 +166,11 @@ func (r *CustomerUpdateRequest) validateDocument() error {
 	if *r.Document == "" {
 		return fmt.Errorf("document cannot be empty")
 	}
-	if err := r.validateCpfCnpj(); err != nil {
+	doc, err := ValidateDocument(*r.Document, "all")
+	if err != nil {
 		return err
 	}
+	*r.Document = doc
 	customer := domain.StartCustomer(r.Repo)
 	if ok, err := customer.GetByDocument(r.vendorID, *r.Document); err != nil {
 		return fmt.Errorf("failed to validate document: %v", err)
@@ -201,24 +202,6 @@ func (r *CustomerUpdateRequest) validateWhatsapp() error {
 		return nil
 	}
 	return fmt.Errorf("invalid WhatsApp number format")
-}
-
-// validateCpfCnpj checks if the provided document is a valid CPF or CNPJ and formats it.
-func (r *CustomerUpdateRequest) validateCpfCnpj() error {
-	if r.Document == nil {
-		return nil
-	}
-	cpf := cpfcnpj.NewCPF(*r.Document)
-	if cpf.IsValid() {
-		*r.Document = cpf.String()
-		return nil
-	}
-	cnpj := cpfcnpj.NewCNPJ(*r.Document)
-	if cnpj.IsValid() {
-		*r.Document = cnpj.String()
-		return nil
-	}
-	return fmt.Errorf("document '%s' is not a valid CPF or CNPJ", *r.Document)
 }
 
 // validateEmail checks if the provided email is in a valid format.
