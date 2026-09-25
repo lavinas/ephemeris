@@ -241,8 +241,21 @@ func TestNATSConsumer_HandleVendorCreated(t *testing.T) {
 			"legal_name": "New Vendor LTDA",
 			"trading_name": "New Vendor",
 			"document": "27.928.875/0001-04",
+			"tax_document": "5.727.888-1",
+			"account_bank": "033 - Santander",
+			"account_agency": "0985",
+			"account_number": "13001001-4",
+			"pix_token": "27.928.875/0001-04",
+			"pix_name": "New Vendor LTDA",
+			"pix_city": "São Paulo",
+			"logo_name": "logo.png",
 			"email": "vendor@test.com",
-			"whatsapp": "+5511980888399"
+			"whatsapp": "+5511980888399",
+			"last_rps": 100,
+			"smtp_host": "smtp.example.com",
+			"smtp_port": 587,
+			"smtp_user": "user@example.com",
+			"smtp_password": "password"
 		}
 	}`
 

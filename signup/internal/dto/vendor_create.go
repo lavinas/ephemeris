@@ -18,21 +18,21 @@ type VendorCreateRequest struct {
 	LegalName     string `json:"legal_name" validate:"required"`
 	TradingName   string `json:"trading_name"`
 	Document      string `json:"document" validate:"required"`
-	TaxDocument   string `json:"tax_document"`
-	AccountBank   string `json:"account_bank"`
-	AccountAgency string `json:"account_agency"`
-	AccountNumber string `json:"account_number"`
-	PixToken      string `json:"pix_token"`
-	PixName       string `json:"pix_name"`
-	PixCity       string `json:"pix_city"`
-	LogoName      string `json:"logo_name"`
+	TaxDocument   string `json:"tax_document" validate:"required"`
+	AccountBank   string `json:"account_bank" validate:"required"`
+	AccountAgency string `json:"account_agency" validate:"required"`
+	AccountNumber string `json:"account_number" validate:"required"`
+	PixToken      string `json:"pix_token" validate:"required"`
+	PixName       string `json:"pix_name" validate:"required"`
+	PixCity       string `json:"pix_city" validate:"required"`
+	LogoName      string `json:"logo_name" validate:"required"`
 	Email         string `json:"email" validate:"required,email"`
 	Whatsapp      string `json:"whatsapp" validate:"required"`
-	LastRps       int64  `json:"last_rps"`
-	SmtpHost      string `json:"smtp_host"`
-	SmtpPort      int    `json:"smtp_port"`
-	SmtpUser      string `json:"smtp_user"`
-	SmtpPassword  string `json:"smtp_password"`
+	LastRps       int64  `json:"last_rps" validate:"gte=0"`
+	SmtpHost      string `json:"smtp_host" validate:"required"`
+	SmtpPort      int    `json:"smtp_port" validate:"required,gt=0"`
+	SmtpUser      string `json:"smtp_user" validate:"required"`
+	SmtpPassword  string `json:"smtp_password" validate:"required"`
 }
 
 // NewVendorCreateRequest creates a new instance of VendorCreateRequest.
@@ -66,10 +66,49 @@ func (r *VendorCreateRequest) Validate() error {
 	if err := r.validateDocument(); err != nil {
 		errs = append(errs, err)
 	}
+	if err := r.validateTaxDocument(); err != nil {
+		errs = append(errs, err)
+	}
+	if err := r.validateAccountBank(); err != nil {
+		errs = append(errs, err)
+	}
+	if err := r.validateAccountAgency(); err != nil {
+		errs = append(errs, err)
+	}
+	if err := r.validateAccountNumber(); err != nil {
+		errs = append(errs, err)
+	}
+	if err := r.validatePixToken(); err != nil {
+		errs = append(errs, err)
+	}
+	if err := r.validatePixName(); err != nil {
+		errs = append(errs, err)
+	}
+	if err := r.validatePixCity(); err != nil {
+		errs = append(errs, err)
+	}
+	if err := r.validateLogoName(); err != nil {
+		errs = append(errs, err)
+	}
 	if err := r.validateEmail(); err != nil {
 		errs = append(errs, err)
 	}
 	if err := r.validateWhatsapp(); err != nil {
+		errs = append(errs, err)
+	}
+	if err := r.validateLastRps(); err != nil {
+		errs = append(errs, err)
+	}
+	if err := r.validateSmtpHost(); err != nil {
+		errs = append(errs, err)
+	}
+	if err := r.validateSmtpPort(); err != nil {
+		errs = append(errs, err)
+	}
+	if err := r.validateSmtpUser(); err != nil {
+		errs = append(errs, err)
+	}
+	if err := r.validateSmtpPassword(); err != nil {
 		errs = append(errs, err)
 	}
 	if len(errs) > 0 {
@@ -145,6 +184,70 @@ func (r *VendorCreateRequest) validateDocument() error {
 	return nil
 }
 
+// validateTaxDocument checks if the tax document is provided.
+func (r *VendorCreateRequest) validateTaxDocument() error {
+	if r.TaxDocument == "" {
+		return errors.New("tax_document is required")
+	}
+	return nil
+}
+
+// validateAccountBank checks if the bank account name/code is provided.
+func (r *VendorCreateRequest) validateAccountBank() error {
+	if r.AccountBank == "" {
+		return errors.New("account_bank is required")
+	}
+	return nil
+}
+
+// validateAccountAgency checks if the bank agency is provided.
+func (r *VendorCreateRequest) validateAccountAgency() error {
+	if r.AccountAgency == "" {
+		return errors.New("account_agency is required")
+	}
+	return nil
+}
+
+// validateAccountNumber checks if the bank account number is provided.
+func (r *VendorCreateRequest) validateAccountNumber() error {
+	if r.AccountNumber == "" {
+		return errors.New("account_number is required")
+	}
+	return nil
+}
+
+// validatePixToken checks if the PIX token is provided.
+func (r *VendorCreateRequest) validatePixToken() error {
+	if r.PixToken == "" {
+		return errors.New("pix_token is required")
+	}
+	return nil
+}
+
+// validatePixName checks if the PIX beneficiary name is provided.
+func (r *VendorCreateRequest) validatePixName() error {
+	if r.PixName == "" {
+		return errors.New("pix_name is required")
+	}
+	return nil
+}
+
+// validatePixCity checks if the PIX city is provided.
+func (r *VendorCreateRequest) validatePixCity() error {
+	if r.PixCity == "" {
+		return errors.New("pix_city is required")
+	}
+	return nil
+}
+
+// validateLogoName checks if the logo name is provided.
+func (r *VendorCreateRequest) validateLogoName() error {
+	if r.LogoName == "" {
+		return errors.New("logo_name is required")
+	}
+	return nil
+}
+
 // validateCpfCnpj checks if the provided document is a valid CPF or CNPJ.
 func (r *VendorCreateRequest) validateCpfCnpj() error {
 	cpf := cpfcnpj.NewCPF(r.Document)
@@ -163,7 +266,7 @@ func (r *VendorCreateRequest) validateCpfCnpj() error {
 // validateEmail checks if the provided email is valid.
 func (r *VendorCreateRequest) validateEmail() error {
 	if r.Email == "" {
-		return nil
+		return errors.New("email is required")
 	}
 	if err := ValidateEmail(r.Email); err != nil {
 		return err
@@ -174,7 +277,7 @@ func (r *VendorCreateRequest) validateEmail() error {
 // validateWhatsapp checks if the provided WhatsApp number is valid.
 func (r *VendorCreateRequest) validateWhatsapp() error {
 	if r.Whatsapp == "" {
-		return nil
+		return errors.New("whatsapp is required")
 	}
 	num, err := ValidateCellNumber(r.Whatsapp)
 	if err == nil {
@@ -187,6 +290,46 @@ func (r *VendorCreateRequest) validateWhatsapp() error {
 		return nil
 	}
 	return fmt.Errorf("invalid WhatsApp number format")
+}
+
+// validateLastRps checks if the last RPS number is valid.
+func (r *VendorCreateRequest) validateLastRps() error {
+	if r.LastRps < 0 {
+		return errors.New("last_rps must be greater than or equal to zero")
+	}
+	return nil
+}
+
+// validateSmtpHost checks if the SMTP host is provided.
+func (r *VendorCreateRequest) validateSmtpHost() error {
+	if r.SmtpHost == "" {
+		return errors.New("smtp_host is required")
+	}
+	return nil
+}
+
+// validateSmtpPort checks if the SMTP port is valid.
+func (r *VendorCreateRequest) validateSmtpPort() error {
+	if r.SmtpPort <= 0 {
+		return errors.New("smtp_port is required and must be greater than zero")
+	}
+	return nil
+}
+
+// validateSmtpUser checks if the SMTP username is provided.
+func (r *VendorCreateRequest) validateSmtpUser() error {
+	if r.SmtpUser == "" {
+		return errors.New("smtp_user is required")
+	}
+	return nil
+}
+
+// validateSmtpPassword checks if the SMTP password is provided.
+func (r *VendorCreateRequest) validateSmtpPassword() error {
+	if r.SmtpPassword == "" {
+		return errors.New("smtp_password is required")
+	}
+	return nil
 }
 
 // EmitEvent publishes the vendor created event using the provided publisher.
