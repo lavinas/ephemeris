@@ -176,6 +176,17 @@ func (m *memoryRepo) Find(model interface{}, conditions map[string]interface{}, 
 					match = false
 				}
 			}
+			if doc, ok := conditions["document = ?"]; ok {
+				if v.Document != doc {
+					match = false
+				}
+			}
+			if nickLike, ok := conditions["nickname like ?"]; ok {
+				expected := strings.Trim(fmt.Sprint(nickLike), "%")
+				if !strings.Contains(strings.ToLower(v.Nickname), strings.ToLower(expected)) {
+					match = false
+				}
+			}
 			if match {
 				vCopy := *v
 				vCopy.DomainBase = domain.DomainBase{Repo: m}
@@ -268,8 +279,10 @@ func (m *memoryRepo) Find(model interface{}, conditions map[string]interface{}, 
 }
 
 type mockPublisher struct {
-	PublishedCreated []port.CustomerEventData
-	PublishedUpdated []port.CustomerEventData
+	PublishedCreated       []port.CustomerEventData
+	PublishedUpdated       []port.CustomerEventData
+	PublishedVendorCreated []port.VendorEventData
+	PublishedVendorUpdated []port.VendorEventData
 }
 
 func (m *mockPublisher) PublishCustomerCreated(ctx context.Context, vendor string, data port.CustomerEventData) error {
@@ -279,6 +292,16 @@ func (m *mockPublisher) PublishCustomerCreated(ctx context.Context, vendor strin
 
 func (m *mockPublisher) PublishCustomerUpdated(ctx context.Context, vendor string, data port.CustomerEventData) error {
 	m.PublishedUpdated = append(m.PublishedUpdated, data)
+	return nil
+}
+
+func (m *mockPublisher) PublishVendorCreated(ctx context.Context, data port.VendorEventData) error {
+	m.PublishedVendorCreated = append(m.PublishedVendorCreated, data)
+	return nil
+}
+
+func (m *mockPublisher) PublishVendorUpdated(ctx context.Context, data port.VendorEventData) error {
+	m.PublishedVendorUpdated = append(m.PublishedVendorUpdated, data)
 	return nil
 }
 

@@ -48,6 +48,13 @@ func (m *mockRepo) Save(model interface{}) error {
 		}
 	case *domain.Customer:
 		m.customers[v.Nickname] = v
+	case *domain.Vendor:
+		m.vendors[v.Nickname] = v
+	case *[]domain.Vendor:
+		for _, vd := range *v {
+			vCopy := vd
+			m.vendors[vd.Nickname] = &vCopy
+		}
 	}
 	return nil
 }
@@ -79,7 +86,15 @@ func (m *mockRepo) GetCustomer(vendorID int64, nickname string) (*domain.Custome
 
 func (m *mockRepo) FindVendors(page, pageSize int, legalName, nickname, document *string,
 	accountBank, accountAgency, accountNumber *string) ([]domain.Vendor, error) {
-	return nil, nil
+	var list []domain.Vendor
+	for _, v := range m.vendors {
+		if nickname != nil && v.Nickname == *nickname {
+			list = append(list, *v)
+		} else if document != nil && v.Document == *document {
+			list = append(list, *v)
+		}
+	}
+	return list, nil
 }
 
 func (m *mockRepo) GetVendor(nickname string) (*domain.Vendor, error) {
@@ -211,3 +226,89 @@ func TestNATSConsumer_HandleCustomerUpdated(t *testing.T) {
 		t.Errorf("expected updated whatsapp, got %v", cust.Whatsapp)
 	}
 }
+
+func TestNATSConsumer_HandleVendorCreated(t *testing.T) {
+	repo := newMockRepo()
+	logger := &mockLogger{}
+	consumer := NewNATSConsumer("nats://dummy:4222", "test-group", repo, logger)
+
+	payload := `{
+		"event_type": "vendor.created",
+		"timestamp": "2026-09-24T21:00:00Z",
+		"vendor": "new_vendor",
+		"data": {
+			"nickname": "new_vendor",
+			"legal_name": "New Vendor LTDA",
+			"trading_name": "New Vendor",
+			"document": "27.928.875/0001-04",
+			"email": "vendor@test.com",
+			"whatsapp": "+5511980888399"
+		}
+	}`
+
+	msg := &nats.Msg{
+		Subject: SubjectVendorCreated,
+		Data:    []byte(payload),
+	}
+
+	consumer.handleVendorCreated(msg)
+
+	vnd, ok := repo.vendors["new_vendor"]
+	if !ok {
+		t.Fatalf("expected vendor 'new_vendor' to be created in repo")
+	}
+	if vnd.LegalName != "New Vendor LTDA" {
+		t.Errorf("expected legal name 'New Vendor LTDA', got '%s'", vnd.LegalName)
+	}
+	if vnd.Email != "vendor@test.com" {
+		t.Errorf("expected email 'vendor@test.com', got '%s'", vnd.Email)
+	}
+}
+
+func TestNATSConsumer_HandleVendorUpdated(t *testing.T) {
+	repo := newMockRepo()
+	logger := &mockLogger{}
+	consumer := NewNATSConsumer("nats://dummy:4222", "test-group", repo, logger)
+
+	// Pre-seed vendor
+	existing := &domain.Vendor{
+		ID:        1,
+		Nickname:  "acme",
+		LegalName: "Acme Old",
+		Document:  "27.928.875/0001-04",
+		Email:     "old@acme.com",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	repo.vendors["acme"] = existing
+
+	payload := `{
+		"event_type": "vendor.updated",
+		"timestamp": "2026-09-24T21:05:00Z",
+		"vendor": "acme",
+		"data": {
+			"nickname": "acme",
+			"legal_name": "Acme Updated LTDA",
+			"email": "updated@acme.com"
+		}
+	}`
+
+	msg := &nats.Msg{
+		Subject: SubjectVendorUpdated,
+		Data:    []byte(payload),
+	}
+
+	consumer.handleVendorUpdated(msg)
+
+	vnd, ok := repo.vendors["acme"]
+	if !ok {
+		t.Fatalf("expected vendor 'acme' to exist in repo")
+	}
+	if vnd.LegalName != "Acme Updated LTDA" {
+		t.Errorf("expected updated legal name 'Acme Updated LTDA', got '%s'", vnd.LegalName)
+	}
+	if vnd.Email != "updated@acme.com" {
+		t.Errorf("expected updated email 'updated@acme.com', got '%s'", vnd.Email)
+	}
+}
+

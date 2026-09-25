@@ -137,6 +137,57 @@ func (h *HandlerApi) UserUpdate(w http.ResponseWriter, r *http.Request) {
 	h.writeResponse(w, response)
 }
 
+// VendorCreate is a handler for the /vendor/create endpoint
+func (h *HandlerApi) VendorCreate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	requestDTO := dto.NewVendorCreateRequest(h.repo)
+	err := json.NewDecoder(r.Body).Decode(requestDTO)
+	if err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+	service := service.NewSave(h.repo, h.logger, h.publisher)
+	response := service.Run(requestDTO)
+	h.writeResponse(w, response)
+}
+
+// VendorUpdate is a handler for the /vendor/update endpoint
+func (h *HandlerApi) VendorUpdate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPatch {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	requestDTO := dto.NewVendorUpdateRequest(h.repo)
+	err := json.NewDecoder(r.Body).Decode(requestDTO)
+	if err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+	service := service.NewSave(h.repo, h.logger, h.publisher)
+	response := service.Run(requestDTO)
+	h.writeResponse(w, response)
+}
+
+// VendorList is a handler for the /vendor/list endpoint
+func (h *HandlerApi) VendorList(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	requestDTO := dto.NewVendorListRequest(h.repo)
+	err := json.NewDecoder(r.Body).Decode(requestDTO)
+	if err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+	service := service.NewList(h.repo, h.logger)
+	response := service.Run(requestDTO)
+	h.writeResponse(w, response)
+}
+
 // writeResponse writes the given response to the http.ResponseWriter with the appropriate status
 func (h *HandlerApi) writeResponse(w http.ResponseWriter, response port.OutDTO) {
 	responseJSON, err := json.MarshalIndent(response, "", "  ")

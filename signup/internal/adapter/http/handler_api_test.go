@@ -748,3 +748,125 @@ func TestCustomerUpdate_EmitsEvent(t *testing.T) {
 		t.Errorf("expected updated whatsapp, got %v", event.Whatsapp)
 	}
 }
+
+// -----------------------------------------------------------------------------
+// /vendor/create, /vendor/update, /vendor/list Tests
+// -----------------------------------------------------------------------------
+
+func TestVendorCreate_Success(t *testing.T) {
+	router, repo, _, pub := setupTestRouterWithPublisher()
+
+	payload := []byte(`{
+		"nickname": "new_vendor",
+		"legal_name": "New Vendor LTDA",
+		"trading_name": "New Vendor",
+		"document": "27.928.875/0001-04",
+		"email": "vendor@test.com",
+		"whatsapp": "(11) 98088-8399"
+	}`)
+
+	rec := executeRequest(router, http.MethodPost, "/vendor/create", payload)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	// Verify persistence in repo
+	var created *domain.Vendor
+	for _, v := range repo.Vendors {
+		if v.Nickname == "new_vendor" {
+			created = v
+			break
+		}
+	}
+	if created == nil {
+		t.Fatalf("expected vendor to be saved in repository")
+	}
+	if created.LegalName != "New Vendor LTDA" {
+		t.Errorf("expected legal name 'New Vendor LTDA', got '%s'", created.LegalName)
+	}
+
+	// Verify event publication
+	if len(pub.PublishedVendorCreated) != 1 {
+		t.Fatalf("expected 1 vendor created event, got %d", len(pub.PublishedVendorCreated))
+	}
+	evt := pub.PublishedVendorCreated[0]
+	if evt.Nickname != "new_vendor" {
+		t.Errorf("expected event nickname 'new_vendor', got '%s'", evt.Nickname)
+	}
+	if evt.LegalName != "New Vendor LTDA" {
+		t.Errorf("expected event legal name 'New Vendor LTDA', got '%s'", evt.LegalName)
+	}
+}
+
+func TestVendorCreate_DuplicateNickname(t *testing.T) {
+	router, _, _ := setupTestRouter()
+
+	payload := []byte(`{
+		"nickname": "acme",
+		"legal_name": "Acme Another",
+		"document": "27.928.875/0001-04",
+		"email": "vendor@test.com",
+		"whatsapp": "(11) 98088-8399"
+	}`)
+
+	rec := executeRequest(router, http.MethodPost, "/vendor/create", payload)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 Bad Request for duplicate nickname, got %d", rec.Code)
+	}
+}
+
+func TestVendorUpdate_Success(t *testing.T) {
+	router, repo, _, pub := setupTestRouterWithPublisher()
+
+	payload := []byte(`{
+		"nickname": "acme",
+		"legal_name": "Acme Corporation Updated",
+		"email": "new_contact@acme.com"
+	}`)
+
+	rec := executeRequest(router, http.MethodPatch, "/vendor/update", payload)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	v := repo.Vendors[1]
+	if v.LegalName != "Acme Corporation Updated" {
+		t.Errorf("expected updated legal name, got '%s'", v.LegalName)
+	}
+	if v.Email != "new_contact@acme.com" {
+		t.Errorf("expected updated email, got '%s'", v.Email)
+	}
+
+	// Verify event publication
+	if len(pub.PublishedVendorUpdated) != 1 {
+		t.Fatalf("expected 1 vendor updated event, got %d", len(pub.PublishedVendorUpdated))
+	}
+	evt := pub.PublishedVendorUpdated[0]
+	if evt.Nickname != "acme" {
+		t.Errorf("expected event nickname 'acme', got '%s'", evt.Nickname)
+	}
+	if evt.LegalName != "Acme Corporation Updated" {
+		t.Errorf("expected event legal name 'Acme Corporation Updated', got '%s'", evt.LegalName)
+	}
+}
+
+func TestVendorList_Success(t *testing.T) {
+	router, _, _ := setupTestRouter()
+
+	rec := executeRequest(router, http.MethodGet, "/vendor/list", []byte(`{"page": 1, "page_size": 10}`))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	var resp struct {
+		StatusCode int              `json:"status_code"`
+		Vendors    []map[string]any `json:"vendors"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if len(resp.Vendors) == 0 {
+		t.Errorf("expected at least 1 vendor in list")
+	}
+}
+

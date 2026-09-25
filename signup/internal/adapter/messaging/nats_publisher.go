@@ -14,6 +14,8 @@ import (
 const (
 	SubjectCustomerCreated = "customer.created"
 	SubjectCustomerUpdated = "customer.updated"
+	SubjectVendorCreated   = "vendor.created"
+	SubjectVendorUpdated   = "vendor.updated"
 )
 
 // NATSPublisher implements port.CustomerEventPublisher using NATS.
@@ -100,6 +102,50 @@ func (p *NATSPublisher) publish(subject string, event port.CustomerEvent) error 
 
 	if p.logger != nil {
 		p.logger.IPrintf(0, "Published event %s for vendor %s, customer %s", subject, event.Vendor, event.Data.Nickname)
+	}
+	return nil
+}
+
+// PublishVendorCreated publishes a vendor creation event to NATS.
+func (p *NATSPublisher) PublishVendorCreated(ctx context.Context, data port.VendorEventData) error {
+	event := port.VendorEvent{
+		EventType: SubjectVendorCreated,
+		Timestamp: time.Now().UTC(),
+		Vendor:    data.Nickname,
+		Data:      data,
+	}
+	return p.publishVendor(SubjectVendorCreated, event)
+}
+
+// PublishVendorUpdated publishes a vendor update event to NATS.
+func (p *NATSPublisher) PublishVendorUpdated(ctx context.Context, data port.VendorEventData) error {
+	event := port.VendorEvent{
+		EventType: SubjectVendorUpdated,
+		Timestamp: time.Now().UTC(),
+		Vendor:    data.Nickname,
+		Data:      data,
+	}
+	return p.publishVendor(SubjectVendorUpdated, event)
+}
+
+func (p *NATSPublisher) publishVendor(subject string, event port.VendorEvent) error {
+	payload, err := json.Marshal(event)
+	if err != nil {
+		if p.logger != nil {
+			p.logger.IPrintf(2, "Failed to serialize vendor event: %v", err)
+		}
+		return fmt.Errorf("failed to marshal vendor event: %w", err)
+	}
+
+	if err := p.nc.Publish(subject, payload); err != nil {
+		if p.logger != nil {
+			p.logger.IPrintf(2, "Failed to publish vendor event to %s: %v", subject, err)
+		}
+		return fmt.Errorf("failed to publish to NATS subject %s: %w", subject, err)
+	}
+
+	if p.logger != nil {
+		p.logger.IPrintf(0, "Published event %s for vendor %s", subject, event.Vendor)
 	}
 	return nil
 }

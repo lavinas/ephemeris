@@ -23,6 +23,19 @@ func TestNoopPublisher(t *testing.T) {
 		t.Errorf("expected nil error, got %v", err)
 	}
 
+	vendorData := port.VendorEventData{
+		Nickname:  "acme",
+		LegalName: "Acme Corp",
+	}
+
+	if err := pub.PublishVendorCreated(context.Background(), vendorData); err != nil {
+		t.Errorf("expected nil error, got %v", err)
+	}
+
+	if err := pub.PublishVendorUpdated(context.Background(), vendorData); err != nil {
+		t.Errorf("expected nil error, got %v", err)
+	}
+
 	if err := pub.Close(); err != nil {
 		t.Errorf("expected nil error, got %v", err)
 	}

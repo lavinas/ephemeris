@@ -26,5 +26,8 @@ func NewAPIRoutes(repo port.Repository, logger port.Logger, publisher port.Custo
 	mux.HandleFunc("/user/create", handler.UserCreate)
 	mux.HandleFunc("/user/update", handler.UserUpdate)
 	mux.HandleFunc("/user/list", handler.UserList)
+	mux.HandleFunc("/vendor/create", handler.VendorCreate)
+	mux.HandleFunc("/vendor/update", handler.VendorUpdate)
+	mux.HandleFunc("/vendor/list", handler.VendorList)
 	return mux
 }

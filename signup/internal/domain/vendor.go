@@ -107,7 +107,106 @@ func (v *Vendor) GetByID(id int64) (bool, error) {
 	v.load(resp[0].(*Vendor))
 	return true, nil
 }
+// GetByDocument retrieves a vendor by their document.
+func (v *Vendor) GetByDocument(document string) (bool, error) {
+	conditions := map[string]interface{}{}
+	conditions["document = ?"] = document
+	resp, err := v.Repo.Find(v, conditions, 1, 1)
+	if err != nil {
+		return false, err
+	}
+	if len(resp) == 0 {
+		return false, nil
+	}
+	vendor, ok := resp[0].(*Vendor)
+	if !ok {
+		return false, fmt.Errorf("failed to cast to Vendor")
+	}
+	v.load(vendor)
+	return true, nil
+}
 
+// Find retrieves vendors based on the specified conditions.
+func (v *Vendor) Find(page, pageSize int) ([]port.Domain, error) {
+	conditions := map[string]interface{}{}
+	if v.Nickname != "" {
+		conditions["nickname like ?"] = "%" + v.Nickname + "%"
+	}
+	if v.LegalName != "" {
+		conditions["legal_name like ?"] = "%" + v.LegalName + "%"
+	}
+	if v.TradingName != "" {
+		conditions["trading_name like ?"] = "%" + v.TradingName + "%"
+	}
+	if v.Document != "" {
+		conditions["document like ?"] = "%" + v.Document + "%"
+	}
+	if v.Email != "" {
+		conditions["email like ?"] = "%" + v.Email + "%"
+	}
+	if v.Whatsapp != "" {
+		conditions["whatsapp like ?"] = "%" + v.Whatsapp + "%"
+	}
+	resp, err := v.Repo.Find(v, conditions, page, pageSize)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]port.Domain, len(resp))
+	for i, r := range resp {
+		vendor, ok := r.(*Vendor)
+		if !ok {
+			return nil, fmt.Errorf("failed to cast to Vendor")
+		}
+		out[i] = vendor
+	}
+	return out, nil
+}
+
+// Validate validates vendor data before saving.
+func (v *Vendor) Validate() error {
+	if v.Nickname == "" {
+		return fmt.Errorf("nickname is required")
+	}
+	if err := v.ValidateNickname(v.Nickname); err != nil {
+		return fmt.Errorf("nickname is invalid")
+	}
+	if v.LegalName == "" {
+		return fmt.Errorf("legal_name is required")
+	}
+	if v.Document == "" {
+		return fmt.Errorf("document is required")
+	}
+	if newDoc, err := v.ValidateCpfCnpj(v.Document); err != nil {
+		return fmt.Errorf("document is invalid")
+	} else {
+		v.Document = newDoc
+	}
+	if v.Email != "" {
+		if err := v.ValidateEmail(v.Email); err != nil {
+			return fmt.Errorf("email is invalid")
+		}
+	}
+	if v.Whatsapp != "" {
+		if _, err := v.ValidateCellNumber(v.Whatsapp); err != nil {
+			return fmt.Errorf("whatsapp is invalid")
+		}
+	}
+	if v.CreatedAt.IsZero() {
+		v.CreatedAt = time.Now()
+	}
+	if v.UpdatedAt.IsZero() {
+		v.UpdatedAt = time.Now()
+	}
+	return nil
+}
+
+// Save persists the vendor instance to the repository.
+func (v *Vendor) Save() error {
+	if err := v.Validate(); err != nil {
+		return err
+	}
+	return v.Repo.Save(v)
+}
 
 // load loads all fields from a vendor
 func (v *Vendor) load(vendor *Vendor) {

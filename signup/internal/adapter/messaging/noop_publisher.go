@@ -22,6 +22,14 @@ func (n *NoopPublisher) PublishCustomerUpdated(ctx context.Context, vendor strin
 	return nil
 }
 
+func (n *NoopPublisher) PublishVendorCreated(ctx context.Context, data port.VendorEventData) error {
+	return nil
+}
+
+func (n *NoopPublisher) PublishVendorUpdated(ctx context.Context, data port.VendorEventData) error {
+	return nil
+}
+
 func (n *NoopPublisher) Close() error {
 	return nil
 }
