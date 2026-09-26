@@ -1,13 +1,16 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
 	"planner/internal/adapter/config"
 	"planner/internal/adapter/http"
 	"planner/internal/adapter/logger"
+	"planner/internal/adapter/messaging"
 	"planner/internal/adapter/repository"
+	"planner/internal/port"
 )
 
 const (
@@ -17,21 +20,42 @@ const (
 // Main function to initialize the API server
 func main() {
 	// Initialize Config
-	logger, repo, handler, cfg, err := startAll()
+	log, repo, handler, cfg, err := startAll()
 	if err != nil {
 		fmt.Printf("Error initializing components: %v\n", err)
 		return
 	}
 	defer func() {
-		logger.IPrintf(0, "Logger closed")
-		logger.Close()
+		log.IPrintf(0, "Logger closed")
+		log.Close()
 	}()
 	defer func() {
 		repo.Close()
-		logger.IPrintf(0, "Repository closed")
+		log.IPrintf(0, "Repository closed")
 	}()
+
+	// Initialize Messaging Consumer (NATS or Noop)
+	var consumer port.EventConsumer
+	natsURL, queueGroup, natsEnabled := cfg.GetNATSData()
+	if natsEnabled && natsURL != "" {
+		natsConsumer := messaging.NewNATSConsumer(natsURL, queueGroup, repo, log)
+		if err := natsConsumer.Start(context.Background()); err != nil {
+			log.IPrintf(1, "Warning: failed to start NATS consumer (%v). Using NoopConsumer.", err)
+			consumer = messaging.NewNoopConsumer()
+		} else {
+			consumer = natsConsumer
+		}
+	} else {
+		log.IPrintf(0, "NATS messaging is disabled. Using NoopConsumer.")
+		consumer = messaging.NewNoopConsumer()
+	}
+	defer func() {
+		consumer.Close()
+		log.IPrintf(0, "Messaging consumer closed")
+	}()
+
 	if err := handler.Run(cfg.GetWebAddr()); err != nil {
-		logger.IPrintf(0, "Error running server: %v", err)
+		log.IPrintf(0, "Error running server: %v", err)
 	}
 
 }

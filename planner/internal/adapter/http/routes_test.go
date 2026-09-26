@@ -6,6 +6,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"planner/internal/domain"
 )
 
 type dummyLogger struct{}
@@ -27,6 +29,18 @@ func (d *dummyRepo) FindGroup(conditions map[string]interface{}, groupField stri
 	return nil, nil
 }
 func (d *dummyRepo) Close() error { return nil }
+func (d *dummyRepo) FindCustomers(page, pageSize int, vendorID int64, name, nickname, document *string, status *int, email, whatsapp *string) ([]domain.Customer, error) {
+	return nil, nil
+}
+func (d *dummyRepo) GetCustomer(vendorID int64, nickname string) (*domain.Customer, error) {
+	return nil, nil
+}
+func (d *dummyRepo) FindVendors(page, pageSize int, legalName, nickname, document *string, accountBank, accountAgency, accountNumber *string) ([]domain.Vendor, error) {
+	return nil, nil
+}
+func (d *dummyRepo) GetVendor(nickname string) (*domain.Vendor, error) {
+	return nil, nil
+}
 
 func TestRootEndpointServesStaticIndex(t *testing.T) {
 	// Change working directory to planner/backend for test to resolve web/static

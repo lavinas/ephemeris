@@ -189,3 +189,105 @@ func (a *Repository) FindGroup(conditions map[string]interface{}, groupField str
 	err := md.Find(&results).Error
 	return results, err
 }
+
+// FindCustomers retrieves customers based on the provided filters and pagination parameters
+func (a *Repository) FindCustomers(page, pageSize int, vendorID int64, name, nickname,
+	document *string, status *int, email, whatsapp *string) ([]domain.Customer, error) {
+	var customers []domain.Customer
+	db := a.DB
+	if a.Tx != nil {
+		db = a.Tx
+	}
+	db = db.Model(&domain.Customer{}).Where("vendor_id = ?", vendorID)
+	if name != nil {
+		db = db.Where("name ILIKE ?", "%"+*name+"%")
+	}
+	if nickname != nil {
+		db = db.Where("nickname ILIKE ?", "%"+*nickname+"%")
+	}
+	if document != nil {
+		db = db.Where("document ILIKE ?", "%"+*document+"%")
+	}
+	if status != nil {
+		db = db.Where("status = ?", *status)
+	}
+	if email != nil {
+		db = db.Where("email ILIKE ?", "%"+*email+"%")
+	}
+	if whatsapp != nil {
+		db = db.Where("whatsapp ILIKE ?", "%"+*whatsapp+"%")
+	}
+	if page > 0 && pageSize > 0 {
+		db = db.Offset((page - 1) * pageSize).Limit(pageSize)
+	}
+	err := db.Find(&customers).Error
+	return customers, err
+}
+
+// GetCustomer retrieves a single customer by Nickname
+func (a *Repository) GetCustomer(vendorID int64, nickname string) (*domain.Customer, error) {
+	var customer domain.Customer
+	db := a.DB
+	if a.Tx != nil {
+		db = a.Tx
+	}
+	err := db.Where("vendor_id = ? AND nickname = ?", vendorID, nickname).First(&customer).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &customer, nil
+}
+
+// FindVendors retrieves vendors based on the provided filters and pagination parameters
+func (a *Repository) FindVendors(page, pageSize int, legalName, nickname, document *string,
+	accountBank, accountAgency, accountNumber *string) ([]domain.Vendor, error) {
+	var vendors []domain.Vendor
+	db := a.DB
+	if a.Tx != nil {
+		db = a.Tx
+	}
+	db = db.Model(&domain.Vendor{})
+	if legalName != nil {
+		db = db.Where("legal_name ILIKE ?", "%"+*legalName+"%")
+	}
+	if nickname != nil {
+		db = db.Where("nickname ILIKE ?", "%"+*nickname+"%")
+	}
+	if document != nil {
+		db = db.Where("document ILIKE ?", "%"+*document+"%")
+	}
+	if accountBank != nil {
+		db = db.Where("account_bank ILIKE ?", "%"+*accountBank+"%")
+	}
+	if accountAgency != nil {
+		db = db.Where("account_agency ILIKE ?", "%"+*accountAgency+"%")
+	}
+	if accountNumber != nil {
+		db = db.Where("account_number ILIKE ?", "%"+*accountNumber+"%")
+	}
+	if page > 0 && pageSize > 0 {
+		db = db.Offset((page - 1) * pageSize).Limit(pageSize)
+	}
+	err := db.Find(&vendors).Error
+	return vendors, err
+}
+
+// GetVendor retrieves a single vendor by Nickname
+func (a *Repository) GetVendor(nickname string) (*domain.Vendor, error) {
+	var vendor domain.Vendor
+	db := a.DB
+	if a.Tx != nil {
+		db = a.Tx
+	}
+	err := db.Where("nickname = ?", nickname).First(&vendor).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &vendor, nil
+}

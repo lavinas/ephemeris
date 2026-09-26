@@ -2,9 +2,14 @@ package domain
 
 import (
 	"time"
-
-	"planner/internal/port"
 )
+
+// SessionRepository defines the minimal repository methods needed by Session domain.
+type SessionRepository interface {
+	Find(page, pagesize int, conditions map[string]interface{}, orderBy ...string) ([]interface{}, error)
+	FindCount(conditions map[string]interface{}) (int64, error)
+	FindGroup(conditions map[string]interface{}, groupField string) ([]map[string]interface{}, error)
+}
 
 // SessionStatus represents string type for status
 type SessionStatus string
@@ -52,7 +57,7 @@ func (Session) TableName() string {
 }
 
 // Find is a helper function to find records in the database
-func (s *Session) Find(repository port.Repository, page, pagesize int, id int64, nickname string, startDate, endDate time.Time,
+func (s *Session) Find(repository SessionRepository, page, pagesize int, id int64, nickname string, startDate, endDate time.Time,
 	minutes int, service, status string, comments string) ([]Session, int64, error) {
 	conditions := map[string]interface{}{}
 	conditions["deleted_at IS NULL"] = nil
@@ -98,7 +103,7 @@ func (s *Session) Find(repository port.Repository, page, pagesize int, id int64,
 }
 
 // FindUsers is a helper function to find session users in the database based on conditions
-func (s *Session) FindUsers(repository port.Repository, startDate, endDate time.Time,
+func (s *Session) FindUsers(repository SessionRepository, startDate, endDate time.Time,
 	minutes int, service, status string) ([]string, error) {
 	conditions := map[string]interface{}{}
 	conditions["deleted_at IS NULL"] = nil

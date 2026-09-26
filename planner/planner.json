@@ -17,5 +17,10 @@
     },
     "web": {
         "addr": ":8083"
+    },
+    "nats": {
+        "url": "nats://nats:4222",
+        "queue_group": "planner-customer-sync",
+        "enabled": true
     }
 }
