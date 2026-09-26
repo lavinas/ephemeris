@@ -1,0 +1,402 @@
+	{{define "users_fragment"}}
+	<script src="https://cdn.tailwindcss.com"></script>
+	<style>
+		.grade-filtros-user {
+			display: grid !important;
+			grid-template-columns: 1.2fr 1.2fr 1.5fr 1.5fr 1.3fr 1fr !important;
+			gap: 10px !important;
+			width: 100% !important;
+			box-sizing: border-box !important;
+		}
+		.grade-tabela-user {
+			display: grid !important;
+			grid-template-columns: 1.5fr 2fr 1.3fr 2fr 1fr 1.4fr !important;
+			gap: 16px !important;
+			align-items: center !important;
+			width: 100% !important;
+			box-sizing: border-box !important;
+			padding: 16px 24px !important;
+		}
+		.topo-tabela {
+			color: #9ca3af !important;
+			font-size: 11px !important;
+			font-weight: 700 !important;
+			text-transform: uppercase !important;
+			letter-spacing: 0.05em !important;
+			border-bottom: 1px solid #374151 !important;
+			padding-bottom: 12px !important;
+			margin-bottom: 12px !important;
+		}
+		.linha-box {
+			background-color: #f3f4f6 !important;
+			border: 1px solid #e5e7eb !important;
+			border-radius: 8px !important;
+			margin-bottom: 8px !important;
+			color: #1f2937 !important;
+			transition: background-color 0.15s ease !important;
+			box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+		}
+		.linha-box.formulario-add, .linha-box.formulario-edit, .linha-box.aviso-deletar {
+			background-color: #ffffff !important;
+			border: 1px solid #4f46e5 !important;
+			color: #1f2937 !important;
+		}
+		.linha-box.aviso-deletar { border-color: #e11d48 !important; }
+		.linha-box:hover:not(.formulario-add):not(.formulario-edit):not(.aviso-deletar) {
+			background-color: #e5e7eb !important;
+		}
+		.campo-box {
+			background-color: #1f2937 !important;
+			border: 1px solid #374151 !important;
+			padding: 12px !important;
+			border-radius: 8px !important;
+			display: flex !important;
+			flex-direction: column !important;
+		}
+		.campo-box label {
+			display: block !important;
+			font-size: 11px !important;
+			font-weight: 600 !important;
+			color: #9ca3af !important;
+			text-transform: uppercase !important;
+			margin-bottom: 6px !important;
+			letter-spacing: 0.05em !important;
+		}
+		.campo-box input, .campo-box select {
+			width: 100% !important;
+			padding: 8px 12px !important;
+			background-color: #111827 !important;
+			border: 1px solid #4b5563 !important;
+			color: #f3f4f6 !important;
+			border-radius: 6px !important;
+			font-size: 14px !important;
+			outline: none !important;
+			box-sizing: border-box !important;
+		}
+		.input-inline-tabela {
+			width: 100% !important;
+			padding: 6px 10px !important;
+			background-color: #f9fafb !important;
+			border: 1px solid #d1d5db !important;
+			color: #1f2937 !important;
+			border-radius: 6px !important;
+			font-size: 14px !important;
+			outline: none !important;
+			box-sizing: border-box !important;
+		}
+		.campo-box input:focus, .campo-box select:focus { border-color: #6366f1 !important; }
+		.input-inline-tabela:focus { border-color: #4f46e5 !important; background-color: #ffffff !important; }
+		.texto-truncado { white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
+	</style>
+	<div class="bg-gray-950 text-gray-100 font-sans antialiased min-h-screen py-10 px-4" style="background-color: #030712; color: #f3f4f6; font-family: ui-sans-serif, system-ui, sans-serif; min-height: 100vh; padding: 2.5rem 1rem;">
+		<div class="max-w-7xl mx-auto bg-gray-900 shadow-2xl rounded-2xl overflow-hidden border border-gray-800 p-8" style="max-width: 80rem; margin: 0 auto; background-color: #111827; border-radius: 1rem; border: 1px solid #1f2937; padding: 2rem;">
+			<form id="filtro-form" hx-post="/html/users/tabela" hx-target="#tabela-container" hx-trigger="input delay:200ms, change" class="w-full">
+				<input type="hidden" id="input-pagina-form" name="page" value="1">
+				<div class="grade-filtros-user">
+					<div class="campo-box">
+						<label>Vendor</label>
+						<select name="vendor" id="filtro-vendor">
+							{{range .Vendors}}
+								<option value="{{.Nickname}}" {{if eq $.VendorSelected .Nickname}}selected{{end}}>{{.TradingName}} ({{.Nickname}})</option>
+							{{end}}
+						</select>
+					</div>
+					<div class="campo-box">
+						<label>Username</label>
+						<input type="text" name="username" placeholder="Filtrar username...">
+					</div>
+					<div class="campo-box">
+						<label>Nome</label>
+						<input type="text" name="name" placeholder="Filtrar nome...">
+					</div>
+					<div class="campo-box">
+						<label>Email</label>
+						<input type="text" name="email" placeholder="Filtrar email...">
+					</div>
+					<div class="campo-box">
+						<label>WhatsApp</label>
+						<input type="text" name="whatsapp" placeholder="WhatsApp...">
+					</div>
+					<div class="campo-box">
+						<label>Status</label>
+						<select name="status">
+							<option value="-1">Todos</option>
+							<option value="1">Ativo</option>
+							<option value="0">Inativo</option>
+						</select>
+					</div>
+				</div>
+			</form>
+			<div style="height: 40px; width: 100%;"></div>
+			<div class="flex justify-start gap-4" style="display: flex; gap: 1rem;">
+				<button hx-get="/html/users/novo" hx-target="#formulario-cadastro-container" hx-swap="innerHTML" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-2.5 rounded-lg border border-indigo-500 transition duration-150 shadow-md" style="background-color: #4f46e5; color: #fff; font-weight: 700; font-size: 0.875rem; padding: 0.625rem 1.5rem; border-radius: 0.5rem; border: 1px solid #6366f1; cursor: pointer;">＋ Adicionar Usuário</button>
+				<button hx-post="/html/users/tabela/reset" hx-target="#tabela-container" class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-sm px-6 py-2.5 rounded-lg border border-gray-700 transition duration-150 shadow-md" style="background-color: #1f2937; color: #d1d5db; font-weight: 700; font-size: 0.875rem; padding: 0.625rem 1.5rem; border-radius: 0.5rem; border: 1px solid #374151; cursor: pointer;">🧹 Limpar Filtros</button>
+			</div>
+			<div id="formulario-cadastro-container" class="mt-4"></div>
+			<div style="height: 50px; width: 100%;"></div>
+			<div id="tabela-container" class="w-full">
+				{{template "tabela_user" .}}
+			</div>
+		</div>
+	</div>
+	{{end}}
+
+	{{define "users_index"}}
+	<!DOCTYPE html>
+	<html lang="pt-BR">
+	<head>
+		<meta charset="UTF-8">
+		<title>Manutenção de Usuários</title>
+		<script src="https://cdn.tailwindcss.com"></script>
+		<script src="/static/htmx.min.js"></script>
+		<style>
+			.grade-filtros-user {
+				display: grid !important;
+				grid-template-columns: 1.2fr 1.2fr 1.5fr 1.5fr 1.3fr 1fr !important;
+				gap: 10px !important;
+				width: 100% !important;
+				box-sizing: border-box !important;
+			}
+			.grade-tabela-user {
+				display: grid !important;
+				grid-template-columns: 1.5fr 2fr 1.3fr 2fr 1fr 1.4fr !important;
+				gap: 16px !important;
+				align-items: center !important;
+				width: 100% !important;
+				box-sizing: border-box !important;
+				padding: 16px 24px !important;
+			}
+			.topo-tabela {
+				color: #9ca3af !important;
+				font-size: 11px !important;
+				font-weight: 700 !important;
+				text-transform: uppercase !important;
+				letter-spacing: 0.05em !important;
+				border-bottom: 1px solid #374151 !important;
+				padding-bottom: 12px !important;
+				margin-bottom: 12px !important;
+			}
+			.linha-box {
+				background-color: #f3f4f6 !important;
+				border: 1px solid #e5e7eb !important;
+				border-radius: 8px !important;
+				margin-bottom: 8px !important;
+				color: #1f2937 !important;
+				transition: background-color 0.15s ease !important;
+				box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+			}
+			.linha-box.formulario-add, .linha-box.formulario-edit, .linha-box.aviso-deletar {
+				background-color: #ffffff !important;
+				border: 1px solid #4f46e5 !important;
+				color: #1f2937 !important;
+			}
+			.linha-box.aviso-deletar { border-color: #e11d48 !important; }
+			.linha-box:hover:not(.formulario-add):not(.formulario-edit):not(.aviso-deletar) {
+				background-color: #e5e7eb !important;
+			}
+			.campo-box {
+				background-color: #1f2937 !important;
+				border: 1px solid #374151 !important;
+				padding: 12px !important;
+				border-radius: 8px !important;
+				display: flex !important;
+				flex-direction: column !important;
+			}
+			.campo-box label {
+				display: block !important;
+				font-size: 11px !important;
+				font-weight: 600 !important;
+				color: #9ca3af !important;
+				text-transform: uppercase !important;
+				margin-bottom: 6px !important;
+				letter-spacing: 0.05em !important;
+			}
+			.campo-box input, .campo-box select {
+				width: 100% !important;
+				padding: 8px 12px !important;
+				background-color: #111827 !important;
+				border: 1px solid #4b5563 !important;
+				color: #f3f4f6 !important;
+				border-radius: 6px !important;
+				font-size: 14px !important;
+				outline: none !important;
+				box-sizing: border-box !important;
+			}
+			.input-inline-tabela {
+				width: 100% !important;
+				padding: 6px 10px !important;
+				background-color: #f9fafb !important;
+				border: 1px solid #d1d5db !important;
+				color: #1f2937 !important;
+				border-radius: 6px !important;
+				font-size: 14px !important;
+				outline: none !important;
+				box-sizing: border-box !important;
+			}
+			.campo-box input:focus, .campo-box select:focus { border-color: #6366f1 !important; }
+			.input-inline-tabela:focus { border-color: #4f46e5 !important; background-color: #ffffff !important; }
+			.texto-truncado { white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
+			html, body {
+				background-color: #ffffff !important;
+			}
+		</style>
+	</head>
+	<body class="bg-gray-950 text-gray-100 font-sans antialiased min-h-screen py-10 px-4">
+		<div class="max-w-7xl mx-auto bg-gray-900 shadow-2xl rounded-2xl overflow-hidden border border-gray-800 p-8">
+			<form id="filtro-form" hx-post="/html/users/tabela" hx-target="#tabela-container" hx-trigger="input delay:200ms, change" class="w-full">
+				<input type="hidden" id="input-pagina-form" name="page" value="1">
+				<div class="grade-filtros-user">
+					<div class="campo-box">
+						<label>Vendor</label>
+						<select name="vendor" id="filtro-vendor">
+							{{range .Vendors}}
+								<option value="{{.Nickname}}" {{if eq $.VendorSelected .Nickname}}selected{{end}}>{{.TradingName}} ({{.Nickname}})</option>
+							{{end}}
+						</select>
+					</div>
+					<div class="campo-box">
+						<label>Username</label>
+						<input type="text" name="username" placeholder="Filtrar username...">
+					</div>
+					<div class="campo-box">
+						<label>Nome</label>
+						<input type="text" name="name" placeholder="Filtrar nome...">
+					</div>
+					<div class="campo-box">
+						<label>Email</label>
+						<input type="text" name="email" placeholder="Filtrar email...">
+					</div>
+					<div class="campo-box">
+						<label>WhatsApp</label>
+						<input type="text" name="whatsapp" placeholder="WhatsApp...">
+					</div>
+					<div class="campo-box">
+						<label>Status</label>
+						<select name="status">
+							<option value="-1">Todos</option>
+							<option value="1">Ativo</option>
+							<option value="0">Inativo</option>
+						</select>
+					</div>
+				</div>
+			</form>
+			<div style="height: 40px; width: 100%;"></div>
+			<div class="flex justify-start gap-4">
+				<button hx-get="/html/users/novo" hx-target="#formulario-cadastro-container" hx-swap="innerHTML" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-2.5 rounded-lg border border-indigo-500 transition duration-150 shadow-md">＋ Adicionar Usuário</button>
+				<button hx-post="/html/users/tabela/reset" hx-target="#tabela-container" class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-sm px-6 py-2.5 rounded-lg border border-gray-700 transition duration-150 shadow-md">🧹 Limpar Filtros</button>
+			</div>
+			<div id="formulario-cadastro-container" class="mt-4"></div>
+			<div style="height: 50px; width: 100%;"></div>
+			<div id="tabela-container" class="w-full">
+				{{template "tabela_user" .}}
+			</div>
+		</div>
+	</body>
+	</html>
+	{{end}}
+
+	{{define "formulario_cadastro_user"}}
+	<form hx-post="/html/users/salvar" hx-target="#tabela-container" hx-include="#filtro-form" class="linha-box grade-tabela-user formulario-add text-sm shadow-lg">
+		<div>
+			<input type="text" name="add_username" placeholder="Username (obrigatório)..." required class="input-inline-tabela">
+		</div>
+		<div>
+			<input type="text" name="add_name" placeholder="Nome completo..." required class="input-inline-tabela">
+		</div>
+		<div>
+			<input type="password" name="add_password" placeholder="Senha (mín. 8 caracteres)..." minlength="8" required class="input-inline-tabela">
+		</div>
+		<div>
+			<input type="email" name="add_email" placeholder="Email..." required class="input-inline-tabela">
+		</div>
+		<div>
+			<input type="text" name="add_whatsapp" placeholder="WhatsApp..." required class="input-inline-tabela">
+		</div>
+		<input type="hidden" name="add_vendor" value="{{.VendorSelected}}">
+		<div class="flex gap-2 justify-start w-full" style="justify-content: flex-start !important; align-items: center !important;">
+			<button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold text-xs px-3 py-2 rounded-md transition w-16 text-center">Salvar</button>
+			<button type="button" hx-get="/html/users/bloco/limpar" hx-target="#formulario-cadastro-container" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs px-3 py-2 rounded-md border border-gray-300 transition w-16 text-center">Cancelar</button>
+		</div>
+	</form>
+	{{end}}
+
+	{{define "tabela_user"}}
+	<div class="w-full">
+		<div class="grade-tabela-user topo-tabela">
+			<div>Username</div>
+			<div>Nome</div>
+			<div>WhatsApp</div>
+			<div>Email</div>
+			<div>Status</div>
+			<div style="text-align: left !important; width: 100%;">Ações</div>
+		</div>
+		{{if .Users}}
+			{{range .Users}}
+				{{template "linha_user" .}}
+			{{end}}
+			<div style="height: 40px; width: 100%;"></div>
+			<div class="mt-12 flex items-center justify-between bg-gray-800/40 p-4 rounded-xl border border-gray-800 text-sm">
+				<div class="text-gray-400">Página <span class="text-gray-200 font-bold font-mono">{{.PaginaAtual}}</span> de <span class="text-gray-200 font-bold font-mono">{{.TotalPaginas}}</span></div>
+				<div class="flex gap-2">
+					<button {{if not .TemAnterior}}disabled style="opacity: 0.3; cursor: not-allowed;"{{end}} hx-post="/html/users/tabela?page={{.PagAnterior}}" hx-target="#tabela-container" hx-include="#filtro-form" onclick="document.getElementById('input-pagina-form').value='{{.PagAnterior}}'" class="bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold px-4 py-2 rounded-lg border border-gray-700 transition">◀ Anterior</button>
+					<button {{if not .TemProximo}}disabled style="opacity: 0.3; cursor: not-allowed;"{{end}} hx-post="/html/users/tabela?page={{.PagProxima}}" hx-target="#tabela-container" hx-include="#filtro-form" onclick="document.getElementById('input-pagina-form').value='{{.PagProxima}}'" class="bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold px-4 py-2 rounded-lg border border-gray-700 transition">Próximo ▶</button>
+				</div>
+			</div>
+		{{else}}
+			<div class="bg-gray-900/50 border border-gray-800 rounded-xl py-12 text-center text-gray-500 italic">Nenhum usuário corresponde aos filtros selecionados.</div>
+		{{end}}
+	</div>
+	{{end}}
+
+	{{define "linha_user"}}
+	<div id="user-{{.ID}}" class="linha-box grade-tabela-user text-sm" style="align-items: center !important; padding-top: 14px; padding-bottom: 14px;">
+		<div class="font-bold text-gray-900 texto-truncado">{{.Username}}</div>
+		<div class="text-gray-700 font-medium texto-truncado">{{.Name}}</div>
+		<div class="text-gray-600 font-mono text-xs">{{.Whatsapp}}</div>
+		<div class="text-gray-600 texto-truncado text-xs">{{.Email}}</div>
+		<div>
+			{{if eq .Status 1}}
+				<span class="text-xs uppercase tracking-wider font-black" style="color: #10b981 !important;">Ativo</span>
+			{{else}}
+				<span class="text-xs uppercase tracking-wider font-black" style="color: #ef4444 !important;">Inativo</span>
+			{{end}}
+		</div>
+		<div class="flex gap-2 justify-start w-full" style="justify-content: flex-start !important; align-items: center !important;">
+			<button hx-get="/html/users/editar?id={{.ID}}" hx-target="#user-{{.ID}}" hx-swap="outerHTML" class="text-indigo-600 hover:text-white font-bold text-xs px-2.5 py-1.5 bg-indigo-600/10 hover:bg-indigo-600 rounded-md border border-indigo-600/20 transition shadow-sm w-16 text-center">Editar</button>
+			{{if eq .Status 1}}
+				<button hx-get="/html/users/deletar-aviso?id={{.ID}}" hx-target="#user-{{.ID}}" hx-swap="outerHTML" class="text-rose-600 hover:text-white font-bold text-xs px-2.5 py-1.5 bg-rose-600/10 hover:bg-rose-600 rounded-md border border-rose-600/20 transition duration-150 shadow-sm w-16 text-center">Inativar</button>
+			{{else}}
+				<button disabled style="opacity: 0.3; cursor: not-allowed;" class="text-gray-400 font-bold text-xs px-2.5 py-1.5 bg-gray-100 rounded-md border border-gray-200 w-16 text-center">Inativo</button>
+			{{end}}
+		</div>
+	</div>
+	{{end}}
+
+	{{define "linha_user_edit"}}
+	<form id="user-{{.ID}}" hx-post="/html/users/atualizar?id={{.ID}}" hx-target="#tabela-container" hx-include="#filtro-form" class="linha-box grade-tabela-user formulario-edit text-sm shadow-md" style="align-items: center !important; padding-top: 14px; padding-bottom: 14px;">
+		<div class="font-bold text-gray-600 font-mono text-xs">{{.Username}}</div>
+		<div><input type="text" name="edit_name" value="{{.Name}}" required class="input-inline-tabela"></div>
+		<div><input type="text" name="edit_whatsapp" value="{{.Whatsapp}}" required class="input-inline-tabela"></div>
+		<div><input type="email" name="edit_email" value="{{.Email}}" required class="input-inline-tabela"></div>
+		<div>
+			<select name="edit_status" required class="input-inline-tabela">
+				<option value="1" {{if eq .Status 1}}selected{{end}}>Ativo</option>
+				<option value="0" {{if eq .Status 0}}selected{{end}}>Inativo</option>
+			</select>
+		</div>
+		<div class="flex gap-2 justify-start w-full" style="justify-content: flex-start !important; align-items: center !important;">
+			<button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold text-xs px-2.5 py-1.5 rounded-md transition shadow-sm w-16 text-center">Salvar</button>
+			<button type="button" hx-get="/html/users/cancelar-edicao?id={{.ID}}" hx-target="#user-{{.ID}}" hx-swap="outerHTML" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs px-2.5 py-1.5 rounded-md border border-gray-300 transition shadow-sm w-16 text-center">Cancelar</button>
+		</div>
+	</form>
+	{{end}}
+
+	{{define "linha_user_deletar_aviso"}}
+	<div id="user-{{.ID}}" class="linha-box grade-tabela-user aviso-deletar text-sm bg-rose-50/50 py-5" style="align-items: center !important;">
+		<div class="col-span-5 text-rose-700 font-bold flex items-center gap-2" style="grid-column: span 5 / span 5 !important;">⚠️ Deseja realmente inativar o usuário <span class="underline">{{.Username}} ({{.Name}})</span>?</div>
+		<div class="flex gap-2 justify-end w-full" style="justify-content: flex-end !important;">
+			<button hx-post="/html/users/deletar?id={{.ID}}" hx-target="#tabela-container" hx-include="#filtro-form" class="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-3 py-2 rounded-md transition shadow-md">Sim, inativar</button>
+			<button hx-get="/html/users/cancelar-edicao?id={{.ID}}" hx-target="#user-{{.ID}}" hx-swap="outerHTML" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs px-3 py-2 rounded-md border border-gray-300 transition shadow-sm">Não</button>
+		</div>
+	</div>
+	{{end}}

@@ -15,8 +15,6 @@ import (
 const (
 	// ServerShutdownTimeout is the timeout duration for server shutdown
 	ServerShutdownTimeout = 10 * time.Second
-
-	htmlTemplatePath = "/app/web/templates/sessions.html"
 )
 
 // Handler is an HTTP handler for the API
@@ -55,14 +53,33 @@ func (h *Handler) Run(addr string) error {
 	return nil
 }
 
-// getHtmlTemplate returns the HTML template path
+// getHtmlTemplate returns the combined HTML templates
 func (h *Handler) getHtmlTemplate() ([]byte, error) {
-	template, err := os.ReadFile(htmlTemplatePath)
-	if err != nil {
-		h.logger.IPrintf(0, "error reading HTML template: %v", err)
-		return nil, err
+	paths := []string{
+		"web/templates/customers.html",
+		"web/templates/users.html",
+		"web/templates/sessions.html",
 	}
-	return template, nil
+	var combined []byte
+	for _, p := range paths {
+		var content []byte
+		var err error
+		// Try relative path
+		content, err = os.ReadFile(p)
+		if err != nil {
+			// Try with /app/ prefix
+			content, err = os.ReadFile("/app/" + p)
+		}
+		if err == nil {
+			combined = append(combined, content...)
+			combined = append(combined, []byte("\n")...)
+		}
+	}
+	if len(combined) == 0 {
+		h.logger.IPrintf(0, "error reading HTML templates: no templates found")
+		return nil, fmt.Errorf("no HTML templates found")
+	}
+	return combined, nil
 }
 
 // exec executes the server and handles graceful shutdown

@@ -197,6 +197,11 @@ func (m *memoryRepo) Find(model interface{}, conditions map[string]interface{}, 
 	case *domain.Customer:
 		for _, c := range m.Customers {
 			match := true
+			if id, ok := conditions["id = ?"]; ok {
+				if c.ID != id {
+					match = false
+				}
+			}
 			if vID, ok := conditions["vendor_id = ?"]; ok {
 				if c.VendorID != vID {
 					match = false
@@ -218,6 +223,12 @@ func (m *memoryRepo) Find(model interface{}, conditions map[string]interface{}, 
 					match = false
 				}
 			}
+			if nickLike, ok := conditions["nickname like ?"]; ok {
+				expected := strings.Trim(fmt.Sprint(nickLike), "%")
+				if !strings.Contains(strings.ToLower(c.Nickname), strings.ToLower(expected)) {
+					match = false
+				}
+			}
 			if status, ok := conditions["status = ?"]; ok {
 				if c.Status == nil || *c.Status != status {
 					match = false
@@ -233,6 +244,11 @@ func (m *memoryRepo) Find(model interface{}, conditions map[string]interface{}, 
 	case *domain.User:
 		for _, u := range m.Users {
 			match := true
+			if id, ok := conditions["id = ?"]; ok {
+				if u.ID != id {
+					match = false
+				}
+			}
 			// user.go uses either "vendor_id" or "vendor_id = ?"
 			if vID, ok := conditions["vendor_id"]; ok {
 				if u.VendorID != vID {
@@ -261,6 +277,23 @@ func (m *memoryRepo) Find(model interface{}, conditions map[string]interface{}, 
 			}
 			if email, ok := conditions["email = ?"]; ok {
 				if u.Email == nil || *u.Email != email {
+					match = false
+				}
+			}
+			if nameLike, ok := conditions["name like ?"]; ok {
+				expected := strings.Trim(fmt.Sprint(nameLike), "%")
+				if !strings.Contains(strings.ToLower(u.Name), strings.ToLower(expected)) {
+					match = false
+				}
+			}
+			if unameLike, ok := conditions["username like ?"]; ok {
+				expected := strings.Trim(fmt.Sprint(unameLike), "%")
+				if !strings.Contains(strings.ToLower(u.Username), strings.ToLower(expected)) {
+					match = false
+				}
+			}
+			if status, ok := conditions["status = ?"]; ok {
+				if u.Status == nil || *u.Status != status {
 					match = false
 				}
 			}

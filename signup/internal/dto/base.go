@@ -45,6 +45,11 @@ func (r ResponseBase) GetStatusCode() int {
 	return r.HttpCode
 }
 
+// GetMessage returns the message of the response.
+func (r ResponseBase) GetMessage() string {
+	return r.Message
+}
+
 // ValidatePhoneNumber checks if the provided phone number is valid and formats it to E.164 standard.
 func ValidateCellNumber(phone string) (string, error) {
 	num, err := phonenumbers.Parse(phone, "BR")

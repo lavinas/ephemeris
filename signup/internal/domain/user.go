@@ -49,6 +49,24 @@ func (User) TableName() string {
 	return "users"
 }
 
+// GetByID retrieves a user by their ID.
+func (u *User) GetByID(id int64) (bool, error) {
+	conditions := map[string]interface{}{"id = ?": id}
+	resp, err := u.Repo.Find(u, conditions, 1, 1)
+	if err != nil {
+		return false, err
+	}
+	if len(resp) == 0 {
+		return false, nil
+	}
+	user, ok := resp[0].(*User)
+	if !ok {
+		return false, fmt.Errorf("failed to cast to User")
+	}
+	u.load(user)
+	return true, nil
+}
+
 // GetByUsername retrieves a user by their username.
 func (u *User) GetByUsername(vendorID int64, username string) (bool, error) {
 	conditions := map[string]interface{}{
@@ -133,6 +151,9 @@ func (u *User) Validate() error {
 
 func (u *User) Find(page, pageSize int) ([]port.Domain, error) {
 	conditions := map[string]interface{}{}
+	if u.ID > 0 {
+		conditions["id = ?"] = u.ID
+	}
 	if u.VendorID > 0 {
 		conditions["vendor_id = ?"] = u.VendorID
 	}
@@ -148,10 +169,10 @@ func (u *User) Find(page, pageSize int) ([]port.Domain, error) {
 	if u.Whatsapp != nil {
 		conditions["whatsapp like ?"] = "%" + *u.Whatsapp + "%"
 	}
-	if u.Status != nil {
+	if u.Status != nil && *u.Status != -1 {
 		conditions["status = ?"] = *u.Status
 	}
-	result, err := u.Repo.Find(u, conditions, page, pageSize)
+	result, err := u.Repo.Find(u, conditions, page, pageSize, "id desc")
 	if err != nil {
 		return nil, err
 	}

@@ -82,10 +82,8 @@ func (r *UserListRequest) Validate() error {
 	if err := r.validateVendor(); err != nil {
 		errs = append(errs, err)
 	}
-	if r.Status != nil {
-		if *r.Status < 0 || *r.Status > 1 {
-			errs = append(errs, fmt.Errorf("status must be 0 or 1"))
-		}
+	if r.Status != nil && *r.Status != 1 && *r.Status != 0 && *r.Status != -1 {
+		errs = append(errs, fmt.Errorf("status must be 1 (active), 0 (inactive), or -1 (all)"))
 	}
 	if len(errs) > 0 {
 		err := errors.Join(errs...)

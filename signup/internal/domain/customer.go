@@ -49,6 +49,24 @@ func (Customer) TableName() string {
 	return "customer"
 }
 
+// GetByID retrieves a customer by their ID.
+func (c *Customer) GetByID(id int64) (bool, error) {
+	conditions := map[string]interface{}{"id = ?": id}
+	resp, err := c.Repo.Find(c, conditions, 1, 1)
+	if err != nil {
+		return false, err
+	}
+	if len(resp) == 0 {
+		return false, nil
+	}
+	customer, ok := resp[0].(*Customer)
+	if !ok {
+		return false, fmt.Errorf("failed to cast to Customer")
+	}
+	c.load(customer)
+	return true, nil
+}
+
 // GetByNickname retrieves a customer by their nickname.
 func (c *Customer) GetByNickname(vendorID int64, nickname string) (bool, error) {
 	conditions := map[string]interface{}{"nickname = ?": nickname, "vendor_id = ?": vendorID}
@@ -80,6 +98,9 @@ func (c *Customer) GetByDocument(vendorID int64, document string) (bool, error) 
 // Find retrieves customers based on the specified conditions.
 func (c *Customer) Find(page, pageSize int) ([]port.Domain, error) {
 	conditions := map[string]interface{}{}
+	if c.ID > 0 {
+		conditions["id = ?"] = c.ID
+	}
 	if c.VendorID > 0 {
 		conditions["vendor_id = ?"] = c.VendorID
 	}
@@ -98,10 +119,10 @@ func (c *Customer) Find(page, pageSize int) ([]port.Domain, error) {
 	if c.Whatsapp != nil {
 		conditions["whatsapp like ?"] = "%" + *c.Whatsapp + "%"
 	}
-	if c.Status != nil {
+	if c.Status != nil && *c.Status != -1 {
 		conditions["status = ?"] = *c.Status
 	}
-	resp, err := c.Repo.Find(c, conditions, page, pageSize)
+	resp, err := c.Repo.Find(c, conditions, page, pageSize, "id desc")
 	if err != nil {
 		return nil, err
 	}
