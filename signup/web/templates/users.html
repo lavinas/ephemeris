@@ -298,21 +298,21 @@
 	{{define "formulario_cadastro_user"}}
 	<form hx-post="/html/users/salvar" hx-target="#tabela-container" hx-include="#filtro-form" class="linha-box grade-tabela-user formulario-add text-sm shadow-lg">
 		<div>
-			<input type="text" name="add_username" placeholder="Username (obrigatório)..." required class="input-inline-tabela">
+			<input type="text" name="add_username" value="{{.AddUsername}}" placeholder="Username (obrigatório)..." required class="input-inline-tabela">
 		</div>
 		<div>
-			<input type="text" name="add_name" placeholder="Nome completo..." required class="input-inline-tabela">
+			<input type="text" name="add_name" value="{{.AddName}}" placeholder="Nome completo..." required class="input-inline-tabela">
 		</div>
 		<div>
-			<input type="password" name="add_password" placeholder="Senha (mín. 8 caracteres)..." minlength="8" required class="input-inline-tabela">
+			<input type="password" name="add_password" value="{{.AddPassword}}" placeholder="Senha (mín. 8 caracteres)..." minlength="8" required class="input-inline-tabela">
 		</div>
 		<div>
-			<input type="email" name="add_email" placeholder="Email..." required class="input-inline-tabela">
+			<input type="email" name="add_email" value="{{.AddEmail}}" placeholder="Email..." required class="input-inline-tabela">
 		</div>
 		<div>
-			<input type="text" name="add_whatsapp" placeholder="WhatsApp..." required class="input-inline-tabela">
+			<input type="text" name="add_whatsapp" value="{{.AddWhatsapp}}" placeholder="WhatsApp..." required class="input-inline-tabela">
 		</div>
-		<input type="hidden" name="add_vendor" value="{{.VendorSelected}}">
+		<input type="hidden" name="add_vendor" value="{{if .AddVendor}}{{.AddVendor}}{{else}}{{.VendorSelected}}{{end}}">
 		<div class="flex gap-2 justify-start w-full" style="justify-content: flex-start !important; align-items: center !important;">
 			<button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold text-xs px-3 py-2 rounded-md transition w-16 text-center">Salvar</button>
 			<button type="button" hx-get="/html/users/bloco/limpar" hx-target="#formulario-cadastro-container" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs px-3 py-2 rounded-md border border-gray-300 transition w-16 text-center">Cancelar</button>
@@ -322,6 +322,15 @@
 
 	{{define "tabela_user"}}
 	<div class="w-full">
+		{{if .ErrorMessage}}
+		<div class="linha-box bg-rose-50 border border-rose-300 text-rose-800 p-4 rounded-xl shadow-md mb-4 flex items-center justify-between gap-4">
+			<div class="flex items-center gap-3">
+				<span class="text-xl">⚠️</span>
+				<div class="font-bold text-sm text-rose-900">{{.ErrorMessage}}</div>
+			</div>
+			<button type="button" onclick="this.closest('.linha-box').remove()" class="text-rose-500 hover:text-rose-700 font-bold text-xs px-2 py-1 bg-rose-100 hover:bg-rose-200 rounded transition cursor-pointer">✕ Fechar</button>
+		</div>
+		{{end}}
 		<div class="grade-tabela-user topo-tabela">
 			<div>Username</div>
 			<div>Nome</div>
@@ -332,7 +341,11 @@
 		</div>
 		{{if .Users}}
 			{{range .Users}}
-				{{template "linha_user" .}}
+				{{if eq .ID $.EditingID}}
+					{{template "linha_user_edit" .}}
+				{{else}}
+					{{template "linha_user" .}}
+				{{end}}
 			{{end}}
 			<div style="height: 40px; width: 100%;"></div>
 			<div class="mt-12 flex items-center justify-between bg-gray-800/40 p-4 rounded-xl border border-gray-800 text-sm">

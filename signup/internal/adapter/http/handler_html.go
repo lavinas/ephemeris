@@ -1,6 +1,7 @@
 package http
 
 import (
+	"fmt"
 	"html/template"
 	"net/http"
 	"strconv"
@@ -106,7 +107,7 @@ func (h *HandlerHtml) Customers(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid response type", http.StatusInternalServerError)
 		return
 	}
-	page := h.getPageDataCustomer(response, vendors, vendorSel, 1)
+	page := h.getPageDataCustomer(response, vendors, vendorSel, 1, "", 0)
 
 	tmplName := "customers_index"
 	if r.Header.Get("HX-Request") == "true" {
@@ -154,18 +155,33 @@ func (h *HandlerHtml) CustomersSave(w http.ResponseWriter, r *http.Request) {
 
 	saveSvc := service.NewSave(h.repo, h.logger, h.publisher)
 	respOut := saveSvc.Run(createReq)
-	if respOut.GetStatusCode() != 200 {
-		msg := getResponseMessage(respOut)
-		w.Header().Set("Content-Type", "text/html")
-		w.Write([]byte(`<div class="bg-red-500/20 border border-red-500 text-red-300 px-4 py-2 rounded mb-2 text-sm">Erro ao salvar: ` + msg + `</div>`))
-		return
-	}
 
-	// Re-render table
 	pagina, _ := strconv.Atoi(r.FormValue("page"))
 	if pagina <= 0 {
 		pagina = 1
 	}
+
+	if respOut.GetStatusCode() != 200 {
+		msg := getResponseMessage(respOut)
+		formData := map[string]interface{}{
+			"Vendors":        h.getVendors(),
+			"VendorSelected": vendor,
+			"AddVendor":      vendor,
+			"AddNickname":    createReq.Nickname,
+			"AddName":        createReq.Name,
+			"AddDocument":    createReq.Document,
+			"AddEmail":       createReq.Email,
+			"AddWhatsapp":    createReq.Whatsapp,
+		}
+		var formBuf strings.Builder
+		_ = h.tmpl.ExecuteTemplate(&formBuf, "formulario_cadastro_customer", formData)
+		w.Write([]byte(`<div id="formulario-cadastro-container" hx-swap-oob="innerHTML">` + formBuf.String() + `</div>`))
+		h.renderCustomerTableWithParamsAndError(w, r, vendor, pagina, "Erro ao salvar cliente: "+msg, 0, nil)
+		return
+	}
+
+	// Success: clear the form container via OOB swap
+	w.Write([]byte(`<div id="formulario-cadastro-container" hx-swap-oob="innerHTML"></div>`))
 	h.renderCustomerTable(w, r, vendor, pagina)
 }
 
@@ -296,17 +312,27 @@ func (h *HandlerHtml) CustomersUpdate(w http.ResponseWriter, r *http.Request) {
 
 	saveSvc := service.NewSave(h.repo, h.logger, h.publisher)
 	respOut := saveSvc.Run(updateReq)
-	if respOut.GetStatusCode() != 200 {
-		msg := getResponseMessage(respOut)
-		w.Header().Set("Content-Type", "text/html")
-		w.Write([]byte(`<div class="bg-red-500/20 border border-red-500 text-red-300 px-4 py-2 rounded mb-2 text-sm">Erro ao atualizar: ` + msg + `</div>`))
-		return
-	}
 
 	pagina, _ := strconv.Atoi(r.FormValue("page"))
 	if pagina <= 0 {
 		pagina = 1
 	}
+
+	if respOut.GetStatusCode() != 200 {
+		msg := getResponseMessage(respOut)
+		editedOverride := &dto.CustomerDTO{
+			ID:       int64(id),
+			Nickname: customer.Nickname,
+			Name:     name,
+			Document: doc,
+			Email:    email,
+			Whatsapp: whatsapp,
+			Status:   status,
+		}
+		h.renderCustomerTableWithParamsAndError(w, r, vendorNick, pagina, "Erro ao atualizar cliente: "+msg, int64(id), editedOverride)
+		return
+	}
+
 	w.Write([]byte(`<script>if(document.getElementById("formulario-cadastro-container")) document.getElementById("formulario-cadastro-container").innerHTML = "";</script>`))
 	h.renderCustomerTable(w, r, vendorNick, pagina)
 }
@@ -326,16 +352,7 @@ func (h *HandlerHtml) CustomersTable(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HandlerHtml) renderCustomerTable(w http.ResponseWriter, r *http.Request, vendor string, page int) {
-	nickname := r.FormValue("nickname")
-	name := r.FormValue("name")
-	document := r.FormValue("document")
-	email := r.FormValue("email")
-	whatsapp := r.FormValue("whatsapp")
-	statusVal := -1
-	if s := r.FormValue("status"); s != "" {
-		statusVal, _ = strconv.Atoi(s)
-	}
-	h.renderCustomerTableWithParams(w, vendor, nickname, name, document, email, whatsapp, statusVal, page)
+	h.renderCustomerTableWithParamsAndError(w, r, vendor, page, "", 0, nil)
 }
 
 func (h *HandlerHtml) renderCustomerTableWithParams(w http.ResponseWriter, vendor, nickname, name, document, email, whatsapp string, statusVal, page int) {
@@ -364,22 +381,87 @@ func (h *HandlerHtml) renderCustomerTableWithParams(w http.ResponseWriter, vendo
 	}
 
 	respdro := svc.Run(req)
-	if respdro.GetStatusCode() != 200 {
-		http.Error(w, "Failed to retrieve customers", http.StatusInternalServerError)
-		return
-	}
 	var response *dto.CustomerListResponse
-	if rPtr, ok := respdro.(*dto.CustomerListResponse); ok {
-		response = rPtr
-	} else if rVal, ok := respdro.(dto.CustomerListResponse); ok {
-		response = &rVal
-	} else {
-		http.Error(w, "Invalid response type", http.StatusInternalServerError)
-		return
+	if respdro.GetStatusCode() == 200 {
+		if rPtr, ok := respdro.(*dto.CustomerListResponse); ok {
+			response = rPtr
+		} else if rVal, ok := respdro.(dto.CustomerListResponse); ok {
+			response = &rVal
+		}
+	}
+	if response == nil {
+		response = &dto.CustomerListResponse{Customers: []dto.CustomerDTO{}}
 	}
 	vendors := h.getVendors()
-	pageData := h.getPageDataCustomer(response, vendors, vendor, page)
+	pageData := h.getPageDataCustomer(response, vendors, vendor, page, "", 0)
 	w.Write([]byte(`<script>if(document.getElementById("formulario-cadastro-container")) document.getElementById("formulario-cadastro-container").innerHTML = "";</script>`))
+	h.tmpl.ExecuteTemplate(w, "tabela_customer", pageData)
+}
+
+func (h *HandlerHtml) renderCustomerTableWithParamsAndError(w http.ResponseWriter, r *http.Request, vendor string, page int, errMsg string, editingID int64, override *dto.CustomerDTO) {
+	nickname := r.FormValue("nickname")
+	name := r.FormValue("name")
+	document := r.FormValue("document")
+	email := r.FormValue("email")
+	whatsapp := r.FormValue("whatsapp")
+	statusVal := -1
+	if s := r.FormValue("status"); s != "" {
+		statusVal, _ = strconv.Atoi(s)
+	}
+
+	svc := service.NewList(h.repo, h.logger)
+	req := dto.NewCustomerListRequest(h.repo)
+	req.Vendor = vendor
+	req.Page = page
+	req.PageSize = itensPorPag
+	if nickname != "" {
+		req.Nickname = &nickname
+	}
+	if name != "" {
+		req.Name = &name
+	}
+	if document != "" {
+		req.Document = &document
+	}
+	if email != "" {
+		req.Email = &email
+	}
+	if whatsapp != "" {
+		req.Whatsapp = &whatsapp
+	}
+	if statusVal != -1 {
+		req.Status = &statusVal
+	}
+
+	respdro := svc.Run(req)
+	var response *dto.CustomerListResponse
+	if respdro.GetStatusCode() == 200 {
+		if rPtr, ok := respdro.(*dto.CustomerListResponse); ok {
+			response = rPtr
+		} else if rVal, ok := respdro.(dto.CustomerListResponse); ok {
+			response = &rVal
+		}
+	}
+	if response == nil {
+		response = &dto.CustomerListResponse{Customers: []dto.CustomerDTO{}}
+	}
+
+	if override != nil {
+		found := false
+		for i := range response.Customers {
+			if response.Customers[i].ID == override.ID {
+				response.Customers[i] = *override
+				found = true
+				break
+			}
+		}
+		if !found {
+			response.Customers = append([]dto.CustomerDTO{*override}, response.Customers...)
+		}
+	}
+
+	vendors := h.getVendors()
+	pageData := h.getPageDataCustomer(response, vendors, vendor, page, errMsg, editingID)
 	h.tmpl.ExecuteTemplate(w, "tabela_customer", pageData)
 }
 
@@ -416,7 +498,7 @@ func (h *HandlerHtml) Users(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid response type", http.StatusInternalServerError)
 		return
 	}
-	page := h.getPageDataUser(response, vendors, vendorSel, 1)
+	page := h.getPageDataUser(response, vendors, vendorSel, 1, "", 0)
 
 	tmplName := "users_index"
 	if r.Header.Get("HX-Request") == "true" {
@@ -464,17 +546,33 @@ func (h *HandlerHtml) UsersSave(w http.ResponseWriter, r *http.Request) {
 
 	saveSvc := service.NewSave(h.repo, h.logger, h.publisher)
 	respOut := saveSvc.Run(createReq)
-	if respOut.GetStatusCode() != 200 {
-		msg := getResponseMessage(respOut)
-		w.Header().Set("Content-Type", "text/html")
-		w.Write([]byte(`<div class="bg-red-500/20 border border-red-500 text-red-300 px-4 py-2 rounded mb-2 text-sm">Erro ao salvar usuário: ` + msg + `</div>`))
-		return
-	}
 
 	pagina, _ := strconv.Atoi(r.FormValue("page"))
 	if pagina <= 0 {
 		pagina = 1
 	}
+
+	if respOut.GetStatusCode() != 200 {
+		msg := getResponseMessage(respOut)
+		formData := map[string]interface{}{
+			"Vendors":        h.getVendors(),
+			"VendorSelected": vendor,
+			"AddVendor":      vendor,
+			"AddUsername":    createReq.Username,
+			"AddName":        createReq.Name,
+			"AddPassword":    createReq.Password,
+			"AddEmail":       createReq.Email,
+			"AddWhatsapp":    createReq.Whatsapp,
+		}
+		var formBuf strings.Builder
+		_ = h.tmpl.ExecuteTemplate(&formBuf, "formulario_cadastro_user", formData)
+		w.Write([]byte(`<div id="formulario-cadastro-container" hx-swap-oob="innerHTML">` + formBuf.String() + `</div>`))
+		h.renderUserTableWithParamsAndError(w, r, vendor, pagina, "Erro ao salvar usuário: "+msg, 0, nil)
+		return
+	}
+
+	// Success: clear the form container via OOB swap
+	w.Write([]byte(`<div id="formulario-cadastro-container" hx-swap-oob="innerHTML"></div>`))
 	h.renderUserTable(w, r, vendor, pagina)
 }
 
@@ -592,17 +690,26 @@ func (h *HandlerHtml) UsersUpdate(w http.ResponseWriter, r *http.Request) {
 
 	saveSvc := service.NewSave(h.repo, h.logger, h.publisher)
 	respOut := saveSvc.Run(updateReq)
-	if respOut.GetStatusCode() != 200 {
-		msg := getResponseMessage(respOut)
-		w.Header().Set("Content-Type", "text/html")
-		w.Write([]byte(`<div class="bg-red-500/20 border border-red-500 text-red-300 px-4 py-2 rounded mb-2 text-sm">Erro ao atualizar: ` + msg + `</div>`))
-		return
-	}
 
 	pagina, _ := strconv.Atoi(r.FormValue("page"))
 	if pagina <= 0 {
 		pagina = 1
 	}
+
+	if respOut.GetStatusCode() != 200 {
+		msg := getResponseMessage(respOut)
+		editedOverride := &dto.UserListItem{
+			ID:       int64(id),
+			Username: user.Username,
+			Name:     name,
+			Email:    email,
+			Whatsapp: whatsapp,
+			Status:   status,
+		}
+		h.renderUserTableWithParamsAndError(w, r, vendorNick, pagina, "Erro ao atualizar usuário: "+msg, int64(id), editedOverride)
+		return
+	}
+
 	w.Write([]byte(`<script>if(document.getElementById("formulario-cadastro-container")) document.getElementById("formulario-cadastro-container").innerHTML = "";</script>`))
 	h.renderUserTable(w, r, vendorNick, pagina)
 }
@@ -622,15 +729,7 @@ func (h *HandlerHtml) UsersTable(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HandlerHtml) renderUserTable(w http.ResponseWriter, r *http.Request, vendor string, page int) {
-	username := r.FormValue("username")
-	name := r.FormValue("name")
-	email := r.FormValue("email")
-	whatsapp := r.FormValue("whatsapp")
-	statusVal := -1
-	if s := r.FormValue("status"); s != "" {
-		statusVal, _ = strconv.Atoi(s)
-	}
-	h.renderUserTableWithParams(w, vendor, username, name, email, whatsapp, statusVal, page)
+	h.renderUserTableWithParamsAndError(w, r, vendor, page, "", 0, nil)
 }
 
 func (h *HandlerHtml) renderUserTableWithParams(w http.ResponseWriter, vendor, username, name, email, whatsapp string, statusVal, page int) {
@@ -656,22 +755,83 @@ func (h *HandlerHtml) renderUserTableWithParams(w http.ResponseWriter, vendor, u
 	}
 
 	respdro := svc.Run(req)
-	if respdro.GetStatusCode() != 200 {
-		http.Error(w, "Failed to retrieve users", http.StatusInternalServerError)
-		return
-	}
 	var response *dto.UserListResponse
-	if rPtr, ok := respdro.(*dto.UserListResponse); ok {
-		response = rPtr
-	} else if rVal, ok := respdro.(dto.UserListResponse); ok {
-		response = &rVal
-	} else {
-		http.Error(w, "Invalid response type", http.StatusInternalServerError)
-		return
+	if respdro.GetStatusCode() == 200 {
+		if rPtr, ok := respdro.(*dto.UserListResponse); ok {
+			response = rPtr
+		} else if rVal, ok := respdro.(dto.UserListResponse); ok {
+			response = &rVal
+		}
+	}
+	if response == nil {
+		response = &dto.UserListResponse{Users: []dto.UserListItem{}}
 	}
 	vendors := h.getVendors()
-	pageData := h.getPageDataUser(response, vendors, vendor, page)
+	pageData := h.getPageDataUser(response, vendors, vendor, page, "", 0)
 	w.Write([]byte(`<script>if(document.getElementById("formulario-cadastro-container")) document.getElementById("formulario-cadastro-container").innerHTML = "";</script>`))
+	h.tmpl.ExecuteTemplate(w, "tabela_user", pageData)
+}
+
+func (h *HandlerHtml) renderUserTableWithParamsAndError(w http.ResponseWriter, r *http.Request, vendor string, page int, errMsg string, editingID int64, override *dto.UserListItem) {
+	username := r.FormValue("username")
+	name := r.FormValue("name")
+	email := r.FormValue("email")
+	whatsapp := r.FormValue("whatsapp")
+	statusVal := -1
+	if s := r.FormValue("status"); s != "" {
+		statusVal, _ = strconv.Atoi(s)
+	}
+
+	svc := service.NewList(h.repo, h.logger)
+	req := dto.NewUserListRequest(h.repo)
+	req.Vendor = vendor
+	req.Page = page
+	req.PageSize = itensPorPag
+	if username != "" {
+		req.Username = &username
+	}
+	if name != "" {
+		req.Name = &name
+	}
+	if email != "" {
+		req.Email = &email
+	}
+	if whatsapp != "" {
+		req.Whatsapp = &whatsapp
+	}
+	if statusVal != -1 {
+		req.Status = &statusVal
+	}
+
+	respdro := svc.Run(req)
+	var response *dto.UserListResponse
+	if respdro.GetStatusCode() == 200 {
+		if rPtr, ok := respdro.(*dto.UserListResponse); ok {
+			response = rPtr
+		} else if rVal, ok := respdro.(dto.UserListResponse); ok {
+			response = &rVal
+		}
+	}
+	if response == nil {
+		response = &dto.UserListResponse{Users: []dto.UserListItem{}}
+	}
+
+	if override != nil {
+		found := false
+		for i := range response.Users {
+			if response.Users[i].ID == override.ID {
+				response.Users[i] = *override
+				found = true
+				break
+			}
+		}
+		if !found {
+			response.Users = append([]dto.UserListItem{*override}, response.Users...)
+		}
+	}
+
+	vendors := h.getVendors()
+	pageData := h.getPageDataUser(response, vendors, vendor, page, errMsg, editingID)
 	h.tmpl.ExecuteTemplate(w, "tabela_user", pageData)
 }
 
@@ -752,9 +912,8 @@ func (h *HandlerHtml) userToMap(u *domain.User) map[string]interface{} {
 	}
 }
 
-func (h *HandlerHtml) getPageDataCustomer(response *dto.CustomerListResponse, vendors []domain.Vendor, vendorSelected string, page int) map[string]interface{} {
+func (h *HandlerHtml) getPageDataCustomer(response *dto.CustomerListResponse, vendors []domain.Vendor, vendorSelected string, page int, errMsg string, editingID int64) map[string]interface{} {
 	customers := response.Customers
-	// Simple estimation of total pages: if full page, at least page + 1
 	totalPages := page
 	if len(customers) >= itensPorPag {
 		totalPages = page + 1
@@ -769,10 +928,12 @@ func (h *HandlerHtml) getPageDataCustomer(response *dto.CustomerListResponse, ve
 		"TemProximo":     page < totalPages,
 		"PagAnterior":    page - 1,
 		"PagProxima":     page + 1,
+		"ErrorMessage":   errMsg,
+		"EditingID":      editingID,
 	}
 }
 
-func (h *HandlerHtml) getPageDataUser(response *dto.UserListResponse, vendors []domain.Vendor, vendorSelected string, page int) map[string]interface{} {
+func (h *HandlerHtml) getPageDataUser(response *dto.UserListResponse, vendors []domain.Vendor, vendorSelected string, page int, errMsg string, editingID int64) map[string]interface{} {
 	users := response.Users
 	totalPages := page
 	if len(users) >= itensPorPag {
@@ -788,6 +949,8 @@ func (h *HandlerHtml) getPageDataUser(response *dto.UserListResponse, vendors []
 		"TemProximo":     page < totalPages,
 		"PagAnterior":    page - 1,
 		"PagProxima":     page + 1,
+		"ErrorMessage":   errMsg,
+		"EditingID":      editingID,
 	}
 }
 
@@ -796,4 +959,17 @@ func getResponseMessage(out port.OutDTO) string {
 		return m.GetMessage()
 	}
 	return "Operação não concluída"
+}
+
+func (h *HandlerHtml) renderErrorMessage(w http.ResponseWriter, msg, tableEndpoint string) {
+	w.Header().Set("Content-Type", "text/html")
+	html := fmt.Sprintf(`
+	<div class="linha-box bg-rose-50 border border-rose-300 text-rose-800 p-4 rounded-xl shadow-md mb-4 flex items-center justify-between gap-4">
+		<div class="flex items-center gap-3">
+			<span class="text-xl">⚠️</span>
+			<div class="font-bold text-sm text-rose-900">%s</div>
+		</div>
+		<button type="button" onclick="this.closest('.linha-box').remove()" class="text-rose-500 hover:text-rose-700 font-bold text-xs px-2 py-1 bg-rose-100 hover:bg-rose-200 rounded transition cursor-pointer">✕ Fechar</button>
+	</div>`, template.HTMLEscapeString(msg))
+	w.Write([]byte(html))
 }

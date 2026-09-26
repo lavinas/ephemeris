@@ -458,3 +458,171 @@ func TestNewRoutes_WithHTML(t *testing.T) {
 		t.Errorf("expected 200 on /api/ping, got %d", recPing.Code)
 	}
 }
+
+func TestHandlerHtml_Customer_SaveError_PreservesFormAndShowsBanner(t *testing.T) {
+	handler, _, _, _ := setupHTMLTest(t)
+
+	// Save customer with invalid data (empty name)
+	form := url.Values{}
+	form.Set("add_vendor", "acme")
+	form.Set("add_nickname", "invalido")
+	form.Set("add_name", "")
+	form.Set("add_document", "11144477735")
+	form.Set("add_whatsapp", "+5511988887777")
+	form.Set("add_email", "invalido@email.com")
+
+	req := httptest.NewRequest(http.MethodPost, "/html/customers/salvar", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rec := httptest.NewRecorder()
+
+	handler.CustomersSave(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+	body := rec.Body.String()
+
+	// 1. Error banner at top of results table
+	if !strings.Contains(body, "Erro ao salvar cliente") {
+		t.Errorf("expected error banner in results table, got: %s", body)
+	}
+
+	// 2. Preserved form values in OOB swap container
+	if !strings.Contains(body, `id="formulario-cadastro-container" hx-swap-oob="innerHTML"`) {
+		t.Errorf("expected OOB swap for form container")
+	}
+	if !strings.Contains(body, `value="invalido"`) {
+		t.Errorf("expected form to preserve 'invalido' nickname")
+	}
+	if !strings.Contains(body, `value="invalido@email.com"`) {
+		t.Errorf("expected form to preserve email")
+	}
+
+	// 3. Existing table content still rendered
+	if !strings.Contains(body, "cliente_teste") {
+		t.Errorf("expected table to still contain existing customers")
+	}
+}
+
+func TestHandlerHtml_Customer_UpdateError_PreservesEditRowAndShowsBanner(t *testing.T) {
+	handler, _, _, _ := setupHTMLTest(t)
+
+	// Update customer with invalid data (invalid status)
+	form := url.Values{}
+	form.Set("edit_name", "Nome Editado Sem Salvar")
+	form.Set("edit_document", "11144477735")
+	form.Set("edit_email", "editado@teste.com")
+	form.Set("edit_whatsapp", "+5511999998888")
+	form.Set("edit_status", "99") // invalid status
+	form.Set("page", "1")
+
+	req := httptest.NewRequest(http.MethodPost, "/html/customers/atualizar?id=10", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rec := httptest.NewRecorder()
+
+	handler.CustomersUpdate(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+	body := rec.Body.String()
+
+	// 1. Error banner at top of results table
+	if !strings.Contains(body, "Erro ao atualizar cliente") {
+		t.Errorf("expected error banner in results table, got: %s", body)
+	}
+
+	// 2. Customer row remains in edit mode with typed values preserved
+	if !strings.Contains(body, "Nome Editado Sem Salvar") {
+		t.Errorf("expected edit row to preserve edited name, got: %s", body)
+	}
+	if !strings.Contains(body, "editado@teste.com") {
+		t.Errorf("expected edit row to preserve edited email")
+	}
+	if !strings.Contains(body, "formulario-edit") {
+		t.Errorf("expected row to still be in edit mode (formulario-edit)")
+	}
+}
+
+func TestHandlerHtml_User_SaveError_PreservesFormAndShowsBanner(t *testing.T) {
+	handler, _, _, _ := setupHTMLTest(t)
+
+	// Save user with invalid password (too short)
+	form := url.Values{}
+	form.Set("add_vendor", "acme")
+	form.Set("add_username", "novousuarioinvalido")
+	form.Set("add_name", "Usuario Invalido")
+	form.Set("add_password", "123") // too short
+	form.Set("add_whatsapp", "+5511977776666")
+	form.Set("add_email", "invalido@usuario.com")
+
+	req := httptest.NewRequest(http.MethodPost, "/html/users/salvar", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rec := httptest.NewRecorder()
+
+	handler.UsersSave(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+	body := rec.Body.String()
+
+	// 1. Error banner at top of results table
+	if !strings.Contains(body, "Erro ao salvar usuário") {
+		t.Errorf("expected error banner in results table, got: %s", body)
+	}
+
+	// 2. Preserved form values in OOB swap container
+	if !strings.Contains(body, `id="formulario-cadastro-container" hx-swap-oob="innerHTML"`) {
+		t.Errorf("expected OOB swap for form container")
+	}
+	if !strings.Contains(body, `value="novousuarioinvalido"`) {
+		t.Errorf("expected form to preserve username")
+	}
+	if !strings.Contains(body, `value="Usuario Invalido"`) {
+		t.Errorf("expected form to preserve name")
+	}
+	if !strings.Contains(body, `value="invalido@usuario.com"`) {
+		t.Errorf("expected form to preserve email")
+	}
+
+	// 3. Existing table content still rendered
+	if !strings.Contains(body, "usuario_teste") {
+		t.Errorf("expected table to still contain existing users")
+	}
+}
+
+func TestHandlerHtml_User_UpdateError_PreservesEditRowAndShowsBanner(t *testing.T) {
+	handler, _, _, _ := setupHTMLTest(t)
+
+	// Update user with invalid status
+	form := url.Values{}
+	form.Set("edit_name", "Usuario Editado Sem Salvar")
+	form.Set("edit_email", "editado@usuario.com")
+	form.Set("edit_whatsapp", "+5511999997777")
+	form.Set("edit_status", "99") // invalid status
+	form.Set("page", "1")
+
+	req := httptest.NewRequest(http.MethodPost, "/html/users/atualizar?id=20", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rec := httptest.NewRecorder()
+
+	handler.UsersUpdate(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+	body := rec.Body.String()
+
+	// 1. Error banner at top of results table
+	if !strings.Contains(body, "Erro ao atualizar usuário") {
+		t.Errorf("expected error banner in results table, got: %s", body)
+	}
+
+	// 2. User row remains in edit mode with typed values preserved
+	if !strings.Contains(body, "Usuario Editado Sem Salvar") {
+		t.Errorf("expected edit row to preserve edited name, got: %s", body)
+	}
+	if !strings.Contains(body, "editado@usuario.com") {
+		t.Errorf("expected edit row to preserve edited email")
+	}
+	if !strings.Contains(body, "formulario-edit") {
+		t.Errorf("expected row to still be in edit mode (formulario-edit)")
+	}
+}
