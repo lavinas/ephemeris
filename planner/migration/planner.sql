@@ -1,4 +1,4 @@
--- Active: 1790470840125@@192.168.1.138@5433@planner@planner
+-- Active: 1790015123887@@127.0.0.1@5433@planner@planner
 create schema if not exists planner;
 
 set search_path to planner;
@@ -53,9 +53,12 @@ create table customer (
     constraint unique_customer_nickname unique(vendor_id, nickname)
 );
 
+delete from customer;
 
+select * from 
 
-# session
+# session old
+/*
 drop table if exists session;
 create table session (
     id bigserial primary key,
@@ -69,5 +72,37 @@ create table session (
     updated_at timestamp not null,
     deleted_at timestamp
 );
+*/
 
-select * from session;
+## Adjusting table
+
+alter table session rename to session_old;
+
+insert into customer (name, vendor_id, nickname, document, email, whatsapp, created_at, updated_at, status) 
+select distinct customer_nickname, 1, customer_nickname, null, null, null, now(), now(), 1
+  from session_old;
+
+# session new
+drop table if exists session;
+create table session (
+    id bigserial primary key,
+    vendor_id bigint not null references vendor(id) on delete cascade,
+    customer_id bigint not null references customer(id) on delete cascade,
+    session_date date not null,
+    session_minutes int not null,
+    session_service varchar(100) not null,
+    session_status varchar(50) not null, -- realizada, cancelada_cobrar, cancelada_nao_cobrar 
+    comments text,
+    created_at timestamp not null,
+    updated_at timestamp not null,
+    deleted_at timestamp
+);
+
+# finalize adjusting session (i need a status name)
+insert into session (vendor_id, customer_id, session_date, session_minutes, session_service, session_status, comments, created_at, updated_at)
+select 1, b.id, session_date, session_minutes, session_service, session_status, comments, now(), now()
+  from session_old a
+  join customer b on b.nickname = a.customer_nickname;
+
+
+drop table session_old;
