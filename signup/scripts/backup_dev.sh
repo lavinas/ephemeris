@@ -17,7 +17,7 @@ set -euo pipefail
 
 # ---- Configurações do banco ----
 DB_HOST="localhost"
-DB_PORT="5433"
+DB_PORT="5434"
 DB_USER="root"
 DB_NAME="signup"
 DB_ENV="development" # "production" ou "development"
