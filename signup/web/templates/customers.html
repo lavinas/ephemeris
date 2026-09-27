@@ -3,7 +3,7 @@
 	<style>
 		.grade-filtros-customer {
 			display: grid !important;
-			grid-template-columns: 1.2fr 1.2fr 1.5fr 1.3fr 1.5fr 1.3fr 1fr !important;
+			grid-template-columns: 1.2fr 1.5fr 1.3fr 1.5fr 1.3fr 1fr !important;
 			gap: 10px !important;
 			width: 100% !important;
 			box-sizing: border-box !important;
@@ -94,14 +94,6 @@
 				<input type="hidden" id="input-pagina-form" name="page" value="1">
 				<div class="grade-filtros-customer">
 					<div class="campo-box">
-						<label>Vendor</label>
-						<select name="vendor" id="filtro-vendor">
-							{{range .Vendors}}
-								<option value="{{.Nickname}}" {{if eq $.VendorSelected .Nickname}}selected{{end}}>{{.TradingName}} ({{.Nickname}})</option>
-							{{end}}
-						</select>
-					</div>
-					<div class="campo-box">
 						<label>Nickname</label>
 						<input type="text" name="nickname" placeholder="Filtrar nickname...">
 					</div>
@@ -156,7 +148,7 @@
 		<style>
 			.grade-filtros-customer {
 				display: grid !important;
-				grid-template-columns: 1.2fr 1.2fr 1.5fr 1.3fr 1.5fr 1.3fr 1fr !important;
+				grid-template-columns: 1.2fr 1.5fr 1.3fr 1.5fr 1.3fr 1fr !important;
 				gap: 10px !important;
 				width: 100% !important;
 				box-sizing: border-box !important;
@@ -251,14 +243,6 @@
 				<input type="hidden" id="input-pagina-form" name="page" value="1">
 				<div class="grade-filtros-customer">
 					<div class="campo-box">
-						<label>Vendor</label>
-						<select name="vendor" id="filtro-vendor">
-							{{range .Vendors}}
-								<option value="{{.Nickname}}" {{if eq $.VendorSelected .Nickname}}selected{{end}}>{{.TradingName}} ({{.Nickname}})</option>
-							{{end}}
-						</select>
-					</div>
-					<div class="campo-box">
 						<label>Nickname</label>
 						<input type="text" name="nickname" placeholder="Filtrar nickname...">
 					</div>
@@ -321,11 +305,7 @@
 			<input type="email" name="add_email" value="{{.AddEmail}}" placeholder="Email..." required class="input-inline-tabela">
 		</div>
 		<div>
-			<select name="add_vendor" required class="input-inline-tabela">
-				{{range .Vendors}}
-					<option value="{{.Nickname}}" {{if eq (or $.AddVendor $.VendorSelected) .Nickname}}selected{{end}}>{{.Nickname}}</option>
-				{{end}}
-			</select>
+			<span class="text-xs uppercase tracking-wider font-black" style="color: #10b981 !important;">Ativo</span>
 		</div>
 		<div class="flex gap-2 justify-start w-full" style="justify-content: flex-start !important; align-items: center !important;">
 			<button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold text-xs px-3 py-2 rounded-md transition w-16 text-center">Salvar</button>

@@ -14,6 +14,10 @@ import (
 	"signup/internal/service"
 )
 
+const (
+	defaultVendorID int64 = 1
+)
+
 var (
 	mu          sync.Mutex
 	itensPorPag = 10
@@ -84,8 +88,7 @@ func (h *HandlerHtml) Customers(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	vendors := h.getVendors()
-	vendorSel := h.getDefaultVendor(vendors)
+	vendorSel := h.getDefaultVendor()
 
 	svc := service.NewList(h.repo, h.logger)
 	req := dto.NewCustomerListRequest(h.repo)
@@ -107,7 +110,7 @@ func (h *HandlerHtml) Customers(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid response type", http.StatusInternalServerError)
 		return
 	}
-	page := h.getPageDataCustomer(response, vendors, vendorSel, 1, "", 0)
+	page := h.getPageDataCustomer(response, 1, "", 0)
 
 	tmplName := "customers_index"
 	if r.Header.Get("HX-Request") == "true" {
@@ -122,12 +125,7 @@ func (h *HandlerHtml) Customers(w http.ResponseWriter, r *http.Request) {
 
 // CustomersCreate handler for opening new customer form
 func (h *HandlerHtml) CustomersCreate(w http.ResponseWriter, r *http.Request) {
-	vendors := h.getVendors()
-	vendorSel := h.getDefaultVendor(vendors)
-	data := map[string]interface{}{
-		"Vendors":        vendors,
-		"VendorSelected": vendorSel,
-	}
+	data := map[string]interface{}{}
 	h.tmpl.ExecuteTemplate(w, "formulario_cadastro_customer", data)
 }
 
@@ -137,13 +135,7 @@ func (h *HandlerHtml) CustomersSave(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to parse form", http.StatusBadRequest)
 		return
 	}
-	vendor := r.FormValue("add_vendor")
-	if vendor == "" {
-		vendor = r.FormValue("vendor")
-	}
-	if vendor == "" {
-		vendor = h.getDefaultVendor(h.getVendors())
-	}
+	vendor := h.getDefaultVendor()
 
 	createReq := dto.NewCustomerCreateRequest(h.repo)
 	createReq.Vendor = vendor
@@ -164,14 +156,11 @@ func (h *HandlerHtml) CustomersSave(w http.ResponseWriter, r *http.Request) {
 	if respOut.GetStatusCode() != 200 {
 		msg := getResponseMessage(respOut)
 		formData := map[string]interface{}{
-			"Vendors":        h.getVendors(),
-			"VendorSelected": vendor,
-			"AddVendor":      vendor,
-			"AddNickname":    createReq.Nickname,
-			"AddName":        createReq.Name,
-			"AddDocument":    createReq.Document,
-			"AddEmail":       createReq.Email,
-			"AddWhatsapp":    createReq.Whatsapp,
+			"AddNickname": createReq.Nickname,
+			"AddName":     createReq.Name,
+			"AddDocument": createReq.Document,
+			"AddEmail":    createReq.Email,
+			"AddWhatsapp": createReq.Whatsapp,
 		}
 		var formBuf strings.Builder
 		_ = h.tmpl.ExecuteTemplate(&formBuf, "formulario_cadastro_customer", formData)
@@ -187,8 +176,7 @@ func (h *HandlerHtml) CustomersSave(w http.ResponseWriter, r *http.Request) {
 
 // CustomersTableReset handler to reset filters
 func (h *HandlerHtml) CustomersTableReset(w http.ResponseWriter, r *http.Request) {
-	vendors := h.getVendors()
-	vendorSel := h.getDefaultVendor(vendors)
+	vendorSel := h.getDefaultVendor()
 	w.Write([]byte(`<script>document.getElementById("filtro-form").reset(); document.getElementById("input-pagina-form").value="1";</script>`))
 	h.renderCustomerTableWithParams(w, vendorSel, "", "", "", "", "", -1, 1)
 }
@@ -257,10 +245,7 @@ func (h *HandlerHtml) CustomersDelete(w http.ResponseWriter, r *http.Request) {
 	if pagina <= 0 {
 		pagina = 1
 	}
-	vendorSel := r.FormValue("vendor")
-	if vendorSel == "" {
-		vendorSel = h.getDefaultVendor(h.getVendors())
-	}
+	vendorSel := h.getDefaultVendor()
 	w.Write([]byte(`<script>if(document.getElementById("formulario-cadastro-container")) document.getElementById("formulario-cadastro-container").innerHTML = "";</script>`))
 	h.renderCustomerTable(w, r, vendorSel, pagina)
 }
@@ -293,6 +278,8 @@ func (h *HandlerHtml) CustomersUpdate(w http.ResponseWriter, r *http.Request) {
 	vendorNick := ""
 	if okV, _ := vendor.GetByID(customer.VendorID); okV {
 		vendorNick = vendor.Nickname
+	} else {
+		vendorNick = h.getDefaultVendor()
 	}
 
 	name := r.FormValue("edit_name")
@@ -344,10 +331,7 @@ func (h *HandlerHtml) CustomersTable(w http.ResponseWriter, r *http.Request) {
 	if pagina <= 0 {
 		pagina = 1
 	}
-	vendor := r.FormValue("vendor")
-	if vendor == "" {
-		vendor = h.getDefaultVendor(h.getVendors())
-	}
+	vendor := h.getDefaultVendor()
 	h.renderCustomerTable(w, r, vendor, pagina)
 }
 
@@ -392,8 +376,7 @@ func (h *HandlerHtml) renderCustomerTableWithParams(w http.ResponseWriter, vendo
 	if response == nil {
 		response = &dto.CustomerListResponse{Customers: []dto.CustomerDTO{}}
 	}
-	vendors := h.getVendors()
-	pageData := h.getPageDataCustomer(response, vendors, vendor, page, "", 0)
+	pageData := h.getPageDataCustomer(response, page, "", 0)
 	w.Write([]byte(`<script>if(document.getElementById("formulario-cadastro-container")) document.getElementById("formulario-cadastro-container").innerHTML = "";</script>`))
 	h.tmpl.ExecuteTemplate(w, "tabela_customer", pageData)
 }
@@ -460,8 +443,7 @@ func (h *HandlerHtml) renderCustomerTableWithParamsAndError(w http.ResponseWrite
 		}
 	}
 
-	vendors := h.getVendors()
-	pageData := h.getPageDataCustomer(response, vendors, vendor, page, errMsg, editingID)
+	pageData := h.getPageDataCustomer(response, page, errMsg, editingID)
 	h.tmpl.ExecuteTemplate(w, "tabela_customer", pageData)
 }
 
@@ -475,8 +457,7 @@ func (h *HandlerHtml) Users(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	vendors := h.getVendors()
-	vendorSel := h.getDefaultVendor(vendors)
+	vendorSel := h.getDefaultVendor()
 
 	svc := service.NewList(h.repo, h.logger)
 	req := dto.NewUserListRequest(h.repo)
@@ -498,7 +479,7 @@ func (h *HandlerHtml) Users(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid response type", http.StatusInternalServerError)
 		return
 	}
-	page := h.getPageDataUser(response, vendors, vendorSel, 1, "", 0)
+	page := h.getPageDataUser(response, 1, "", 0)
 
 	tmplName := "users_index"
 	if r.Header.Get("HX-Request") == "true" {
@@ -513,12 +494,7 @@ func (h *HandlerHtml) Users(w http.ResponseWriter, r *http.Request) {
 
 // UsersCreate handler for opening new user form
 func (h *HandlerHtml) UsersCreate(w http.ResponseWriter, r *http.Request) {
-	vendors := h.getVendors()
-	vendorSel := h.getDefaultVendor(vendors)
-	data := map[string]interface{}{
-		"Vendors":        vendors,
-		"VendorSelected": vendorSel,
-	}
+	data := map[string]interface{}{}
 	h.tmpl.ExecuteTemplate(w, "formulario_cadastro_user", data)
 }
 
@@ -528,13 +504,7 @@ func (h *HandlerHtml) UsersSave(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to parse form", http.StatusBadRequest)
 		return
 	}
-	vendor := r.FormValue("add_vendor")
-	if vendor == "" {
-		vendor = r.FormValue("vendor")
-	}
-	if vendor == "" {
-		vendor = h.getDefaultVendor(h.getVendors())
-	}
+	vendor := h.getDefaultVendor()
 
 	createReq := dto.NewUserCreateRequest(h.repo)
 	createReq.Vendor = vendor
@@ -555,14 +525,11 @@ func (h *HandlerHtml) UsersSave(w http.ResponseWriter, r *http.Request) {
 	if respOut.GetStatusCode() != 200 {
 		msg := getResponseMessage(respOut)
 		formData := map[string]interface{}{
-			"Vendors":        h.getVendors(),
-			"VendorSelected": vendor,
-			"AddVendor":      vendor,
-			"AddUsername":    createReq.Username,
-			"AddName":        createReq.Name,
-			"AddPassword":    createReq.Password,
-			"AddEmail":       createReq.Email,
-			"AddWhatsapp":    createReq.Whatsapp,
+			"AddUsername": createReq.Username,
+			"AddName":     createReq.Name,
+			"AddPassword": createReq.Password,
+			"AddEmail":    createReq.Email,
+			"AddWhatsapp": createReq.Whatsapp,
 		}
 		var formBuf strings.Builder
 		_ = h.tmpl.ExecuteTemplate(&formBuf, "formulario_cadastro_user", formData)
@@ -578,8 +545,7 @@ func (h *HandlerHtml) UsersSave(w http.ResponseWriter, r *http.Request) {
 
 // UsersTableReset handler to reset filters
 func (h *HandlerHtml) UsersTableReset(w http.ResponseWriter, r *http.Request) {
-	vendors := h.getVendors()
-	vendorSel := h.getDefaultVendor(vendors)
+	vendorSel := h.getDefaultVendor()
 	w.Write([]byte(`<script>document.getElementById("filtro-form").reset(); document.getElementById("input-pagina-form").value="1";</script>`))
 	h.renderUserTableWithParams(w, vendorSel, "", "", "", "", -1, 1)
 }
@@ -637,10 +603,7 @@ func (h *HandlerHtml) UsersDelete(w http.ResponseWriter, r *http.Request) {
 	if pagina <= 0 {
 		pagina = 1
 	}
-	vendorSel := r.FormValue("vendor")
-	if vendorSel == "" {
-		vendorSel = h.getDefaultVendor(h.getVendors())
-	}
+	vendorSel := h.getDefaultVendor()
 	w.Write([]byte(`<script>if(document.getElementById("formulario-cadastro-container")) document.getElementById("formulario-cadastro-container").innerHTML = "";</script>`))
 	h.renderUserTable(w, r, vendorSel, pagina)
 }
@@ -673,6 +636,8 @@ func (h *HandlerHtml) UsersUpdate(w http.ResponseWriter, r *http.Request) {
 	vendorNick := ""
 	if okV, _ := vendor.GetByID(user.VendorID); okV {
 		vendorNick = vendor.Nickname
+	} else {
+		vendorNick = h.getDefaultVendor()
 	}
 
 	name := r.FormValue("edit_name")
@@ -721,10 +686,7 @@ func (h *HandlerHtml) UsersTable(w http.ResponseWriter, r *http.Request) {
 	if pagina <= 0 {
 		pagina = 1
 	}
-	vendor := r.FormValue("vendor")
-	if vendor == "" {
-		vendor = h.getDefaultVendor(h.getVendors())
-	}
+	vendor := h.getDefaultVendor()
 	h.renderUserTable(w, r, vendor, pagina)
 }
 
@@ -766,8 +728,7 @@ func (h *HandlerHtml) renderUserTableWithParams(w http.ResponseWriter, vendor, u
 	if response == nil {
 		response = &dto.UserListResponse{Users: []dto.UserListItem{}}
 	}
-	vendors := h.getVendors()
-	pageData := h.getPageDataUser(response, vendors, vendor, page, "", 0)
+	pageData := h.getPageDataUser(response, page, "", 0)
 	w.Write([]byte(`<script>if(document.getElementById("formulario-cadastro-container")) document.getElementById("formulario-cadastro-container").innerHTML = "";</script>`))
 	h.tmpl.ExecuteTemplate(w, "tabela_user", pageData)
 }
@@ -830,8 +791,7 @@ func (h *HandlerHtml) renderUserTableWithParamsAndError(w http.ResponseWriter, r
 		}
 	}
 
-	vendors := h.getVendors()
-	pageData := h.getPageDataUser(response, vendors, vendor, page, errMsg, editingID)
+	pageData := h.getPageDataUser(response, page, errMsg, editingID)
 	h.tmpl.ExecuteTemplate(w, "tabela_user", pageData)
 }
 
@@ -854,7 +814,12 @@ func (h *HandlerHtml) getVendors() []domain.Vendor {
 	return res
 }
 
-func (h *HandlerHtml) getDefaultVendor(vendors []domain.Vendor) string {
+func (h *HandlerHtml) getDefaultVendor() string {
+	vendor := domain.StartVendor(h.repo)
+	if ok, err := vendor.GetByID(defaultVendorID); err == nil && ok {
+		return vendor.Nickname
+	}
+	vendors := h.getVendors()
 	if len(vendors) > 0 {
 		return vendors[0].Nickname
 	}
@@ -912,45 +877,41 @@ func (h *HandlerHtml) userToMap(u *domain.User) map[string]interface{} {
 	}
 }
 
-func (h *HandlerHtml) getPageDataCustomer(response *dto.CustomerListResponse, vendors []domain.Vendor, vendorSelected string, page int, errMsg string, editingID int64) map[string]interface{} {
+func (h *HandlerHtml) getPageDataCustomer(response *dto.CustomerListResponse, page int, errMsg string, editingID int64) map[string]interface{} {
 	customers := response.Customers
 	totalPages := page
 	if len(customers) >= itensPorPag {
 		totalPages = page + 1
 	}
 	return map[string]interface{}{
-		"Customers":      customers,
-		"Vendors":        vendors,
-		"VendorSelected": vendorSelected,
-		"PaginaAtual":    page,
-		"TotalPaginas":   totalPages,
-		"TemAnterior":    page > 1,
-		"TemProximo":     page < totalPages,
-		"PagAnterior":    page - 1,
-		"PagProxima":     page + 1,
-		"ErrorMessage":   errMsg,
-		"EditingID":      editingID,
+		"Customers":    customers,
+		"PaginaAtual":  page,
+		"TotalPaginas": totalPages,
+		"TemAnterior":  page > 1,
+		"TemProximo":   page < totalPages,
+		"PagAnterior":  page - 1,
+		"PagProxima":   page + 1,
+		"ErrorMessage": errMsg,
+		"EditingID":    editingID,
 	}
 }
 
-func (h *HandlerHtml) getPageDataUser(response *dto.UserListResponse, vendors []domain.Vendor, vendorSelected string, page int, errMsg string, editingID int64) map[string]interface{} {
+func (h *HandlerHtml) getPageDataUser(response *dto.UserListResponse, page int, errMsg string, editingID int64) map[string]interface{} {
 	users := response.Users
 	totalPages := page
 	if len(users) >= itensPorPag {
 		totalPages = page + 1
 	}
 	return map[string]interface{}{
-		"Users":          users,
-		"Vendors":        vendors,
-		"VendorSelected": vendorSelected,
-		"PaginaAtual":    page,
-		"TotalPaginas":   totalPages,
-		"TemAnterior":    page > 1,
-		"TemProximo":     page < totalPages,
-		"PagAnterior":    page - 1,
-		"PagProxima":     page + 1,
-		"ErrorMessage":   errMsg,
-		"EditingID":      editingID,
+		"Users":        users,
+		"PaginaAtual":  page,
+		"TotalPaginas": totalPages,
+		"TemAnterior":  page > 1,
+		"TemProximo":   page < totalPages,
+		"PagAnterior":  page - 1,
+		"PagProxima":   page + 1,
+		"ErrorMessage": errMsg,
+		"EditingID":    editingID,
 	}
 }
 
@@ -973,3 +934,4 @@ func (h *HandlerHtml) renderErrorMessage(w http.ResponseWriter, msg, tableEndpoi
 	</div>`, template.HTMLEscapeString(msg))
 	w.Write([]byte(html))
 }
+

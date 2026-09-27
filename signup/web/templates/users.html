@@ -3,7 +3,7 @@
 	<style>
 		.grade-filtros-user {
 			display: grid !important;
-			grid-template-columns: 1.2fr 1.2fr 1.5fr 1.5fr 1.3fr 1fr !important;
+			grid-template-columns: 1.2fr 1.5fr 1.5fr 1.3fr 1fr !important;
 			gap: 10px !important;
 			width: 100% !important;
 			box-sizing: border-box !important;
@@ -94,14 +94,6 @@
 				<input type="hidden" id="input-pagina-form" name="page" value="1">
 				<div class="grade-filtros-user">
 					<div class="campo-box">
-						<label>Vendor</label>
-						<select name="vendor" id="filtro-vendor">
-							{{range .Vendors}}
-								<option value="{{.Nickname}}" {{if eq $.VendorSelected .Nickname}}selected{{end}}>{{.TradingName}} ({{.Nickname}})</option>
-							{{end}}
-						</select>
-					</div>
-					<div class="campo-box">
 						<label>Username</label>
 						<input type="text" name="username" placeholder="Filtrar username...">
 					</div>
@@ -152,7 +144,7 @@
 		<style>
 			.grade-filtros-user {
 				display: grid !important;
-				grid-template-columns: 1.2fr 1.2fr 1.5fr 1.5fr 1.3fr 1fr !important;
+				grid-template-columns: 1.2fr 1.5fr 1.5fr 1.3fr 1fr !important;
 				gap: 10px !important;
 				width: 100% !important;
 				box-sizing: border-box !important;
@@ -247,14 +239,6 @@
 				<input type="hidden" id="input-pagina-form" name="page" value="1">
 				<div class="grade-filtros-user">
 					<div class="campo-box">
-						<label>Vendor</label>
-						<select name="vendor" id="filtro-vendor">
-							{{range .Vendors}}
-								<option value="{{.Nickname}}" {{if eq $.VendorSelected .Nickname}}selected{{end}}>{{.TradingName}} ({{.Nickname}})</option>
-							{{end}}
-						</select>
-					</div>
-					<div class="campo-box">
 						<label>Username</label>
 						<input type="text" name="username" placeholder="Filtrar username...">
 					</div>
@@ -312,7 +296,6 @@
 		<div>
 			<input type="text" name="add_whatsapp" value="{{.AddWhatsapp}}" placeholder="WhatsApp..." required class="input-inline-tabela">
 		</div>
-		<input type="hidden" name="add_vendor" value="{{if .AddVendor}}{{.AddVendor}}{{else}}{{.VendorSelected}}{{end}}">
 		<div class="flex gap-2 justify-start w-full" style="justify-content: flex-start !important; align-items: center !important;">
 			<button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold text-xs px-3 py-2 rounded-md transition w-16 text-center">Salvar</button>
 			<button type="button" hx-get="/html/users/bloco/limpar" hx-target="#formulario-cadastro-container" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs px-3 py-2 rounded-md border border-gray-300 transition w-16 text-center">Cancelar</button>
