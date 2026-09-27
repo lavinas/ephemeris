@@ -8,18 +8,19 @@ import (
 	"planner/internal/port"
 )
 
-// SessionbListRequest represents a request to retrieve a list of sessions.
+// SessionListRequest represents a request to retrieve a list of sessions.
 type SessionListRequest struct {
-	Page      int    `json:"page" validate:"required,gt=0"`
-	PageSize  int    `json:"page_size" validate:"required,gt=0"`
-	SessionID int64  `json:"session_id,omitempty"`
-	Nickname  string `json:"nickname,omitempty"`
-	DateStart string `json:"date_start,omitempty"`
-	DateEnd   string `json:"date_end,omitempty"`
-	Minutes   int    `json:"minutes,omitempty"`
-	Service   string `json:"service,omitempty"`
-	Status    string `json:"status,omitempty"`
-	Comments  string `json:"comments,omitempty"`
+	Page        int     `json:"page" validate:"required,gt=0"`
+	PageSize    int     `json:"page_size" validate:"required,gt=0"`
+	SessionID   int64   `json:"session_id,omitempty"`
+	Nickname    string  `json:"nickname,omitempty"`
+	CustomerIDs []int64 `json:"-"`
+	DateStart   string  `json:"date_start,omitempty"`
+	DateEnd     string  `json:"date_end,omitempty"`
+	Minutes     int     `json:"minutes,omitempty"`
+	Service     string  `json:"service,omitempty"`
+	Status      string  `json:"status,omitempty"`
+	Comments    string  `json:"comments,omitempty"`
 }
 
 // SessionListResponse represents the response containing a list of sessions.
@@ -64,6 +65,9 @@ func (r *SessionListRequest) Validate(repo port.Repository) error {
 	if err := r.validateSessionID(); err != nil {
 		errs = append(errs, err)
 	}
+	if err := r.validateNickname(repo); err != nil {
+		errs = append(errs, err)
+	}
 	if err := r.validateDates(); err != nil {
 		errs = append(errs, err)
 	}
@@ -82,6 +86,30 @@ func (r *SessionListRequest) Validate(repo port.Repository) error {
 	if len(errs) > 0 {
 		err := errors.Join(errs...)
 		return errors.New(strings.ReplaceAll(err.Error(), "\n", "; "))
+	}
+	return nil
+}
+
+// validateNickname searches for customer IDs matching the nickname pattern for vendor 1.
+func (r *SessionListRequest) validateNickname(repo port.Repository) error {
+	if r.Nickname == "" {
+		r.CustomerIDs = nil
+		return nil
+	}
+	if repo == nil {
+		return nil
+	}
+	customers, err := repo.FindCustomers(0, 0, 1, nil, &r.Nickname, nil, nil, nil, nil)
+	if err != nil {
+		return err
+	}
+	if len(customers) == 0 {
+		r.CustomerIDs = []int64{-1}
+		return nil
+	}
+	r.CustomerIDs = make([]int64, len(customers))
+	for i, c := range customers {
+		r.CustomerIDs[i] = c.ID
 	}
 	return nil
 }

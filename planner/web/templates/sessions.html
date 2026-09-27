@@ -96,7 +96,12 @@
 				<div class="grade-filtros">
 					<div class="campo-box">
 						<label>Nickname</label>
-						<input type="text" name="nickname" placeholder="Filtrar usuário...">
+						<input type="text" name="nickname" placeholder="Filtrar usuário..." list="lista-nicknames-filtro">
+						<datalist id="lista-nicknames-filtro">
+							{{range .Nicknames}}
+								<option value="{{.}}">
+							{{end}}
+						</datalist>
 					</div>
 					<div class="campo-box">
 						<label>Data Início</label>
@@ -256,7 +261,12 @@
 				<div class="grade-filtros">
 					<div class="campo-box">
 						<label>Nickname</label>
-						<input type="text" name="nickname" placeholder="Filtrar usuário...">
+						<input type="text" name="nickname" placeholder="Filtrar usuário..." list="lista-nicknames-filtro-idx">
+						<datalist id="lista-nicknames-filtro-idx">
+							{{range .Nicknames}}
+								<option value="{{.}}">
+							{{end}}
+						</datalist>
 					</div>
 					<div class="campo-box">
 						<label>Data Início</label>
@@ -311,7 +321,7 @@
 	{{define "formulario_cadastro"}}
 	<form hx-post="/html/sessoes/salvar" hx-target="#tabela-container" hx-include="#filtro-form" class="linha-box grade-tabela formulario-add text-sm shadow-lg">
 		<div>
-			<input type="text" name="add_nickname" placeholder="Nickname..." list="lista-nicknames" required class="input-inline-tabela">
+			<input type="text" name="add_nickname" value="{{.Nickname}}" placeholder="Nickname..." list="lista-nicknames" required class="input-inline-tabela">
 			<datalist id="lista-nicknames">
 				{{range .Nicknames}}
 					<option value="{{.}}">
@@ -322,18 +332,18 @@
 		<div><input type="number" name="add_duracao" value="{{.DuracaoPadrao}}" min="1" required class="input-inline-tabela" style="text-align: center !important;"></div>
 		<div>
 			<select name="add_status" required class="input-inline-tabela">
-				<option value="realizada">Realizada</option>
-				<option value="cancelada_cobrar">Cancelada/Cobrar</option>
-				<option value="cancelada_nao_cobrar">Cancelada/Não Cobrar</option>
+				<option value="realizada" {{if eq .Status "realizada"}}selected{{end}}>Realizada</option>
+				<option value="cancelada_cobrar" {{if eq .Status "cancelada_cobrar"}}selected{{end}}>Cancelada/Cobrar</option>
+				<option value="cancelada_nao_cobrar" {{if eq .Status "cancelada_nao_cobrar"}}selected{{end}}>Cancelada/Não Cobrar</option>
 			</select>
 		</div>
 		<div>
 			<select name="add_servico" required class="input-inline-tabela">
-				<option value="aula/canto">Aula/Canto</option>
-				<option value="aula/piano">Aula/Piano</option>
+				<option value="aula/canto" {{if eq .Servico "aula/canto"}}selected{{end}}>Aula/Canto</option>
+				<option value="aula/piano" {{if eq .Servico "aula/piano"}}selected{{end}}>Aula/Piano</option>
 			</select>
 		</div>
-		<div><textarea name="add_comentario" placeholder="Escreva um comentário..." rows="2" class="input-inline-tabela" style="resize: vertical;"></textarea></div>
+		<div><textarea name="add_comentario" placeholder="Escreva um comentário..." rows="2" class="input-inline-tabela" style="resize: vertical;">{{.Comentario}}</textarea></div>
 		<div class="flex gap-2 justify-start w-full" style="justify-content: flex-start !important; align-items: center !important;">
 			<button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold text-xs px-3 py-2 rounded-md transition w-16 text-center">Salvar</button>
 			<button type="button" hx-get="/html/sessoes/bloco/limpar" hx-target="#formulario-cadastro-container" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs px-3 py-2 rounded-md border border-gray-300 transition w-16 text-center">Cancelar</button>
@@ -343,6 +353,15 @@
 
 	{{define "tabela"}}
 	<div class="w-full">
+		{{if .ErrorMessage}}
+		<div class="linha-box bg-rose-50 border border-rose-300 text-rose-800 p-4 rounded-xl shadow-md mb-4 flex items-center justify-between gap-4" style="background-color: #fff1f2 !important; border-color: #fda4af !important; color: #9f1239 !important;">
+			<div class="flex items-center gap-3" style="display: flex; align-items: center; gap: 0.75rem;">
+				<span class="text-xl">⚠️</span>
+				<div class="font-bold text-sm text-rose-900" style="color: #881337 !important;">{{.ErrorMessage}}</div>
+			</div>
+			<button type="button" onclick="this.closest('.linha-box').remove()" class="text-rose-500 hover:text-rose-700 font-bold text-xs px-2 py-1 bg-rose-100 hover:bg-rose-200 rounded transition cursor-pointer" style="background-color: #ffe4e6; color: #e11d48; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer;">✕ Fechar</button>
+		</div>
+		{{end}}
 		<div class="grade-tabela topo-tabela">
 			<div>Data</div>
 			<div>Usuário</div>
@@ -388,14 +407,7 @@
 	{{define "linha_sessao_edit"}}
 	<form id="sessao-{{.ID}}" hx-post="/html/sessoes/atualizar?id={{.ID}}" hx-target="#tabela-container" hx-include="#filtro-form" class="linha-box grade-tabela formulario-edit text-sm shadow-md" style="align-items: start !important; padding-top: 20px; padding-bottom: 20px;">
 		<div><input type="date" name="edit_data" value="{{.Data}}" required class="input-inline-tabela"></div>
-		<div>
-			<input type="text" name="edit_nickname" value="{{.Nickname}}" required class="input-inline-tabela" list="lista-nicknames-edit">
-			<datalist id="lista-nicknames-edit">
-					{{range .Nicknames}}
-						<option value="{{.}}"></option>
-					{{end}}
-			</datalist>
-		</div>
+		<div class="font-bold text-gray-900 texto-truncado" style="padding-top: 6px;">{{.Nickname}}</div>
 		<div><input type="number" name="edit_duracao" value="{{.Duracao}}" min="1" required class="input-inline-tabela" style="text-align: center !important;"></div>
 		<div>
 			<select name="edit_status" required class="input-inline-tabela">

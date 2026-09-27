@@ -24,48 +24,51 @@ const (
 
 // Session is a struct that dominate session objetcs
 type Session struct {
-	ID               int64      `gorm:"primaryKey;autoIncrement"`
-	CustomerNickname string     `gorm:"not null"`
-	SessionDate      time.Time  `gorm:"not null"`
-	SessionMinutes   int        `gorm:"not null"`
-	SessionService   string     `gorm:"not null"`
-	SessionStatus    string     `gorm:"not null"`
-	Comments         *string    `gorm:"type:text"`
-	CreatedAt        time.Time  `gorm:"not null"`
-	UpdatedAt        time.Time  `gorm:"not null"`
-	DeletedAt        *time.Time `gorm:"index"`
+	ID             int64      `gorm:"primaryKey;autoIncrement"`
+	CustomerID     int64      `gorm:"not null;index"`
+	Customer       *Customer  `gorm:"foreignKey:CustomerID;references:ID"`
+	SessionDate    time.Time  `gorm:"not null"`
+	SessionMinutes int        `gorm:"not null"`
+	SessionService string     `gorm:"not null"`
+	SessionStatus  string     `gorm:"not null"`
+	Comments       *string    `gorm:"type:text"`
+	CreatedAt      time.Time  `gorm:"not null"`
+	UpdatedAt      time.Time  `gorm:"not null"`
+	DeletedAt      *time.Time `gorm:"index"`
 }
 
 // NewSession creates a Session object
-func NewSession(nickname string, date time.Time, minutes int, service string, status string, comments *string) *Session {
+func NewSession(customerID int64, date time.Time, minutes int, service string, status string, comments *string) *Session {
 	return &Session{
-		CustomerNickname: nickname,
-		SessionDate:      date,
-		SessionService:   service,
-		SessionStatus:    status,
-		SessionMinutes:   minutes,
-		Comments:         comments,
-		CreatedAt:        time.Now(),
-		UpdatedAt:        time.Now(),
-		DeletedAt:        nil,
+		CustomerID:     customerID,
+		SessionDate:    date,
+		SessionService: service,
+		SessionStatus:  status,
+		SessionMinutes: minutes,
+		Comments:       comments,
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
+		DeletedAt:      nil,
 	}
 }
 
-// TableName specifies the table name for Customer model.
+// TableName specifies the table name for Session model.
 func (Session) TableName() string {
 	return "session"
 }
 
 // Find is a helper function to find records in the database
-func (s *Session) Find(repository SessionRepository, page, pagesize int, id int64, nickname string, startDate, endDate time.Time,
+func (s *Session) Find(repository SessionRepository, page, pagesize int, id int64, customerIDs []int64, startDate, endDate time.Time,
 	minutes int, service, status string, comments string) ([]Session, int64, error) {
 	conditions := map[string]interface{}{}
 	conditions["deleted_at IS NULL"] = nil
 	if id != 0 {
 		conditions["id = ?"] = id
 	}
-	if nickname != "" {
-		conditions["customer_nickname like ?"] = "%" + nickname + "%"
+	if len(customerIDs) == 1 {
+		conditions["customer_id = ?"] = customerIDs[0]
+	} else if len(customerIDs) > 1 {
+		conditions["customer_id IN (?)"] = customerIDs
 	}
 	if !startDate.IsZero() {
 		conditions["session_date >= ?"] = startDate
@@ -102,9 +105,9 @@ func (s *Session) Find(repository SessionRepository, page, pagesize int, id int6
 	return sessions, count, nil
 }
 
-// FindUsers is a helper function to find session users in the database based on conditions
-func (s *Session) FindUsers(repository SessionRepository, startDate, endDate time.Time,
-	minutes int, service, status string) ([]string, error) {
+// FindCustomerIDs is a helper function to find distinct session customer IDs in the database based on conditions
+func (s *Session) FindCustomerIDs(repository SessionRepository, startDate, endDate time.Time,
+	minutes int, service, status string) ([]int64, error) {
 	conditions := map[string]interface{}{}
 	conditions["deleted_at IS NULL"] = nil
 	if !startDate.IsZero() {
@@ -122,13 +125,23 @@ func (s *Session) FindUsers(repository SessionRepository, startDate, endDate tim
 	if status != "" {
 		conditions["session_status = ?"] = status
 	}
-	results, err := repository.FindGroup(conditions, "customer_nickname")
+	results, err := repository.FindGroup(conditions, "customer_id")
 	if err != nil {
 		return nil, err
 	}
-	users := []string{}
+	ids := []int64{}
 	for _, v := range results {
-		users = append(users, v["customer_nickname"].(string))
+		if idVal, ok := v["customer_id"]; ok {
+			switch id := idVal.(type) {
+			case int64:
+				ids = append(ids, id)
+			case int:
+				ids = append(ids, int64(id))
+			case float64:
+				ids = append(ids, int64(id))
+			}
+		}
 	}
-	return users, nil
+	return ids, nil
 }
+

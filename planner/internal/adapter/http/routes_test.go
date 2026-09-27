@@ -35,6 +35,9 @@ func (d *dummyRepo) FindCustomers(page, pageSize int, vendorID int64, name, nick
 func (d *dummyRepo) GetCustomer(vendorID int64, nickname string) (*domain.Customer, error) {
 	return nil, nil
 }
+func (d *dummyRepo) GetCustomerByID(id int64) (*domain.Customer, error) {
+	return nil, nil
+}
 func (d *dummyRepo) FindVendors(page, pageSize int, legalName, nickname, document *string, accountBank, accountAgency, accountNumber *string) ([]domain.Vendor, error) {
 	return nil, nil
 }

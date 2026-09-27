@@ -52,8 +52,8 @@ func (s *SessionUpdate) Run(InDto port.InDTO) port.OutDTO {
 
 // updateSessionModel updates the session model with the data from the request.
 func (s *SessionUpdate) updateSessionModel(sessionModel *domain.Session, req *dto.SessionUpdateRequest) error {
-	if req.Nickname != "" {
-		sessionModel.CustomerNickname = req.Nickname
+	if req.CustomerID != 0 {
+		sessionModel.CustomerID = req.CustomerID
 	}
 	if req.Date != "" {
 		// Parse the date string into a time.Time object

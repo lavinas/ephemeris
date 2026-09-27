@@ -9,4 +9,5 @@ type InDTO interface {
 // OutDTO represents a generic data transfer object for output of service methods.
 type OutDTO interface {
 	GetStatusCode() int
+	GetMessage() string
 }

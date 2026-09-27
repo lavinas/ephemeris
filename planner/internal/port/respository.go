@@ -17,6 +17,7 @@ type Repository interface {
 	FindCustomers(page, pageSize int, vendorID int64, name, nickname,
 		document *string, status *int, email, whatsapp *string) ([]domain.Customer, error)
 	GetCustomer(vendorID int64, nickname string) (*domain.Customer, error)
+	GetCustomerByID(id int64) (*domain.Customer, error)
 	FindVendors(page, pageSize int, legalName, nickname, document *string,
 		accountBank, accountAgency, accountNumber *string) ([]domain.Vendor, error)
 	GetVendor(nickname string) (*domain.Vendor, error)

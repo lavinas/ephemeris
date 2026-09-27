@@ -121,26 +121,11 @@ func (h *HandlerHtml) Sessions(w http.ResponseWriter, r *http.Request) {
 // SessionsCreate handler for the /sessions/create endpoint
 func (h *HandlerHtml) SessionsCreate(w http.ResponseWriter, r *http.Request) {
 	hoje := time.Now().Format("2006-01-02")
-	twoYearsAgo := time.Now().AddDate(-2, 0, 0).Format("2006-01-02")
-	svc := service.NewSessionUsers(h.repo, h.logger)
-	req := &dto.SessionUsersRequest{
-		StartDate: twoYearsAgo,
-	}
-	respdro := svc.Run(req)
-	if respdro.GetStatusCode() != 200 {
-		http.Error(w, "Failed to retrieve session users", http.StatusInternalServerError)
-		return
-	}
-	response, ok := respdro.(*dto.SessionUsersResponse)
-	if !ok {
-		http.Error(w, "Invalid response type", http.StatusInternalServerError)
-		return
-	}
 	dadosPadrao := map[string]interface{}{
 		"DataFormatada": hoje,
 		"DataPadrao":    hoje,
 		"DuracaoPadrao": "60",
-		"Nicknames":     response.Nicknames,
+		"Nicknames":     h.getCustomersNicknames(),
 	}
 	h.tmpl.ExecuteTemplate(w, "formulario_cadastro", dadosPadrao)
 }
@@ -163,15 +148,23 @@ func (h *HandlerHtml) SessionsSave(w http.ResponseWriter, r *http.Request) {
 		Comments: comment,
 	}
 	respdro := svc.Run(req)
-	if respdro.GetStatusCode() != 200 {
-		http.Error(w, "Failed to retrieve sessions", http.StatusInternalServerError)
-		return
-	}
+
 	pagina, _ := strconv.Atoi(r.FormValue("page"))
+	if pagina <= 0 {
+		pagina = 1
+	}
+	dur, _ := strconv.Atoi(r.FormValue("duracao_filtro"))
 	svc2 := service.NewSessionList(h.repo, h.logger)
 	req2 := &dto.SessionListRequest{
-		Page:     pagina,
-		PageSize: itensPorPag,
+		Page:      pagina,
+		PageSize:  itensPorPag,
+		Nickname:  r.FormValue("nickname"),
+		DateStart: r.FormValue("data_inicio"),
+		DateEnd:   r.FormValue("data_fim"),
+		Minutes:   dur,
+		Status:    r.FormValue("status"),
+		Service:   r.FormValue("servico_filtro"),
+		Comments:  r.FormValue("comentario"),
 	}
 	respdro2 := svc2.Run(req2)
 	if respdro2.GetStatusCode() != 200 {
@@ -184,10 +177,29 @@ func (h *HandlerHtml) SessionsSave(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	page := h.getPageData(response)
-	h.logger.IPrintf(2, "Rendering 2 for %v", page)
-	w.Write([]byte(`<script>document.getElementById("formulario-cadastro-container").innerHTML = "";</script>`))
-	h.tmpl.ExecuteTemplate(w, "tabela", page)
 
+	if respdro.GetStatusCode() != 200 {
+		page["ErrorMessage"] = respdro.GetMessage()
+		dadosForm := map[string]interface{}{
+			"DataFormatada": r.FormValue("add_data"),
+			"DataPadrao":    r.FormValue("add_data"),
+			"DuracaoPadrao": r.FormValue("add_duracao"),
+			"Nicknames":     h.getCustomersNicknames(),
+			"Nickname":      nickname,
+			"Status":        status,
+			"Servico":       form_service,
+			"Comentario":    comment,
+		}
+		var formBuf strings.Builder
+		_ = h.tmpl.ExecuteTemplate(&formBuf, "formulario_cadastro", dadosForm)
+		w.Write([]byte(`<div id="formulario-cadastro-container" hx-swap-oob="innerHTML">` + formBuf.String() + `</div>`))
+		h.tmpl.ExecuteTemplate(w, "tabela", page)
+		return
+	}
+
+	h.logger.IPrintf(2, "Rendering 2 for %v", page)
+	w.Write([]byte(`<div id="formulario-cadastro-container" hx-swap-oob="innerHTML"></div>`))
+	h.tmpl.ExecuteTemplate(w, "tabela", page)
 }
 
 // SessionTableReset handler for the /sessions/table/reset endpoint
@@ -287,22 +299,7 @@ func (h *HandlerHtml) SessionsEdit(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Session not found", http.StatusNotFound)
 		return
 	}
-	svc2 := service.NewSessionUsers(h.repo, h.logger)
-	req2 := &dto.SessionUsersRequest{
-		StartDate: time.Now().AddDate(-2, 0, 0).Format("2006-01-02"),
-	}
-	respdro2 := svc2.Run(req2)
-	if respdro2.GetStatusCode() != 200 {
-		http.Error(w, "Failed to retrieve session users", http.StatusInternalServerError)
-		return
-	}
-	response2, ok := respdro2.(*dto.SessionUsersResponse)
-	if !ok {
-		http.Error(w, "Invalid response type", http.StatusInternalServerError)
-		return
-	}
 	dadosPadrao := h.getSessionData(response)[0]
-	dadosPadrao["Nicknames"] = response2.Nicknames
 	h.tmpl.ExecuteTemplate(w, "linha_sessao_edit", dadosPadrao)
 }
 
@@ -311,7 +308,6 @@ func (h *HandlerHtml) SessionsUpdate(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	id, _ := strconv.Atoi(r.URL.Query().Get("id"))
 	minutes, _ := strconv.Atoi(r.FormValue("edit_duracao"))
-	nickname := r.FormValue("edit_nickname")
 
 	status := r.FormValue("edit_status")
 	form_service := r.FormValue("edit_servico")
@@ -319,7 +315,6 @@ func (h *HandlerHtml) SessionsUpdate(w http.ResponseWriter, r *http.Request) {
 	svc := service.NewSessionUpdate(h.repo, h.logger)
 	req := &dto.SessionUpdateRequest{
 		ID:       int64(id),
-		Nickname: nickname,
 		Date:     r.FormValue("edit_data"),
 		Minutes:  minutes,
 		Service:  form_service,
@@ -429,7 +424,7 @@ func (h *HandlerHtml) getSessionData(response *dto.SessionListResponse) []map[st
 	return result
 }
 
-// getPageData2 paginates the filtered sessions based on the target page and items per page
+// getPageData paginates the filtered sessions based on the target page and items per page
 func (h *HandlerHtml) getPageData(response *dto.SessionListResponse) map[string]interface{} {
 	page := response.Page
 	totalPages := response.TotalPages
@@ -442,6 +437,21 @@ func (h *HandlerHtml) getPageData(response *dto.SessionListResponse) map[string]
 		"TemProximo":   page < totalPages,
 		"PagAnterior":  page - 1,
 		"PagProxima":   page + 1,
+		"Nicknames":    h.getCustomersNicknames(),
 	}
 	return ret
+}
+
+// getCustomersNicknames retrieves all customer nicknames for vendor 1
+func (h *HandlerHtml) getCustomersNicknames() []string {
+	customers, err := h.repo.FindCustomers(0, 0, 1, nil, nil, nil, nil, nil, nil)
+	if err != nil {
+		h.logger.IPrintf(2, "Failed to retrieve customers: %v", err)
+		return nil
+	}
+	nicknames := make([]string, 0, len(customers))
+	for _, c := range customers {
+		nicknames = append(nicknames, c.Nickname)
+	}
+	return nicknames
 }

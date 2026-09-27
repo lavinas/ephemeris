@@ -40,6 +40,11 @@ func (r ResponseBase) GetStatusCode() int {
 	return r.HttpCode
 }
 
+// GetMessage returns the message of the response.
+func (r ResponseBase) GetMessage() string {
+	return r.Message
+}
+
 // ValidateCellNumber checks if the provided phone number is a valid Brazilian cell phone number.
 func ValidateCellNumber(phone string) (string, error) {
 	num, err := phonenumbers.Parse(phone, "BR")

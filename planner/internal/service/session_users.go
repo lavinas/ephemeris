@@ -53,7 +53,7 @@ func (s *SessionUsers) getUsers(input dto.SessionUsersRequest) ([]string, error)
 	ed, _ := time.Parse("2006-01-02", input.EndDate)
 
 	session := domain.Session{}
-	users, err := session.FindUsers(
+	customerIDs, err := session.FindCustomerIDs(
 		s.repo,
 		sd,
 		ed,
@@ -63,6 +63,13 @@ func (s *SessionUsers) getUsers(input dto.SessionUsersRequest) ([]string, error)
 	)
 	if err != nil {
 		return nil, err
+	}
+	users := []string{}
+	for _, id := range customerIDs {
+		cust, err := s.repo.GetCustomerByID(id)
+		if err == nil && cust != nil {
+			users = append(users, cust.Nickname)
+		}
 	}
 	return users, nil
 }

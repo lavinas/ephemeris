@@ -9,14 +9,15 @@ import (
 	"planner/internal/port"
 )
 
-// Session CreateRequest represents a request to create a new session.
+// SessionCreateRequest represents a request to create a new session.
 type SessionCreateRequest struct {
-	Nickname string `json:"nickname" validate:"required"`
-	Date     string `json:"date" validate:"required"`
-	Minutes  int    `json:"minutes" validate:"required"`
-	Service  string `json:"service" validate:"required"`
-	Status   string `json:"status" validate:"required"`
-	Comments string `json:"comments,omitempty"`
+	CustomerID int64  `json:"-"`
+	Nickname   string `json:"nickname" validate:"required"`
+	Date       string `json:"date" validate:"required"`
+	Minutes    int    `json:"minutes" validate:"required"`
+	Service    string `json:"service" validate:"required"`
+	Status     string `json:"status" validate:"required"`
+	Comments   string `json:"comments,omitempty"`
 }
 
 // SessionCreateResponse represents the response after creating a new session.
@@ -40,7 +41,7 @@ func NewSessionCreateResponse(statusCode int, statusMessage string, errorMessage
 // Validate checks if the SessionCreateRequest has valid data.
 func (r *SessionCreateRequest) Validate(repo port.Repository) error {
 	var errs []error
-	if err := r.validateNickName(); err != nil {
+	if err := r.validateNickName(repo); err != nil {
 		errs = append(errs, err)
 	}
 	if err := r.validateDate(); err != nil {
@@ -62,8 +63,8 @@ func (r *SessionCreateRequest) Validate(repo port.Repository) error {
 	return nil
 }
 
-// validateNickName checks if the provided nickname is valid.
-func (r *SessionCreateRequest) validateNickName() error {
+// validateNickName checks if the provided nickname is valid and resolves CustomerID.
+func (r *SessionCreateRequest) validateNickName(repo port.Repository) error {
 	if r.Nickname == "" {
 		return fmt.Errorf("nickname is required")
 	}
@@ -78,6 +79,16 @@ func (r *SessionCreateRequest) validateNickName() error {
 		if !((char >= 'a' && char <= 'z') || (char >= '0' && char <= '9') || char == '_') {
 			return fmt.Errorf("nickname must contain only lowercase letters, numbers, and underscores")
 		}
+	}
+	if repo != nil {
+		customer, err := repo.GetCustomer(1, r.Nickname)
+		if err != nil {
+			return fmt.Errorf("error finding customer: %v", err)
+		}
+		if customer == nil {
+			return fmt.Errorf("cliente com nickname '%s' não encontrado na lista de clientes cadastrados", r.Nickname)
+		}
+		r.CustomerID = customer.ID
 	}
 	return nil
 }

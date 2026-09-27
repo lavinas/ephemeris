@@ -96,6 +96,15 @@ func (m *mockRepo) GetCustomer(vendorID int64, nickname string) (*domain.Custome
 	return nil, nil
 }
 
+func (m *mockRepo) GetCustomerByID(id int64) (*domain.Customer, error) {
+	for _, c := range m.customers {
+		if c.ID == id {
+			return c, nil
+		}
+	}
+	return nil, nil
+}
+
 func (m *mockRepo) FindVendors(page, pageSize int, legalName, nickname, document *string,
 	accountBank, accountAgency, accountNumber *string) ([]domain.Vendor, error) {
 	var list []domain.Vendor

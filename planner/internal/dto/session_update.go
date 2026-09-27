@@ -12,14 +12,15 @@ import (
 
 // SessionUpdateRequest represents a request to update an existing session.
 type SessionUpdateRequest struct {
-	ID       int64          `json:"id" validate:"required"`
-	Session  domain.Session `json:"-"`
-	Nickname string         `json:"nickname" validate:"required"`
-	Date     string         `json:"date" validate:"required"`
-	Minutes  int            `json:"minutes" validate:"required"`
-	Service  string         `json:"service" validate:"required"`
-	Status   string         `json:"status" validate:"required"`
-	Comments string         `json:"comments,omitempty"`
+	ID         int64          `json:"id" validate:"required"`
+	CustomerID int64          `json:"-"`
+	Session    domain.Session `json:"-"`
+	Nickname   string         `json:"nickname" validate:"required"`
+	Date       string         `json:"date" validate:"required"`
+	Minutes    int            `json:"minutes" validate:"required"`
+	Service    string         `json:"service" validate:"required"`
+	Status     string         `json:"status" validate:"required"`
+	Comments   string         `json:"comments,omitempty"`
 }
 
 // SessionUpdateResponse represents the response after updating an existing session.
@@ -44,7 +45,7 @@ func (r *SessionUpdateRequest) Validate(repo port.Repository) error {
 	if err := r.validateID(repo); err != nil {
 		errs = append(errs, err)
 	}
-	if err := r.validateNickName(); err != nil {
+	if err := r.validateNickName(repo); err != nil {
 		errs = append(errs, err)
 	}
 	if err := r.validateDate(); err != nil {
@@ -78,8 +79,11 @@ func (r *SessionUpdateRequest) validateID(repo port.Repository) error {
 	if r.ID <= 0 {
 		return errors.New("invalid session_id: must be greater than 0")
 	}
+	if repo == nil {
+		return nil
+	}
 	domainSession := domain.Session{}
-	sessions, _, err := domainSession.Find(repo, 1, 1, r.ID, "", time.Time{}, time.Time{}, 0, "", "", "")
+	sessions, _, err := domainSession.Find(repo, 1, 1, r.ID, nil, time.Time{}, time.Time{}, 0, "", "", "")
 	if err != nil {
 		return fmt.Errorf("error finding session: %v", err)
 	}
@@ -90,8 +94,8 @@ func (r *SessionUpdateRequest) validateID(repo port.Repository) error {
 	return nil
 }
 
-// validateNickName checks if the provided nickname is valid.
-func (r *SessionUpdateRequest) validateNickName() error {
+// validateNickName checks if the provided nickname is valid and resolves CustomerID.
+func (r *SessionUpdateRequest) validateNickName(repo port.Repository) error {
 	if r.Nickname == "" {
 		return nil
 	}
@@ -106,6 +110,16 @@ func (r *SessionUpdateRequest) validateNickName() error {
 		if !((char >= 'a' && char <= 'z') || (char >= '0' && char <= '9') || char == '_') {
 			return fmt.Errorf("nickname must contain only lowercase letters, numbers, and underscores")
 		}
+	}
+	if repo != nil {
+		customer, err := repo.GetCustomer(1, r.Nickname)
+		if err != nil {
+			return fmt.Errorf("error finding customer: %v", err)
+		}
+		if customer == nil {
+			return fmt.Errorf("customer with nickname '%s' not found", r.Nickname)
+		}
+		r.CustomerID = customer.ID
 	}
 	return nil
 }

@@ -159,7 +159,7 @@ func (a *Repository) Find(page, pagesize int, conditions map[string]interface{},
 		}
 	}
 	var sessions []domain.Session
-	err := db.Find(&sessions).Error
+	err := db.Preload("Customer").Find(&sessions).Error
 	// Convert []domain.Session to []interface{}
 	result := make([]interface{}, len(sessions))
 	for i, v := range sessions {
@@ -232,6 +232,23 @@ func (a *Repository) GetCustomer(vendorID int64, nickname string) (*domain.Custo
 		db = a.Tx
 	}
 	err := db.Where("vendor_id = ? AND nickname = ?", vendorID, nickname).First(&customer).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &customer, nil
+}
+
+// GetCustomerByID retrieves a single customer by ID
+func (a *Repository) GetCustomerByID(id int64) (*domain.Customer, error) {
+	var customer domain.Customer
+	db := a.DB
+	if a.Tx != nil {
+		db = a.Tx
+	}
+	err := db.Where("id = ?", id).First(&customer).Error
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil
 	}
