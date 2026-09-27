@@ -71,15 +71,6 @@ create table session (
 );
 */
 
-## Adjusting table
-
-alter table session rename to session_old;
-
-insert into customer (name, vendor_id, nickname, document, email, whatsapp, created_at, updated_at, status) 
-select distinct customer_nickname, 1, customer_nickname, null, null, null, now(), now(), 1
-  from session_old;
-
-
 # session new
 drop table if exists session;
 create table session (
@@ -96,11 +87,3 @@ create table session (
     constraint fk_customer_id foreign key (customer_id) references customer(id) on delete cascade
 );
 
-# finalize adjusting session (i need a status name)
-insert into session (vendor_id, customer_id, session_date, session_minutes, session_service, session_status, comments, created_at, updated_at)
-select 1, b.id, session_date, session_minutes, session_service, session_status, comments, now(), now()
-  from session_old a
-  join customer b on b.nickname = a.customer_nickname;
-
-
-drop table session_old;
