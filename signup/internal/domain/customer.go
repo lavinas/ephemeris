@@ -122,7 +122,7 @@ func (c *Customer) Find(page, pageSize int) ([]port.Domain, error) {
 	if c.Status != nil && *c.Status != -1 {
 		conditions["status = ?"] = *c.Status
 	}
-	resp, err := c.Repo.Find(c, conditions, page, pageSize, "id desc")
+	resp, err := c.Repo.Find(c, conditions, page, pageSize, "nickname")
 	if err != nil {
 		return nil, err
 	}
