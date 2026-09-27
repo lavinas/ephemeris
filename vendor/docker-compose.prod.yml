@@ -15,6 +15,16 @@ services:
       - ephemeris-network
     restart: always # Garante que o painel reinicie sozinho se o servidor cair
 
+  nats:
+    image: nats:latest
+    container_name: nats-prod
+    restart: always
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    networks:
+      - ephemeris-network
+
 networks:
   ephemeris-network:
     name: ephemeris-network

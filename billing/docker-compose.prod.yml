@@ -8,7 +8,7 @@ services:
       - POSTGRES_USER=root
       - POSTGRES_PASSWORD=root
       - POSTGRES_DB=billing
-      - PGDATA=/var/lib/postgresql/data/pgdata
+      - PGDATA=/var/lib/postgresql/data
     networks:
       - net-billing-prod
     ports:
@@ -25,11 +25,18 @@ services:
     restart: always
     networks:
       - net-billing-prod
+      - ephemeris-network
     ports:
       - "8081:8081"
     volumes:
-      # ADICIONADO: Sincroniza a pasta de logs local com a interna do container
+      # Sincroniza a pasta de logs local com a interna do container
       - ./log:/app/log
+    environment:
+      - DB_HOST=billing_db
+      - DB_PORT=5432
+      - DB_USER=root
+      - DB_PASSWORD=root
+      - DB_NAME=billing
     depends_on:
       - billing_db
 
@@ -39,3 +46,5 @@ volumes:
 networks:
   net-billing-prod:
     driver: bridge
+  ephemeris-network:
+    external: true

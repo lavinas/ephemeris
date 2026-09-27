@@ -37,7 +37,7 @@ COPY --from=builder /app/images ./images
 RUN chown -R appuser:appuser /app
 
 USER appuser
-EXPOSE 8083
+EXPOSE 8081
 
 # 3. VARIÁVEL DE AMBIENTE (Opcional, ajuda o chromedp a localizar o Chromium se necessário)
 ENV CHROME_BIN=/usr/bin/chromium-browser

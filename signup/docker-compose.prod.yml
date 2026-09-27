@@ -8,11 +8,11 @@ services:
       - POSTGRES_USER=root
       - POSTGRES_PASSWORD=root
       - POSTGRES_DB=signup
-      - PGDATA=/var/lib/postgresql/data/pgdata
+      - PGDATA=/var/lib/postgresql/data
     networks:
       - net-signup-prod
     ports:
-      - "5433:5432"
+      - "5434:5432"
     volumes:
       - pg_production_data:/var/lib/postgresql/data
 
@@ -25,11 +25,18 @@ services:
     restart: always
     networks:
       - net-signup-prod
+      - ephemeris-network
     ports:
       - "8082:8082"
     volumes:
-      # ADICIONADO: Sincroniza a pasta de logs local com a interna do container
+      # Sincroniza a pasta de logs local com a interna do container
       - ./log:/app/log
+    environment:
+      - DB_HOST=signup_db
+      - DB_PORT=5432
+      - DB_USER=root
+      - DB_PASSWORD=root
+      - DB_NAME=signup
     depends_on:
       - signup_db
 
@@ -39,3 +46,5 @@ volumes:
 networks:
   net-signup-prod:
     driver: bridge
+  ephemeris-network:
+    external: true
