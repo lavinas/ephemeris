@@ -502,8 +502,8 @@
 			<div>Data</div>
 			<div>Cliente</div>
 			<div>Vencimento</div>
-			<div>Pagamento</div>
 			<div>Envio Invoice</div>
+			<div>Pagamento</div>
 			<div>Envio Recibo</div>
 			<div>Itens & Total</div>
 			<div style="text-align: left !important; width: 100%;">Ações</div>
@@ -533,17 +533,17 @@
 		<div class="font-bold text-gray-900 texto-truncado" title="{{.Customer}}">{{.Customer}}</div>
 		<div class="text-gray-700 font-mono text-xs">{{.DueDateFormatada}}</div>
 		<div>
-			{{if .PaymentDateRaw}}
-				<span class="badge-tag bg-emerald-100 text-emerald-800 border border-emerald-300 font-mono text-xs">✓ {{.PaymentDateFormatada}}</span>
-			{{else}}
-				<span class="badge-tag bg-amber-100 text-amber-800 border border-amber-300 font-mono text-xs">Pendente</span>
-			{{end}}
-		</div>
-		<div>
 			{{if .EmailSentDateRaw}}
 				<span class="badge-tag bg-sky-100 text-sky-800 border border-sky-300 font-mono text-xs">✓ {{.EmailSentDateFormatada}}</span>
 			{{else}}
 				<span class="badge-tag bg-gray-200 text-gray-600 border border-gray-300 text-xs">Não enviado</span>
+			{{end}}
+		</div>
+		<div>
+			{{if .PaymentDateRaw}}
+				<span class="badge-tag bg-emerald-100 text-emerald-800 border border-emerald-300 font-mono text-xs">✓ {{.PaymentDateFormatada}}</span>
+			{{else}}
+				<span class="badge-tag bg-amber-100 text-amber-800 border border-amber-300 font-mono text-xs">Pendente</span>
 			{{end}}
 		</div>
 		<div>
