@@ -27,25 +27,41 @@ func (s *InvoiceList) Run(inDTO port.InDTO) port.OutDTO {
 	in, ok := inDTO.(*dto.InvoiceListRequest)
 	if !ok {
 		s.logger.IPrintf(2, "Invalid input type: expected InvoiceListRequest")
-		return dto.NewInvoiceListResponse(400, "bad request", "Invalid input type", nil)
+		return dto.NewInvoiceListResponse(400, "bad request", "Invalid input type", nil, 0, 0)
 	}
 	// Validate input
 	if err := in.Validate(s.repo); err != nil {
 		s.logger.IPrintf(2, "Validation failed: %v", err)
 		return dto.NewInvoiceListResponse(400, "bad request",
-			fmt.Sprintf("Validation failed: %v", err), nil)
+			fmt.Sprintf("Validation failed: %v", err), nil, 0, 0)
 	}
-	// Fetch invoices from the repository
+
+	// Fetch unpaginated invoices to calculate totals
+	allInvoices, err := s.repo.FindInvoices(0, 0, in.CustomerID, in.InvoiceDate,
+		in.DueDate, in.PaymentDate, in.EmailSentDate, in.WhatsappSentDate, in.EmailReceiptDate, in.WhatsappReceiptDate,
+		in.TaxDate, in.CancellationDate)
+	if err != nil {
+		s.logger.IPrintf(2, "Failed to fetch total invoices: %v", err)
+		return dto.NewInvoiceListResponse(500, "internal error", "contact support please", nil, 0, 0)
+	}
+
+	totalCount := len(allInvoices)
+	var totalAmount float64
+	for _, inv := range allInvoices {
+		totalAmount += inv.Amount
+	}
+
+	// Fetch invoices from the repository with pagination
 	invoices, err := s.repo.FindInvoices(in.Page, in.PageSize, in.CustomerID, in.InvoiceDate,
 		in.DueDate, in.PaymentDate, in.EmailSentDate, in.WhatsappSentDate, in.EmailReceiptDate, in.WhatsappReceiptDate,
 		in.TaxDate, in.CancellationDate)
 	if err != nil {
 		s.logger.IPrintf(2, "Failed to fetch invoices: %v", err)
-		return dto.NewInvoiceListResponse(500, "internal error", "contact support please", nil)
+		return dto.NewInvoiceListResponse(500, "internal error", "contact support please", nil, 0, 0)
 	}
-	s.logger.IPrintf(2, "Successfully fetched %d invoices", len(invoices))
+	s.logger.IPrintf(2, "Successfully fetched %d invoices (total count: %d, total amount: %.2f)", len(invoices), totalCount, totalAmount)
 	return dto.NewInvoiceListResponse(200, "success", "Invoices fetched successfully",
-		s.mountInvoices(invoices))
+		s.mountInvoices(invoices), totalCount, totalAmount)
 }
 
 // mountInvoices maps a slice of domain.Invoice to a slice of dto.InvoiceList for the response.

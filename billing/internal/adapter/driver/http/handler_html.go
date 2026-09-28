@@ -644,6 +644,11 @@ func (h *HandlerHtml) loadPageData(page int, customer, invoiceDate, dueDate, pay
 	}
 
 	totalItems := len(allInvoices)
+	var totalAmount float64
+	for _, inv := range allInvoices {
+		totalAmount += inv.Amount
+	}
+
 	totalPages := (totalItems + itensPorPag - 1) / itensPorPag
 	if totalPages <= 0 {
 		totalPages = 1
@@ -674,15 +679,18 @@ func (h *HandlerHtml) loadPageData(page int, customer, invoiceDate, dueDate, pay
 	}
 
 	return map[string]interface{}{
-		"Invoices":     mappedInvoices,
-		"PaginaAtual":  page,
-		"TotalPaginas": totalPages,
-		"TemAnterior":  page > 1,
-		"TemProximo":   page < totalPages,
-		"PagAnterior":  page - 1,
-		"PagProxima":   page + 1,
-		"Nicknames":    h.getCustomersNicknames(),
-		"Vendor":       vendorNick,
+		"Invoices":       mappedInvoices,
+		"PaginaAtual":    page,
+		"TotalPaginas":   totalPages,
+		"TotalCount":     totalItems,
+		"TotalAmount":    totalAmount,
+		"TotalFormatado": formatMoney(totalAmount),
+		"TemAnterior":    page > 1,
+		"TemProximo":     page < totalPages,
+		"PagAnterior":    page - 1,
+		"PagProxima":     page + 1,
+		"Nicknames":      h.getCustomersNicknames(),
+		"Vendor":         vendorNick,
 	}
 }
 

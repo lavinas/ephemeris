@@ -31,7 +31,9 @@ type InvoiceListRequest struct {
 // InvoiceListResponse represents the data transfer object for the response of listing invoices.
 type InvoiceListResponse struct {
 	ResponseBase
-	Invoices []InvoiceList `json:"invoices,omitempty"`
+	Invoices    []InvoiceList `json:"invoices,omitempty"`
+	TotalCount  int           `json:"total_count"`
+	TotalAmount float64       `json:"total_amount"`
 }
 
 // InvoiceList represents a single invoice item in the list response.
@@ -62,10 +64,12 @@ type InvoiceListListItem struct {
 
 // NewInvoiceListResponse creates a new instance of InvoiceListResponse
 func NewInvoiceListResponse(code int, status, message string,
-	items []InvoiceList) InvoiceListResponse {
+	items []InvoiceList, totalCount int, totalAmount float64) InvoiceListResponse {
 	return InvoiceListResponse{
 		ResponseBase: NewResponseBase(code, status, message),
 		Invoices:     items,
+		TotalCount:   totalCount,
+		TotalAmount:  totalAmount,
 	}
 }
 
