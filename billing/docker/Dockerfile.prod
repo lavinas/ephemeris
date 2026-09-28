@@ -22,7 +22,7 @@ WORKDIR /app
 
 # 2. Cria o usuário do sistema (Dica: o Chrome precisa de permissões de leitura/escrita)
 RUN adduser -D -g '' appuser && \
-    mkdir -p /app/templates /app/images && \
+    mkdir -p /app/web/templates /app/web/static && \
     chown -R appuser:appuser /app
 
 # Copia o binário e o arquivo de configuração
@@ -30,8 +30,8 @@ COPY --from=builder /app/main .
 COPY --from=builder /app/billing.json . 
 
 # Copia as pastas de templates e imagens
-COPY --from=builder /app/templates ./templates
-COPY --from=builder /app/images ./images
+COPY --from=builder /app/web/templates ./web/templates
+COPY --from=builder /app/web/static ./web/static
 
 # Altera a propriedade dos arquivos copiados para o appuser
 RUN chown -R appuser:appuser /app
