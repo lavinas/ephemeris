@@ -28,7 +28,7 @@ RCLONE_REMOTE="gdrive"
 DRIVE_FOLDER_ID="1OpV3fB6gPuKD1lSszczJ7BsoZ6Q5eN1F"
 
 # ---- Configurações do backup ----
-
+KEEP_LAST=3
 
 # ---- Diretório temporário ----
 BACKUP_DIR="$(mktemp -d)"
@@ -54,4 +54,23 @@ rclone copy "$DUMP_FILE" "${RCLONE_REMOTE}:" \
   --drive-root-folder-id="$DRIVE_FOLDER_ID" \
   --progress
 
-echo ">> Backup concluído com sucesso: ${DB_NAME}_${TIMESTAMP}.dump"
+echo ">> Mantendo apenas os ${KEEP_LAST} backups mais recentes no Google Drive..."
+FILES_TO_DELETE=$(rclone lsf "${RCLONE_REMOTE}:" \
+  --drive-root-folder-id="$DRIVE_FOLDER_ID" \
+  --include "${DB_NAME}_${DB_ENV}_*.dump" \
+  | sort -r \
+  | tail -n +$((KEEP_LAST + 1)) || true)
+
+if [ -n "$FILES_TO_DELETE" ]; then
+  while IFS= read -r file; do
+    if [ -n "$file" ]; then
+      echo ">> Removendo backup antigo: $file"
+      rclone deletefile "${RCLONE_REMOTE}:$file" \
+        --drive-root-folder-id="$DRIVE_FOLDER_ID"
+    fi
+  done <<< "$FILES_TO_DELETE"
+else
+  echo ">> Nenhum backup antigo para remover (total <= ${KEEP_LAST})."
+fi
+
+echo ">> Backup concluído com sucesso: ${DB_NAME}_${DB_ENV}_${TIMESTAMP}.dump"
