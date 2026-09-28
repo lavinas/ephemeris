@@ -282,6 +282,7 @@ func (a *PostgresRepository) FindInvoices(page, pageSize int, customer int64,
 			db = db.Where("cancellation_date::text ILIKE ?", "%"+*cancellationDate+"%")
 		}
 	}
+	db = db.Order("invoice_date DESC, id DESC")
 	if page > 0 && pageSize > 0 {
 		db = db.Offset((page - 1) * pageSize).Limit(pageSize)
 	}

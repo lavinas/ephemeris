@@ -12,17 +12,19 @@ import (
 
 // InvoiceUpdateRequest represents the data transfer object for updating an existing invoice.
 type InvoiceUpdateRequest struct {
-	Vendor           string          `json:"vendor" validate:"required"`
-	vendorID         int64           `json:"-" validate:"-"`
-	ID               int64           `json:"id" validate:"required"`
-	InvoiceDate      *string         `json:"invoicing,omitempty"`
-	DueDate          *string         `json:"due,omitempty"`
-	PaymentDate      *string         `json:"payment,omitempty"`
-	EmailSentDate    *string         `json:"email_sent,omitempty"`
-	WhatsappSentDate *string         `json:"whatsapp_sent,omitempty"`
-	TaxDate          *string         `json:"tax,omitempty"`
-	CancellationDate *string         `json:"cancellation,omitempty"`
-	invoice          *domain.Invoice `json:"-" validate:"-"`
+	Vendor              string          `json:"vendor" validate:"required"`
+	vendorID            int64           `json:"-" validate:"-"`
+	ID                  int64           `json:"id" validate:"required"`
+	InvoiceDate         *string         `json:"invoicing,omitempty"`
+	DueDate             *string         `json:"due,omitempty"`
+	PaymentDate         *string         `json:"payment,omitempty"`
+	EmailSentDate       *string         `json:"email_sent,omitempty"`
+	WhatsappSentDate    *string         `json:"whatsapp_sent,omitempty"`
+	EmailReceiptDate    *string         `json:"email_receipt,omitempty"`
+	WhatsappReceiptDate *string         `json:"whatsapp_receipt,omitempty"`
+	TaxDate             *string         `json:"tax,omitempty"`
+	CancellationDate    *string         `json:"cancellation,omitempty"`
+	invoice             *domain.Invoice `json:"-" validate:"-"`
 }
 
 // InvoiceUpdateResponse represents the data transfer object for the response of updating an existing invoice.
@@ -59,6 +61,12 @@ func (r *InvoiceUpdateRequest) Validate(repo port.Repository) error {
 		errs = append(errs, err)
 	}
 	if err := r.validateWhatsappSentDate(); err != nil {
+		errs = append(errs, err)
+	}
+	if err := r.validateEmailReceiptDate(); err != nil {
+		errs = append(errs, err)
+	}
+	if err := r.validateWhatsappReceiptDate(); err != nil {
 		errs = append(errs, err)
 	}
 	if err := r.validateTaxDate(); err != nil {
@@ -169,6 +177,30 @@ func (r *InvoiceUpdateRequest) validateWhatsappSentDate() error {
 	return nil
 }
 
+// validateEmailReceiptDate checks if the provided email receipt date is valid.
+func (r *InvoiceUpdateRequest) validateEmailReceiptDate() error {
+	if r.EmailReceiptDate == nil {
+		return nil
+	}
+	_, err := time.Parse("2006-01-02", *r.EmailReceiptDate)
+	if err != nil {
+		return fmt.Errorf("invalid email receipt date: %v", err)
+	}
+	return nil
+}
+
+// validateWhatsappReceiptDate checks if the provided WhatsApp receipt date is valid.
+func (r *InvoiceUpdateRequest) validateWhatsappReceiptDate() error {
+	if r.WhatsappReceiptDate == nil {
+		return nil
+	}
+	_, err := time.Parse("2006-01-02", *r.WhatsappReceiptDate)
+	if err != nil {
+		return fmt.Errorf("invalid WhatsApp receipt date: %v", err)
+	}
+	return nil
+}
+
 // validateTaxDate checks if the provided tax date is valid.
 func (r *InvoiceUpdateRequest) validateTaxDate() error {
 	if r.TaxDate == nil {
@@ -197,6 +229,7 @@ func (r *InvoiceUpdateRequest) validateCancellationDate() error {
 func (r *InvoiceUpdateRequest) validateOneOfDates() error {
 	if r.InvoiceDate == nil && r.DueDate == nil && r.PaymentDate == nil &&
 		r.EmailSentDate == nil && r.WhatsappSentDate == nil &&
+		r.EmailReceiptDate == nil && r.WhatsappReceiptDate == nil &&
 		r.TaxDate == nil && r.CancellationDate == nil {
 		return fmt.Errorf("at least one date field must be provided for update")
 	}
@@ -228,6 +261,14 @@ func (r *InvoiceUpdateRequest) GetDomain() interface{} {
 		dt, _ := time.Parse("2006-01-02", *r.WhatsappSentDate)
 		r.invoice.WhatsappSentDate = &dt
 	}
+	if r.EmailReceiptDate != nil {
+		dt, _ := time.Parse("2006-01-02", *r.EmailReceiptDate)
+		r.invoice.EmailReceiptDate = &dt
+	}
+	if r.WhatsappReceiptDate != nil {
+		dt, _ := time.Parse("2006-01-02", *r.WhatsappReceiptDate)
+		r.invoice.WhatsappReceiptDate = &dt
+	}
 	if r.TaxDate != nil {
 		dt, _ := time.Parse("2006-01-02", *r.TaxDate)
 		r.invoice.TaxDate = &dt
@@ -250,6 +291,8 @@ func (r *InvoiceUpdateRequest) Reset() {
 	r.PaymentDate = nil
 	r.EmailSentDate = nil
 	r.WhatsappSentDate = nil
+	r.EmailReceiptDate = nil
+	r.WhatsappReceiptDate = nil
 	r.TaxDate = nil
 	r.CancellationDate = nil
 	r.invoice = nil

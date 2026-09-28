@@ -9,10 +9,11 @@ import (
 type JsonConfig struct {
 	DB   JsonDBConfig   `json:"db"`
 	Log  JsonLogConfig  `json:"log"`
+	Web  JsonWebConfig  `json:"web"`
 	NATS JsonNATSConfig `json:"nats"`
 }
 
-// DBConfig represents the database configuration structure
+// JsonDBConfig represents the database configuration structure
 type JsonDBConfig struct {
 	Host           string `json:"host"`
 	Port           int    `json:"port"`
@@ -25,10 +26,15 @@ type JsonDBConfig struct {
 	BillingSchema  string `json:"billing_schema"`
 }
 
-// LogConfig represents the logging configuration structure
+// JsonLogConfig represents the logging configuration structure
 type JsonLogConfig struct {
 	Output string `json:"output"`
 	Level  int    `json:"level"`
+}
+
+// JsonWebConfig represents the web server configuration structure
+type JsonWebConfig struct {
+	Addr string `json:"addr"`
 }
 
 // JsonNATSConfig represents the NATS messaging configuration structure
@@ -74,6 +80,14 @@ func (v *JsonConfig) GetConfigData() (output string, level int) {
 // GetLogOutput returns the log output from the configuration
 func (v *JsonConfig) GetLogData() (output string, level int) {
 	return v.Log.Output, v.Log.Level
+}
+
+// GetWebAddr returns the web server address from the configuration
+func (v *JsonConfig) GetWebAddr() string {
+	if v.Web.Addr == "" {
+		return ":8081"
+	}
+	return v.Web.Addr
 }
 
 // GetNATSData returns the NATS configuration

@@ -14,6 +14,9 @@
         "output": "./log/billing.log",
         "level": 0
     },
+    "web": {
+        "addr": ":8081"
+    },
     "nats": {
         "url": "nats://nats:4222",
         "queue_group": "billing-customer-sync",

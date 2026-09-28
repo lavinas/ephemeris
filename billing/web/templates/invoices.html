@@ -1,0 +1,627 @@
+	{{define "fragment"}}
+	<script src="https://cdn.tailwindcss.com"></script>
+	<style>
+		.grade-filtros {
+			display: grid !important;
+			grid-template-columns: 1.4fr 1.1fr 1.1fr 1.1fr 1.1fr 1.1fr 1.5fr !important;
+			gap: 10px !important;
+			width: 100% !important;
+			box-sizing: border-box !important;
+		}
+		.grade-tabela {
+			display: grid !important;
+			grid-template-columns: 1.1fr 1.3fr 1.1fr 1.1fr 1.1fr 1.1fr 2.8fr 2.4fr !important;
+			gap: 12px !important;
+			align-items: center !important;
+			width: 100% !important;
+			box-sizing: border-box !important;
+			padding: 16px 20px !important;
+		}
+		.topo-tabela {
+			color: #9ca3af !important;
+			font-size: 11px !important;
+			font-weight: 700 !important;
+			text-transform: uppercase !important;
+			letter-spacing: 0.05em !important;
+			border-bottom: 1px solid #374151 !important;
+			padding-bottom: 12px !important;
+			margin-bottom: 12px !important;
+		}
+		.linha-box {
+			background-color: #f3f4f6 !important;
+			border: 1px solid #e5e7eb !important;
+			border-radius: 8px !important;
+			margin-bottom: 8px !important;
+			color: #1f2937 !important;
+			transition: background-color 0.15s ease !important;
+			box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+		}
+		.linha-box.formulario-add, .linha-box.formulario-edit, .linha-box.aviso-deletar, .linha-box.aviso-pagar {
+			background-color: #ffffff !important;
+			border: 1px solid #4f46e5 !important;
+			color: #1f2937 !important;
+		}
+		.linha-box.aviso-deletar { border-color: #e11d48 !important; }
+		.linha-box.aviso-pagar { border-color: #10b981 !important; }
+		.linha-box:hover:not(.formulario-add):not(.formulario-edit):not(.aviso-deletar):not(.aviso-pagar) {
+			background-color: #e5e7eb !important;
+		}
+		.campo-box {
+			background-color: #1f2937 !important;
+			border: 1px solid #374151 !important;
+			padding: 10px 12px !important;
+			border-radius: 8px !important;
+			display: flex !important;
+			flex-direction: column !important;
+		}
+		.campo-box label {
+			display: block !important;
+			font-size: 11px !important;
+			font-weight: 600 !important;
+			color: #9ca3af !important;
+			text-transform: uppercase !important;
+			margin-bottom: 6px !important;
+			letter-spacing: 0.05em !important;
+		}
+		.campo-box input, .campo-box select {
+			width: 100% !important;
+			padding: 7px 10px !important;
+			background-color: #111827 !important;
+			border: 1px solid #4b5563 !important;
+			color: #f3f4f6 !important;
+			border-radius: 6px !important;
+			font-size: 13px !important;
+			outline: none !important;
+			box-sizing: border-box !important;
+		}
+		.input-inline-tabela {
+			width: 100% !important;
+			padding: 6px 10px !important;
+			background-color: #f9fafb !important;
+			border: 1px solid #d1d5db !important;
+			color: #1f2937 !important;
+			border-radius: 6px !important;
+			font-size: 13px !important;
+			outline: none !important;
+			box-sizing: border-box !important;
+		}
+		.campo-box input:focus, .campo-box select:focus { border-color: #6366f1 !important; }
+		.input-inline-tabela:focus { border-color: #4f46e5 !important; background-color: #ffffff !important; }
+		.texto-truncado { white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
+		.comentario-multilinha { white-space: normal !important; word-break: break-word !important; line-height: 1.3 !important; }
+		.badge-tag {
+			display: inline-flex;
+			align-items: center;
+			padding: 2px 8px;
+			border-radius: 6px;
+			font-size: 11px;
+			font-weight: 600;
+		}
+	</style>
+	<div class="bg-gray-950 text-gray-100 font-sans antialiased min-h-screen py-10 px-4" style="background-color: #030712; color: #f3f4f6; font-family: ui-sans-serif, system-ui, sans-serif; min-height: 100vh; padding: 2.5rem 1rem;">
+		<div class="max-w-7xl mx-auto bg-gray-900 shadow-2xl rounded-2xl overflow-hidden border border-gray-800 p-8" style="max-width: 86rem; margin: 0 auto; background-color: #111827; border-radius: 1rem; border: 1px solid #1f2937; padding: 2rem;">
+			<form id="filtro-form" hx-post="/html/invoices/tabela" hx-target="#tabela-container" hx-trigger="input delay:200ms, change" class="w-full">
+				<input type="hidden" id="input-pagina-form" name="page" value="1">
+				<div class="grade-filtros">
+					<div class="campo-box">
+						<label>Cliente</label>
+						<input type="text" name="customer" placeholder="Filtrar cliente..." list="lista-nicknames-filtro">
+						<datalist id="lista-nicknames-filtro">
+							{{range .Nicknames}}
+								<option value="{{.}}">
+							{{end}}
+						</datalist>
+					</div>
+					<div class="campo-box">
+						<label>Data Invoice</label>
+						<input type="text" name="invoicing" placeholder="AAAA-MM...">
+					</div>
+					<div class="campo-box">
+						<label>Vencimento</label>
+						<input type="text" name="due" placeholder="AAAA-MM...">
+					</div>
+					<div class="campo-box">
+						<label>Pagamento</label>
+						<input type="text" name="payment" placeholder="AAAA-MM...">
+					</div>
+					<div class="campo-box">
+						<label>Envio Email</label>
+						<input type="text" name="email_sent" placeholder="AAAA-MM...">
+					</div>
+					<div class="campo-box">
+						<label>Recibo Email</label>
+						<input type="text" name="email_receipt" placeholder="AAAA-MM...">
+					</div>
+					<div class="campo-box">
+						<label>Itens / Descrição</label>
+						<input type="text" name="item_desc" placeholder="Buscar por item...">
+					</div>
+				</div>
+			</form>
+			<div style="height: 35px; width: 100%;"></div>
+			<div class="flex justify-start gap-4" style="display: flex; gap: 1rem;">
+				<button hx-get="/html/invoices/novo" hx-target="#formulario-cadastro-container" hx-swap="innerHTML" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-2.5 rounded-lg border border-indigo-500 transition duration-150 shadow-md" style="background-color: #4f46e5; color: #fff; font-weight: 700; font-size: 0.875rem; padding: 0.625rem 1.5rem; border-radius: 0.5rem; border: 1px solid #6366f1; cursor: pointer;">＋ Adicionar Invoice</button>
+				<button hx-post="/html/invoices/tabela/reset" hx-target="#tabela-container" class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-sm px-6 py-2.5 rounded-lg border border-gray-700 transition duration-150 shadow-md" style="background-color: #1f2937; color: #d1d5db; font-weight: 700; font-size: 0.875rem; padding: 0.625rem 1.5rem; border-radius: 0.5rem; border: 1px solid #374151; cursor: pointer;">🧹 Limpar Filtros</button>
+			</div>
+			<div id="formulario-cadastro-container" class="mt-4"></div>
+			<div style="height: 40px; width: 100%;"></div>
+			<div id="tabela-container" class="w-full">
+				{{template "tabela" .}}
+			</div>
+		</div>
+	</div>
+	{{end}}
+
+	{{define "index"}}
+	<!DOCTYPE html>
+	<html lang="pt-BR">
+	<head>
+		<meta charset="UTF-8">
+		<title>Dashboard de Invoices</title>
+		<script src="https://cdn.tailwindcss.com"></script>
+		<script src="/static/htmx.min.js"></script>
+		<style>
+			.grade-filtros {
+				display: grid !important;
+				grid-template-columns: 1.4fr 1.1fr 1.1fr 1.1fr 1.1fr 1.1fr 1.5fr !important;
+				gap: 10px !important;
+				width: 100% !important;
+				box-sizing: border-box !important;
+			}
+			.grade-tabela {
+				display: grid !important;
+				grid-template-columns: 1.1fr 1.3fr 1.1fr 1.1fr 1.1fr 1.1fr 2.8fr 2.4fr !important;
+				gap: 12px !important;
+				align-items: center !important;
+				width: 100% !important;
+				box-sizing: border-box !important;
+				padding: 16px 20px !important;
+			}
+			.topo-tabela {
+				color: #9ca3af !important;
+				font-size: 11px !important;
+				font-weight: 700 !important;
+				text-transform: uppercase !important;
+				letter-spacing: 0.05em !important;
+				border-bottom: 1px solid #374151 !important;
+				padding-bottom: 12px !important;
+				margin-bottom: 12px !important;
+			}
+			.linha-box {
+				background-color: #f3f4f6 !important;
+				border: 1px solid #e5e7eb !important;
+				border-radius: 8px !important;
+				margin-bottom: 8px !important;
+				color: #1f2937 !important;
+				transition: background-color 0.15s ease !important;
+				box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+			}
+			.linha-box.formulario-add, .linha-box.formulario-edit, .linha-box.aviso-deletar, .linha-box.aviso-pagar {
+				background-color: #ffffff !important;
+				border: 1px solid #4f46e5 !important;
+				color: #1f2937 !important;
+			}
+			.linha-box.aviso-deletar { border-color: #e11d48 !important; }
+			.linha-box.aviso-pagar { border-color: #10b981 !important; }
+			.linha-box:hover:not(.formulario-add):not(.formulario-edit):not(.aviso-deletar):not(.aviso-pagar) {
+				background-color: #e5e7eb !important;
+			}
+			.campo-box {
+				background-color: #1f2937 !important;
+				border: 1px solid #374151 !important;
+				padding: 10px 12px !important;
+				border-radius: 8px !important;
+				display: flex !important;
+				flex-direction: column !important;
+			}
+			.campo-box label {
+				display: block !important;
+				font-size: 11px !important;
+				font-weight: 600 !important;
+				color: #9ca3af !important;
+				text-transform: uppercase !important;
+				margin-bottom: 6px !important;
+				letter-spacing: 0.05em !important;
+			}
+			.campo-box input, .campo-box select {
+				width: 100% !important;
+				padding: 7px 10px !important;
+				background-color: #111827 !important;
+				border: 1px solid #4b5563 !important;
+				color: #f3f4f6 !important;
+				border-radius: 6px !important;
+				font-size: 13px !important;
+				outline: none !important;
+				box-sizing: border-box !important;
+			}
+			.input-inline-tabela {
+				width: 100% !important;
+				padding: 6px 10px !important;
+				background-color: #f9fafb !important;
+				border: 1px solid #d1d5db !important;
+				color: #1f2937 !important;
+				border-radius: 6px !important;
+				font-size: 13px !important;
+				outline: none !important;
+				box-sizing: border-box !important;
+			}
+			.campo-box input:focus, .campo-box select:focus { border-color: #6366f1 !important; }
+			.input-inline-tabela:focus { border-color: #4f46e5 !important; background-color: #ffffff !important; }
+			.texto-truncado { white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
+			.comentario-multilinha { white-space: normal !important; word-break: break-word !important; line-height: 1.3 !important; }
+			html, body {
+				background-color: #ffffff !important;
+			}
+		</style>
+	</head>
+	<body class="bg-gray-950 text-gray-100 font-sans antialiased min-h-screen py-10 px-4">
+		<div class="max-w-7xl mx-auto bg-gray-900 shadow-2xl rounded-2xl overflow-hidden border border-gray-800 p-8" style="max-width: 86rem;">
+			<form id="filtro-form" hx-post="/html/invoices/tabela" hx-target="#tabela-container" hx-trigger="input delay:200ms, change" class="w-full">
+				<input type="hidden" id="input-pagina-form" name="page" value="1">
+				<div class="grade-filtros">
+					<div class="campo-box">
+						<label>Cliente</label>
+						<input type="text" name="customer" placeholder="Filtrar cliente..." list="lista-nicknames-filtro-idx">
+						<datalist id="lista-nicknames-filtro-idx">
+							{{range .Nicknames}}
+								<option value="{{.}}">
+							{{end}}
+						</datalist>
+					</div>
+					<div class="campo-box">
+						<label>Data Invoice</label>
+						<input type="text" name="invoicing" placeholder="AAAA-MM...">
+					</div>
+					<div class="campo-box">
+						<label>Vencimento</label>
+						<input type="text" name="due" placeholder="AAAA-MM...">
+					</div>
+					<div class="campo-box">
+						<label>Pagamento</label>
+						<input type="text" name="payment" placeholder="AAAA-MM...">
+					</div>
+					<div class="campo-box">
+						<label>Envio Email</label>
+						<input type="text" name="email_sent" placeholder="AAAA-MM...">
+					</div>
+					<div class="campo-box">
+						<label>Recibo Email</label>
+						<input type="text" name="email_receipt" placeholder="AAAA-MM...">
+					</div>
+					<div class="campo-box">
+						<label>Itens / Descrição</label>
+						<input type="text" name="item_desc" placeholder="Buscar por item...">
+					</div>
+				</div>
+			</form>
+			<div style="height: 35px; width: 100%;"></div>
+			<div class="flex justify-start gap-4">
+				<button hx-get="/html/invoices/novo" hx-target="#formulario-cadastro-container" hx-swap="innerHTML" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-2.5 rounded-lg border border-indigo-500 transition duration-150 shadow-md">＋ Adicionar Invoice</button>
+				<button hx-post="/html/invoices/tabela/reset" hx-target="#tabela-container" class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-sm px-6 py-2.5 rounded-lg border border-gray-700 transition duration-150 shadow-md">🧹 Limpar Filtros</button>
+			</div>
+			<div id="formulario-cadastro-container" class="mt-4"></div>
+			<div style="height: 40px; width: 100%;"></div>
+			<div id="tabela-container" class="w-full">
+				{{template "tabela" .}}
+			</div>
+		</div>
+	</body>
+	</html>
+	{{end}}
+
+	{{define "formulario_cadastro"}}
+	<form hx-post="/html/invoices/salvar" hx-target="#tabela-container" hx-include="#filtro-form" class="linha-box formulario-add text-sm shadow-xl p-6" style="background-color: #ffffff !important; border: 1px solid #4f46e5 !important; border-radius: 12px; padding: 24px;">
+		<div class="font-bold text-base text-indigo-900 border-b pb-3 mb-4 flex items-center justify-between">
+			<div class="flex items-center gap-2">
+				<span class="text-indigo-600">📄</span>
+				<span>Nova Invoice</span>
+			</div>
+			<span class="text-xs font-normal text-gray-500">Preencha os dados e adicione os itens correspondentes</span>
+		</div>
+		<div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+			<div>
+				<label class="block text-xs font-bold text-gray-600 uppercase mb-1">Cliente *</label>
+				<input type="text" name="add_customer" value="{{.Customer}}" placeholder="Selecione ou digite..." list="lista-nicknames" required class="input-inline-tabela">
+				<datalist id="lista-nicknames">
+					{{range .Nicknames}}
+						<option value="{{.}}">
+					{{end}}
+				</datalist>
+			</div>
+			<div>
+				<label class="block text-xs font-bold text-gray-600 uppercase mb-1">Data Invoice *</label>
+				<input type="date" name="add_invoicing" value="{{.InvoiceDate}}" required class="input-inline-tabela">
+			</div>
+			<div>
+				<label class="block text-xs font-bold text-gray-600 uppercase mb-1">Vencimento *</label>
+				<input type="date" name="add_due" value="{{.DueDate}}" required class="input-inline-tabela">
+			</div>
+			<div>
+				<label class="block text-xs font-bold text-gray-600 uppercase mb-1">Pagamento</label>
+				<input type="date" name="add_payment" value="{{.PaymentDate}}" class="input-inline-tabela">
+			</div>
+			<div>
+				<label class="block text-xs font-bold text-gray-600 uppercase mb-1">Envio Invoice</label>
+				<input type="date" name="add_email_sent" value="{{.EmailSentDate}}" class="input-inline-tabela">
+			</div>
+			<div>
+				<label class="block text-xs font-bold text-gray-600 uppercase mb-1">Envio Recibo</label>
+				<input type="date" name="add_email_receipt" value="{{.EmailReceiptDate}}" class="input-inline-tabela">
+			</div>
+		</div>
+		
+		<div class="mb-4">
+			<label class="block text-xs font-bold text-gray-600 uppercase mb-1">Observações</label>
+			<input type="text" name="add_notes" value="{{.Notes}}" placeholder="Observações adicionais da invoice..." class="input-inline-tabela">
+		</div>
+
+		<!-- Lista de Itens Dinâmicos -->
+		<div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+			<div class="flex items-center justify-between mb-3">
+				<span class="text-xs font-bold text-gray-700 uppercase tracking-wider">Itens da Invoice</span>
+				<button type="button" onclick="adicionarLinhaItem()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs px-3 py-1.5 rounded border border-indigo-200 transition flex items-center gap-1 cursor-pointer">
+					<span>＋</span> Adicionar Linha
+				</button>
+			</div>
+			<div id="container-itens-form" class="space-y-2">
+				{{if .Items}}
+					{{range $idx, $item := .Items}}
+					<div class="linha-item-form grid grid-cols-12 gap-3 items-center bg-white p-2.5 rounded border border-gray-200 shadow-sm">
+						<div class="col-span-6">
+							<input type="text" name="item_descricao[]" value="{{$item.Description}}" placeholder="Descrição do item ou serviço..." required class="input-inline-tabela text-xs">
+						</div>
+						<div class="col-span-2">
+							<input type="number" name="item_quantidade[]" value="{{$item.Quantity}}" min="1" placeholder="Qtd" required class="input-inline-tabela text-xs text-center" oninput="calcularTotalForm()">
+						</div>
+						<div class="col-span-3">
+							<input type="number" name="item_preco[]" value="{{$item.Price}}" step="0.01" min="0.01" placeholder="Preço (R$)" required class="input-inline-tabela text-xs text-right" oninput="calcularTotalForm()">
+						</div>
+						<div class="col-span-1 text-center">
+							<button type="button" onclick="removerLinhaItem(this)" class="text-rose-600 hover:text-rose-800 font-bold text-sm px-2 py-1 rounded hover:bg-rose-50 cursor-pointer" title="Remover item">✕</button>
+						</div>
+					</div>
+					{{end}}
+				{{else}}
+					<div class="linha-item-form grid grid-cols-12 gap-3 items-center bg-white p-2.5 rounded border border-gray-200 shadow-sm">
+						<div class="col-span-6">
+							<input type="text" name="item_descricao[]" placeholder="Descrição do item ou serviço..." required class="input-inline-tabela text-xs">
+						</div>
+						<div class="col-span-2">
+							<input type="number" name="item_quantidade[]" value="1" min="1" placeholder="Qtd" required class="input-inline-tabela text-xs text-center" oninput="calcularTotalForm()">
+						</div>
+						<div class="col-span-3">
+							<input type="number" name="item_preco[]" step="0.01" min="0.01" placeholder="Preço (R$)" required class="input-inline-tabela text-xs text-right" oninput="calcularTotalForm()">
+						</div>
+						<div class="col-span-1 text-center">
+							<button type="button" onclick="removerLinhaItem(this)" class="text-rose-600 hover:text-rose-800 font-bold text-sm px-2 py-1 rounded hover:bg-rose-50 cursor-pointer" title="Remover item">✕</button>
+						</div>
+					</div>
+				{{end}}
+			</div>
+			<div class="flex justify-end mt-3 pt-2 border-t border-gray-200 text-xs text-gray-700 font-bold">
+				<span class="mr-2">Total Calculado:</span>
+				<span id="label-total-form" class="font-mono text-indigo-700 text-sm">R$ 0,00</span>
+			</div>
+		</div>
+
+		<div class="flex gap-3 justify-start items-center">
+			<button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold text-sm px-6 py-2 rounded-lg transition shadow-md cursor-pointer">Salvar Invoice</button>
+			<button type="button" hx-get="/html/invoices/bloco/limpar" hx-target="#formulario-cadastro-container" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-sm px-6 py-2 rounded-lg border border-gray-300 transition cursor-pointer">Cancelar</button>
+		</div>
+	</form>
+
+	<script>
+		function adicionarLinhaItem() {
+			const container = document.getElementById('container-itens-form');
+			const novaLinha = document.createElement('div');
+			novaLinha.className = 'linha-item-form grid grid-cols-12 gap-3 items-center bg-white p-2.5 rounded border border-gray-200 shadow-sm';
+			novaLinha.innerHTML = `
+				<div class="col-span-6">
+					<input type="text" name="item_descricao[]" placeholder="Descrição do item ou serviço..." required class="input-inline-tabela text-xs">
+				</div>
+				<div class="col-span-2">
+					<input type="number" name="item_quantidade[]" value="1" min="1" placeholder="Qtd" required class="input-inline-tabela text-xs text-center" oninput="calcularTotalForm()">
+				</div>
+				<div class="col-span-3">
+					<input type="number" name="item_preco[]" step="0.01" min="0.01" placeholder="Preço (R$)" required class="input-inline-tabela text-xs text-right" oninput="calcularTotalForm()">
+				</div>
+				<div class="col-span-1 text-center">
+					<button type="button" onclick="removerLinhaItem(this)" class="text-rose-600 hover:text-rose-800 font-bold text-sm px-2 py-1 rounded hover:bg-rose-50 cursor-pointer" title="Remover item">✕</button>
+				</div>
+			`;
+			container.appendChild(novaLinha);
+			calcularTotalForm();
+		}
+
+		function removerLinhaItem(btn) {
+			const container = document.getElementById('container-itens-form');
+			if (container.querySelectorAll('.linha-item-form').length > 1) {
+				btn.closest('.linha-item-form').remove();
+				calcularTotalForm();
+			} else {
+				alert('A invoice deve ter pelo menos um item.');
+			}
+		}
+
+		function calcularTotalForm() {
+			let total = 0;
+			const qtds = document.querySelectorAll('input[name="item_quantidade[]"]');
+			const precos = document.querySelectorAll('input[name="item_preco[]"]');
+			for (let i = 0; i < qtds.length; i++) {
+				const q = parseFloat(qtds[i].value) || 0;
+				const p = parseFloat(precos[i].value) || 0;
+				total += (q * p);
+			}
+			const label = document.getElementById('label-total-form');
+			if (label) {
+				label.innerText = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+			}
+		}
+		calcularTotalForm();
+	</script>
+	{{end}}
+
+	{{define "tabela"}}
+	<div class="w-full">
+		{{if .ErrorMessage}}
+		<div class="linha-box bg-rose-50 border border-rose-300 text-rose-800 p-4 rounded-xl shadow-md mb-4 flex items-center justify-between gap-4" style="background-color: #fff1f2 !important; border-color: #fda4af !important; color: #9f1239 !important;">
+			<div class="flex items-center gap-3" style="display: flex; align-items: center; gap: 0.75rem;">
+				<span class="text-xl">⚠️</span>
+				<div class="font-bold text-sm text-rose-900" style="color: #881337 !important;">{{.ErrorMessage}}</div>
+			</div>
+			<button type="button" onclick="this.closest('.linha-box').remove()" class="text-rose-500 hover:text-rose-700 font-bold text-xs px-2 py-1 bg-rose-100 hover:bg-rose-200 rounded transition cursor-pointer" style="background-color: #ffe4e6; color: #e11d48; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer;">✕ Fechar</button>
+		</div>
+		{{end}}
+
+		<div class="grade-tabela topo-tabela">
+			<div>Data</div>
+			<div>Cliente</div>
+			<div>Vencimento</div>
+			<div>Pagamento</div>
+			<div>Envio Invoice</div>
+			<div>Envio Recibo</div>
+			<div>Itens & Total</div>
+			<div style="text-align: left !important; width: 100%;">Ações</div>
+		</div>
+
+		{{if .Invoices}}
+			{{range .Invoices}}
+				{{template "linha_invoice" .}}
+			{{end}}
+			<div style="height: 35px; width: 100%;"></div>
+			<div class="mt-8 flex items-center justify-between bg-gray-800/40 p-4 rounded-xl border border-gray-800 text-sm">
+				<div class="text-gray-400">Página <span class="text-gray-200 font-bold font-mono">{{.PaginaAtual}}</span> de <span class="text-gray-200 font-bold font-mono">{{.TotalPaginas}}</span></div>
+				<div class="flex gap-2">
+					<button {{if not .TemAnterior}}disabled style="opacity: 0.3; cursor: not-allowed;"{{end}} hx-post="/html/invoices/tabela?page={{.PagAnterior}}" hx-target="#tabela-container" hx-include="#filtro-form" onclick="document.getElementById('input-pagina-form').value='{{.PagAnterior}}'" class="bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold px-4 py-2 rounded-lg border border-gray-700 transition cursor-pointer">◀ Anterior</button>
+					<button {{if not .TemProximo}}disabled style="opacity: 0.3; cursor: not-allowed;"{{end}} hx-post="/html/invoices/tabela?page={{.PagProxima}}" hx-target="#tabela-container" hx-include="#filtro-form" onclick="document.getElementById('input-pagina-form').value='{{.PagProxima}}'" class="bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold px-4 py-2 rounded-lg border border-gray-700 transition cursor-pointer">Próximo ▶</button>
+				</div>
+			</div>
+		{{else}}
+			<div class="bg-gray-900/50 border border-gray-800 rounded-xl py-12 text-center text-gray-500 italic">Nenhuma invoice corresponde aos filtros selecionados.</div>
+		{{end}}
+	</div>
+	{{end}}
+
+	{{define "linha_invoice"}}
+	<div id="invoice-{{.ID}}" class="linha-box grade-tabela text-sm" style="align-items: start !important; padding-top: 16px; padding-bottom: 16px;">
+		<div class="text-gray-700 font-mono font-medium text-xs">{{.DataInvoiceFormatada}}</div>
+		<div class="font-bold text-gray-900 texto-truncado" title="{{.Customer}}">{{.Customer}}</div>
+		<div class="text-gray-700 font-mono text-xs">{{.DueDateFormatada}}</div>
+		<div>
+			{{if .PaymentDateRaw}}
+				<span class="badge-tag bg-emerald-100 text-emerald-800 border border-emerald-300 font-mono text-xs">✓ {{.PaymentDateFormatada}}</span>
+			{{else}}
+				<span class="badge-tag bg-amber-100 text-amber-800 border border-amber-300 font-mono text-xs">Pendente</span>
+			{{end}}
+		</div>
+		<div>
+			{{if .EmailSentDateRaw}}
+				<span class="badge-tag bg-sky-100 text-sky-800 border border-sky-300 font-mono text-xs">✓ {{.EmailSentDateFormatada}}</span>
+			{{else}}
+				<span class="badge-tag bg-gray-200 text-gray-600 border border-gray-300 text-xs">Não enviado</span>
+			{{end}}
+		</div>
+		<div>
+			{{if .EmailReceiptDateRaw}}
+				<span class="badge-tag bg-purple-100 text-purple-800 border border-purple-300 font-mono text-xs">✓ {{.EmailReceiptDateFormatada}}</span>
+			{{else}}
+				<span class="badge-tag bg-gray-200 text-gray-600 border border-gray-300 text-xs">Não enviado</span>
+			{{end}}
+		</div>
+		<div class="comentario-multilinha">
+			<div class="font-mono font-bold text-indigo-700 text-sm mb-1">{{.ValorFormatado}}</div>
+			{{if .Items}}
+				<div class="text-xs text-gray-600 space-y-0.5">
+					{{range .Items}}
+						<div class="texto-truncado">• {{.Quantity}}x {{.Description}} ({{.PrecoFormatado}})</div>
+					{{end}}
+				</div>
+			{{end}}
+			{{if .Notes}}
+				<div class="text-xs text-gray-500 italic mt-1 font-sans">Obs: {{.Notes}}</div>
+			{{end}}
+		</div>
+		<div class="flex flex-wrap gap-1.5 justify-start w-full" style="justify-content: flex-start !important; align-items: start !important;">
+			<button hx-get="/html/invoices/editar?id={{.ID}}" hx-target="#invoice-{{.ID}}" hx-swap="outerHTML" hx-disabled-elt="this" class="text-indigo-600 hover:text-white font-bold text-xs px-2 py-1 bg-indigo-50 hover:bg-indigo-600 rounded border border-indigo-200 transition shadow-sm cursor-pointer" title="Editar dados da invoice">Editar</button>
+			{{if .PaymentDateRaw}}
+				<button disabled style="opacity: 0.45; cursor: not-allowed;" class="text-emerald-700 font-bold text-xs px-2 py-1 bg-emerald-50 rounded border border-emerald-200" title="Invoice já paga">Pagar</button>
+			{{else}}
+				<button hx-get="/html/invoices/pagamento-aviso?id={{.ID}}" hx-target="#invoice-{{.ID}}" hx-swap="outerHTML" hx-disabled-elt="this" class="text-emerald-700 hover:text-white font-bold text-xs px-2 py-1 bg-emerald-50 hover:bg-emerald-600 rounded border border-emerald-200 transition shadow-sm cursor-pointer" title="Registrar pagamento">Pagar</button>
+			{{end}}
+			{{if .EmailSentDateRaw}}
+				<button disabled style="opacity: 0.45; cursor: not-allowed;" class="text-sky-700 font-bold text-xs px-2 py-1 bg-sky-50 rounded border border-sky-200" title="Invoice já enviada por e-mail">✉️ Invoice</button>
+			{{else}}
+				<button hx-post="/html/invoices/enviar-invoice?id={{.ID}}" hx-target="#tabela-container" hx-include="#filtro-form" hx-disabled-elt="this" class="text-sky-700 hover:text-white font-bold text-xs px-2 py-1 bg-sky-50 hover:bg-sky-600 rounded border border-sky-200 transition shadow-sm cursor-pointer" title="Enviar invoice por e-mail">✉️ Invoice</button>
+			{{end}}
+			{{if .EmailReceiptDateRaw}}
+				<button disabled style="opacity: 0.45; cursor: not-allowed;" class="text-purple-700 font-bold text-xs px-2 py-1 bg-purple-50 rounded border border-purple-200" title="Recibo já enviado por e-mail">🧾 Recibo</button>
+			{{else if not .PaymentDateRaw}}
+				<button disabled style="opacity: 0.45; cursor: not-allowed;" class="text-purple-700 font-bold text-xs px-2 py-1 bg-purple-50 rounded border border-purple-200" title="Necessário registrar o pagamento antes de enviar o recibo">🧾 Recibo</button>
+			{{else}}
+				<button hx-post="/html/invoices/enviar-recibo?id={{.ID}}" hx-target="#tabela-container" hx-include="#filtro-form" hx-disabled-elt="this" class="text-purple-700 hover:text-white font-bold text-xs px-2 py-1 bg-purple-50 hover:bg-purple-600 rounded border border-purple-200 transition shadow-sm cursor-pointer" title="Enviar recibo por e-mail">🧾 Recibo</button>
+			{{end}}
+			<button hx-get="/html/invoices/deletar-aviso?id={{.ID}}" hx-target="#invoice-{{.ID}}" hx-swap="outerHTML" hx-disabled-elt="this" class="text-rose-600 hover:text-white font-bold text-xs px-2 py-1 bg-rose-50 hover:bg-rose-600 rounded border border-rose-200 transition shadow-sm cursor-pointer" title="Deletar/Cancelar invoice">Deletar</button>
+		</div>
+	</div>
+	{{end}}
+
+	{{define "linha_invoice_edit"}}
+	<form id="invoice-{{.ID}}" hx-post="/html/invoices/atualizar?id={{.ID}}" hx-target="#tabela-container" hx-include="#filtro-form" class="linha-box grade-tabela formulario-edit text-sm shadow-md" style="align-items: start !important; padding-top: 16px; padding-bottom: 16px;">
+		<div>
+			<label class="block text-2xs font-bold text-gray-500 uppercase">Data</label>
+			<input type="date" name="edit_invoicing" value="{{.DataInvoice}}" required class="input-inline-tabela">
+		</div>
+		<div class="font-bold text-gray-900 texto-truncado" style="padding-top: 14px;">{{.Customer}}</div>
+		<div>
+			<label class="block text-2xs font-bold text-gray-500 uppercase">Vencimento</label>
+			<input type="date" name="edit_due" value="{{.DueDate}}" required class="input-inline-tabela">
+		</div>
+		<div>
+			<label class="block text-2xs font-bold text-gray-500 uppercase">Pagamento</label>
+			<input type="date" name="edit_payment" value="{{.PaymentDateRaw}}" class="input-inline-tabela">
+		</div>
+		<div>
+			<label class="block text-2xs font-bold text-gray-500 uppercase">Envio Invoice</label>
+			<input type="date" name="edit_email_sent" value="{{.EmailSentDateRaw}}" class="input-inline-tabela">
+		</div>
+		<div>
+			<label class="block text-2xs font-bold text-gray-500 uppercase">Envio Recibo</label>
+			<input type="date" name="edit_email_receipt" value="{{.EmailReceiptDateRaw}}" class="input-inline-tabela">
+		</div>
+		<div>
+			<div class="font-mono font-bold text-indigo-700 text-xs mb-1">{{.ValorFormatado}}</div>
+			<div class="text-xs text-gray-500 italic">Itens não editáveis após emissão</div>
+		</div>
+		<div class="flex gap-1.5 justify-start w-full" style="justify-content: flex-start !important; align-items: start !important; padding-top: 10px;">
+			<button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold text-xs px-3 py-1.5 rounded transition shadow-sm cursor-pointer">Salvar</button>
+			<button type="button" hx-get="/html/invoices/cancelar-edicao?id={{.ID}}" hx-target="#invoice-{{.ID}}" hx-swap="outerHTML" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs px-3 py-1.5 rounded border border-gray-300 transition shadow-sm cursor-pointer">Cancelar</button>
+		</div>
+	</form>
+	{{end}}
+
+	{{define "linha_invoice_deletar_aviso"}}
+	<div id="invoice-{{.ID}}" class="linha-box grade-tabela aviso-deletar text-sm bg-rose-50/50 py-5" style="align-items: center !important;">
+		<div class="col-span-6 text-rose-700 font-bold flex items-center gap-2" style="grid-column: span 6 / span 6 !important;">
+			<span>⚠️</span>
+			<span>Deseja realmente cancelar/excluir permanentemente a invoice <strong>#{{.ID}}</strong> de <span class="underline">{{.Customer}}</span> no valor de <strong>{{.ValorFormatado}}</strong>?</span>
+		</div>
+		<div class="col-span-2 flex gap-2 justify-end w-full" style="grid-column: span 2 / span 2 !important; justify-content: flex-end !important;">
+			<button hx-post="/html/invoices/deletar?id={{.ID}}" hx-target="#tabela-container" hx-include="#filtro-form" hx-disabled-elt="this" class="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-3 py-2 rounded transition shadow-md cursor-pointer">Sim, deletar</button>
+			<button hx-get="/html/invoices/cancelar-edicao?id={{.ID}}" hx-target="#invoice-{{.ID}}" hx-swap="outerHTML" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs px-3 py-2 rounded border border-gray-300 transition shadow-sm cursor-pointer">Não</button>
+		</div>
+	</div>
+	{{end}}
+
+	{{define "linha_invoice_pagamento_aviso"}}
+	<form id="invoice-{{.ID}}" hx-post="/html/invoices/pagar?id={{.ID}}" hx-target="#tabela-container" hx-include="#filtro-form" class="linha-box grade-tabela aviso-pagar text-sm bg-emerald-50/50 py-4" style="align-items: center !important;">
+		<div class="col-span-5 text-emerald-800 font-bold flex items-center gap-2" style="grid-column: span 5 / span 5 !important;">
+			<span>💰</span>
+			<span>Confirmar pagamento de <span class="underline">{{.Customer}}</span> ({{.ValorFormatado}})? Data:</span>
+			<input type="date" name="payment_date" value="{{.DataHoje}}" required class="input-inline-tabela" style="width: auto !important; display: inline-block !important;">
+		</div>
+		<div class="col-span-3 flex gap-2 justify-end w-full" style="grid-column: span 3 / span 3 !important; justify-content: flex-end !important;">
+			<button type="submit" hx-disabled-elt="this" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3 py-2 rounded transition shadow-md cursor-pointer">Confirmar Pagamento</button>
+			<button type="button" hx-get="/html/invoices/cancelar-edicao?id={{.ID}}" hx-target="#invoice-{{.ID}}" hx-swap="outerHTML" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs px-3 py-2 rounded border border-gray-300 transition shadow-sm cursor-pointer">Cancelar</button>
+		</div>
+	</form>
+	{{end}}

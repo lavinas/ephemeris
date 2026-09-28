@@ -6,12 +6,12 @@ import (
 	"os"
 
 	"billing/internal/adapter/driven"
-	"billing/internal/adapter/driver"
+	driverHttp "billing/internal/adapter/driver/http"
 	"billing/internal/adapter/driver/messaging"
 	"billing/internal/port"
 )
 
-// Main function to initialize the API server
+// Main function to initialize the HTTP server
 func main() {
 	// Initialize Config
 	cfg, err := driven.NewConfig("billing.json")
@@ -36,11 +36,11 @@ func main() {
 		return
 	}
 	defer repo.Close()
-	// Issuer initialization
+	// Taxer initialization
 	taxer := driven.NewTaxer()
-	// Biller initialization
+	// Pixer initialization
 	pixer := driven.NewPixer(logger)
-	// issuer initialization
+	// Issuer initialization
 	issuer := driven.NewIssuer()
 
 	// Initialize Messaging Consumer (NATS or Noop)
@@ -63,10 +63,12 @@ func main() {
 		logger.IPrintf(0, "Messaging consumer closed")
 	}()
 
-	// Initialize API Handler
+	// Initialize HTTP Handler
 	os.Setenv("TZ", timezone)
-	logger.IPrintf(0, "starting API server on :8081")
-	apiHandler := driver.NewAPIHandler(":8081", logger, repo, taxer, pixer, issuer)
-	apiHandler.Run(":8081")
+	webAddr := cfg.GetWebAddr()
+	handler := driverHttp.NewHandler(repo, logger, taxer, pixer, issuer)
+	if err := handler.Run(webAddr); err != nil {
+		logger.IPrintf(0, "Error running server: %v", err)
+	}
 	logger.IPrintf(0, "logger and database closed")
 }
