@@ -21,5 +21,8 @@
         "url": "nats://nats:4222",
         "queue_group": "billing-customer-sync",
         "enabled": true
+    },
+    "service": {
+        "payment_timeout": 20
     }
 }

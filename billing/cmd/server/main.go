@@ -9,6 +9,8 @@ import (
 	driverHttp "billing/internal/adapter/driver/http"
 	"billing/internal/adapter/driver/messaging"
 	"billing/internal/port"
+	"billing/internal/service"
+	"time"
 )
 
 // Main function to initialize the HTTP server
@@ -19,6 +21,8 @@ func main() {
 		fmt.Printf("Error loading config: %v\n", err)
 		return
 	}
+	// Configure payment service timeout
+	service.SetGlobalPaymentTimeout(time.Duration(cfg.GetPaymentTimeout()) * time.Second)
 	// Initialize the logger
 	logOutput, logLevel := cfg.GetLogData()
 	logger, err := driven.NewLogger2(logOutput, logLevel)

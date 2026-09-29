@@ -5,12 +5,17 @@ import (
 	"os"
 )
 
-// JsonConfig represents the configuration structure for the application
 type JsonConfig struct {
-	DB   JsonDBConfig   `json:"db"`
-	Log  JsonLogConfig  `json:"log"`
-	Web  JsonWebConfig  `json:"web"`
-	NATS JsonNATSConfig `json:"nats"`
+	DB      JsonDBConfig      `json:"db"`
+	Log     JsonLogConfig     `json:"log"`
+	Web     JsonWebConfig     `json:"web"`
+	NATS    JsonNATSConfig    `json:"nats"`
+	Service JsonServiceConfig `json:"service"`
+}
+
+// JsonServiceConfig represents the service layer configuration structure
+type JsonServiceConfig struct {
+	PaymentTimeout int `json:"payment_timeout"`
 }
 
 // JsonDBConfig represents the database configuration structure
@@ -94,3 +99,12 @@ func (v *JsonConfig) GetWebAddr() string {
 func (v *JsonConfig) GetNATSData() (url, queueGroup string, enabled bool) {
 	return v.NATS.URL, v.NATS.QueueGroup, v.NATS.Enabled
 }
+
+// GetPaymentTimeout returns the payment service timeout in seconds
+func (v *JsonConfig) GetPaymentTimeout() int {
+	if v.Service.PaymentTimeout <= 0 {
+		return 20
+	}
+	return v.Service.PaymentTimeout
+}
+

@@ -323,3 +323,76 @@ func TestInvoicePayment_ValidationErrors(t *testing.T) {
 		}
 	})
 }
+
+type paymentSlowMockIssuer struct{}
+
+func (i *paymentSlowMockIssuer) GetBase64(data port.InDTO, html_pdf string) ([]byte, error) {
+	return []byte("pdf"), nil
+}
+
+func (i *paymentSlowMockIssuer) SendMail(data port.InDTO, subject, filename, html_pdf, html_email string) error {
+	time.Sleep(150 * time.Millisecond)
+	return nil
+}
+
+func TestInvoicePayment_Timeout(t *testing.T) {
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("could not get working dir: %v", err)
+	}
+	defer os.Chdir(origDir)
+
+	if err := os.Chdir("../.."); err != nil {
+		t.Fatalf("could not chdir to billing root: %v", err)
+	}
+
+	repo := newPaymentMockRepo()
+	email := "cliente@example.com"
+	now := time.Now()
+	repo.invoices[1] = &domain.Invoice{
+		ID:          1,
+		CustomerID:  1,
+		Customer:    domain.Customer{ID: 1, VendorID: 1, Nickname: "cliente_1", Name: "Cliente Um", Email: &email},
+		Amount:      150.0,
+		InvoiceDate: now.AddDate(0, 0, -10),
+		DueDate:     now.AddDate(0, 0, 5),
+		PaymentDate: nil,
+		InvoiceItems: []domain.InvoiceItem{
+			{ID: 1, Description: "Aula de Música", Quantity: 1, Price: 150.0},
+		},
+	}
+
+	logger := &mockLogger{}
+	issuer := &paymentSlowMockIssuer{}
+	pixer := &paymentMockPixer{}
+
+	// Create service with a short 30ms timeout
+	svc := NewInvoicePaymentWithTimeout(repo, logger, issuer, pixer, 30*time.Millisecond)
+
+	req := &dto.InvoicePaymentRequest{
+		Vendor:      "estudio_amelia",
+		ID:          1,
+		PaymentDate: "2026-09-29",
+	}
+
+	res := svc.Run(req)
+	resp, ok := res.(dto.InvoicePaymentResponse)
+	if !ok {
+		t.Fatalf("expected InvoicePaymentResponse, got %T", res)
+	}
+
+	if resp.HttpCode != 504 {
+		t.Errorf("expected HTTP 504 on timeout, got %d (%s)", resp.HttpCode, resp.Message)
+	}
+
+	if !repo.rolledBack {
+		t.Errorf("expected transaction to be rolled back on timeout")
+	}
+
+	// Wait for goroutine to finish sleep and verify payment date was not committed
+	time.Sleep(200 * time.Millisecond)
+	if repo.committed {
+		t.Errorf("expected transaction NOT to be committed after timeout")
+	}
+}
+
