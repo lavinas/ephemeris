@@ -729,6 +729,8 @@
 		<div>
 			{{if .PaymentDateRaw}}
 				<span class="badge-tag bg-emerald-100 text-emerald-800 border border-emerald-300 font-mono text-xs">✓ {{.PaymentDateFormatada}}</span>
+			{{else if .Overdue}}
+				<span class="badge-tag bg-rose-100 text-rose-800 border border-rose-300 font-mono text-xs">Vencido</span>
 			{{else}}
 				<span class="badge-tag bg-amber-100 text-amber-800 border border-amber-300 font-mono text-xs">Pendente</span>
 			{{end}}
