@@ -591,18 +591,6 @@
 			{{else}}
 				<button hx-get="/html/invoices/pagamento-aviso?id={{.ID}}" hx-target="#invoice-{{.ID}}" hx-swap="outerHTML" hx-disabled-elt="this" class="text-emerald-700 hover:text-white font-bold text-xs px-2 py-1 bg-emerald-50 hover:bg-emerald-600 rounded border border-emerald-200 transition shadow-sm cursor-pointer" title="Registrar pagamento">Pagar</button>
 			{{end}}
-			{{if .EmailSentDateRaw}}
-				<button disabled style="opacity: 0.45; cursor: not-allowed;" class="text-sky-700 font-bold text-xs px-2 py-1 bg-sky-50 rounded border border-sky-200" title="Invoice já enviada por e-mail">✉️ Invoice</button>
-			{{else}}
-				<button hx-post="/html/invoices/enviar-invoice?id={{.ID}}" hx-target="#tabela-container" hx-include="#filtro-form" hx-disabled-elt="this" class="text-sky-700 hover:text-white font-bold text-xs px-2 py-1 bg-sky-50 hover:bg-sky-600 rounded border border-sky-200 transition shadow-sm cursor-pointer" title="Enviar invoice por e-mail">✉️ Invoice</button>
-			{{end}}
-			{{if .EmailReceiptDateRaw}}
-				<button disabled style="opacity: 0.45; cursor: not-allowed;" class="text-purple-700 font-bold text-xs px-2 py-1 bg-purple-50 rounded border border-purple-200" title="Recibo já enviado por e-mail">🧾 Recibo</button>
-			{{else if not .PaymentDateRaw}}
-				<button disabled style="opacity: 0.45; cursor: not-allowed;" class="text-purple-700 font-bold text-xs px-2 py-1 bg-purple-50 rounded border border-purple-200" title="Necessário registrar o pagamento antes de enviar o recibo">🧾 Recibo</button>
-			{{else}}
-				<button hx-post="/html/invoices/enviar-recibo?id={{.ID}}" hx-target="#tabela-container" hx-include="#filtro-form" hx-disabled-elt="this" class="text-purple-700 hover:text-white font-bold text-xs px-2 py-1 bg-purple-50 hover:bg-purple-600 rounded border border-purple-200 transition shadow-sm cursor-pointer" title="Enviar recibo por e-mail">🧾 Recibo</button>
-			{{end}}
 			<button hx-get="/html/invoices/deletar-aviso?id={{.ID}}" hx-target="#invoice-{{.ID}}" hx-swap="outerHTML" hx-disabled-elt="this" class="text-rose-600 hover:text-white font-bold text-xs px-2 py-1 bg-rose-50 hover:bg-rose-600 rounded border border-rose-200 transition shadow-sm cursor-pointer" title="Deletar/Cancelar invoice">Deletar</button>
 		</div>
 	</div>

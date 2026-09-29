@@ -56,6 +56,8 @@ func NewAPIRoutes(repo port.Repository, logger port.Logger, taxer port.Taxer, pi
 	mux.HandleFunc("/invoice/api/list", handler.InvoiceList)
 	mux.HandleFunc("/invoice/update", handler.InvoiceUpdate)
 	mux.HandleFunc("/invoice/api/update", handler.InvoiceUpdate)
+	mux.HandleFunc("/invoice/payment", handler.InvoicePayment)
+	mux.HandleFunc("/invoice/api/payment", handler.InvoicePayment)
 	mux.HandleFunc("/invoice/bill", handler.InvoiceBill)
 	mux.HandleFunc("/invoice/api/bill", handler.InvoiceBill)
 

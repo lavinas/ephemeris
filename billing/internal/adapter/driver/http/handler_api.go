@@ -198,6 +198,22 @@ func (h *HandlerApi) InvoiceUpdate(w http.ResponseWriter, r *http.Request) {
 	h.writeResponse(w, resp)
 }
 
+// InvoicePayment handles /invoice/payment or /invoice/api/payment
+func (h *HandlerApi) InvoicePayment(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	req := &dto.InvoicePaymentRequest{}
+	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+		h.writeResponse(w, dto.NewResponseBase(http.StatusBadRequest, "error", "Invalid JSON format: "+err.Error()))
+		return
+	}
+	svc := service.NewInvoicePayment(h.repo, h.logger, h.issuer, h.pixer)
+	resp := svc.Run(req)
+	h.writeResponse(w, resp)
+}
+
 // InvoiceBill handles /invoice/bill or /invoice/api/bill
 func (h *HandlerApi) InvoiceBill(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {

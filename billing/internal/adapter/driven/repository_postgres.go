@@ -104,13 +104,16 @@ func (a *PostgresRepository) RollbackTransaction() error {
 	return nil
 }
 
+func (a *PostgresRepository) getDB() *gorm.DB {
+	if a.Tx != nil {
+		return a.Tx
+	}
+	return a.DB
+}
+
 // GeneralSave is a helper function to save records to the database with conflict handling
 func (a *PostgresRepository) Save(model interface{}) error {
-	db := a.DB
-	if a.Tx != nil {
-		db = a.Tx
-	}
-	return db.Clauses(clause.OnConflict{
+	return a.getDB().Clauses(clause.OnConflict{
 		UpdateAll: true,
 	}).CreateInBatches(model, batchSizeInsertTransaction).Error
 }
@@ -119,7 +122,7 @@ func (a *PostgresRepository) Save(model interface{}) error {
 func (a *PostgresRepository) FindCustomers(page, pageSize int, vendorID int64, name, nickname,
 	document *string, status *int, email, whatsapp *string) ([]domain.Customer, error) {
 	var customers []domain.Customer
-	db := a.DB.Model(&domain.Customer{})
+	db := a.getDB().Model(&domain.Customer{})
 	db = db.Where("vendor_id = ?", vendorID)
 	if name != nil {
 		db = db.Where("name ILIKE ?", "%"+*name+"%")
@@ -150,7 +153,7 @@ func (a *PostgresRepository) FindCustomers(page, pageSize int, vendorID int64, n
 func (a *PostgresRepository) GetCustomer(vendorID int64, nickname string) (*domain.Customer,
 	error) {
 	var customer domain.Customer
-	err := a.DB.Where("vendor_id = ? AND nickname = ?", vendorID, nickname).First(&customer).Error
+	err := a.getDB().Where("vendor_id = ? AND nickname = ?", vendorID, nickname).First(&customer).Error
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil // Return nil if no record is found
 	}
@@ -164,7 +167,7 @@ func (a *PostgresRepository) GetCustomer(vendorID int64, nickname string) (*doma
 func (a *PostgresRepository) FindVendors(page, pageSize int, legalName, nickname, document *string,
 	accountBank, accountAgency, accountNumber *string) ([]domain.Vendor, error) {
 	var vendors []domain.Vendor
-	db := a.DB.Model(&domain.Vendor{})
+	db := a.getDB().Model(&domain.Vendor{})
 	if legalName != nil {
 		db = db.Where("legal_name ILIKE ?", "%"+*legalName+"%")
 	}
@@ -193,7 +196,7 @@ func (a *PostgresRepository) FindVendors(page, pageSize int, legalName, nickname
 // GetVendor retrieves a single vendor by Nickname
 func (a *PostgresRepository) GetVendor(nickname string) (*domain.Vendor, error) {
 	var vendor domain.Vendor
-	err := a.DB.Where("nickname = ?", nickname).First(&vendor).Error
+	err := a.getDB().Where("nickname = ?", nickname).First(&vendor).Error
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil // Return nil if no record is found
 	}
@@ -208,7 +211,7 @@ func (a *PostgresRepository) FindInvoices(page, pageSize int, customer int64,
 	invoiceDate, dueDate, paymentDate, emailSentDate, whatsappSentDate, emailReceiptDate, whatsappReceiptDate,
 	taxDate, cancellationDate *string) ([]domain.Invoice, error) {
 	var invoices []domain.Invoice
-	db := a.DB.Model(&domain.Invoice{}).Preload("InvoiceItems").
+	db := a.getDB().Model(&domain.Invoice{}).Preload("InvoiceItems").
 		Preload("Customer")
 	if customer != 0 {
 		db = db.Where("customer_id = ?", customer)
@@ -293,7 +296,7 @@ func (a *PostgresRepository) FindInvoices(page, pageSize int, customer int64,
 // GetInvoice retrieves a single invoice by ID
 func (a *PostgresRepository) GetInvoice(id int64) (*domain.Invoice, error) {
 	var invoice domain.Invoice
-	err := a.DB.Preload("InvoiceItems").Preload("Customer").
+	err := a.getDB().Preload("InvoiceItems").Preload("Customer").
 		Where("id = ?", id).First(&invoice).Error
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil // Return nil if no record is found
@@ -308,7 +311,7 @@ func (a *PostgresRepository) GetInvoice(id int64) (*domain.Invoice, error) {
 func (a *PostgresRepository) GetInvoicesByPeriod(vendorID int64,
 	start, end time.Time) ([]domain.Invoice, error) {
 	var invoices []domain.Invoice
-	err := a.DB.Joins("JOIN customer ON customer.id = invoice.customer_id AND customer.vendor_id = ?", vendorID).
+	err := a.getDB().Joins("JOIN customer ON customer.id = invoice.customer_id AND customer.vendor_id = ?", vendorID).
 		Preload("InvoiceItems").Preload("Customer").Where("invoice_date >= ? AND invoice_date <= ?", start, end).
 		Find(&invoices).Error
 	return invoices, err
@@ -319,13 +322,13 @@ func (a *PostgresRepository) GetEmissions(vendorID int64, invoiceStartDate,
 	invoiceEndDate time.Time) ([]domain.Emission, error) {
 	var emissions []domain.Emission
 	var emissions2 []domain.Emission
-	err := a.DB.Preload("EmissionItems").
+	err := a.getDB().Preload("EmissionItems").
 		Where("vendor_id = ? AND period_start >= ? AND period_start <= ?", vendorID, invoiceStartDate, invoiceEndDate).
 		Find(&emissions).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	}
-	err = a.DB.Preload("EmissionItems").
+	err = a.getDB().Preload("EmissionItems").
 		Where("vendor_id = ? AND period_end >= ? AND period_end <= ?", vendorID, invoiceStartDate, invoiceEndDate).
 		Find(&emissions2).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
@@ -341,7 +344,7 @@ func (a *PostgresRepository) GetEmissions(vendorID int64, invoiceStartDate,
 // GetEmissionLastRPS retrieves the last RPS number for a given vendor
 func (a *PostgresRepository) GetEmissionLastRPS(vendorID int64) (int64, error) {
 	var lastRPS int64
-	err := a.DB.Model(&domain.Emission{}).
+	err := a.getDB().Model(&domain.Emission{}).
 		Where("vendor_id = ?", vendorID).
 		Select("COALESCE(MAX(rps_end), 0)").Scan(&lastRPS).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
@@ -353,7 +356,7 @@ func (a *PostgresRepository) GetEmissionLastRPS(vendorID int64) (int64, error) {
 // GetEmission retrieves a single emission by ID
 func (a *PostgresRepository) GetEmission(id int64) (*domain.Emission, error) {
 	var emission domain.Emission
-	err := a.DB.Preload("EmissionItems").Preload("Vendor").
+	err := a.getDB().Preload("EmissionItems").Preload("Vendor").
 		Where("id = ?", id).First(&emission).Error
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil // Return nil if no record is found

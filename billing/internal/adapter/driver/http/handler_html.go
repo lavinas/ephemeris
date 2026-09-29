@@ -452,7 +452,7 @@ func (h *HandlerHtml) InvoicesPaymentWarning(w http.ResponseWriter, r *http.Requ
 	h.tmpl.ExecuteTemplate(w, "linha_invoice_pagamento_aviso", data)
 }
 
-// InvoicesPay executes registering the payment date
+// InvoicesPay executes registering the payment date and sending the receipt email atomically
 func (h *HandlerHtml) InvoicesPay(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	id, _ := strconv.ParseInt(r.URL.Query().Get("id"), 10, 64)
@@ -463,13 +463,13 @@ func (h *HandlerHtml) InvoicesPay(w http.ResponseWriter, r *http.Request) {
 		paymentDate = time.Now().Format("2006-01-02")
 	}
 
-	req := &dto.InvoiceUpdateRequest{
+	req := &dto.InvoicePaymentRequest{
 		Vendor:      vendorNick,
 		ID:          id,
-		PaymentDate: &paymentDate,
+		PaymentDate: paymentDate,
 	}
 
-	svc := service.NewInvoiceUpdate(h.repo, h.logger)
+	svc := service.NewInvoicePayment(h.repo, h.logger, h.issuer, h.pixer)
 	respOut := svc.Run(req)
 
 	pagina, _ := strconv.Atoi(r.FormValue("page"))
@@ -490,7 +490,7 @@ func (h *HandlerHtml) InvoicesPay(w http.ResponseWriter, r *http.Request) {
 
 	if respOut.GetStatusCode() != 200 {
 		errMsg := "Falha ao registrar pagamento"
-		if respBase, ok := respOut.(dto.InvoiceUpdateResponse); ok && respBase.Message != "" {
+		if respBase, ok := respOut.(dto.InvoicePaymentResponse); ok && respBase.Message != "" {
 			errMsg = respBase.Message
 		}
 		pageData["ErrorMessage"] = errMsg
