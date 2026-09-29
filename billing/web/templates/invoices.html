@@ -554,7 +554,7 @@
 
 	{{define "linha_invoice"}}
 	<div id="invoice-{{.ID}}" class="linha-box grade-tabela text-sm" style="align-items: start !important; padding-top: 16px; padding-bottom: 16px;">
-		<div class="text-gray-700 font-mono font-medium text-xs">{{.DataInvoiceFormatada}}</div>
+		<div class="text-gray-700 font-mono font-bold text-xs">{{.DataInvoiceFormatada}}</div>
 		<div class="font-bold text-gray-900 texto-truncado" title="{{.Customer}}">{{.Customer}}</div>
 		<div>
 			{{if .Overdue}}
