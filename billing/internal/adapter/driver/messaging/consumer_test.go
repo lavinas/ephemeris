@@ -104,9 +104,22 @@ func (m *mockRepo) GetVendor(nickname string) (*domain.Vendor, error) {
 	return nil, nil
 }
 
+func (m *mockRepo) GetVendorByID(id int64) (*domain.Vendor, error) {
+	for _, v := range m.vendors {
+		if v.ID == id {
+			return v, nil
+		}
+	}
+	return nil, nil
+}
+
 func (m *mockRepo) FindInvoices(page, pageSize int, customer int64,
 	invoiceDate, dueDate, paymentDate, emailSentDate, whatsappSentDate, emailReceiptDate, whatsappReceiptDate,
 	taxDate, cancellationDate *string) ([]domain.Invoice, error) {
+	return nil, nil
+}
+
+func (m *mockRepo) FindInvoicesPendingSend(dueBeforeOrEqual time.Time) ([]domain.Invoice, error) {
 	return nil, nil
 }
 

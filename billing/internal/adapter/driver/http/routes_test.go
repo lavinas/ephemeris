@@ -76,6 +76,10 @@ func (d *dummyRepo) GetVendor(nickname string) (*domain.Vendor, error) {
 	return &domain.Vendor{ID: 1, Nickname: nickname, LegalName: "Estudio Amelia"}, nil
 }
 
+func (d *dummyRepo) GetVendorByID(id int64) (*domain.Vendor, error) {
+	return &domain.Vendor{ID: id, Nickname: "estudio_amelia", LegalName: "Estudio Amelia"}, nil
+}
+
 func (d *dummyRepo) FindInvoices(page, pageSize int, customer int64,
 	invoiceDate, dueDate, paymentDate, emailSentDate, whatsappSentDate, emailReceiptDate, whatsappReceiptDate,
 	taxDate, cancellationDate *string) ([]domain.Invoice, error) {
@@ -93,6 +97,10 @@ func (d *dummyRepo) FindInvoices(page, pageSize int, customer int64,
 			},
 		},
 	}, nil
+}
+
+func (d *dummyRepo) FindInvoicesPendingSend(dueBeforeOrEqual time.Time) ([]domain.Invoice, error) {
+	return nil, nil
 }
 
 func (d *dummyRepo) GetInvoicesByPeriod(vendorID int64, start, end time.Time) ([]domain.Invoice, error) {

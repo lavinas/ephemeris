@@ -2,6 +2,7 @@ package driven
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 )
 
@@ -9,8 +10,17 @@ type JsonConfig struct {
 	DB      JsonDBConfig      `json:"db"`
 	Log     JsonLogConfig     `json:"log"`
 	Web     JsonWebConfig     `json:"web"`
-	NATS    JsonNATSConfig    `json:"nats"`
-	Service JsonServiceConfig `json:"service"`
+	NATS     JsonNATSConfig     `json:"nats"`
+	Service  JsonServiceConfig  `json:"service"`
+	AutoBill JsonAutoBillConfig `json:"auto_bill"`
+}
+
+// JsonAutoBillConfig represents the automatic billing cron configuration
+type JsonAutoBillConfig struct {
+	Enabled       *bool    `json:"enabled"`
+	DaysInAdvance int      `json:"days_in_advance"`
+	Hours         []int    `json:"hours"`
+	Schedules     []string `json:"schedules"`
 }
 
 // JsonServiceConfig represents the service layer configuration structure
@@ -107,4 +117,37 @@ func (v *JsonConfig) GetPaymentTimeout() int {
 	}
 	return v.Service.PaymentTimeout
 }
+
+// GetAutoBillData returns the auto-bill configuration
+func (v *JsonConfig) GetAutoBillData() (enabled bool, daysInAdvance int, schedules []string) {
+	enabled = true
+	if v.AutoBill.Enabled != nil {
+		enabled = *v.AutoBill.Enabled
+	}
+
+	daysInAdvance = v.AutoBill.DaysInAdvance
+	if daysInAdvance <= 0 {
+		daysInAdvance = 3
+	}
+
+	// If explicit schedules are provided, use them
+	if len(v.AutoBill.Schedules) > 0 {
+		schedules = append(schedules, v.AutoBill.Schedules...)
+	}
+
+	// If hours are specified (e.g. [8, 14]), construct standard cron schedules ("0 H * * *")
+	for _, h := range v.AutoBill.Hours {
+		if h >= 0 && h <= 23 {
+			schedules = append(schedules, fmt.Sprintf("0 %d * * *", h))
+		}
+	}
+
+	// Default to 8:00 AM daily if no schedules or hours are configured
+	if len(schedules) == 0 {
+		schedules = []string{"0 8 * * *"}
+	}
+
+	return enabled, daysInAdvance, schedules
+}
+
 

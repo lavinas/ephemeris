@@ -90,10 +90,33 @@ func (m *paymentMockRepo) GetVendor(nickname string) (*domain.Vendor, error) {
 	return nil, nil
 }
 
+func (m *paymentMockRepo) GetVendorByID(id int64) (*domain.Vendor, error) {
+	if id == 1 {
+		return &domain.Vendor{
+			ID:          1,
+			Nickname:    "estudio_amelia",
+			TradingName: "Estudio Amelia",
+			Email:       "amelia@example.com",
+		}, nil
+	}
+	return nil, nil
+}
+
 func (m *paymentMockRepo) FindInvoices(page, pageSize int, customer int64,
 	invoiceDate, dueDate, paymentDate, emailSentDate, whatsappSentDate, emailReceiptDate, whatsappReceiptDate,
 	taxDate, cancellationDate *string) ([]domain.Invoice, error) {
 	return nil, nil
+}
+
+func (m *paymentMockRepo) FindInvoicesPendingSend(dueBeforeOrEqual time.Time) ([]domain.Invoice, error) {
+	var list []domain.Invoice
+	for _, inv := range m.invoices {
+		if (inv.DueDate.Before(dueBeforeOrEqual) || inv.DueDate.Equal(dueBeforeOrEqual)) &&
+			inv.EmailSentDate == nil && inv.CancellationDate == nil {
+			list = append(list, *inv)
+		}
+	}
+	return list, nil
 }
 
 func (m *paymentMockRepo) GetInvoicesByPeriod(vendorID int64, start, end time.Time) ([]domain.Invoice, error) {

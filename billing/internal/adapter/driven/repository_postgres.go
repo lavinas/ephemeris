@@ -206,6 +206,31 @@ func (a *PostgresRepository) GetVendor(nickname string) (*domain.Vendor, error) 
 	return &vendor, nil
 }
 
+// GetVendorByID retrieves a single vendor by ID
+func (a *PostgresRepository) GetVendorByID(id int64) (*domain.Vendor, error) {
+	var vendor domain.Vendor
+	err := a.getDB().Where("id = ?", id).First(&vendor).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil // Return nil if no record is found
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &vendor, nil
+}
+
+// FindInvoicesPendingSend retrieves all invoices with DueDate <= dueBeforeOrEqual where EmailSentDate is null and CancellationDate is null
+func (a *PostgresRepository) FindInvoicesPendingSend(dueBeforeOrEqual time.Time) ([]domain.Invoice, error) {
+	var invoices []domain.Invoice
+	err := a.getDB().Model(&domain.Invoice{}).
+		Preload("InvoiceItems").
+		Preload("Customer").
+		Where("due_date <= ? AND email_sent_date IS NULL AND cancellation_date IS NULL", dueBeforeOrEqual).
+		Order("due_date ASC, id ASC").
+		Find(&invoices).Error
+	return invoices, err
+}
+
 // FindInvoices retrieves invoices based on the provided filters and pagination parameters
 func (a *PostgresRepository) FindInvoices(page, pageSize int, customer int64,
 	invoiceDate, dueDate, paymentDate, emailSentDate, whatsappSentDate, emailReceiptDate, whatsappReceiptDate,

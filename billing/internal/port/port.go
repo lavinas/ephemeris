@@ -22,9 +22,11 @@ type Repository interface {
 	FindVendors(page, pageSize int, legalName, nickname, document *string,
 		accountBank, accountAgency, accountNumber *string) ([]domain.Vendor, error)
 	GetVendor(nickname string) (*domain.Vendor, error)
+	GetVendorByID(id int64) (*domain.Vendor, error)
 	FindInvoices(page, pageSize int, customer int64,
 		invoiceDate, dueDate, paymentDate, emailSentDate, whatsappSentDate, emailReceiptDate, whatsappReceiptDate,
 		taxDate, cancellationDate *string) ([]domain.Invoice, error)
+	FindInvoicesPendingSend(dueBeforeOrEqual time.Time) ([]domain.Invoice, error)
 	GetInvoicesByPeriod(vendorID int64, start, end time.Time) ([]domain.Invoice, error)
 	GetInvoice(id int64) (*domain.Invoice, error)
 	GetEmissions(vendorID int64, invoiceStartDate, invoiceEndDate time.Time) ([]domain.Emission, error)

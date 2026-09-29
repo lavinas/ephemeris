@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"billing/internal/adapter/driven"
+	driverCron "billing/internal/adapter/driver/cron"
 	driverHttp "billing/internal/adapter/driver/http"
 	"billing/internal/adapter/driver/messaging"
 	"billing/internal/port"
@@ -66,6 +67,27 @@ func main() {
 		consumer.Close()
 		logger.IPrintf(0, "Messaging consumer closed")
 	}()
+
+	// Initialize Auto-bill Cron Scheduler
+	autoBillEnabled, daysInAdvance, schedules := cfg.GetAutoBillData()
+	if autoBillEnabled {
+		billService := service.NewBill(repo, logger, issuer, pixer)
+		autoBillService := service.NewInvoiceAutoBill(repo, logger, billService, daysInAdvance)
+		cronScheduler, err := driverCron.NewScheduler(autoBillService, logger, daysInAdvance, schedules, timezone)
+		if err != nil {
+			logger.IPrintf(0, "Error initializing auto-bill cron scheduler: %v", err)
+		} else {
+			if err := cronScheduler.Start(); err != nil {
+				logger.IPrintf(0, "Error starting auto-bill cron scheduler: %v", err)
+			} else {
+				defer func() {
+					_ = cronScheduler.Stop()
+				}()
+			}
+		}
+	} else {
+		logger.IPrintf(0, "Auto-bill cron scheduler is disabled")
+	}
 
 	// Initialize HTTP Handler
 	os.Setenv("TZ", timezone)
