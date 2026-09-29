@@ -10,12 +10,15 @@
 		}
 		.grade-tabela {
 			display: grid !important;
-			grid-template-columns: 1.1fr 1.3fr 1.1fr 1.1fr 1.1fr 1.1fr 2.8fr 2.4fr !important;
+			grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.3fr) minmax(0, 1.05fr) minmax(0, 1.1fr) minmax(0, 1.05fr) minmax(0, 1.1fr) minmax(0, 2.7fr) minmax(0, 1.75fr) !important;
 			gap: 12px !important;
 			align-items: center !important;
 			width: 100% !important;
 			box-sizing: border-box !important;
 			padding: 16px 20px !important;
+		}
+		.grade-tabela > * {
+			min-width: 0 !important;
 		}
 		.topo-tabela {
 			color: #9ca3af !important;
@@ -88,7 +91,7 @@
 		.campo-box input:focus, .campo-box select:focus { border-color: #6366f1 !important; }
 		.input-inline-tabela:focus { border-color: #4f46e5 !important; background-color: #ffffff !important; }
 		.texto-truncado { white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
-		.comentario-multilinha { white-space: normal !important; word-break: break-word !important; line-height: 1.3 !important; }
+		.comentario-multilinha { white-space: normal !important; word-break: break-word !important; overflow-wrap: anywhere !important; line-height: 1.35 !important; min-width: 0 !important; }
 		.badge-tag {
 			display: inline-flex;
 			align-items: center;
@@ -181,12 +184,15 @@
 			}
 			.grade-tabela {
 				display: grid !important;
-				grid-template-columns: 1.1fr 1.3fr 1.1fr 1.1fr 1.1fr 1.1fr 2.8fr 2.4fr !important;
+				grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.3fr) minmax(0, 1.05fr) minmax(0, 1.1fr) minmax(0, 1.05fr) minmax(0, 1.1fr) minmax(0, 2.7fr) minmax(0, 1.75fr) !important;
 				gap: 12px !important;
 				align-items: center !important;
 				width: 100% !important;
 				box-sizing: border-box !important;
 				padding: 16px 20px !important;
+			}
+			.grade-tabela > * {
+				min-width: 0 !important;
 			}
 			.topo-tabela {
 				color: #9ca3af !important;
@@ -259,7 +265,7 @@
 			.campo-box input:focus, .campo-box select:focus { border-color: #6366f1 !important; }
 			.input-inline-tabela:focus { border-color: #4f46e5 !important; background-color: #ffffff !important; }
 			.texto-truncado { white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
-			.comentario-multilinha { white-space: normal !important; word-break: break-word !important; line-height: 1.3 !important; }
+			.comentario-multilinha { white-space: normal !important; word-break: break-word !important; overflow-wrap: anywhere !important; line-height: 1.35 !important; min-width: 0 !important; }
 			.badge-tag {
 				display: inline-flex;
 				align-items: center;
@@ -592,17 +598,17 @@
 				<span class="badge-tag bg-gray-200 text-gray-600 border border-gray-300 text-xs">Não enviado</span>
 			{{end}}
 		</div>
-		<div class="comentario-multilinha">
+		<div class="comentario-multilinha" style="min-width: 0;">
 			<div class="font-mono font-bold text-indigo-700 text-sm mb-1">{{.ValorFormatado}}</div>
 			{{if .Items}}
-				<div class="text-xs text-gray-600 space-y-0.5">
+				<div class="text-xs text-gray-600 space-y-0.5" style="min-width: 0;">
 					{{range .Items}}
-						<div class="texto-truncado">• {{.Quantity}}x {{.Description}} ({{.PrecoFormatado}})</div>
+						<div style="word-break: break-word; overflow-wrap: anywhere; white-space: normal; line-height: 1.35;">• {{.Quantity}}x {{.Description}} ({{.PrecoFormatado}})</div>
 					{{end}}
 				</div>
 			{{end}}
 			{{if .Notes}}
-				<div class="text-xs text-gray-500 italic mt-1 font-sans">Obs: {{.Notes}}</div>
+				<div class="text-xs text-gray-500 italic mt-1 font-sans" style="word-break: break-word; overflow-wrap: anywhere; white-space: normal; line-height: 1.35;">Obs: {{.Notes}}</div>
 			{{end}}
 		</div>
 		<div class="flex flex-wrap gap-1.5 justify-end w-full" style="justify-content: flex-end !important; align-items: start !important; text-align: right;">
