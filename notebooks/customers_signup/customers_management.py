@@ -5,8 +5,8 @@ from requests.exceptions import ConnectionError, Timeout
 from os import path
 
 # Configurações
-# endpoint = 'http://192.168.1.138:8081'
-endpoint = 'http://localhost:8082/api'
+endpoint = 'http://192.168.1.138:8082/api'
+# endpoint = 'http://localhost:8082/api'
 
 page = 1
 page_size = 1000
@@ -70,19 +70,19 @@ def insert(vendor, nickname, name, document, email, whatsapp):
     return f'{json_data["status"]} - {json_data["message"]}'
 
 # update
-def update(id, vendor, nickname, name, document, email, whatsapp, status):
+def update(vendor, nickname, name, document, email, whatsapp, status):
     json_data = {'vendor': vendor}
-    if nickname and nickname != "":
+    if nickname != "":
         json_data['nickname'] = nickname
-    if name and name != "":
+    if name != "":
         json_data['name'] = name
-    if document and document != "":
+    if document != "":
         json_data['document'] = document
-    if email and email != "":
+    if email != "":
         json_data['email'] = email
-    if whatsapp and whatsapp != "":
+    if whatsapp != "":
         json_data['whatsapp'] = whatsapp
-    if status and status != "":
+    if status != "":
         if status not in ['0', '1', '-1']:
             return "Erro: Status deve ser 0 (ativo), 1 (inativo) ou -1 (excluído)."
         json_data['status'] = int(status)
