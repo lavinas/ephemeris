@@ -774,6 +774,8 @@ func (h *HandlerHtml) mapSingleInvoiceData(inv domain.Invoice) map[string]interf
 		"EmailSentDateFormatada":    formatDate(emailSentDateRaw),
 		"EmailReceiptDateRaw":       emailReceiptDateRaw,
 		"EmailReceiptDateFormatada": formatDate(emailReceiptDateRaw),
+		"CanDelete":                 inv.CanDelete(),
+		"CanPay":                    inv.CanPay(),
 		"ValorTotal":                inv.Amount,
 		"ValorFormatado":            formatMoney(inv.Amount),
 		"Notes":                     notesStr,

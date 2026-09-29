@@ -110,3 +110,19 @@ func (i *Invoice) IsTaxable() bool {
 	return true // Placeholder implementation; replace with actual logic.
 }
 
+// CanDelete checks if the invoice can be deleted (all of PaymentDate, EmailSentDate, WhatsappSentDate, EmailReceiptDate, WhatsappReceiptDate, TaxDate are nil).
+func (i *Invoice) CanDelete() bool {
+	return i.PaymentDate == nil &&
+		i.EmailSentDate == nil &&
+		i.WhatsappSentDate == nil &&
+		i.EmailReceiptDate == nil &&
+		i.WhatsappReceiptDate == nil &&
+		i.TaxDate == nil
+}
+
+// CanPay checks if the invoice can be paid (PaymentDate is nil).
+func (i *Invoice) CanPay() bool {
+	return i.PaymentDate == nil
+}
+
+

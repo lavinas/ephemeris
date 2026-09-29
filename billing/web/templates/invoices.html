@@ -599,12 +599,12 @@
 		</div>
 		<div class="flex flex-wrap gap-1.5 justify-start w-full" style="justify-content: flex-start !important; align-items: start !important;">
 			<button hx-get="/html/invoices/editar?id={{.ID}}" hx-target="#invoice-{{.ID}}" hx-swap="outerHTML" hx-disabled-elt="this" class="text-indigo-600 hover:text-white font-bold text-xs px-2 py-1 bg-indigo-50 hover:bg-indigo-600 rounded border border-indigo-200 transition shadow-sm cursor-pointer" title="Editar dados da invoice">Editar</button>
-			{{if .PaymentDateRaw}}
-				<button disabled style="opacity: 0.45; cursor: not-allowed;" class="text-emerald-700 font-bold text-xs px-2 py-1 bg-emerald-50 rounded border border-emerald-200" title="Invoice já paga">Pagar</button>
-			{{else}}
+			{{if .CanPay}}
 				<button hx-get="/html/invoices/pagamento-aviso?id={{.ID}}" hx-target="#invoice-{{.ID}}" hx-swap="outerHTML" hx-disabled-elt="this" class="text-emerald-700 hover:text-white font-bold text-xs px-2 py-1 bg-emerald-50 hover:bg-emerald-600 rounded border border-emerald-200 transition shadow-sm cursor-pointer" title="Registrar pagamento">Pagar</button>
 			{{end}}
-			<button hx-get="/html/invoices/deletar-aviso?id={{.ID}}" hx-target="#invoice-{{.ID}}" hx-swap="outerHTML" hx-disabled-elt="this" class="text-rose-600 hover:text-white font-bold text-xs px-2 py-1 bg-rose-50 hover:bg-rose-600 rounded border border-rose-200 transition shadow-sm cursor-pointer" title="Deletar/Cancelar invoice">Deletar</button>
+			{{if .CanDelete}}
+				<button hx-get="/html/invoices/deletar-aviso?id={{.ID}}" hx-target="#invoice-{{.ID}}" hx-swap="outerHTML" hx-disabled-elt="this" class="text-rose-600 hover:text-white font-bold text-xs px-2 py-1 bg-rose-50 hover:bg-rose-600 rounded border border-rose-200 transition shadow-sm cursor-pointer" title="Deletar/Cancelar invoice">Deletar</button>
+			{{end}}
 		</div>
 	</div>
 	{{end}}
