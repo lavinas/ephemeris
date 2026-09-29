@@ -1,6 +1,7 @@
 package http
 
 import (
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -585,6 +586,28 @@ func (h *HandlerHtml) InvoicesSendReceipt(w http.ResponseWriter, r *http.Request
 	}
 
 	h.tmpl.ExecuteTemplate(w, "tabela", pageData)
+}
+
+// InvoicesDownloadPDF handles downloading invoice or receipt PDF as base64 and filename (Doc = 0/1, Action = 2)
+func (h *HandlerHtml) InvoicesDownloadPDF(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.ParseInt(r.URL.Query().Get("id"), 10, 64)
+	doc, _ := strconv.Atoi(r.URL.Query().Get("doc")) // 0 - Invoice, 1 - Receipt
+	vendorNick := h.getVendorNickname()
+
+	req := &dto.BillRequest{
+		Vendor:    vendorNick,
+		InvoiceID: id,
+		Doc:       doc,
+		Action:    2,
+		Email:     "",
+	}
+
+	svc := service.NewBill(h.repo, h.logger, h.issuer, h.pixer)
+	respOut := svc.Run(req)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(respOut.GetStatusCode())
+	json.NewEncoder(w).Encode(respOut)
 }
 
 // parseOverdueFilter parses overdue filter string to *bool

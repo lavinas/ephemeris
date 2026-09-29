@@ -97,6 +97,8 @@ func NewHTMLRoutes(repo port.Repository, logger port.Logger, taxer port.Taxer, p
 	mux.HandleFunc("/invoices/pagar", handler.InvoicesPay)
 	mux.HandleFunc("/invoices/enviar-invoice", handler.InvoicesSendInvoice)
 	mux.HandleFunc("/invoices/enviar-recibo", handler.InvoicesSendReceipt)
+	mux.HandleFunc("/invoices/download", handler.InvoicesDownloadPDF)
+	mux.HandleFunc("/invoices/download-pdf", handler.InvoicesDownloadPDF)
 
 	return mux, handler, nil
 }

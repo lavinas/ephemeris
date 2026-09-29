@@ -10,7 +10,7 @@
 		}
 		.grade-tabela {
 			display: grid !important;
-			grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.3fr) minmax(0, 1.05fr) minmax(0, 1.1fr) minmax(0, 1.05fr) minmax(0, 1.1fr) minmax(0, 2.7fr) minmax(0, 1.75fr) !important;
+			grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2.35fr) minmax(0, 2.6fr) !important;
 			gap: 12px !important;
 			align-items: center !important;
 			width: 100% !important;
@@ -164,6 +164,77 @@
 			</div>
 		</div>
 	</div>
+	<script>
+		if (!window.baixarDocumentoPDF) {
+			window.baixarDocumentoPDF = async function(id, doc, btn) {
+				const originalText = btn ? btn.innerHTML : '';
+				if (btn) {
+					btn.disabled = true;
+					btn.style.opacity = '0.6';
+					btn.innerHTML = '⏳...';
+				}
+				try {
+					const resp = await fetch(`/html/invoices/download?id=${id}&doc=${doc}`);
+					const data = await resp.json();
+					if (!resp.ok || data.http_code !== 200 || !data.document_base64) {
+						alert(data.message || 'Falha ao gerar documento PDF.');
+						return;
+					}
+
+					const base64Data = data.document_base64;
+					const suggestedName = data.document_name || (doc === 1 ? 'recibo.pdf' : 'invoice.pdf');
+
+					const byteCharacters = atob(base64Data);
+					const byteNumbers = new Array(byteCharacters.length);
+					for (let i = 0; i < byteCharacters.length; i++) {
+						byteNumbers[i] = byteCharacters.charCodeAt(i);
+					}
+					const byteArray = new Uint8Array(byteNumbers);
+					const blob = new Blob([byteArray], { type: 'application/pdf' });
+
+					if ('showSaveFilePicker' in window) {
+						try {
+							const handle = await window.showSaveFilePicker({
+								suggestedName: suggestedName,
+								startIn: 'downloads',
+								types: [{
+									description: 'Documento PDF (*.pdf)',
+									accept: { 'application/pdf': ['.pdf'] }
+								}]
+							});
+							const writable = await handle.createWritable();
+							await writable.write(blob);
+							await writable.close();
+							return;
+						} catch (err) {
+							if (err.name === 'AbortError') {
+								return;
+							}
+							console.warn('showSaveFilePicker falhou, usando fallback:', err);
+						}
+					}
+
+					const blobUrl = URL.createObjectURL(blob);
+					const a = document.createElement('a');
+					a.href = blobUrl;
+					a.download = suggestedName;
+					document.body.appendChild(a);
+					a.click();
+					document.body.removeChild(a);
+					setTimeout(() => URL.revokeObjectURL(blobUrl), 1500);
+				} catch (e) {
+					console.error('Erro no download:', e);
+					alert('Erro ao processar download do documento: ' + e.message);
+				} finally {
+					if (btn) {
+						btn.disabled = false;
+						btn.style.opacity = '1';
+						btn.innerHTML = originalText;
+					}
+				}
+			};
+		}
+	</script>
 	{{end}}
 
 	{{define "index"}}
@@ -184,7 +255,7 @@
 			}
 			.grade-tabela {
 				display: grid !important;
-				grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.3fr) minmax(0, 1.05fr) minmax(0, 1.1fr) minmax(0, 1.05fr) minmax(0, 1.1fr) minmax(0, 2.7fr) minmax(0, 1.75fr) !important;
+				grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2.35fr) minmax(0, 2.6fr) !important;
 				gap: 12px !important;
 				align-items: center !important;
 				width: 100% !important;
@@ -354,6 +425,77 @@
 				{{template "tabela" .}}
 			</div>
 		</div>
+		<script>
+			if (!window.baixarDocumentoPDF) {
+				window.baixarDocumentoPDF = async function(id, doc, btn) {
+					const originalText = btn ? btn.innerHTML : '';
+					if (btn) {
+						btn.disabled = true;
+						btn.style.opacity = '0.6';
+						btn.innerHTML = '⏳...';
+					}
+					try {
+						const resp = await fetch(`/html/invoices/download?id=${id}&doc=${doc}`);
+						const data = await resp.json();
+						if (!resp.ok || data.http_code !== 200 || !data.document_base64) {
+							alert(data.message || 'Falha ao gerar documento PDF.');
+							return;
+						}
+
+						const base64Data = data.document_base64;
+						const suggestedName = data.document_name || (doc === 1 ? 'recibo.pdf' : 'invoice.pdf');
+
+						const byteCharacters = atob(base64Data);
+						const byteNumbers = new Array(byteCharacters.length);
+						for (let i = 0; i < byteCharacters.length; i++) {
+							byteNumbers[i] = byteCharacters.charCodeAt(i);
+						}
+						const byteArray = new Uint8Array(byteNumbers);
+						const blob = new Blob([byteArray], { type: 'application/pdf' });
+
+						if ('showSaveFilePicker' in window) {
+							try {
+								const handle = await window.showSaveFilePicker({
+									suggestedName: suggestedName,
+									startIn: 'downloads',
+									types: [{
+										description: 'Documento PDF (*.pdf)',
+										accept: { 'application/pdf': ['.pdf'] }
+									}]
+								});
+								const writable = await handle.createWritable();
+								await writable.write(blob);
+								await writable.close();
+								return;
+							} catch (err) {
+								if (err.name === 'AbortError') {
+									return;
+								}
+								console.warn('showSaveFilePicker falhou, usando fallback:', err);
+							}
+						}
+
+						const blobUrl = URL.createObjectURL(blob);
+						const a = document.createElement('a');
+						a.href = blobUrl;
+						a.download = suggestedName;
+						document.body.appendChild(a);
+						a.click();
+						document.body.removeChild(a);
+						setTimeout(() => URL.revokeObjectURL(blobUrl), 1500);
+					} catch (e) {
+						console.error('Erro no download:', e);
+						alert('Erro ao processar download do documento: ' + e.message);
+					} finally {
+						if (btn) {
+							btn.disabled = false;
+							btn.style.opacity = '1';
+							btn.innerHTML = originalText;
+						}
+					}
+				};
+			}
+		</script>
 	</body>
 	</html>
 	{{end}}
@@ -612,6 +754,10 @@
 			{{end}}
 		</div>
 		<div class="flex flex-wrap gap-1.5 justify-end w-full" style="justify-content: flex-end !important; align-items: start !important; text-align: right;">
+			<button type="button" data-id="{{.ID}}" onclick="baixarDocumentoPDF(this.dataset.id, 0, this)" class="text-indigo-700 hover:text-white font-bold text-xs px-2 py-1 bg-indigo-50 hover:bg-indigo-600 rounded border border-indigo-200 transition shadow-sm cursor-pointer" title="Baixar Invoice PDF">Invoice</button>
+			{{if .PaymentDateRaw}}
+				<button type="button" data-id="{{.ID}}" onclick="baixarDocumentoPDF(this.dataset.id, 1, this)" class="text-purple-700 hover:text-white font-bold text-xs px-2 py-1 bg-purple-50 hover:bg-purple-600 rounded border border-purple-200 transition shadow-sm cursor-pointer" title="Baixar Recibo PDF">Recibo</button>
+			{{end}}
 			<button hx-get="/html/invoices/editar?id={{.ID}}" hx-target="#invoice-{{.ID}}" hx-swap="outerHTML" hx-disabled-elt="this" class="text-indigo-600 hover:text-white font-bold text-xs px-2 py-1 bg-indigo-50 hover:bg-indigo-600 rounded border border-indigo-200 transition shadow-sm cursor-pointer" title="Editar dados da invoice">Editar</button>
 			{{if .CanPay}}
 				<button hx-get="/html/invoices/pagamento-aviso?id={{.ID}}" hx-target="#invoice-{{.ID}}" hx-swap="outerHTML" hx-disabled-elt="this" class="text-emerald-700 hover:text-white font-bold text-xs px-2 py-1 bg-emerald-50 hover:bg-emerald-600 rounded border border-emerald-200 transition shadow-sm cursor-pointer" title="Registrar pagamento">Pagar</button>

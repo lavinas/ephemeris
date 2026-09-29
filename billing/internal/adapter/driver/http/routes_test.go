@@ -222,6 +222,8 @@ func TestBillingRoutes(t *testing.T) {
 			"item_quantidade[]": {"1"},
 			"item_preco[]":      {"150.00"},
 		}, wantStatus: http.StatusOK},
+		{name: "GET /html/invoices/download doc=0 (invoice)", method: http.MethodGet, url: "/html/invoices/download?id=10&doc=0", wantStatus: http.StatusOK},
+		{name: "GET /html/invoices/download doc=1 (receipt)", method: http.MethodGet, url: "/html/invoices/download?id=2&doc=1", wantStatus: http.StatusOK},
 	}
 
 	for _, tt := range tests {
