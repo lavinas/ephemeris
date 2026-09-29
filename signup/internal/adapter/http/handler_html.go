@@ -95,6 +95,8 @@ func (h *HandlerHtml) Customers(w http.ResponseWriter, r *http.Request) {
 	req.Page = 1
 	req.PageSize = itensPorPag
 	req.Vendor = vendorSel
+	activeStatus := 1
+	req.Status = &activeStatus
 
 	respdro := svc.Run(req)
 	if respdro.GetStatusCode() != 200 {
@@ -178,7 +180,7 @@ func (h *HandlerHtml) CustomersSave(w http.ResponseWriter, r *http.Request) {
 func (h *HandlerHtml) CustomersTableReset(w http.ResponseWriter, r *http.Request) {
 	vendorSel := h.getDefaultVendor()
 	w.Write([]byte(`<script>document.getElementById("filtro-form").reset(); document.getElementById("input-pagina-form").value="1";</script>`))
-	h.renderCustomerTableWithParams(w, vendorSel, "", "", "", "", "", -1, 1)
+	h.renderCustomerTableWithParams(w, vendorSel, "", "", "", "", "", 1, 1)
 }
 
 // CustomersBlockClear clears form container
