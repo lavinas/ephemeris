@@ -18,6 +18,7 @@ type InvoiceListRequest struct {
 	VendorID            int64   `json:"vendor_id,omitempty"`
 	InvoiceDate         *string `json:"invoicing,omitempty"`
 	DueDate             *string `json:"due,omitempty"`
+	Overdue             *bool   `json:"overdue,omitempty"`
 	PaymentDate         *string `json:"payment,omitempty"`
 	EmailSentDate       *string `json:"email_sent,omitempty"`
 	WhatsappSentDate    *string `json:"whatsapp_sent,omitempty"`
@@ -43,6 +44,7 @@ type InvoiceList struct {
 	Amount              float64               `json:"amount"`
 	InvoiceDate         string                `json:"invoicing"`
 	DueDate             string                `json:"due"`
+	Overdue             bool                  `json:"overdue"`
 	PaymentDate         string                `json:"payment"`
 	EmailSentDate       string                `json:"email_sent"`
 	WhatsappSentDate    string                `json:"whatsapp_sent"`
@@ -75,6 +77,7 @@ func NewInvoiceListResponse(code int, status, message string,
 
 // NewInvoiceList creates a new instance of InvoiceList with the provided details.
 func NewInvoiceList(id int64, customer string, amount float64, invoiceDate, dueDate time.Time,
+	overdue bool,
 	paymentDate, emailSentDate, whatsappSentDate, emailReceiptDate, whatsappReceiptDate,
 	taxDate, cancellationDate *time.Time,
 	notes *string, items []InvoiceListListItem) InvoiceList {
@@ -118,6 +121,7 @@ func NewInvoiceList(id int64, customer string, amount float64, invoiceDate, dueD
 		Amount:              amount,
 		InvoiceDate:         invoiceDateStr,
 		DueDate:             dueDateStr,
+		Overdue:             overdue,
 		PaymentDate:         paymentDateStr,
 		EmailSentDate:       emailSentDateStr,
 		WhatsappSentDate:    whatsappSentDateStr,
@@ -209,6 +213,7 @@ func (r *InvoiceListRequest) Reset() {
 	r.VendorID = 0
 	r.InvoiceDate = nil
 	r.DueDate = nil
+	r.Overdue = nil
 	r.PaymentDate = nil
 	r.EmailSentDate = nil
 	r.WhatsappSentDate = nil

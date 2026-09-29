@@ -90,7 +90,7 @@ func (h *HandlerHtml) Invoices(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	page := h.loadPageData(1, "", "", "", "", "", "", "")
+	page := h.loadPageData(1, "", "", "", "", "", "", "", "")
 
 	templateName := "index"
 	if r.Header.Get("HX-Request") == "true" {
@@ -225,6 +225,7 @@ func (h *HandlerHtml) InvoicesSave(w http.ResponseWriter, r *http.Request) {
 		r.FormValue("email_sent"),
 		r.FormValue("email_receipt"),
 		r.FormValue("item_desc"),
+		r.FormValue("overdue"),
 	)
 
 	if respOut.GetStatusCode() != 200 {
@@ -276,6 +277,7 @@ func (h *HandlerHtml) InvoicesTable(w http.ResponseWriter, r *http.Request) {
 		r.FormValue("email_sent"),
 		r.FormValue("email_receipt"),
 		r.FormValue("item_desc"),
+		r.FormValue("overdue"),
 	)
 
 	h.tmpl.ExecuteTemplate(w, "tabela", pageData)
@@ -283,7 +285,7 @@ func (h *HandlerHtml) InvoicesTable(w http.ResponseWriter, r *http.Request) {
 
 // InvoicesTableReset resets the filter form and returns page 1
 func (h *HandlerHtml) InvoicesTableReset(w http.ResponseWriter, r *http.Request) {
-	pageData := h.loadPageData(1, "", "", "", "", "", "", "")
+	pageData := h.loadPageData(1, "", "", "", "", "", "", "", "")
 	w.Write([]byte(`<script>document.getElementById("filtro-form").reset(); document.getElementById("input-pagina-form").value="1";</script>`))
 	h.tmpl.ExecuteTemplate(w, "tabela", pageData)
 }
@@ -354,6 +356,7 @@ func (h *HandlerHtml) InvoicesUpdate(w http.ResponseWriter, r *http.Request) {
 		r.FormValue("email_sent"),
 		r.FormValue("email_receipt"),
 		r.FormValue("item_desc"),
+		r.FormValue("overdue"),
 	)
 
 	if respOut.GetStatusCode() != 200 {
@@ -421,6 +424,7 @@ func (h *HandlerHtml) InvoicesDelete(w http.ResponseWriter, r *http.Request) {
 		r.FormValue("email_sent"),
 		r.FormValue("email_receipt"),
 		r.FormValue("item_desc"),
+		r.FormValue("overdue"),
 	)
 
 	if respOut.GetStatusCode() != 200 {
@@ -481,6 +485,7 @@ func (h *HandlerHtml) InvoicesPay(w http.ResponseWriter, r *http.Request) {
 		r.FormValue("email_sent"),
 		r.FormValue("email_receipt"),
 		r.FormValue("item_desc"),
+		r.FormValue("overdue"),
 	)
 
 	if respOut.GetStatusCode() != 200 {
@@ -524,6 +529,7 @@ func (h *HandlerHtml) InvoicesSendInvoice(w http.ResponseWriter, r *http.Request
 		r.FormValue("email_sent"),
 		r.FormValue("email_receipt"),
 		r.FormValue("item_desc"),
+		r.FormValue("overdue"),
 	)
 
 	if respOut.GetStatusCode() != 200 {
@@ -567,6 +573,7 @@ func (h *HandlerHtml) InvoicesSendReceipt(w http.ResponseWriter, r *http.Request
 		r.FormValue("email_sent"),
 		r.FormValue("email_receipt"),
 		r.FormValue("item_desc"),
+		r.FormValue("overdue"),
 	)
 
 	if respOut.GetStatusCode() != 200 {
@@ -580,8 +587,25 @@ func (h *HandlerHtml) InvoicesSendReceipt(w http.ResponseWriter, r *http.Request
 	h.tmpl.ExecuteTemplate(w, "tabela", pageData)
 }
 
+// parseOverdueFilter parses overdue filter string to *bool
+func parseOverdueFilter(overdue string) *bool {
+	if overdue == "" {
+		return nil
+	}
+	s := strings.ToLower(strings.TrimSpace(overdue))
+	if s == "true" || s == "on" || s == "1" {
+		val := true
+		return &val
+	}
+	if s == "false" || s == "0" {
+		val := false
+		return &val
+	}
+	return nil
+}
+
 // loadPageData retrieves invoices filtered and calculates pagination metadata
-func (h *HandlerHtml) loadPageData(page int, customer, invoiceDate, dueDate, paymentDate, emailSentDate, emailReceiptDate, itemDesc string) map[string]interface{} {
+func (h *HandlerHtml) loadPageData(page int, customer, invoiceDate, dueDate, paymentDate, emailSentDate, emailReceiptDate, itemDesc, overdue string) map[string]interface{} {
 	if page <= 0 {
 		page = 1
 	}
@@ -637,6 +661,17 @@ func (h *HandlerHtml) loadPageData(page int, customer, invoiceDate, dueDate, pay
 				}
 			}
 			if match {
+				filtered = append(filtered, inv)
+			}
+		}
+		allInvoices = filtered
+	}
+
+	// Filter by overdue in memory if requested
+	if ov := parseOverdueFilter(overdue); ov != nil {
+		filtered := make([]domain.Invoice, 0)
+		for _, inv := range allInvoices {
+			if inv.IsOverdue() == *ov {
 				filtered = append(filtered, inv)
 			}
 		}
@@ -732,6 +767,7 @@ func (h *HandlerHtml) mapSingleInvoiceData(inv domain.Invoice) map[string]interf
 		"DataInvoiceFormatada":      inv.InvoiceDate.Format("02/01/2006"),
 		"DueDate":                   inv.DueDate.Format("2006-01-02"),
 		"DueDateFormatada":          inv.DueDate.Format("02/01/2006"),
+		"Overdue":                   inv.IsOverdue(),
 		"PaymentDateRaw":            paymentDateRaw,
 		"PaymentDateFormatada":      formatDate(paymentDateRaw),
 		"EmailSentDateRaw":          emailSentDateRaw,

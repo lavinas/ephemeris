@@ -82,6 +82,17 @@ func (InvoiceItem) TableName() string {
 	return "invoice_item"
 }
 
+// IsOverdue checks if the invoice is overdue (dueDate <= today 00:00:00 and paymentDate is nil).
+func (i *Invoice) IsOverdue() bool {
+	if i.PaymentDate != nil {
+		return false
+	}
+	now := time.Now()
+	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	dueStart := time.Date(i.DueDate.Year(), i.DueDate.Month(), i.DueDate.Day(), 0, 0, 0, 0, now.Location())
+	return !dueStart.After(todayStart)
+}
+
 // IsTaxable checks if the invoice item is taxable based on its description or other criteria.
 func (i *Invoice) IsTaxable() bool {
 	if i.CancellationDate != nil {
@@ -98,3 +109,4 @@ func (i *Invoice) IsTaxable() bool {
 	}
 	return true // Placeholder implementation; replace with actual logic.
 }
+

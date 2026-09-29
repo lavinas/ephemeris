@@ -45,20 +45,38 @@ func (s *InvoiceList) Run(inDTO port.InDTO) port.OutDTO {
 		return dto.NewInvoiceListResponse(500, "internal error", "contact support please", nil, 0, 0)
 	}
 
+	// If overdue filter is specified, filter allInvoices in memory
+	if in.Overdue != nil {
+		filtered := make([]domain.Invoice, 0)
+		for _, inv := range allInvoices {
+			if inv.IsOverdue() == *in.Overdue {
+				filtered = append(filtered, inv)
+			}
+		}
+		allInvoices = filtered
+	}
+
 	totalCount := len(allInvoices)
 	var totalAmount float64
 	for _, inv := range allInvoices {
 		totalAmount += inv.Amount
 	}
 
-	// Fetch invoices from the repository with pagination
-	invoices, err := s.repo.FindInvoices(in.Page, in.PageSize, in.CustomerID, in.InvoiceDate,
-		in.DueDate, in.PaymentDate, in.EmailSentDate, in.WhatsappSentDate, in.EmailReceiptDate, in.WhatsappReceiptDate,
-		in.TaxDate, in.CancellationDate)
-	if err != nil {
-		s.logger.IPrintf(2, "Failed to fetch invoices: %v", err)
-		return dto.NewInvoiceListResponse(500, "internal error", "contact support please", nil, 0, 0)
+	// Paginate the invoices slice
+	start := (in.Page - 1) * in.PageSize
+	end := start + in.PageSize
+	if start > totalCount {
+		start = totalCount
 	}
+	if end > totalCount {
+		end = totalCount
+	}
+
+	var invoices []domain.Invoice
+	if start < totalCount {
+		invoices = allInvoices[start:end]
+	}
+
 	s.logger.IPrintf(2, "Successfully fetched %d invoices (total count: %d, total amount: %.2f)", len(invoices), totalCount, totalAmount)
 	return dto.NewInvoiceListResponse(200, "success", "Invoices fetched successfully",
 		s.mountInvoices(invoices), totalCount, totalAmount)
@@ -73,7 +91,7 @@ func (s *InvoiceList) mountInvoices(invoices []domain.Invoice) []dto.InvoiceList
 			items[j] = dto.NewInvoiceListListItem(item.ID, item.Description, item.Quantity, item.Price)
 		}
 		responseInvoices[i] = dto.NewInvoiceList(invoice.ID, invoice.Customer.Nickname, invoice.Amount,
-			invoice.InvoiceDate, invoice.DueDate, invoice.PaymentDate, invoice.EmailSentDate, invoice.WhatsappSentDate,
+			invoice.InvoiceDate, invoice.DueDate, invoice.IsOverdue(), invoice.PaymentDate, invoice.EmailSentDate, invoice.WhatsappSentDate,
 			invoice.EmailReceiptDate, invoice.WhatsappReceiptDate, invoice.TaxDate, invoice.CancellationDate,
 			invoice.Notes, items)
 	}

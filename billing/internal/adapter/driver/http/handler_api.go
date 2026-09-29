@@ -3,6 +3,7 @@ package http
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"billing/internal/dto"
 	"billing/internal/port"
@@ -112,6 +113,69 @@ func (h *HandlerApi) InvoiceList(w http.ResponseWriter, r *http.Request) {
 	req := &dto.InvoiceListRequest{}
 	if r.Body != nil && r.Body != http.NoBody {
 		_ = json.NewDecoder(r.Body).Decode(req)
+	}
+	if req.Page == 0 && r.URL.Query().Get("page") != "" {
+		if page, err := strconv.Atoi(r.URL.Query().Get("page")); err == nil {
+			req.Page = page
+		}
+	}
+	if req.PageSize == 0 && r.URL.Query().Get("page_size") != "" {
+		if pageSize, err := strconv.Atoi(r.URL.Query().Get("page_size")); err == nil {
+			req.PageSize = pageSize
+		}
+	}
+	if req.Vendor == nil && r.URL.Query().Get("vendor") != "" {
+		v := r.URL.Query().Get("vendor")
+		req.Vendor = &v
+	}
+	if req.Customer == nil && r.URL.Query().Get("customer") != "" {
+		c := r.URL.Query().Get("customer")
+		req.Customer = &c
+	}
+	if req.InvoiceDate == nil && r.URL.Query().Get("invoicing") != "" {
+		inv := r.URL.Query().Get("invoicing")
+		req.InvoiceDate = &inv
+	}
+	if req.DueDate == nil && r.URL.Query().Get("due") != "" {
+		d := r.URL.Query().Get("due")
+		req.DueDate = &d
+	}
+	if req.Overdue == nil && r.URL.Query().Get("overdue") != "" {
+		if ov, err := strconv.ParseBool(r.URL.Query().Get("overdue")); err == nil {
+			req.Overdue = &ov
+		}
+	}
+	if req.PaymentDate == nil && r.URL.Query().Get("payment") != "" {
+		p := r.URL.Query().Get("payment")
+		req.PaymentDate = &p
+	}
+	if req.EmailSentDate == nil && r.URL.Query().Get("email_sent") != "" {
+		es := r.URL.Query().Get("email_sent")
+		req.EmailSentDate = &es
+	}
+	if req.WhatsappSentDate == nil && r.URL.Query().Get("whatsapp_sent") != "" {
+		ws := r.URL.Query().Get("whatsapp_sent")
+		req.WhatsappSentDate = &ws
+	}
+	if req.EmailReceiptDate == nil && r.URL.Query().Get("email_receipt") != "" {
+		er := r.URL.Query().Get("email_receipt")
+		req.EmailReceiptDate = &er
+	}
+	if req.WhatsappReceiptDate == nil && r.URL.Query().Get("whatsapp_receipt") != "" {
+		wr := r.URL.Query().Get("whatsapp_receipt")
+		req.WhatsappReceiptDate = &wr
+	}
+	if req.TaxDate == nil && r.URL.Query().Get("tax") != "" {
+		t := r.URL.Query().Get("tax")
+		req.TaxDate = &t
+	}
+	if req.CancellationDate == nil && r.URL.Query().Get("cancellation") != "" {
+		c := r.URL.Query().Get("cancellation")
+		req.CancellationDate = &c
+	}
+	if req.Notes == nil && r.URL.Query().Get("notes") != "" {
+		n := r.URL.Query().Get("notes")
+		req.Notes = &n
 	}
 	svc := service.NewInvoiceList(h.repo, h.logger)
 	resp := svc.Run(req)

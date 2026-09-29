@@ -3,7 +3,7 @@
 	<style>
 		.grade-filtros {
 			display: grid !important;
-			grid-template-columns: 1.4fr 1.1fr 1.1fr 1.1fr 1.1fr 1.1fr 1.5fr !important;
+			grid-template-columns: 1.3fr 1.05fr 1.05fr 1.05fr 1.05fr 1.05fr 1.4fr 0.8fr !important;
 			gap: 10px !important;
 			width: 100% !important;
 			box-sizing: border-box !important;
@@ -136,6 +136,12 @@
 						<label>Itens / Descrição</label>
 						<input type="text" name="item_desc" placeholder="Buscar por item...">
 					</div>
+					<div class="campo-box" style="justify-content: center; align-items: center;">
+						<label style="margin-bottom: 6px; text-align: center;">Vencido</label>
+						<div class="flex items-center justify-center" style="display: flex; align-items: center; justify-content: center; height: 100%;">
+							<input type="checkbox" name="overdue" value="true" class="w-5 h-5 text-indigo-600 bg-gray-900 border-gray-600 rounded focus:ring-indigo-500 cursor-pointer" style="width: 20px; height: 20px; cursor: pointer; accent-color: #6366f1;">
+						</div>
+					</div>
 				</div>
 			</form>
 			<div style="height: 35px; width: 100%;"></div>
@@ -168,7 +174,7 @@
 		<style>
 			.grade-filtros {
 				display: grid !important;
-				grid-template-columns: 1.4fr 1.1fr 1.1fr 1.1fr 1.1fr 1.1fr 1.5fr !important;
+				grid-template-columns: 1.3fr 1.05fr 1.05fr 1.05fr 1.05fr 1.05fr 1.4fr 0.8fr !important;
 				gap: 10px !important;
 				width: 100% !important;
 				box-sizing: border-box !important;
@@ -296,6 +302,12 @@
 					<div class="campo-box">
 						<label>Itens / Descrição</label>
 						<input type="text" name="item_desc" placeholder="Buscar por item...">
+					</div>
+					<div class="campo-box" style="justify-content: center; align-items: center;">
+						<label style="margin-bottom: 6px; text-align: center;">Vencido</label>
+						<div class="flex items-center justify-center" style="display: flex; align-items: center; justify-content: center; height: 100%;">
+							<input type="checkbox" name="overdue" value="true" class="w-5 h-5 text-indigo-600 bg-gray-900 border-gray-600 rounded focus:ring-indigo-500 cursor-pointer" style="width: 20px; height: 20px; cursor: pointer; accent-color: #6366f1;">
+						</div>
 					</div>
 				</div>
 			</form>
@@ -531,7 +543,13 @@
 	<div id="invoice-{{.ID}}" class="linha-box grade-tabela text-sm" style="align-items: start !important; padding-top: 16px; padding-bottom: 16px;">
 		<div class="text-gray-700 font-mono font-medium text-xs">{{.DataInvoiceFormatada}}</div>
 		<div class="font-bold text-gray-900 texto-truncado" title="{{.Customer}}">{{.Customer}}</div>
-		<div class="text-gray-700 font-mono text-xs">{{.DueDateFormatada}}</div>
+		<div>
+			{{if .Overdue}}
+				<span class="badge-tag bg-rose-100 text-rose-800 border border-rose-300 font-mono text-xs">{{.DueDateFormatada}}</span>
+			{{else}}
+				<span class="badge-tag bg-sky-100 text-sky-800 border border-sky-300 font-mono text-xs">{{.DueDateFormatada}}</span>
+			{{end}}
+		</div>
 		<div>
 			{{if .EmailSentDateRaw}}
 				<span class="badge-tag bg-sky-100 text-sky-800 border border-sky-300 font-mono text-xs">✓ {{.EmailSentDateFormatada}}</span>
