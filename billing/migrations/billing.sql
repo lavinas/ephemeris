@@ -160,6 +160,53 @@ create table emission_item (
     nfe_verification varchar(100),
     nfe_amount numeric(15, 2)
 );
+---------------------------------------
+-- plans and services
+---------------------------------------
+drop table if exists service cascade;
+create table service(
+    id bigserial primary key,
+    vendor_id bigint not null references vendor(id) on delete cascade,
+    name varchar(150) not null,
+    created_at timestamp not null,
+    updated_at timestamp not null
+);
 
+drop table plan cascade;
+create table plan(
+    id bigserial primary key,
+    vendor_id bigint not null references vendor(id) on delete cascade,
+    name varchar(150) not null,
+    price numeric(15, 2) not null,
+    quantity_invoice int not null,
+    status int not null default 1,
+    created_at timestamp not null,
+    updated_at timestamp not null   
+);
 
+create table plan_item(
+    id bigserial primary key,
+    plan_id bigint not null references plan(id) on delete cascade,
+    service_id bigint not null references service(id) on delete cascade,
+    created_at timestamp not null,
+    updated_at timestamp not null
+);
 
+drop table plan_assinature cascade;
+create table plan_assinature(
+    id bigserial primary key,
+    vendor_id bigint not null references vendor(id) on delete cascade,
+    customer_id bigint not null references customer(id) on delete cascade,
+    plan_id bigint not null references plan(id) on delete cascade,
+    quantity int not null,
+    created_at timestamp not null,
+    updated_at timestamp not null
+);
+
+create table plan_assinature_item(
+    id bigserial primary key,
+    plan_assinature_id bigint not null references plan_assinature(id) on delete cascade,
+    service_id bigint not null references service(id) on delete cascade,
+    created_at timestamp not null,
+    updated_at timestamp not null
+);
