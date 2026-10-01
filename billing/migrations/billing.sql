@@ -160,52 +160,6 @@ create table emission_item (
     nfe_verification varchar(100),
     nfe_amount numeric(15, 2)
 );
----------------------------------------
--- plans and services
----------------------------------------
-drop table if exists service cascade;
-create table service(
-    id bigserial primary key,
-    name varchar(150) not null,
-    created_at timestamp not null,
-    updated_at timestamp not null
-);
-
-create table offer (
-    id bigserial primary key,
-    vendor_id bigint not null references vendor(id) on delete cascade,
-    name varchar(150) not null,
-    service_id bigint not null references service(id) on delete cascade,
-    session_periodicity int not null, -- 1 - Weekly, 2 - Biweekly, 3 - Monthly
-    session_minutes int not null,
-    session_price numeric(15, 2) not null,
-    status int not null default 1,
-    created_at timestamp not null,
-    updated_at timestamp not null
-);
-
-create table subscription(
-    id bigserial primary key,
-    customer_id bigint not null references customer(id) on delete cascade,
-    fixed_price numeric(15, 2) null, -- null = pay by session
-    sessions_limit int null, -- null = unlimited
-    status int not null default 1,
-    created_at timestamp not null,
-    updated_at timestamp not null,
-);
-
-create table subscription_item(
-    id bigserial primary key,
-    subscription_id bigint not null references subscription(id) on delete cascade,
-    offer_id bigint not null references offer(id) on delete cascade,
-    start_at date not null,
-    end_at date null,
-    fixed_price numeric(15, 2) null, -- null = pay by session
-    sessions_limit int not null, -- null = unlimited
-    status int not null default 1,
-    created_at timestamp not null,
-    updated_at timestamp not null,
-);
 
 
 
