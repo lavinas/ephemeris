@@ -166,47 +166,46 @@ create table emission_item (
 drop table if exists service cascade;
 create table service(
     id bigserial primary key,
-    vendor_id bigint not null references vendor(id) on delete cascade,
     name varchar(150) not null,
     created_at timestamp not null,
     updated_at timestamp not null
 );
 
-drop table plan cascade;
-create table plan(
+create table offer (
     id bigserial primary key,
     vendor_id bigint not null references vendor(id) on delete cascade,
     name varchar(150) not null,
-    price numeric(15, 2) not null,
-    quantity_invoice int not null,
+    service_id bigint not null references service(id) on delete cascade,
+    session_periodicity int not null, -- 1 - Weekly, 2 - Biweekly, 3 - Monthly
+    session_minutes int not null,
+    session_price numeric(15, 2) not null,
     status int not null default 1,
     created_at timestamp not null,
-    updated_at timestamp not null   
-);
-
-create table plan_item(
-    id bigserial primary key,
-    plan_id bigint not null references plan(id) on delete cascade,
-    service_id bigint not null references service(id) on delete cascade,
-    created_at timestamp not null,
     updated_at timestamp not null
 );
 
-drop table plan_assinature cascade;
-create table plan_assinature(
+create table subscription(
     id bigserial primary key,
-    vendor_id bigint not null references vendor(id) on delete cascade,
     customer_id bigint not null references customer(id) on delete cascade,
-    plan_id bigint not null references plan(id) on delete cascade,
-    quantity int not null,
+    fixed_price numeric(15, 2) null, -- null = pay by session
+    sessions_limit int null, -- null = unlimited
+    status int not null default 1,
     created_at timestamp not null,
-    updated_at timestamp not null
+    updated_at timestamp not null,
 );
 
-create table plan_assinature_item(
+create table subscription_item(
     id bigserial primary key,
-    plan_assinature_id bigint not null references plan_assinature(id) on delete cascade,
-    service_id bigint not null references service(id) on delete cascade,
+    subscription_id bigint not null references subscription(id) on delete cascade,
+    offer_id bigint not null references offer(id) on delete cascade,
+    start_at date not null,
+    end_at date null,
+    fixed_price numeric(15, 2) null, -- null = pay by session
+    sessions_limit int not null, -- null = unlimited
+    status int not null default 1,
     created_at timestamp not null,
-    updated_at timestamp not null
+    updated_at timestamp not null,
 );
+
+
+
