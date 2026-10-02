@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 
 
 # Configurações
-#endpoint = 'http://192.168.1.138:8081/api'
-endpoint = 'http://localhost:8081/api'
+endpoint = 'http://192.168.1.138:8081/api'
+# endpoint = 'http://localhost:8081/api'
 page = 1
 page_size = 1000
 

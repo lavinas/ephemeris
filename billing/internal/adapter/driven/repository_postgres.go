@@ -225,7 +225,7 @@ func (a *PostgresRepository) FindInvoicesPendingSend(dueBeforeOrEqual time.Time)
 	err := a.getDB().Model(&domain.Invoice{}).
 		Preload("InvoiceItems").
 		Preload("Customer").
-		Where("due_date <= ? AND email_sent_date IS NULL AND cancellation_date IS NULL", dueBeforeOrEqual).
+		Where("due_date <= ? AND email_sent_date IS NULL AND cancellation_date IS NULL AND payment_date is NULL", dueBeforeOrEqual).
 		Order("due_date ASC, id ASC").
 		Find(&invoices).Error
 	return invoices, err

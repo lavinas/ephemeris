@@ -1,4 +1,4 @@
--- Active: 1788396936740@@192.168.1.138@5433@planner@planner
+-- Active: 1790015123887@@127.0.0.1@5433@planner@planner
 # 1. Verificar tabelas com muitas tuplas mortas e eficiência do HOT
 # Esta query lista quais tabelas estão acumulando tuplas pendentes de limpeza (dead tuples) e qual porcentagem dos UPDATEs conseguiram usar HOT (quanto mais perto de 100%, melhor):
 # O que observar:
