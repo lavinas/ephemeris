@@ -29,6 +29,8 @@
         "enabled": true,
         "days_in_advance": 3,
         "hours": [8, 14],
-        "schedules": []
+        "schedules": [
+            "45 21 * * *"
+        ]
     }
 }
