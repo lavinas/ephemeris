@@ -28,9 +28,7 @@
     "auto_bill": {
         "enabled": true,
         "days_in_advance": 3,
-        "hours": [8, 14],
-        "schedules": [
-            "45 21 * * *"
-        ]
+        "hours": [8, 14, 20],
+        "schedules": []
     }
 }
