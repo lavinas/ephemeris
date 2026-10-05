@@ -89,7 +89,7 @@ func (i *Invoice) IsOverdue() bool {
 	}
 	now := time.Now()
 	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-	dueStart := time.Date(i.DueDate.Year(), i.DueDate.Month(), i.DueDate.Day(), 0, 0, 0, 0, now.Location())
+	dueStart := time.Date(i.DueDate.Year(), i.DueDate.Month(), i.DueDate.Day(), 23, 59, 59, 999, now.Location())
 	return !dueStart.After(todayStart)
 }
 
