@@ -21,11 +21,11 @@ create table subscription (
     session_weekday int not null, -- 1-7, or null if custom, 0 if custom
     session_time time null, -- 14:00, 14:30, etc, or null if custom or no definition
     session_recurrence int not null, -- 0: single, 1: weekly, 2: bi-weekly, 3: monthly
-    session_monthly_limit int not null, -- if null, there is no limit  
+    session_limit int not null, -- if null, there is no limit  
     session_order int not null default 0, -- order of the session in the month (if there is more then one sunscription in same weekday and time)
     -- conditions
-    price_per_session numeric(15, 2) not null default 0, -- if null, use service price_per_session
-    price_per_month numeric(15, 2) not null default 0, -- if null, use service price_per_month
+    session_price numeric(15, 2) not null default 0, -- if null, use service price_per_session
+    month_price numeric(15, 2) not null default 0, -- if null, use service price_per_month
     -- invoicing data
     invoice_type int not null, -- 1: pre-paid (just for recurrence, not for single), 2: post-paid, 3: per session
     due_day int not null, -- 1-30, 0 if per_session
@@ -35,9 +35,6 @@ create table subscription (
     created_at timestamp not null default now(),
     updated_at timestamp not null default now()
 );
-
-
-
 
 -- service_invoice 
 create table service_invoice (
