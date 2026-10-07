@@ -17,17 +17,16 @@ create table subscription (
     customer_id bigint not null references customer(id) on delete cascade,
     -- service data
     service_id bigint not null references service(id) on delete cascade,
+    session_recurrence int not null, -- 0: once, 1: weekly, 2: bi-weekly, 3: monthly, 4: custom
     session_minutes int not null, -- minutes per session
-    session_weekday int not null, -- 1-7, or null if custom, 0 if custom
-    session_time time null, -- 14:00, 14:30, etc, or null if custom or no definition
-    session_recurrence int not null, -- 0: single, 1: weekly, 2: bi-weekly, 3: monthly
+    session_weekday int not null, -- 1-7, or null if custom, 0 if custom (1-sunday, 7-saturday)
     session_limit int not null, -- if null, there is no limit  
     session_order int not null default 0, -- order of the session in the month (if there is more then one sunscription in same weekday and time)
     -- conditions
     session_price numeric(15, 2) not null default 0, -- if null, use service price_per_session
     month_price numeric(15, 2) not null default 0, -- if null, use service price_per_month
     -- invoicing data
-    invoice_type int not null, -- 1: pre-paid (just for recurrence, not for single), 2: post-paid, 3: per session
+    invoice_type int not null, -- 1: pre-paid (just for recurrence, not for single), 2: post-paid, 3: per session, 4: sessions done
     due_day int not null, -- 1-30, 0 if per_session
     -- dates
     start_at date not null, 
