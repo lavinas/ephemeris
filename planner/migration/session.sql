@@ -59,6 +59,7 @@ create table service (
     vendor_id bigint not null references vendor(id) on delete cascade,
     name varchar(150) not null,
     description text,
+    session_minutes int null, -- if there is a predicted duration for the service
     created_at timestamp not null default now(),
     updated_at timestamp not null default now()
 );
