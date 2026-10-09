@@ -78,13 +78,6 @@ insert into service (vendor_id, name, description, session_minutes, created_at, 
 (1, 'online/piano/45', 'Aula de piano online de 45 minutos', 45, now(), now()),
 (1, 'online/piano/60', 'Aula de piano online de 60 minutos', 60, now(), now());
 
-create table tmp_session as
-select * from session;
-
-select count(1) from tmp_session
-
-select * from tmp_session;
-
 # session new
 drop table if exists session;
 create table session (
@@ -92,7 +85,6 @@ create table session (
     customer_id bigint not null references customer(id) on delete cascade,
     service_id bigint not null references service(id) on delete cascade,
     session_date date not null,
-    session_service varchar(100) not null,
     session_minutes int not null,
     -- session_service varchar(100) not null,
     session_status varchar(50) not null, -- realizada, cancelada_cobrar, cancelada_nao_cobrar 
@@ -102,25 +94,6 @@ create table session (
     deleted_at timestamp,
     constraint fk_customer_id foreign key (customer_id) references customer(id) on delete cascade
 );
-
-select * from tmp_session;
-
-insert into session
-select a.id, a.customer_id, b.id, a.session_date, a.session_service, a.session_minutes, a.session_status, a.comments, a.created_at, a.updated_at, a.deleted_at 
-  from tmp_session a
-    inner join service b on b.name = concat(replace(a.session_service, 'aula', 'online'), '/', a.session_minutes)
-
-select count(1)
-  from session;
-
-select * from session;
-
-commit;
-
-select count(1)
-  from tmp_session a
-  left join service b on b.name = concat(replace(a.session_service, 'aula', 'online'), '/', a.session_minutes)
-  where b.id is null;
 
 # contract
 create table contract (
