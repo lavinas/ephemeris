@@ -31,7 +31,7 @@ func (s *SessionDelete) Run(InDto port.InDTO) port.OutDTO {
 	}
 	session := &domain.Session{}
 	sessionID := InDto.(*dto.SessionDeleteRequest).SessionID
-	ret, count, err := session.Find(s.repo, 1, 1, sessionID, nil, time.Time{}, time.Time{}, 0, "", "", "")
+	ret, count, err := session.Find(s.repo, 1, 1, sessionID, nil, time.Time{}, time.Time{}, 0, 0, "", "")
 	if err != nil {
 		s.logger.IPrintf(2, "Error checking session existence: %v", err)
 		return dto.NewSessionDeleteResponse(500, "Internal Server Error", err.Error())

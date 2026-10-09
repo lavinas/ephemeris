@@ -15,11 +15,11 @@ type SessionUpdateRequest struct {
 	ID         int64          `json:"id" validate:"required"`
 	CustomerID int64          `json:"-"`
 	Session    domain.Session `json:"-"`
-	Nickname   string         `json:"nickname" validate:"required"`
-	Date       string         `json:"date" validate:"required"`
-	Minutes    int            `json:"minutes" validate:"required"`
-	Service    string         `json:"service" validate:"required"`
-	Status     string         `json:"status" validate:"required"`
+	Nickname   string         `json:"nickname,omitempty"`
+	Date       string         `json:"date,omitempty"`
+	Minutes    int            `json:"minutes,omitempty"`
+	ServiceID  int64          `json:"service_id,omitempty"`
+	Status     string         `json:"status,omitempty"`
 	Comments   string         `json:"comments,omitempty"`
 }
 
@@ -51,7 +51,7 @@ func (r *SessionUpdateRequest) Validate(repo port.Repository) error {
 	if err := r.validateDate(); err != nil {
 		errs = append(errs, err)
 	}
-	if err := r.validateService(); err != nil {
+	if err := r.validateServiceID(repo); err != nil {
 		errs = append(errs, err)
 	}
 	if err := r.validateStatus(); err != nil {
@@ -83,7 +83,7 @@ func (r *SessionUpdateRequest) validateID(repo port.Repository) error {
 		return nil
 	}
 	domainSession := domain.Session{}
-	sessions, _, err := domainSession.Find(repo, 1, 1, r.ID, nil, time.Time{}, time.Time{}, 0, "", "", "")
+	sessions, _, err := domainSession.Find(repo, 1, 1, r.ID, nil, time.Time{}, time.Time{}, 0, 0, "", "")
 	if err != nil {
 		return fmt.Errorf("error finding session: %v", err)
 	}
@@ -151,13 +151,19 @@ func (r *SessionUpdateRequest) validateStatus() error {
 	return nil
 }
 
-// validateService checks if the provided service is valid.
-func (r *SessionUpdateRequest) validateService() error {
-	if r.Service == "" {
+// validateServiceID checks if the provided service ID is valid.
+func (r *SessionUpdateRequest) validateServiceID(repo port.Repository) error {
+	if r.ServiceID <= 0 {
 		return nil
 	}
-	if !validServices[r.Service] {
-		return fmt.Errorf("invalid service, must be one of: aula/canto, aula/piano")
+	if repo != nil {
+		svc, err := repo.GetServiceByID(r.ServiceID)
+		if err != nil {
+			return fmt.Errorf("error finding service: %v", err)
+		}
+		if svc == nil {
+			return fmt.Errorf("serviço com ID %d não encontrado", r.ServiceID)
+		}
 	}
 	return nil
 }
@@ -173,9 +179,9 @@ func (r *SessionUpdateRequest) validateMinutes() error {
 	return nil
 }
 
-// validatAlmostOneField checks if at least one of the fields (Nickname, Date, Minutes, Service, Status, Comments) is provided for update.
+// validateAlmostOneField checks if at least one of the fields (Nickname, Date, Minutes, ServiceID, Status, Comments) is provided for update.
 func (r *SessionUpdateRequest) validateAlmostOneField() error {
-	if r.Nickname == "" && r.Date == "" && r.Minutes == 0 && r.Service == "" && r.Status == "" && r.Comments == "" {
+	if r.Nickname == "" && r.Date == "" && r.Minutes == 0 && r.ServiceID == 0 && r.Status == "" && r.Comments == "" {
 		return fmt.Errorf("at least one field must be provided for update")
 	}
 	return nil
@@ -184,10 +190,11 @@ func (r *SessionUpdateRequest) validateAlmostOneField() error {
 // Reset resets the SessionUpdateRequest fields to their zero values.
 func (r *SessionUpdateRequest) Reset() {
 	r.ID = 0
+	r.CustomerID = 0
 	r.Nickname = ""
 	r.Date = ""
 	r.Minutes = 0
-	r.Service = ""
+	r.ServiceID = 0
 	r.Status = ""
 	r.Comments = ""
 }

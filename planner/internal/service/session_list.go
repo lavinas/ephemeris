@@ -49,7 +49,7 @@ func (s *SessionList) findSessions(input port.InDTO) ([]domain.Session, int, int
 	dateStart, _ := time.Parse("2006-01-02", req.DateStart)
 	dateEnd, _ := time.Parse("2006-01-02", req.DateEnd)
 	sessions, total, err := session.Find(s.repo, req.Page, req.PageSize, req.SessionID, req.CustomerIDs, dateStart,
-		dateEnd, req.Minutes, req.Service, req.Status, req.Comments)
+		dateEnd, req.Minutes, req.ServiceID, req.Status, req.Comments)
 	if err != nil {
 		return nil, 0, 0, 0, err
 	}
@@ -77,12 +77,22 @@ func (s *SessionList) dtoOut(sessions []domain.Session, page, pageSize, totalPag
 				nickname = cust.Nickname
 			}
 		}
+		serviceName := ""
+		if session.Service != nil {
+			serviceName = session.Service.Name
+		} else if session.ServiceID != 0 && s.repo != nil {
+			svc, err := s.repo.GetServiceByID(session.ServiceID)
+			if err == nil && svc != nil {
+				serviceName = svc.Name
+			}
+		}
 		dtoSessions[i] = dto.Session{
 			SessionID: session.ID,
 			Nickname:  nickname,
 			Date:      session.SessionDate.Format("2006-01-02"),
 			Minutes:   session.SessionMinutes,
-			Service:   session.SessionService,
+			ServiceID: session.ServiceID,
+			Service:   serviceName,
 			Status:    session.SessionStatus,
 			Comments:  comments,
 		}

@@ -125,6 +125,14 @@ func (m *mockRepo) GetVendor(nickname string) (*domain.Vendor, error) {
 	return nil, nil
 }
 
+func (m *mockRepo) FindServices(vendorID int64) ([]domain.Service, error) {
+	return nil, nil
+}
+
+func (m *mockRepo) GetServiceByID(id int64) (*domain.Service, error) {
+	return nil, nil
+}
+
 func TestNoopConsumer(t *testing.T) {
 	c := NewNoopConsumer()
 	if err := c.Start(context.Background()); err != nil {

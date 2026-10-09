@@ -13,10 +13,6 @@ var (
 		"cancelada_cobrar":     true,
 		"cancelada_nao_cobrar": true,
 	}
-	validServices = map[string]bool{
-		"aula/canto": true,
-		"aula/piano": true,
-	}
 )
 
 // ResponseBase represents the base structure for API responses, containing common fields for status and messages.
@@ -35,7 +31,7 @@ func NewResponseBase(httpCode int, status, message string) ResponseBase {
 	}
 }
 
-// GetHTTPCode returns the HTTP status code of the response.
+// GetStatusCode returns the HTTP status code of the response.
 func (r ResponseBase) GetStatusCode() int {
 	return r.HttpCode
 }
@@ -77,4 +73,3 @@ func ValidateDocument(document string, docType string) (string, error) {
 	}
 	return "", fmt.Errorf("invalid document format")
 }
-

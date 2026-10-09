@@ -58,7 +58,7 @@ func (s *SessionUsers) getUsers(input dto.SessionUsersRequest) ([]string, error)
 		sd,
 		ed,
 		input.Minutes,
-		input.Service,
+		input.ServiceID,
 		input.Status,
 	)
 	if err != nil {

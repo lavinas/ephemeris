@@ -159,7 +159,7 @@ func (a *Repository) Find(page, pagesize int, conditions map[string]interface{},
 		}
 	}
 	var sessions []domain.Session
-	err := db.Preload("Customer").Find(&sessions).Error
+	err := db.Preload("Customer").Preload("Service").Find(&sessions).Error
 	// Convert []domain.Session to []interface{}
 	result := make([]interface{}, len(sessions))
 	for i, v := range sessions {
@@ -307,4 +307,32 @@ func (a *Repository) GetVendor(nickname string) (*domain.Vendor, error) {
 		return nil, err
 	}
 	return &vendor, nil
+}
+
+// FindServices retrieves all services for a given vendorID ordered by id
+func (a *Repository) FindServices(vendorID int64) ([]domain.Service, error) {
+	var services []domain.Service
+	db := a.DB
+	if a.Tx != nil {
+		db = a.Tx
+	}
+	err := db.Where("vendor_id = ?", vendorID).Order("id asc").Find(&services).Error
+	return services, err
+}
+
+// GetServiceByID retrieves a single service by ID
+func (a *Repository) GetServiceByID(id int64) (*domain.Service, error) {
+	var service domain.Service
+	db := a.DB
+	if a.Tx != nil {
+		db = a.Tx
+	}
+	err := db.Where("id = ?", id).First(&service).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &service, nil
 }

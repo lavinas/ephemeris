@@ -11,11 +11,11 @@ import (
 
 // SessionCreateRequest represents a request to create a new session.
 type SessionCreateRequest struct {
-	CustomerID int64  `json:"-"`
+	CustomerID int64  `json:"customer_id,omitempty"`
 	Nickname   string `json:"nickname" validate:"required"`
 	Date       string `json:"date" validate:"required"`
 	Minutes    int    `json:"minutes" validate:"required"`
-	Service    string `json:"service" validate:"required"`
+	ServiceID  int64  `json:"service_id" validate:"required"`
 	Status     string `json:"status" validate:"required"`
 	Comments   string `json:"comments,omitempty"`
 }
@@ -47,7 +47,7 @@ func (r *SessionCreateRequest) Validate(repo port.Repository) error {
 	if err := r.validateDate(); err != nil {
 		errs = append(errs, err)
 	}
-	if err := r.validateService(); err != nil {
+	if err := r.validateServiceID(repo); err != nil {
 		errs = append(errs, err)
 	}
 	if err := r.validateStatus(); err != nil {
@@ -117,10 +117,19 @@ func (r *SessionCreateRequest) validateStatus() error {
 	return nil
 }
 
-// validateService checks if the provided service is valid.
-func (r *SessionCreateRequest) validateService() error {
-	if !validServices[r.Service] {
-		return fmt.Errorf("invalid service, must be one of: aula/canto, aula/piano")
+// validateServiceID checks if the provided service ID is valid.
+func (r *SessionCreateRequest) validateServiceID(repo port.Repository) error {
+	if r.ServiceID <= 0 {
+		return fmt.Errorf("service_id is required")
+	}
+	if repo != nil {
+		svc, err := repo.GetServiceByID(r.ServiceID)
+		if err != nil {
+			return fmt.Errorf("error finding service: %v", err)
+		}
+		if svc == nil {
+			return fmt.Errorf("serviço com ID %d não encontrado", r.ServiceID)
+		}
 	}
 	return nil
 }
@@ -135,9 +144,11 @@ func (r *SessionCreateRequest) validateMinutes() error {
 
 // Reset clears the fields of the SessionCreateRequest, setting them to their zero values.
 func (r *SessionCreateRequest) Reset() {
+	r.CustomerID = 0
 	r.Nickname = ""
 	r.Date = ""
 	r.Minutes = 0
+	r.ServiceID = 0
 	r.Status = ""
 	r.Comments = ""
 }

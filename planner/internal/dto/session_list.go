@@ -18,7 +18,7 @@ type SessionListRequest struct {
 	DateStart   string  `json:"date_start,omitempty"`
 	DateEnd     string  `json:"date_end,omitempty"`
 	Minutes     int     `json:"minutes,omitempty"`
-	Service     string  `json:"service,omitempty"`
+	ServiceID   int64   `json:"service_id,omitempty"`
 	Status      string  `json:"status,omitempty"`
 	Comments    string  `json:"comments,omitempty"`
 }
@@ -39,6 +39,7 @@ type Session struct {
 	Date      string `json:"date"`
 	Minutes   int    `json:"minutes"`
 	Status    string `json:"status"`
+	ServiceID int64  `json:"service_id,omitempty"`
 	Service   string `json:"service,omitempty"`
 	Comments  string `json:"comments,omitempty"`
 }
@@ -77,7 +78,7 @@ func (r *SessionListRequest) Validate(repo port.Repository) error {
 	if err := r.validateMinutes(); err != nil {
 		errs = append(errs, err)
 	}
-	if err := r.validateService(); err != nil {
+	if err := r.validateServiceID(); err != nil {
 		errs = append(errs, err)
 	}
 	if err := r.validateStatus(); err != nil {
@@ -173,10 +174,10 @@ func (r *SessionListRequest) validateMinutes() error {
 	return nil
 }
 
-// validateService checks if the provided service is valid.
-func (r *SessionListRequest) validateService() error {
-	if r.Service != "" && !validServices[r.Service] {
-		return errors.New("invalid service value, must be one of: aula/canto, aula/piano")
+// validateServiceID checks if the provided service ID is valid.
+func (r *SessionListRequest) validateServiceID() error {
+	if r.ServiceID < 0 {
+		return errors.New("service_id cannot be negative")
 	}
 	return nil
 }
@@ -192,9 +193,11 @@ func (r *SessionListRequest) validateStatus() error {
 // Reset clears the fields of the SessionListRequest, resetting it to its default state.
 func (r *SessionListRequest) Reset() {
 	r.Nickname = ""
+	r.CustomerIDs = nil
 	r.DateStart = ""
 	r.DateEnd = ""
 	r.Minutes = 0
+	r.ServiceID = 0
 	r.Status = ""
 	r.Comments = ""
 }

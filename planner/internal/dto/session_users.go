@@ -12,7 +12,7 @@ type SessionUsersRequest struct {
 	StartDate string `json:"start_date"`
 	EndDate   string `json:"end_date"`
 	Status    string `json:"status"`
-	Service   string `json:"service"`
+	ServiceID int64  `json:"service_id"`
 	Minutes   int    `json:"minutes"`
 }
 
@@ -49,8 +49,8 @@ func (r *SessionUsersRequest) Validate(repo port.Repository) error {
 	if r.Status != "" && !validStatuses[r.Status] {
 		return fmt.Errorf("invalid status: %s", r.Status)
 	}
-	if r.Service != "" && !validServices[r.Service] {
-		return fmt.Errorf("invalid service: %s", r.Service)
+	if r.ServiceID < 0 {
+		return fmt.Errorf("invalid service_id: %d", r.ServiceID)
 	}
 	if r.Minutes < 0 {
 		return fmt.Errorf("invalid minutes: %d", r.Minutes)

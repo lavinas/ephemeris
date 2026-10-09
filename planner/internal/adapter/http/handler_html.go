@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"planner/internal/domain"
 	"planner/internal/dto"
 	"planner/internal/port"
 	"planner/internal/service"
@@ -37,6 +38,12 @@ func NewHandlerHtml(repo port.Repository, logger port.Logger, tdata []byte) (*Ha
 			safeStr := template.HTMLEscapeString(texto)
 			comQuebras := strings.ReplaceAll(safeStr, "\n", "<br>")
 			return template.HTML(comQuebras)
+		},
+		"adicionar": func(a, b int) int {
+			return a + b
+		},
+		"subtrair": func(a, b int) int {
+			return a - b
 		},
 	}
 	logger.IPrintf(0, "Passou")
@@ -118,34 +125,48 @@ func (h *HandlerHtml) Sessions(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// SessionsCreate handler for the /sessions/create endpoint
+// SessionsCreate handler for the /sessions/novo endpoint
 func (h *HandlerHtml) SessionsCreate(w http.ResponseWriter, r *http.Request) {
 	hoje := time.Now().Format("2006-01-02")
+	services := h.getServices()
+	duracaoPadrao := 60
+	var defaultServiceID int64
+	if len(services) > 0 {
+		defaultServiceID = services[0].ID
+		if services[0].SessionMinutes != nil && *services[0].SessionMinutes > 0 {
+			duracaoPadrao = *services[0].SessionMinutes
+		}
+	}
 	dadosPadrao := map[string]interface{}{
 		"DataFormatada": hoje,
 		"DataPadrao":    hoje,
-		"DuracaoPadrao": "60",
+		"DuracaoPadrao": duracaoPadrao,
 		"Nicknames":     h.getCustomersNicknames(),
+		"Services":      services,
+		"ServiceID":     defaultServiceID,
 	}
 	h.tmpl.ExecuteTemplate(w, "formulario_cadastro", dadosPadrao)
 }
 
-// SessionsSave handler for the /sessions/save endpoint
+// SessionsSave handler for the /sessions/salvar endpoint
 func (h *HandlerHtml) SessionsSave(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	minutes, _ := strconv.Atoi(r.FormValue("add_duracao"))
 	nickname := r.FormValue("add_nickname")
 	status := r.FormValue("add_status")
-	form_service := r.FormValue("add_servico")
+	serviceID, _ := strconv.ParseInt(r.FormValue("add_servico_id"), 10, 64)
+	if serviceID == 0 {
+		serviceID, _ = strconv.ParseInt(r.FormValue("add_servico"), 10, 64)
+	}
 	comment := r.FormValue("add_comentario")
 	svc := service.NewSessionCreate(h.repo, h.logger)
 	req := &dto.SessionCreateRequest{
-		Nickname: nickname,
-		Date:     r.FormValue("add_data"),
-		Minutes:  minutes,
-		Service:  form_service,
-		Status:   status,
-		Comments: comment,
+		Nickname:  nickname,
+		Date:      r.FormValue("add_data"),
+		Minutes:   minutes,
+		ServiceID: serviceID,
+		Status:    status,
+		Comments:  comment,
 	}
 	respdro := svc.Run(req)
 
@@ -154,6 +175,7 @@ func (h *HandlerHtml) SessionsSave(w http.ResponseWriter, r *http.Request) {
 		pagina = 1
 	}
 	dur, _ := strconv.Atoi(r.FormValue("duracao_filtro"))
+	serviceIDFiltro, _ := strconv.ParseInt(r.FormValue("servico_filtro"), 10, 64)
 	svc2 := service.NewSessionList(h.repo, h.logger)
 	req2 := &dto.SessionListRequest{
 		Page:      pagina,
@@ -163,7 +185,7 @@ func (h *HandlerHtml) SessionsSave(w http.ResponseWriter, r *http.Request) {
 		DateEnd:   r.FormValue("data_fim"),
 		Minutes:   dur,
 		Status:    r.FormValue("status"),
-		Service:   r.FormValue("servico_filtro"),
+		ServiceID: serviceIDFiltro,
 		Comments:  r.FormValue("comentario"),
 	}
 	respdro2 := svc2.Run(req2)
@@ -187,7 +209,8 @@ func (h *HandlerHtml) SessionsSave(w http.ResponseWriter, r *http.Request) {
 			"Nicknames":     h.getCustomersNicknames(),
 			"Nickname":      nickname,
 			"Status":        status,
-			"Servico":       form_service,
+			"Services":      h.getServices(),
+			"ServiceID":     serviceID,
 			"Comentario":    comment,
 		}
 		var formBuf strings.Builder
@@ -226,12 +249,12 @@ func (h *HandlerHtml) SessionsTableReset(w http.ResponseWriter, r *http.Request)
 	h.tmpl.ExecuteTemplate(w, "tabela", page)
 }
 
-// SessionsBlockReset handler for the /sessions/block/reset endpoint
+// SessionsBlockReset handler for the /sessions/bloco/limpar endpoint
 func (h *HandlerHtml) SessionsBlockClear(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(""))
 }
 
-// SessionDeleteWarning handler for the /sessions/delete/warning endpoint
+// SessionDeleteWarning handler for the /sessions/deletar-aviso endpoint
 func (h *HandlerHtml) SessionsDeleteWarning(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(r.URL.Query().Get("id"))
 	svc := service.NewSessionList(h.repo, h.logger)
@@ -250,7 +273,7 @@ func (h *HandlerHtml) SessionsDeleteWarning(w http.ResponseWriter, r *http.Reque
 	h.tmpl.ExecuteTemplate(w, "linha_sessao_deletar_aviso", sSel)
 }
 
-// SessionsDelete handler for the /sessions/delete endpoint
+// SessionsDelete handler for the /sessions/deletar endpoint
 func (h *HandlerHtml) SessionsDelete(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(r.URL.Query().Get("id"))
 	svc := service.NewSessionDelete(h.repo, h.logger)
@@ -263,10 +286,19 @@ func (h *HandlerHtml) SessionsDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	pagina, _ := strconv.Atoi(r.FormValue("page"))
+	dur, _ := strconv.Atoi(r.FormValue("duracao_filtro"))
+	serviceIDFiltro, _ := strconv.ParseInt(r.FormValue("servico_filtro"), 10, 64)
 	svc2 := service.NewSessionList(h.repo, h.logger)
 	req2 := &dto.SessionListRequest{
-		Page:     pagina,
-		PageSize: itensPorPag,
+		Page:      pagina,
+		PageSize:  itensPorPag,
+		Nickname:  r.FormValue("nickname"),
+		DateStart: r.FormValue("data_inicio"),
+		DateEnd:   r.FormValue("data_fim"),
+		Minutes:   dur,
+		Status:    r.FormValue("status"),
+		ServiceID: serviceIDFiltro,
+		Comments:  r.FormValue("comentario"),
 	}
 	respdro2 := svc2.Run(req2)
 	if respdro2.GetStatusCode() != 200 {
@@ -284,7 +316,7 @@ func (h *HandlerHtml) SessionsDelete(w http.ResponseWriter, r *http.Request) {
 	h.tmpl.ExecuteTemplate(w, "tabela", page)
 }
 
-// SessionsEdit handler for the /sessions/edit endpoint
+// SessionsEdit handler for the /sessions/editar endpoint
 func (h *HandlerHtml) SessionsEdit(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(r.URL.Query().Get("id"))
 	svc := service.NewSessionList(h.repo, h.logger)
@@ -300,26 +332,30 @@ func (h *HandlerHtml) SessionsEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	dadosPadrao := h.getSessionData(response)[0]
+	dadosPadrao["Services"] = h.getServices()
 	h.tmpl.ExecuteTemplate(w, "linha_sessao_edit", dadosPadrao)
 }
 
-// SessionsUpdate handler for the /sessions/update endpoint.
+// SessionsUpdate handler for the /sessions/atualizar endpoint.
 func (h *HandlerHtml) SessionsUpdate(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	id, _ := strconv.Atoi(r.URL.Query().Get("id"))
 	minutes, _ := strconv.Atoi(r.FormValue("edit_duracao"))
 
 	status := r.FormValue("edit_status")
-	form_service := r.FormValue("edit_servico")
+	serviceID, _ := strconv.ParseInt(r.FormValue("edit_servico_id"), 10, 64)
+	if serviceID == 0 {
+		serviceID, _ = strconv.ParseInt(r.FormValue("edit_servico"), 10, 64)
+	}
 	comment := r.FormValue("edit_comentario")
 	svc := service.NewSessionUpdate(h.repo, h.logger)
 	req := &dto.SessionUpdateRequest{
-		ID:       int64(id),
-		Date:     r.FormValue("edit_data"),
-		Minutes:  minutes,
-		Service:  form_service,
-		Status:   status,
-		Comments: comment,
+		ID:        int64(id),
+		Date:      r.FormValue("edit_data"),
+		Minutes:   minutes,
+		ServiceID: serviceID,
+		Status:    status,
+		Comments:  comment,
 	}
 	respdro := svc.Run(req)
 	if respdro.GetStatusCode() != 200 {
@@ -327,10 +363,19 @@ func (h *HandlerHtml) SessionsUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	pagina, _ := strconv.Atoi(r.FormValue("page"))
+	dur, _ := strconv.Atoi(r.FormValue("duracao_filtro"))
+	serviceIDFiltro, _ := strconv.ParseInt(r.FormValue("servico_filtro"), 10, 64)
 	svc2 := service.NewSessionList(h.repo, h.logger)
 	req2 := &dto.SessionListRequest{
-		Page:     pagina,
-		PageSize: itensPorPag,
+		Page:      pagina,
+		PageSize:  itensPorPag,
+		Nickname:  r.FormValue("nickname"),
+		DateStart: r.FormValue("data_inicio"),
+		DateEnd:   r.FormValue("data_fim"),
+		Minutes:   dur,
+		Status:    r.FormValue("status"),
+		ServiceID: serviceIDFiltro,
+		Comments:  r.FormValue("comentario"),
 	}
 	respdro2 := svc2.Run(req2)
 	if respdro2.GetStatusCode() != 200 {
@@ -348,7 +393,7 @@ func (h *HandlerHtml) SessionsUpdate(w http.ResponseWriter, r *http.Request) {
 	h.tmpl.ExecuteTemplate(w, "tabela", page)
 }
 
-// SessionsCancelEdition handler for the /sessions/cancel/edition endpoint
+// SessionsCancelEdit handler for the /sessions/cancelar-edicao endpoint
 func (h *HandlerHtml) SessionsCancelEdit(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(r.URL.Query().Get("id"))
 	svc := service.NewSessionList(h.repo, h.logger)
@@ -367,12 +412,13 @@ func (h *HandlerHtml) SessionsCancelEdit(w http.ResponseWriter, r *http.Request)
 	h.tmpl.ExecuteTemplate(w, "linha_sessao", sSel)
 }
 
-// SessionsTable handler for the /sessions/table endpoint
+// SessionsTable handler for the /sessions/tabela endpoint
 func (h *HandlerHtml) SessionsTable(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	pagina, _ := strconv.Atoi(r.FormValue("page"))
 	svc := service.NewSessionList(h.repo, h.logger)
 	dur, _ := strconv.Atoi(r.FormValue("duracao_filtro"))
+	serviceIDFiltro, _ := strconv.ParseInt(r.FormValue("servico_filtro"), 10, 64)
 	req := &dto.SessionListRequest{
 		Page:      pagina,
 		PageSize:  itensPorPag,
@@ -381,7 +427,7 @@ func (h *HandlerHtml) SessionsTable(w http.ResponseWriter, r *http.Request) {
 		DateEnd:   r.FormValue("data_fim"),
 		Minutes:   dur,
 		Status:    r.FormValue("status"),
-		Service:   r.FormValue("servico_filtro"),
+		ServiceID: serviceIDFiltro,
 		Comments:  r.FormValue("comentario"),
 	}
 	respdro := svc.Run(req)
@@ -399,7 +445,7 @@ func (h *HandlerHtml) SessionsTable(w http.ResponseWriter, r *http.Request) {
 	h.tmpl.ExecuteTemplate(w, "tabela", page)
 }
 
-// getsessionData2 retrieves the session data based on the provided filters and pagination parameters
+// getSessionData retrieves the session data formatted for template rendering
 func (h *HandlerHtml) getSessionData(response *dto.SessionListResponse) []map[string]interface{} {
 	sessions := response.Sessions
 	if len(sessions) == 0 {
@@ -416,6 +462,7 @@ func (h *HandlerHtml) getSessionData(response *dto.SessionListResponse) []map[st
 			"Duracao":       session.Minutes,
 			"Status":        session.Status,
 			"StatusCor":     statusColors[session.Status],
+			"ServiceID":     session.ServiceID,
 			"Servico":       session.Service,
 			"Comentario":    session.Comments,
 		}
@@ -438,6 +485,7 @@ func (h *HandlerHtml) getPageData(response *dto.SessionListResponse) map[string]
 		"PagAnterior":  page - 1,
 		"PagProxima":   page + 1,
 		"Nicknames":    h.getCustomersNicknames(),
+		"Services":     h.getServices(),
 	}
 	return ret
 }
@@ -454,4 +502,14 @@ func (h *HandlerHtml) getCustomersNicknames() []string {
 		nicknames = append(nicknames, c.Nickname)
 	}
 	return nicknames
+}
+
+// getServices retrieves all services for vendor 1
+func (h *HandlerHtml) getServices() []domain.Service {
+	services, err := h.repo.FindServices(1)
+	if err != nil {
+		h.logger.IPrintf(2, "Failed to retrieve services: %v", err)
+		return nil
+	}
+	return services
 }

@@ -44,6 +44,12 @@ func (d *dummyRepo) FindVendors(page, pageSize int, legalName, nickname, documen
 func (d *dummyRepo) GetVendor(nickname string) (*domain.Vendor, error) {
 	return nil, nil
 }
+func (d *dummyRepo) FindServices(vendorID int64) ([]domain.Service, error) {
+	return nil, nil
+}
+func (d *dummyRepo) GetServiceByID(id int64) (*domain.Service, error) {
+	return nil, nil
+}
 
 func TestRootEndpointServesStaticIndex(t *testing.T) {
 	// Change working directory to planner/backend for test to resolve web/static

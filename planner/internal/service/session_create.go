@@ -50,5 +50,5 @@ func (s *SessionCreate) createSessionModel(input port.InDTO) interface{} {
 	if req.Comments != "" {
 		comments = &req.Comments
 	}
-	return domain.NewSession(req.CustomerID, dtime, req.Minutes, req.Service, req.Status, comments)
+	return domain.NewSession(req.CustomerID, req.ServiceID, dtime, req.Minutes, req.Status, comments)
 }

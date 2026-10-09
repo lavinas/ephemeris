@@ -66,8 +66,8 @@ func (s *SessionUpdate) updateSessionModel(sessionModel *domain.Session, req *dt
 	if req.Minutes > 0 {
 		sessionModel.SessionMinutes = req.Minutes
 	}
-	if req.Service != "" {
-		sessionModel.SessionService = req.Service
+	if req.ServiceID > 0 {
+		sessionModel.ServiceID = req.ServiceID
 	}
 	if req.Status != "" {
 		sessionModel.SessionStatus = req.Status

@@ -27,9 +27,10 @@ type Session struct {
 	ID             int64      `gorm:"primaryKey;autoIncrement"`
 	CustomerID     int64      `gorm:"not null;index"`
 	Customer       *Customer  `gorm:"foreignKey:CustomerID;references:ID"`
+	ServiceID      int64      `gorm:"not null;index"`
+	Service        *Service   `gorm:"foreignKey:ServiceID;references:ID"`
 	SessionDate    time.Time  `gorm:"not null"`
 	SessionMinutes int        `gorm:"not null"`
-	SessionService string     `gorm:"not null"`
 	SessionStatus  string     `gorm:"not null"`
 	Comments       *string    `gorm:"type:text"`
 	CreatedAt      time.Time  `gorm:"not null"`
@@ -38,11 +39,11 @@ type Session struct {
 }
 
 // NewSession creates a Session object
-func NewSession(customerID int64, date time.Time, minutes int, service string, status string, comments *string) *Session {
+func NewSession(customerID, serviceID int64, date time.Time, minutes int, status string, comments *string) *Session {
 	return &Session{
 		CustomerID:     customerID,
+		ServiceID:      serviceID,
 		SessionDate:    date,
-		SessionService: service,
 		SessionStatus:  status,
 		SessionMinutes: minutes,
 		Comments:       comments,
@@ -59,7 +60,7 @@ func (Session) TableName() string {
 
 // Find is a helper function to find records in the database
 func (s *Session) Find(repository SessionRepository, page, pagesize int, id int64, customerIDs []int64, startDate, endDate time.Time,
-	minutes int, service, status string, comments string) ([]Session, int64, error) {
+	minutes int, serviceID int64, status string, comments string) ([]Session, int64, error) {
 	conditions := map[string]interface{}{}
 	conditions["deleted_at IS NULL"] = nil
 	if id != 0 {
@@ -79,8 +80,8 @@ func (s *Session) Find(repository SessionRepository, page, pagesize int, id int6
 	if minutes != 0 {
 		conditions["session_minutes = ?"] = minutes
 	}
-	if service != "" {
-		conditions["session_service = ?"] = service
+	if serviceID != 0 {
+		conditions["service_id = ?"] = serviceID
 	}
 	if status != "" {
 		conditions["session_status = ?"] = status
@@ -107,7 +108,7 @@ func (s *Session) Find(repository SessionRepository, page, pagesize int, id int6
 
 // FindCustomerIDs is a helper function to find distinct session customer IDs in the database based on conditions
 func (s *Session) FindCustomerIDs(repository SessionRepository, startDate, endDate time.Time,
-	minutes int, service, status string) ([]int64, error) {
+	minutes int, serviceID int64, status string) ([]int64, error) {
 	conditions := map[string]interface{}{}
 	conditions["deleted_at IS NULL"] = nil
 	if !startDate.IsZero() {
@@ -119,8 +120,8 @@ func (s *Session) FindCustomerIDs(repository SessionRepository, startDate, endDa
 	if minutes != 0 {
 		conditions["session_minutes = ?"] = minutes
 	}
-	if service != "" {
-		conditions["session_service = ?"] = service
+	if serviceID != 0 {
+		conditions["service_id = ?"] = serviceID
 	}
 	if status != "" {
 		conditions["session_status = ?"] = status
@@ -144,4 +145,3 @@ func (s *Session) FindCustomerIDs(repository SessionRepository, startDate, endDa
 	}
 	return ids, nil
 }
-
