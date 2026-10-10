@@ -311,26 +311,28 @@
 	{{end}}
 
 	{{define "formulario_cadastro"}}
-	<div class="linha-box-plano formulario-add p-6 rounded-xl border border-indigo-500 shadow-xl mb-6" style="background-color: #1e1b4b; border-color: #6366f1; color: #f3f4f6;">
+	<div class="linha-box-plano formulario-add p-4 rounded-xl border border-indigo-600 bg-white mb-6 shadow-lg">
 		{{if .ErrorMessage}}
-			<div class="mb-4 p-3 bg-red-900 border border-red-700 text-red-200 text-sm rounded-lg flex items-center gap-2">
-				<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+			<div class="mb-3 p-3 bg-rose-50 border border-rose-200 text-rose-800 text-xs rounded-lg flex items-center gap-2">
+				<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0 text-rose-600" viewBox="0 0 20 20" fill="currentColor">
 					<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
 				</svg>
 				<span>{{.ErrorMessage}}</span>
 			</div>
 		{{end}}
 		<form hx-post="/html/planos/salvar" hx-target="#tabela-container-planos" class="w-full" onsubmit="if(!validarOrdensItens(this)){event.preventDefault(); return false;}">
-			<div class="flex items-center justify-between pb-3 mb-4 border-b border-indigo-800">
-				<h3 class="text-sm font-bold text-indigo-300 uppercase tracking-wider">Novo Plano de Serviço</h3>
-				<button type="button" hx-get="/html/planos/bloco/limpar" hx-target="#formulario-cadastro-container-planos" class="text-gray-400 hover:text-white text-xs">✕ Cancelar</button>
+			<div class="flex items-center justify-between pb-2 mb-3 border-b border-gray-200">
+				<div class="text-xs font-bold text-indigo-700 uppercase">Novo Plano de Serviço</div>
+				<button type="button" hx-get="/html/planos/bloco/limpar" hx-target="#formulario-cadastro-container-planos"
+						class="text-xs text-gray-500 hover:text-gray-700 cursor-pointer">✕ Cancelar</button>
 			</div>
 
-			<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+			<!-- Datas e Informações Principais -->
+			<div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
 				<div>
-					<label class="block text-xs font-semibold text-gray-300 mb-1">CLIENTE (NICKNAME) *</label>
+					<label class="block text-[11px] font-semibold text-gray-600 mb-1">CLIENTE (NICKNAME) *</label>
 					<input type="text" name="add_nickname" value="{{.Nickname}}" placeholder="ex: cliente_1" required list="lista-nicknames-add-planos"
-						   class="w-full p-2 bg-gray-900 border border-indigo-700 rounded text-sm text-white focus:outline-none focus:border-indigo-400">
+						   class="input-inline-tabela">
 					<datalist id="lista-nicknames-add-planos">
 						{{range .Nicknames}}
 							<option value="{{.}}">
@@ -338,20 +340,17 @@
 					</datalist>
 				</div>
 				<div>
-					<label class="block text-xs font-semibold text-gray-300 mb-1">DATA INÍCIO *</label>
-					<input type="date" name="add_plan_start" value="{{.PlanStartPadrao}}" required
-						   class="w-full p-2 bg-gray-900 border border-indigo-700 rounded text-sm text-white focus:outline-none focus:border-indigo-400">
+					<label class="block text-[11px] font-semibold text-gray-600 mb-1">DATA INÍCIO *</label>
+					<input type="date" name="add_plan_start" value="{{.PlanStartPadrao}}" required class="input-inline-tabela">
 				</div>
 				<div>
-					<label class="block text-xs font-semibold text-gray-300 mb-1">DATA FIM (OPCIONAL)</label>
-					<input type="date" name="add_plan_end" value="{{.PlanEndPadrao}}"
-						   class="w-full p-2 bg-gray-900 border border-indigo-700 rounded text-sm text-white focus:outline-none focus:border-indigo-400">
-					<span class="text-[10px] text-gray-400">Deixe vazio para plano em andamento</span>
+					<label class="block text-[11px] font-semibold text-gray-600 mb-1">DATA FIM (OPCIONAL)</label>
+					<input type="date" name="add_plan_end" value="{{.PlanEndPadrao}}" class="input-inline-tabela">
+					<span class="text-[10px] text-gray-500">Deixe vazio para plano em andamento</span>
 				</div>
 				<div>
-					<label class="block text-xs font-semibold text-gray-300 mb-1">TIPO DE PLANO *</label>
-					<select name="add_plan_type" onchange="alternarTipoPlano(this)" required
-							class="w-full p-2 bg-gray-900 border border-indigo-700 rounded text-sm text-white focus:outline-none focus:border-indigo-400">
+					<label class="block text-[11px] font-semibold text-gray-600 mb-1">TIPO DE PLANO *</label>
+					<select name="add_plan_type" onchange="alternarTipoPlano(this)" required class="input-inline-tabela">
 						<option value="1" {{if eq .PlanType 1}}selected{{end}}>Agenda (Recorrente)</option>
 						<option value="2" {{if eq .PlanType 2}}selected{{end}}>Pacote de Sessões</option>
 						<option value="3" {{if eq .PlanType 3}}selected{{end}}>Caderneta</option>
@@ -360,86 +359,86 @@
 			</div>
 
 			<!-- Valor Global do Plano (Opcional caso itens tenham valor) -->
-			<div class="p-3 bg-gray-900 rounded-lg border border-gray-800 mb-4">
+			<div class="p-3 bg-indigo-50/50 border border-indigo-100 rounded-lg mb-3">
 				<div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
 					<div>
-						<label class="block text-xs font-semibold text-gray-300 mb-1">VALOR GLOBAL DO PLANO (R$)</label>
-						<span class="text-[11px] text-indigo-400">Preencha caso o plano tenha valor único global. Se for cobrar individualmente por serviço, deixe vazio e preencha os valores nos itens.</span>
+						<label class="block text-[11px] font-semibold text-gray-600 mb-0.5">VALOR GLOBAL DO PLANO (R$)</label>
+						<span class="text-[10px] text-gray-500">Preencha caso o plano tenha valor único global. Se for cobrar individualmente por serviço, deixe vazio e preencha os valores nos itens.</span>
 					</div>
 					<div class="w-full md:w-56">
 						<input type="number" step="0.01" min="0" name="add_price" id="add_price_input" value="{{.PricePadrao}}" placeholder="Exclusivo c/ itens"
 							   oninput="if(this.value) { document.querySelectorAll('#itens-cadastro-planos .item-price-input').forEach(function(e){ e.value=''; }); }"
-							   class="w-full p-2 bg-gray-950 border border-gray-700 rounded text-sm text-white focus:outline-none focus:border-indigo-400">
+							   class="input-inline-tabela text-xs">
 					</div>
 				</div>
 			</div>
 
 			<!-- Serviços do Plano (Itens) -->
-			<div class="mb-4 p-4 bg-gray-900 rounded-lg border border-indigo-900/60">
-				<div class="flex items-center justify-between mb-3 pb-2 border-b border-gray-800">
+			<div class="p-3 bg-indigo-50/50 border border-indigo-100 rounded-lg mb-3">
+				<div class="flex items-center justify-between mb-2 pb-1.5 border-b border-indigo-100">
 					<div>
-						<h4 class="text-xs font-bold text-indigo-300 uppercase tracking-wider">Serviços do Plano (Itens) *</h4>
-						<span class="text-[11px] text-gray-400">O primeiro serviço é o principal. Adicione outros itens caso o plano contemple múltiplos serviços.</span>
+						<div class="text-[11px] font-bold text-indigo-900 uppercase">Serviços do Plano (Itens) *</div>
+						<span class="text-[10px] text-gray-500">O primeiro serviço é o principal. Defina os serviços contratados e a ordem de execução.</span>
 					</div>
 					<button type="button" onclick="adicionarItemPlano('itens-cadastro-planos', 'template-item-plano-add')"
-							class="text-xs font-semibold text-indigo-400 hover:text-indigo-300 bg-indigo-950/70 hover:bg-indigo-900/80 px-3 py-1.5 rounded border border-indigo-700 transition cursor-pointer flex items-center gap-1 shadow-sm">
+							class="text-[11px] font-semibold text-indigo-700 hover:text-indigo-900 bg-white hover:bg-indigo-50 px-2.5 py-1 rounded border border-indigo-200 transition cursor-pointer flex items-center gap-1 shadow-sm">
 						<span>＋</span> Adicionar outro serviço
 					</button>
 				</div>
 
 				<div id="itens-cadastro-planos" class="space-y-2">
 					{{range $i, $item := .Items}}
-						<div class="linha-item-plano flex items-center gap-3 p-2.5 bg-gray-950 rounded-lg border border-gray-800">
+						<div class="linha-item-plano flex items-center gap-2.5 p-2 bg-white rounded border border-gray-200 shadow-sm">
 							<div class="flex-1">
-								<label class="block text-[10px] font-semibold text-gray-400 mb-1">SERVIÇO {{if eq $item.OrderIndex 1}}(PRINCIPAL){{end}} *</label>
-								<select name="add_servico_id" required class="w-full p-2 bg-gray-900 border border-gray-700 rounded text-xs text-white focus:outline-none focus:border-indigo-400">
+								<label class="block text-[10px] font-semibold text-gray-500 mb-0.5">SERVIÇO {{if eq $item.OrderIndex 1}}(PRINCIPAL){{end}} *</label>
+								<select name="add_servico_id" required class="input-inline-tabela text-xs">
 									{{range $.Services}}
 										<option value="{{.ID}}" {{if eq .ID $item.ServiceID}}selected{{end}}>{{.Name}}</option>
 									{{end}}
 								</select>
 							</div>
 							<div class="w-24">
-								<label class="block text-[10px] font-semibold text-gray-400 mb-1">ORDEM *</label>
+								<label class="block text-[10px] font-semibold text-gray-500 mb-0.5">ORDEM *</label>
 								<input type="number" min="1" name="add_order_index" value="{{$item.OrderIndex}}" required
-									   class="w-full p-2 bg-gray-900 border border-gray-700 rounded text-xs text-white text-center focus:outline-none focus:border-indigo-400 input-order-index">
+									   class="input-inline-tabela text-xs text-center input-order-index">
 							</div>
 							<div class="w-36">
-								<label class="block text-[10px] font-semibold text-gray-400 mb-1">VALOR ITEM (R$)</label>
+								<label class="block text-[10px] font-semibold text-gray-500 mb-0.5">VALOR ITEM (R$)</label>
 								<input type="number" step="0.01" min="0" name="add_item_price" value="{{$item.PriceFormatado}}" placeholder="Opcional"
 									   oninput="if(this.value) { var gp = document.getElementById('add_price_input'); if(gp) gp.value=''; }"
-									   class="w-full p-2 bg-gray-900 border border-gray-700 rounded text-xs text-white focus:outline-none focus:border-indigo-400 item-price-input">
+									   class="input-inline-tabela text-xs item-price-input">
 							</div>
-							<div class="pt-4">
+							<div class="pt-3">
 								<button type="button" onclick="removerItemPlano(this)"
-										class="p-2 text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 rounded transition cursor-pointer" title="Remover item">
+										class="p-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded transition cursor-pointer" title="Remover item">
 									✕
 								</button>
 							</div>
 						</div>
 					{{else}}
-						<div class="linha-item-plano flex items-center gap-3 p-2.5 bg-gray-950 rounded-lg border border-gray-800">
+						<div class="linha-item-plano flex items-center gap-2.5 p-2 bg-white rounded border border-gray-200 shadow-sm">
 							<div class="flex-1">
-								<label class="block text-[10px] font-semibold text-gray-400 mb-1">SERVIÇO (PRINCIPAL) *</label>
-								<select name="add_servico_id" required class="w-full p-2 bg-gray-900 border border-gray-700 rounded text-xs text-white focus:outline-none focus:border-indigo-400">
+								<label class="block text-[10px] font-semibold text-gray-500 mb-0.5">SERVIÇO (PRINCIPAL) *</label>
+								<select name="add_servico_id" required class="input-inline-tabela text-xs">
 									{{range .Services}}
 										<option value="{{.ID}}" {{if eq .ID $.DefaultServiceID}}selected{{end}}>{{.Name}}</option>
 									{{end}}
 								</select>
 							</div>
 							<div class="w-24">
-								<label class="block text-[10px] font-semibold text-gray-400 mb-1">ORDEM *</label>
+								<label class="block text-[10px] font-semibold text-gray-500 mb-0.5">ORDEM *</label>
 								<input type="number" min="1" name="add_order_index" value="1" required
-									   class="w-full p-2 bg-gray-900 border border-gray-700 rounded text-xs text-white text-center focus:outline-none focus:border-indigo-400 input-order-index">
+									   class="input-inline-tabela text-xs text-center input-order-index">
 							</div>
 							<div class="w-36">
-								<label class="block text-[10px] font-semibold text-gray-400 mb-1">VALOR ITEM (R$)</label>
+								<label class="block text-[10px] font-semibold text-gray-500 mb-0.5">VALOR ITEM (R$)</label>
 								<input type="number" step="0.01" min="0" name="add_item_price" placeholder="Opcional"
 									   oninput="if(this.value) { var gp = document.getElementById('add_price_input'); if(gp) gp.value=''; }"
-									   class="w-full p-2 bg-gray-900 border border-gray-700 rounded text-xs text-white focus:outline-none focus:border-indigo-400 item-price-input">
+									   class="input-inline-tabela text-xs item-price-input">
 							</div>
-							<div class="pt-4">
+							<div class="pt-3">
 								<button type="button" onclick="removerItemPlano(this)"
-										class="p-2 text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 rounded transition cursor-pointer" title="Remover item">
+										class="p-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded transition cursor-pointer" title="Remover item">
 									✕
 								</button>
 							</div>
@@ -449,29 +448,29 @@
 			</div>
 
 			<template id="template-item-plano-add">
-				<div class="linha-item-plano flex items-center gap-3 p-2.5 bg-gray-950 rounded-lg border border-gray-800">
+				<div class="linha-item-plano flex items-center gap-2.5 p-2 bg-white rounded border border-gray-200 shadow-sm">
 					<div class="flex-1">
-						<label class="block text-[10px] font-semibold text-gray-400 mb-1">SERVIÇO *</label>
-						<select name="add_servico_id" required class="w-full p-2 bg-gray-900 border border-gray-700 rounded text-xs text-white focus:outline-none focus:border-indigo-400">
+						<label class="block text-[10px] font-semibold text-gray-500 mb-0.5">SERVIÇO *</label>
+						<select name="add_servico_id" required class="input-inline-tabela text-xs">
 							{{range .Services}}
 								<option value="{{.ID}}">{{.Name}}</option>
 							{{end}}
 						</select>
 					</div>
 					<div class="w-24">
-						<label class="block text-[10px] font-semibold text-gray-400 mb-1">ORDEM *</label>
+						<label class="block text-[10px] font-semibold text-gray-500 mb-0.5">ORDEM *</label>
 						<input type="number" min="1" name="add_order_index" value="1" required
-							   class="w-full p-2 bg-gray-900 border border-gray-700 rounded text-xs text-white text-center focus:outline-none focus:border-indigo-400 input-order-index">
+							   class="input-inline-tabela text-xs text-center input-order-index">
 					</div>
 					<div class="w-36">
-						<label class="block text-[10px] font-semibold text-gray-400 mb-1">VALOR ITEM (R$)</label>
+						<label class="block text-[10px] font-semibold text-gray-500 mb-0.5">VALOR ITEM (R$)</label>
 						<input type="number" step="0.01" min="0" name="add_item_price" placeholder="Opcional"
 							   oninput="if(this.value) { var gp = document.getElementById('add_price_input'); if(gp) gp.value=''; }"
-							   class="w-full p-2 bg-gray-900 border border-gray-700 rounded text-xs text-white focus:outline-none focus:border-indigo-400 item-price-input">
+							   class="input-inline-tabela text-xs item-price-input">
 					</div>
-					<div class="pt-4">
+					<div class="pt-3">
 						<button type="button" onclick="removerItemPlano(this)"
-								class="p-2 text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 rounded transition cursor-pointer" title="Remover item">
+								class="p-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded transition cursor-pointer" title="Remover item">
 							✕
 						</button>
 					</div>
@@ -479,20 +478,20 @@
 			</template>
 
 			<!-- Seção Especializada: AGENDA (Tipo 1) -->
-			<div class="secao-agenda mb-4 p-4 bg-gray-900 rounded-lg border border-indigo-900 {{if and (ne .PlanType 1) (ne .PlanType 0)}}oculto{{end}}">
-				<h4 class="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-3">Configurações da Agenda Recorrente</h4>
-				<div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+			<div class="secao-agenda p-3 bg-indigo-50 border border-indigo-100 rounded-lg mb-3 {{if and (ne .PlanType 1) (ne .PlanType 0)}}oculto{{end}}">
+				<div class="text-[11px] font-bold text-indigo-800 uppercase mb-2">Configurações de Agenda</div>
+				<div class="grid grid-cols-1 md:grid-cols-5 gap-2">
 					<div>
-						<label class="block text-xs text-gray-400 mb-1">Recorrência *</label>
-						<select name="add_agenda_recorrencia" class="w-full p-2 bg-gray-950 border border-gray-700 rounded text-xs text-white">
+						<label class="block text-[10px] text-gray-600 mb-0.5">Recorrência</label>
+						<select name="add_agenda_recorrencia" class="input-inline-tabela text-xs">
 							<option value="1">Semanal</option>
 							<option value="2">Quinzenal</option>
 							<option value="3">Mensal</option>
 						</select>
 					</div>
 					<div>
-						<label class="block text-xs text-gray-400 mb-1">Dia da Semana *</label>
-						<select name="add_agenda_dia_semana" class="w-full p-2 bg-gray-950 border border-gray-700 rounded text-xs text-white">
+						<label class="block text-[10px] text-gray-600 mb-0.5">Dia da Semana</label>
+						<select name="add_agenda_dia_semana" class="input-inline-tabela text-xs">
 							<option value="2">Segunda-feira</option>
 							<option value="3">Terça-feira</option>
 							<option value="4">Quarta-feira</option>
@@ -503,77 +502,73 @@
 						</select>
 					</div>
 					<div>
-						<label class="block text-xs text-gray-400 mb-1">Vigência *</label>
-						<select name="add_agenda_vigencia" class="w-full p-2 bg-gray-950 border border-gray-700 rounded text-xs text-white">
-							<option value="1">1 - Pré-pago</option>
-							<option value="2">2 - Pós-pago</option>
+						<label class="block text-[10px] text-gray-600 mb-0.5">Vigência</label>
+						<select name="add_agenda_vigencia" class="input-inline-tabela text-xs">
+							<option value="1">Pré-pago</option>
+							<option value="2">Pós-pago</option>
 						</select>
 					</div>
 					<div>
-						<label class="block text-xs text-gray-400 mb-1">Dia Cobrança (1-31) *</label>
-						<input type="number" name="add_agenda_dia_pagamento" min="1" max="31" value="10" required
-							   class="w-full p-2 bg-gray-950 border border-gray-700 rounded text-xs text-white">
+						<label class="block text-[10px] text-gray-600 mb-0.5">Dia Cobrança (1-31)</label>
+						<input type="number" name="add_agenda_dia_pagamento" min="1" max="31" value="10" required class="input-inline-tabela text-xs">
 					</div>
 					<div>
-						<label class="block text-xs text-gray-400 mb-1">Limite Mensal</label>
-						<input type="number" name="add_agenda_limite" min="1" placeholder="Opcional"
-							   class="w-full p-2 bg-gray-950 border border-gray-700 rounded text-xs text-white">
+						<label class="block text-[10px] text-gray-600 mb-0.5">Limite Mensal</label>
+						<input type="number" name="add_agenda_limite" min="1" placeholder="Livre" class="input-inline-tabela text-xs">
 					</div>
 				</div>
 			</div>
 
 			<!-- Seção Especializada: PACOTE (Tipo 2) -->
-			<div class="secao-pacote mb-4 p-4 bg-gray-900 rounded-lg border border-blue-900 {{if ne .PlanType 2}}oculto{{end}}">
-				<h4 class="text-xs font-bold text-blue-400 uppercase tracking-wider mb-3">Configurações do Pacote de Sessões</h4>
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+			<div class="secao-pacote p-3 bg-blue-50 border border-blue-100 rounded-lg mb-3 {{if ne .PlanType 2}}oculto{{end}}">
+				<div class="text-[11px] font-bold text-blue-800 uppercase mb-2">Configurações de Pacote</div>
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
 					<div>
-						<label class="block text-xs text-gray-400 mb-1">Quantidade de Sessões *</label>
-						<input type="number" name="add_pacote_quantidade" min="1" value="4"
-							   class="w-full p-2 bg-gray-950 border border-gray-700 rounded text-sm text-white">
+						<label class="block text-[10px] text-gray-600 mb-0.5">Quantidade de Sessões</label>
+						<input type="number" name="add_pacote_quantidade" min="1" value="4" class="input-inline-tabela text-xs">
 					</div>
 					<div>
-						<label class="block text-xs text-gray-400 mb-1">Data do Pagamento *</label>
-						<input type="date" name="add_pacote_data_pagamento" value="{{.PlanStartPadrao}}"
-							   class="w-full p-2 bg-gray-950 border border-gray-700 rounded text-sm text-white">
+						<label class="block text-[10px] text-gray-600 mb-0.5">Data do Pagamento</label>
+						<input type="date" name="add_pacote_data_pagamento" value="{{.PlanStartPadrao}}" class="input-inline-tabela text-xs">
 					</div>
 				</div>
 			</div>
 
 			<!-- Seção Especializada: CADERNETA (Tipo 3) -->
-			<div class="secao-caderneta mb-4 p-4 bg-gray-900 rounded-lg border border-amber-900 {{if ne .PlanType 3}}oculto{{end}}">
-				<h4 class="text-xs font-bold text-amber-400 uppercase tracking-wider mb-2">Configurações da Caderneta</h4>
-				<p class="text-xs text-gray-400 mb-3">Escolha apenas UMA forma de pagamento (exclusiva):</p>
+			<div class="secao-caderneta p-3 bg-amber-50 border border-amber-100 rounded-lg mb-3 {{if ne .PlanType 3}}oculto{{end}}">
+				<div class="text-[11px] font-bold text-amber-800 uppercase mb-2">Configurações de Caderneta (Preencha apenas um)</div>
+				<p class="text-[10px] text-gray-600 mb-2">Escolha apenas UMA forma de pagamento (exclusiva):</p>
 				<div class="flex items-center gap-6 mb-3">
-					<label class="inline-flex items-center gap-2 text-xs text-gray-300 cursor-pointer">
+					<label class="inline-flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
 						<input type="radio" name="caderneta_modo" value="dia" checked onchange="alternarModoCaderneta(this)">
 						<span>Dia Fixo do Mês (1-31)</span>
 					</label>
-					<label class="inline-flex items-center gap-2 text-xs text-gray-300 cursor-pointer">
+					<label class="inline-flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
 						<input type="radio" name="caderneta_modo" value="prazo" onchange="alternarModoCaderneta(this)">
 						<span>Prazo de Pagamento (dias corridos)</span>
 					</label>
 				</div>
-				<div class="box-caderneta-dia max-w-xs">
-					<label class="block text-xs text-gray-400 mb-1">Dia do Mês para Cobrança (1 a 31) *</label>
-					<input type="number" name="add_caderneta_dia_pagamento" min="1" max="31" value="5"
-						   class="w-full p-2 bg-gray-950 border border-gray-700 rounded text-sm text-white">
-				</div>
-				<div class="box-caderneta-prazo max-w-xs oculto">
-					<label class="block text-xs text-gray-400 mb-1">Prazo de Pagamento (dias após fechamento) *</label>
-					<input type="number" name="add_caderneta_prazo_pagamento" min="0" placeholder="ex: 30"
-						   class="w-full p-2 bg-gray-950 border border-gray-700 rounded text-sm text-white">
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+					<div class="box-caderneta-dia">
+						<label class="block text-[10px] text-gray-600 mb-0.5">Dia de Pagamento no Mês (1-31)</label>
+						<input type="number" min="1" max="31" name="add_caderneta_dia_pagamento" value="5" placeholder="Vazio se for prazo" class="input-inline-tabela text-xs">
+					</div>
+					<div class="box-caderneta-prazo oculto">
+						<label class="block text-[10px] text-gray-600 mb-0.5">Prazo de Pagamento (dias)</label>
+						<input type="number" min="0" name="add_caderneta_prazo_pagamento" placeholder="Vazio se for dia fixo" class="input-inline-tabela text-xs">
+					</div>
 				</div>
 			</div>
 
-			<div class="flex justify-end gap-3 pt-3 border-t border-indigo-900">
+			<div class="flex justify-end gap-2 pt-2 border-t border-gray-200">
 				<button type="button" hx-get="/html/planos/bloco/limpar" hx-target="#formulario-cadastro-container-planos"
-						class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-medium rounded-lg transition cursor-pointer">
+						class="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-medium rounded transition cursor-pointer">
 					Cancelar
 				</button>
 				<button type="submit"
-						class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg shadow-lg transition cursor-pointer flex items-center gap-2"
+						class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded shadow transition cursor-pointer"
 						style="background-color: #4f46e5;">
-					<span>Salvar Plano</span>
+					Salvar Plano
 				</button>
 			</div>
 		</form>
