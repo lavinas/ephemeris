@@ -16,10 +16,10 @@ const (
 	// ServerShutdownTimeout is the timeout duration for server shutdown
 	ServerShutdownTimeout = 10 * time.Second
 
-	// htmlTemplatePath = "./web/templates/sessions3.html"
-
-	htmlTemplatePath = "/app/web/templates/sessions.html"
-
+	htmlTemplatePath       = "/app/web/templates/sessions.html"
+	localHtmlTemplatePath  = "./web/templates/sessions.html"
+	plansTemplatePath      = "/app/web/templates/plans.html"
+	localPlansTemplatePath = "./web/templates/plans.html"
 )
 
 // Handler is an HTTP handler for the API
@@ -39,12 +39,16 @@ func NewHandler(repo port.Repository, logger port.Logger) *Handler {
 // run runs the API server on the specified address
 func (h *Handler) Run(addr string) error {
 	// Start the server and handle graceful shutdown
-	template, err := h.getHtmlTemplate()
+	sessionsTemplate, err := h.getHtmlTemplate()
 	if err != nil {
-		return fmt.Errorf("error getting HTML template: %v", err)
+		return fmt.Errorf("error getting HTML sessions template: %v", err)
 	}
-	h.logger.IPrintf(0, "HTML template loaded successfully")
-	mainMux, err := NewRoutes(h.repo, h.logger, template)
+	plansTemplate, err := h.getPlansTemplate()
+	if err != nil {
+		h.logger.IPrintf(1, "Warning reading plans template (%v), fallback will be used", err)
+	}
+	h.logger.IPrintf(0, "HTML templates loaded successfully")
+	mainMux, err := NewRoutes(h.repo, h.logger, sessionsTemplate, plansTemplate)
 	if err != nil {
 		return fmt.Errorf("error creating routes: %v", err)
 	}
@@ -56,14 +60,22 @@ func (h *Handler) Run(addr string) error {
 	return nil
 }
 
-// getHtmlTemplate returns the HTML template path
+// getHtmlTemplate returns the HTML sessions template
 func (h *Handler) getHtmlTemplate() ([]byte, error) {
 	template, err := os.ReadFile(htmlTemplatePath)
-	if err != nil {
-		h.logger.IPrintf(0, "error reading HTML template: %v", err)
-		return nil, err
+	if err == nil {
+		return template, nil
 	}
-	return template, nil
+	return os.ReadFile(localHtmlTemplatePath)
+}
+
+// getPlansTemplate returns the HTML plans template
+func (h *Handler) getPlansTemplate() ([]byte, error) {
+	template, err := os.ReadFile(plansTemplatePath)
+	if err == nil {
+		return template, nil
+	}
+	return os.ReadFile(localPlansTemplatePath)
 }
 
 // exec executes the server and handles graceful shutdown

@@ -1,0 +1,681 @@
+	{{define "fragment"}}
+	<script src="https://cdn.tailwindcss.com"></script>
+	<script>
+		function alternarTipoPlano(selectElem) {
+			if (!selectElem) return;
+			var val = selectElem.value;
+			var form = selectElem.closest('form');
+			if (!form) return;
+			var secAgenda = form.querySelector('.secao-agenda');
+			var secPacote = form.querySelector('.secao-pacote');
+			var secCaderneta = form.querySelector('.secao-caderneta');
+			if (secAgenda) { if (val === "1") { secAgenda.classList.remove('oculto'); } else { secAgenda.classList.add('oculto'); } }
+			if (secPacote) { if (val === "2") { secPacote.classList.remove('oculto'); } else { secPacote.classList.add('oculto'); } }
+			if (secCaderneta) { if (val === "3") { secCaderneta.classList.remove('oculto'); } else { secCaderneta.classList.add('oculto'); } }
+		}
+		function alternarModoCaderneta(radioElem) {
+			if (!radioElem) return;
+			var form = radioElem.closest('form');
+			if (!form) return;
+			var modo = radioElem.value;
+			var boxDia = form.querySelector('.box-caderneta-dia');
+			var boxPrazo = form.querySelector('.box-caderneta-prazo');
+			var inputDia = form.querySelector('input[name="add_caderneta_dia_pagamento"], input[name="edit_caderneta_dia_pagamento"]');
+			var inputPrazo = form.querySelector('input[name="add_caderneta_prazo_pagamento"], input[name="edit_caderneta_prazo_pagamento"]');
+			if (modo === "dia") {
+				if (boxDia) boxDia.classList.remove('oculto');
+				if (boxPrazo) boxPrazo.classList.add('oculto');
+				if (inputPrazo) inputPrazo.value = "";
+			} else {
+				if (boxDia) boxDia.classList.add('oculto');
+				if (boxPrazo) boxPrazo.classList.remove('oculto');
+				if (inputDia) inputDia.value = "";
+			}
+		}
+	</script>
+	<style>
+		.grade-filtros-planos {
+			display: grid !important;
+			grid-template-columns: 1.5fr 1.2fr 1.3fr 1.3fr 1.3fr !important;
+			gap: 12px !important;
+			width: 100% !important;
+			box-sizing: border-box !important;
+		}
+		.grade-tabela-planos {
+			display: grid !important;
+			grid-template-columns: 1.8fr 1.1fr 1.6fr 1.8fr 2.6fr 1.1fr 1.2fr !important;
+			gap: 16px !important;
+			align-items: center !important;
+			width: 100% !important;
+			box-sizing: border-box !important;
+			padding: 16px 20px !important;
+		}
+		.topo-tabela-planos {
+			color: #9ca3af !important;
+			font-size: 11px !important;
+			font-weight: 700 !important;
+			text-transform: uppercase !important;
+			letter-spacing: 0.05em !important;
+			border-bottom: 1px solid #374151 !important;
+			padding-bottom: 12px !important;
+			margin-bottom: 12px !important;
+		}
+		.linha-box-plano {
+			background-color: #f3f4f6 !important;
+			border: 1px solid #e5e7eb !important;
+			border-radius: 8px !important;
+			margin-bottom: 8px !important;
+			color: #1f2937 !important;
+			transition: background-color 0.15s ease !important;
+			box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+		}
+		.linha-box-plano.formulario-add, .linha-box-plano.formulario-edit, .linha-box-plano.aviso-deletar {
+			background-color: #ffffff !important;
+			border: 1px solid #4f46e5 !important;
+			color: #1f2937 !important;
+		}
+		.linha-box-plano.aviso-deletar { border-color: #e11d48 !important; }
+		.linha-box-plano:hover:not(.formulario-add):not(.formulario-edit):not(.aviso-deletar) {
+			background-color: #e5e7eb !important;
+		}
+		.campo-box-plano {
+			background-color: #1f2937 !important;
+			border: 1px solid #374151 !important;
+			padding: 12px !important;
+			border-radius: 8px !important;
+			display: flex !important;
+			flex-direction: column !important;
+		}
+		.campo-box-plano label {
+			display: block !important;
+			font-size: 11px !important;
+			font-weight: 600 !important;
+			color: #9ca3af !important;
+			text-transform: uppercase !important;
+			margin-bottom: 6px !important;
+			letter-spacing: 0.05em !important;
+		}
+		.campo-box-plano input, .campo-box-plano select {
+			width: 100% !important;
+			padding: 8px 12px !important;
+			background-color: #111827 !important;
+			border: 1px solid #4b5563 !important;
+			color: #f3f4f6 !important;
+			border-radius: 6px !important;
+			font-size: 14px !important;
+			outline: none !important;
+			box-sizing: border-box !important;
+		}
+		.input-inline-tabela {
+			width: 100% !important;
+			padding: 6px 10px !important;
+			background-color: #f9fafb !important;
+			border: 1px solid #d1d5db !important;
+			color: #1f2937 !important;
+			border-radius: 6px !important;
+			font-size: 14px !important;
+			outline: none !important;
+			box-sizing: border-box !important;
+		}
+		.campo-box-plano input:focus, .campo-box-plano select:focus { border-color: #6366f1 !important; }
+		.badge-plano {
+			display: inline-block !important;
+			padding: 3px 8px !important;
+			font-size: 11px !important;
+			font-weight: 600 !important;
+			border-radius: 9999px !important;
+			text-transform: uppercase !important;
+			letter-spacing: 0.03em !important;
+		}
+		.oculto {
+			display: none !important;
+		}
+	</style>
+	<div class="bg-gray-950 text-gray-100 font-sans antialiased min-h-screen py-10 px-4" style="background-color: #030712; color: #f3f4f6; min-height: 100vh; padding: 2.5rem 1rem;">
+		<div class="max-w-7xl mx-auto bg-gray-900 shadow-2xl rounded-2xl overflow-hidden border border-gray-800 p-8" style="max-width: 84rem; margin: 0 auto; background-color: #111827; border-radius: 1rem; border: 1px solid #1f2937; padding: 2rem;">
+			<form id="filtro-form-planos" hx-post="/html/planos/tabela" hx-target="#tabela-container-planos" hx-trigger="input delay:200ms, change" class="w-full">
+				<input type="hidden" id="input-pagina-form-planos" name="page" value="1">
+				<div class="grade-filtros-planos">
+					<div class="campo-box-plano">
+						<label>Nickname</label>
+						<input type="text" name="nickname" placeholder="Filtrar usuário..." list="lista-nicknames-filtro-planos">
+						<datalist id="lista-nicknames-filtro-planos">
+							{{range .Nicknames}}
+								<option value="{{.}}">
+							{{end}}
+						</datalist>
+					</div>
+					<div class="campo-box-plano">
+						<label>Tipo de Plano</label>
+						<select name="tipo_filtro">
+							<option value="0">Todos</option>
+							<option value="1">Agenda (Recorrente)</option>
+							<option value="2">Pacote</option>
+							<option value="3">Caderneta</option>
+						</select>
+					</div>
+					<div class="campo-box-plano">
+						<label>Serviço</label>
+						<select name="servico_filtro">
+							<option value="0">Todos</option>
+							{{range .Services}}
+								<option value="{{.ID}}">{{.Name}}</option>
+							{{end}}
+						</select>
+					</div>
+					<div class="campo-box-plano">
+						<label>Início a partir de</label>
+						<input type="date" name="data_inicio">
+					</div>
+					<div class="campo-box-plano">
+						<label>Início até</label>
+						<input type="date" name="data_fim">
+					</div>
+				</div>
+				<div class="flex items-center justify-between mt-4">
+					<button type="button" 
+							hx-post="/html/planos/tabela/reset" 
+							hx-target="#tabela-container-planos"
+							class="text-xs text-gray-400 hover:text-gray-200 underline cursor-pointer bg-transparent border-0 p-0">
+						Limpar Filtros
+					</button>
+					<button type="button" 
+							hx-get="/html/planos/novo" 
+							hx-target="#formulario-cadastro-container-planos"
+							class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs py-2 px-4 rounded-lg shadow transition duration-150 ease-in-out cursor-pointer flex items-center gap-1.5"
+							style="background-color: #4f46e5;">
+						<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+						</svg>
+						<span>Novo Plano</span>
+					</button>
+				</div>
+			</form>
+
+			<div id="formulario-cadastro-container-planos" class="mt-6"></div>
+
+			<div id="tabela-container-planos" class="mt-6">
+				{{template "tabela" .}}
+			</div>
+		</div>
+	</div>
+	{{end}}
+
+	{{define "index"}}
+	<!DOCTYPE html>
+	<html lang="pt-BR">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>Gerenciamento de Planos</title>
+		<script src="/static/htmx.min.js"></script>
+		<script src="https://cdn.tailwindcss.com"></script>
+	</head>
+	<body class="bg-gray-950 text-gray-100 min-h-screen">
+		{{template "fragment" .}}
+	</body>
+	</html>
+	{{end}}
+
+	{{define "formulario_cadastro"}}
+	<div class="linha-box-plano formulario-add p-6 rounded-xl border border-indigo-500 shadow-xl mb-6" style="background-color: #1e1b4b; border-color: #6366f1; color: #f3f4f6;">
+		{{if .ErrorMessage}}
+			<div class="mb-4 p-3 bg-red-900 border border-red-700 text-red-200 text-sm rounded-lg flex items-center gap-2">
+				<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+					<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+				</svg>
+				<span>{{.ErrorMessage}}</span>
+			</div>
+		{{end}}
+		<form hx-post="/html/planos/salvar" hx-target="#tabela-container-planos" class="w-full">
+			<div class="flex items-center justify-between pb-3 mb-4 border-b border-indigo-800">
+				<h3 class="text-sm font-bold text-indigo-300 uppercase tracking-wider">Novo Plano de Serviço</h3>
+				<button type="button" hx-get="/html/planos/bloco/limpar" hx-target="#formulario-cadastro-container-planos" class="text-gray-400 hover:text-white text-xs">✕ Cancelar</button>
+			</div>
+
+			<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+				<div>
+					<label class="block text-xs font-semibold text-gray-300 mb-1">CLIENTE (NICKNAME) *</label>
+					<input type="text" name="add_nickname" value="{{.Nickname}}" placeholder="ex: cliente_1" required list="lista-nicknames-add-planos"
+						   class="w-full p-2 bg-gray-900 border border-indigo-700 rounded text-sm text-white focus:outline-none focus:border-indigo-400">
+					<datalist id="lista-nicknames-add-planos">
+						{{range .Nicknames}}
+							<option value="{{.}}">
+						{{end}}
+					</datalist>
+				</div>
+				<div>
+					<label class="block text-xs font-semibold text-gray-300 mb-1">DATA INÍCIO *</label>
+					<input type="date" name="add_plan_start" value="{{.PlanStartPadrao}}" required
+						   class="w-full p-2 bg-gray-900 border border-indigo-700 rounded text-sm text-white focus:outline-none focus:border-indigo-400">
+				</div>
+				<div>
+					<label class="block text-xs font-semibold text-gray-300 mb-1">DATA FIM (OPCIONAL)</label>
+					<input type="date" name="add_plan_end" value="{{.PlanEndPadrao}}"
+						   class="w-full p-2 bg-gray-900 border border-indigo-700 rounded text-sm text-white focus:outline-none focus:border-indigo-400">
+					<span class="text-[10px] text-gray-400">Deixe vazio para plano em andamento</span>
+				</div>
+				<div>
+					<label class="block text-xs font-semibold text-gray-300 mb-1">TIPO DE PLANO *</label>
+					<select name="add_plan_type" onchange="alternarTipoPlano(this)" required
+							class="w-full p-2 bg-gray-900 border border-indigo-700 rounded text-sm text-white focus:outline-none focus:border-indigo-400">
+						<option value="1" {{if eq .PlanType 1}}selected{{end}}>Agenda (Recorrente)</option>
+						<option value="2" {{if eq .PlanType 2}}selected{{end}}>Pacote de Sessões</option>
+						<option value="3" {{if eq .PlanType 3}}selected{{end}}>Caderneta</option>
+					</select>
+				</div>
+			</div>
+
+			<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 p-3 bg-gray-900 rounded-lg border border-gray-800">
+				<div>
+					<label class="block text-xs font-semibold text-gray-300 mb-1">SERVIÇO PRINCIPAL DO PLANO *</label>
+					<select name="add_servico_id" required
+							class="w-full p-2 bg-gray-950 border border-gray-700 rounded text-sm text-white focus:outline-none focus:border-indigo-400">
+						{{range .Services}}
+							<option value="{{.ID}}" {{if eq .ID $.DefaultServiceID}}selected{{end}}>{{.Name}}</option>
+						{{end}}
+					</select>
+				</div>
+				<div>
+					<label class="block text-xs font-semibold text-gray-300 mb-1">VALOR DO PLANO (R$)</label>
+					<input type="number" step="0.01" min="0" name="add_price" id="add_price_input" value="{{.PricePadrao}}" placeholder="Exclusivo c/ item"
+						   oninput="if(this.value) document.getElementById('add_item_price_input').value='';"
+						   class="w-full p-2 bg-gray-950 border border-gray-700 rounded text-sm text-white focus:outline-none focus:border-indigo-400">
+					<span class="text-[10px] text-indigo-400">Preencha valor do plano OU do item</span>
+				</div>
+				<div>
+					<label class="block text-xs font-semibold text-gray-300 mb-1">VALOR DO ITEM (R$)</label>
+					<input type="number" step="0.01" min="0" name="add_item_price" id="add_item_price_input" value="{{.ItemPricePadrao}}" placeholder="Exclusivo c/ plano"
+						   oninput="if(this.value) document.getElementById('add_price_input').value='';"
+						   class="w-full p-2 bg-gray-950 border border-gray-700 rounded text-sm text-white focus:outline-none focus:border-indigo-400">
+					<span class="text-[10px] text-emerald-400">Se item tem valor, todos itens devem ter</span>
+				</div>
+			</div>
+
+			<!-- Seção Especializada: AGENDA (Tipo 1) -->
+			<div class="secao-agenda mb-4 p-4 bg-gray-900 rounded-lg border border-indigo-900 {{if and (ne .PlanType 1) (ne .PlanType 0)}}oculto{{end}}">
+				<h4 class="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-3">Configurações da Agenda Recorrente</h4>
+				<div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+					<div>
+						<label class="block text-xs text-gray-400 mb-1">Recorrência *</label>
+						<select name="add_agenda_recorrencia" class="w-full p-2 bg-gray-950 border border-gray-700 rounded text-xs text-white">
+							<option value="1">Semanal</option>
+							<option value="2">Quinzenal</option>
+							<option value="3">Mensal</option>
+						</select>
+					</div>
+					<div>
+						<label class="block text-xs text-gray-400 mb-1">Dia da Semana *</label>
+						<select name="add_agenda_dia_semana" class="w-full p-2 bg-gray-950 border border-gray-700 rounded text-xs text-white">
+							<option value="2">Segunda-feira</option>
+							<option value="3">Terça-feira</option>
+							<option value="4">Quarta-feira</option>
+							<option value="5">Quinta-feira</option>
+							<option value="6">Sexta-feira</option>
+							<option value="7">Sábado</option>
+							<option value="1">Domingo</option>
+						</select>
+					</div>
+					<div>
+						<label class="block text-xs text-gray-400 mb-1">Vigência *</label>
+						<select name="add_agenda_vigencia" class="w-full p-2 bg-gray-950 border border-gray-700 rounded text-xs text-white">
+							<option value="1">1 - Pré-pago</option>
+							<option value="2">2 - Pós-pago</option>
+						</select>
+					</div>
+					<div>
+						<label class="block text-xs text-gray-400 mb-1">Dia Cobrança (1-31) *</label>
+						<input type="number" name="add_agenda_dia_pagamento" min="1" max="31" value="10" required
+							   class="w-full p-2 bg-gray-950 border border-gray-700 rounded text-xs text-white">
+					</div>
+					<div>
+						<label class="block text-xs text-gray-400 mb-1">Limite Mensal</label>
+						<input type="number" name="add_agenda_limite" min="1" placeholder="Opcional"
+							   class="w-full p-2 bg-gray-950 border border-gray-700 rounded text-xs text-white">
+					</div>
+				</div>
+			</div>
+
+			<!-- Seção Especializada: PACOTE (Tipo 2) -->
+			<div class="secao-pacote mb-4 p-4 bg-gray-900 rounded-lg border border-blue-900 {{if ne .PlanType 2}}oculto{{end}}">
+				<h4 class="text-xs font-bold text-blue-400 uppercase tracking-wider mb-3">Configurações do Pacote de Sessões</h4>
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+					<div>
+						<label class="block text-xs text-gray-400 mb-1">Quantidade de Sessões *</label>
+						<input type="number" name="add_pacote_quantidade" min="1" value="4"
+							   class="w-full p-2 bg-gray-950 border border-gray-700 rounded text-sm text-white">
+					</div>
+					<div>
+						<label class="block text-xs text-gray-400 mb-1">Data do Pagamento *</label>
+						<input type="date" name="add_pacote_data_pagamento" value="{{.PlanStartPadrao}}"
+							   class="w-full p-2 bg-gray-950 border border-gray-700 rounded text-sm text-white">
+					</div>
+				</div>
+			</div>
+
+			<!-- Seção Especializada: CADERNETA (Tipo 3) -->
+			<div class="secao-caderneta mb-4 p-4 bg-gray-900 rounded-lg border border-amber-900 {{if ne .PlanType 3}}oculto{{end}}">
+				<h4 class="text-xs font-bold text-amber-400 uppercase tracking-wider mb-2">Configurações da Caderneta</h4>
+				<p class="text-xs text-gray-400 mb-3">Escolha apenas UMA forma de pagamento (exclusiva):</p>
+				<div class="flex items-center gap-6 mb-3">
+					<label class="inline-flex items-center gap-2 text-xs text-gray-300 cursor-pointer">
+						<input type="radio" name="caderneta_modo" value="dia" checked onchange="alternarModoCaderneta(this)">
+						<span>Dia Fixo do Mês (1-31)</span>
+					</label>
+					<label class="inline-flex items-center gap-2 text-xs text-gray-300 cursor-pointer">
+						<input type="radio" name="caderneta_modo" value="prazo" onchange="alternarModoCaderneta(this)">
+						<span>Prazo de Pagamento (dias corridos)</span>
+					</label>
+				</div>
+				<div class="box-caderneta-dia max-w-xs">
+					<label class="block text-xs text-gray-400 mb-1">Dia do Mês para Cobrança (1 a 31) *</label>
+					<input type="number" name="add_caderneta_dia_pagamento" min="1" max="31" value="5"
+						   class="w-full p-2 bg-gray-950 border border-gray-700 rounded text-sm text-white">
+				</div>
+				<div class="box-caderneta-prazo max-w-xs oculto">
+					<label class="block text-xs text-gray-400 mb-1">Prazo de Pagamento (dias após fechamento) *</label>
+					<input type="number" name="add_caderneta_prazo_pagamento" min="0" placeholder="ex: 30"
+						   class="w-full p-2 bg-gray-950 border border-gray-700 rounded text-sm text-white">
+				</div>
+			</div>
+
+			<div class="flex justify-end gap-3 pt-3 border-t border-indigo-900">
+				<button type="button" hx-get="/html/planos/bloco/limpar" hx-target="#formulario-cadastro-container-planos"
+						class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-medium rounded-lg transition cursor-pointer">
+					Cancelar
+				</button>
+				<button type="submit"
+						class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg shadow-lg transition cursor-pointer flex items-center gap-2"
+						style="background-color: #4f46e5;">
+					<span>Salvar Plano</span>
+				</button>
+			</div>
+		</form>
+	</div>
+	{{end}}
+
+	{{define "tabela"}}
+	<div class="w-full overflow-hidden">
+		<div class="grade-tabela-planos topo-tabela-planos">
+			<div>CLIENTE</div>
+			<div>TIPO</div>
+			<div>VIGÊNCIA</div>
+			<div>SERVIÇOS</div>
+			<div>DETALHES DA REGRA</div>
+			<div>PREÇO</div>
+			<div style="text-align: right;">AÇÕES</div>
+		</div>
+
+		{{if not .Planos}}
+			<div class="p-8 text-center text-gray-400 bg-gray-900 rounded-lg border border-gray-800">
+				Nenhum plano encontrado com os filtros selecionados.
+			</div>
+		{{else}}
+			{{range .Planos}}
+				{{template "linha_plano" .}}
+			{{end}}
+		{{end}}
+
+		<!-- Paginação -->
+		<div class="flex items-center justify-between mt-6 pt-4 border-t border-gray-800 text-xs text-gray-400">
+			<div>
+				Página <span class="font-bold text-gray-200">{{.PaginaAtual}}</span> de <span class="font-bold text-gray-200">{{.TotalPaginas}}</span>
+			</div>
+			<div class="flex gap-2">
+				{{if .TemAnterior}}
+					<button type="button"
+							onclick="document.getElementById('input-pagina-form-planos').value='{{.PagAnterior}}'; htmx.trigger(document.getElementById('filtro-form-planos'), 'submit');"
+							class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded border border-gray-700 cursor-pointer">
+						&larr; Anterior
+					</button>
+				{{end}}
+				{{if .TemProximo}}
+					<button type="button"
+							onclick="document.getElementById('input-pagina-form-planos').value='{{.PagProxima}}'; htmx.trigger(document.getElementById('filtro-form-planos'), 'submit');"
+							class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded border border-gray-700 cursor-pointer">
+						Próxima &rarr;
+					</button>
+				{{end}}
+			</div>
+		</div>
+	</div>
+	{{end}}
+
+	{{define "linha_plano"}}
+	<div id="linha-plano-{{.ID}}" class="linha-box-plano grade-tabela-planos">
+		<div class="font-medium text-gray-900 flex flex-col">
+			<span class="font-bold text-sm text-indigo-900">{{.Nickname}}</span>
+			{{if .CustomerName}}<span class="text-xs text-gray-500">{{.CustomerName}}</span>{{end}}
+		</div>
+		<div>
+			{{if eq .PlanType 1}}
+				<span class="badge-plano bg-indigo-100 text-indigo-800 border border-indigo-300">Agenda</span>
+			{{else if eq .PlanType 2}}
+				<span class="badge-plano bg-blue-100 text-blue-800 border border-blue-300">Pacote</span>
+			{{else}}
+				<span class="badge-plano bg-amber-100 text-amber-800 border border-amber-300">Caderneta</span>
+			{{end}}
+		</div>
+		<div class="text-xs text-gray-700">
+			<div>De: <span class="font-semibold">{{.PlanStartFormatada}}</span></div>
+			<div>Até: 
+				{{if .PlanEndFormatada}}
+					<span class="font-semibold">{{.PlanEndFormatada}}</span>
+				{{else}}
+					<span class="text-emerald-700 font-semibold">Em andamento</span>
+				{{end}}
+			</div>
+		</div>
+		<div class="text-xs text-gray-700">
+			{{range .Items}}
+				<div class="truncate font-medium text-gray-800">• {{.ServiceName}}</div>
+			{{else}}
+				<span class="text-gray-400">Nenhum</span>
+			{{end}}
+		</div>
+		<div class="text-xs text-gray-600">
+			{{if eq .PlanType 1}}
+				{{if .Agenda}}
+					<span class="font-medium text-indigo-900">{{.Agenda.RecurrenceName}}</span>, {{.Agenda.WeekDayName}}
+					<div class="text-[11px] text-gray-500">Cobrança: Dia {{.Agenda.PaymentDay}} ({{.Agenda.TermTypeName}}){{if .Agenda.MonthlyServiceLimit}} • Lim: {{.Agenda.MonthlyServiceLimit}}/mês{{end}}</div>
+				{{end}}
+			{{else if eq .PlanType 2}}
+				{{if .Package}}
+					<span class="font-medium text-blue-900">{{.Package.Quantity}} sessões</span>
+					<div class="text-[11px] text-gray-500">Pago em: {{.Package.PaymentDateFormatada}}</div>
+				{{end}}
+			{{else if eq .PlanType 3}}
+				{{if .Notebook}}
+					{{if .Notebook.PaymentDay}}
+						<span class="font-medium text-amber-900">Cobrança mensal no dia {{.Notebook.PaymentDay}}</span>
+					{{else if .Notebook.PaymentTerm}}
+						<span class="font-medium text-amber-900">Prazo de {{.Notebook.PaymentTerm}} dias</span>
+					{{end}}
+				{{end}}
+			{{end}}
+		</div>
+		<div class="text-xs font-semibold text-gray-800">
+			{{if .PriceFormatado}}
+				R$ {{.PriceFormatado}} <span class="text-[10px] text-indigo-700 font-normal">(plano)</span>
+			{{else if .ItemPriceFormatado}}
+				R$ {{.ItemPriceFormatado}} <span class="text-[10px] text-emerald-700 font-normal">(item)</span>
+			{{else}}
+				<span class="text-gray-500 font-normal">Valor padrão</span>
+			{{end}}
+		</div>
+		<div class="flex items-center justify-end gap-2">
+			<button type="button"
+					hx-get="/html/planos/editar?id={{.ID}}"
+					hx-target="#linha-plano-{{.ID}}"
+					hx-swap="outerHTML"
+					class="p-1.5 text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 rounded transition cursor-pointer"
+					title="Editar">
+				<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+				</svg>
+			</button>
+			<button type="button"
+					hx-get="/html/planos/deletar-aviso?id={{.ID}}"
+					hx-target="#linha-plano-{{.ID}}"
+					hx-swap="outerHTML"
+					class="p-1.5 text-rose-600 hover:text-rose-900 hover:bg-rose-50 rounded transition cursor-pointer"
+					title="Excluir">
+				<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+				</svg>
+			</button>
+		</div>
+	</div>
+	{{end}}
+
+	{{define "linha_plano_edit"}}
+	<div id="linha-plano-{{.ID}}" class="linha-box-plano formulario-edit p-4 rounded-xl border border-indigo-600 bg-white mb-2 shadow-lg">
+		<form hx-post="/html/planos/atualizar?id={{.ID}}" hx-target="#tabela-container-planos" class="w-full">
+			<div class="flex items-center justify-between pb-2 mb-3 border-b border-gray-200">
+				<div class="text-xs font-bold text-indigo-700 uppercase">Editando Plano #{{.ID}} - {{.Nickname}}</div>
+				<button type="button" hx-get="/html/planos/cancelar-edicao?id={{.ID}}" hx-target="#linha-plano-{{.ID}}" hx-swap="outerHTML"
+						class="text-xs text-gray-500 hover:text-gray-700">✕ Cancelar</button>
+			</div>
+
+			<div class="grid grid-cols-1 md:grid-cols-5 gap-3 mb-3">
+				<div>
+					<label class="block text-[11px] font-semibold text-gray-600 mb-1">INÍCIO *</label>
+					<input type="date" name="edit_plan_start" value="{{.PlanStart}}" required class="input-inline-tabela">
+				</div>
+				<div>
+					<label class="block text-[11px] font-semibold text-gray-600 mb-1">FIM (DEIXE VAZIO P/ INDEFINIDO)</label>
+					<input type="date" name="edit_plan_end" value="{{if .PlanEnd}}{{.PlanEnd}}{{end}}" class="input-inline-tabela">
+				</div>
+				<div>
+					<label class="block text-[11px] font-semibold text-gray-600 mb-1">SERVIÇO PRINCIPAL</label>
+					<select name="edit_servico_id" class="input-inline-tabela">
+						{{range $.Services}}
+							<option value="{{.ID}}" {{if eq .ID $.ServiceID}}selected{{end}}>{{.Name}}</option>
+						{{end}}
+					</select>
+				</div>
+				<div>
+					<label class="block text-[11px] font-semibold text-gray-600 mb-1">VALOR PLANO (R$)</label>
+					<input type="number" step="0.01" min="0" name="edit_price" id="edit_price_{{.ID}}" value="{{if .Price}}{{.Price}}{{end}}" placeholder="Plano" 
+						   oninput="if(this.value) document.getElementById('edit_item_price_{{.ID}}').value='';" class="input-inline-tabela">
+				</div>
+				<div>
+					<label class="block text-[11px] font-semibold text-gray-600 mb-1">VALOR ITEM (R$)</label>
+					<input type="number" step="0.01" min="0" name="edit_item_price" id="edit_item_price_{{.ID}}" value="{{if .ItemPrice}}{{.ItemPrice}}{{end}}" placeholder="Item" 
+						   oninput="if(this.value) document.getElementById('edit_price_{{.ID}}').value='';" class="input-inline-tabela">
+				</div>
+			</div>
+
+			<!-- Edição Especializada por Tipo -->
+			{{if eq .PlanType 1}}
+				<div class="p-3 bg-indigo-50 border border-indigo-100 rounded-lg mb-3">
+					<div class="text-[11px] font-bold text-indigo-800 uppercase mb-2">Configurações de Agenda</div>
+					<div class="grid grid-cols-1 md:grid-cols-5 gap-2">
+						<div>
+							<label class="block text-[10px] text-gray-600 mb-0.5">Recorrência</label>
+							<select name="edit_agenda_recorrencia" class="input-inline-tabela text-xs">
+								<option value="1" {{if eq .Agenda.Recurrence 1}}selected{{end}}>Semanal</option>
+								<option value="2" {{if eq .Agenda.Recurrence 2}}selected{{end}}>Quinzenal</option>
+								<option value="3" {{if eq .Agenda.Recurrence 3}}selected{{end}}>Mensal</option>
+							</select>
+						</div>
+						<div>
+							<label class="block text-[10px] text-gray-600 mb-0.5">Dia da Semana</label>
+							<select name="edit_agenda_dia_semana" class="input-inline-tabela text-xs">
+								<option value="2" {{if eq .Agenda.WeekDay 2}}selected{{end}}>Segunda-feira</option>
+								<option value="3" {{if eq .Agenda.WeekDay 3}}selected{{end}}>Terça-feira</option>
+								<option value="4" {{if eq .Agenda.WeekDay 4}}selected{{end}}>Quarta-feira</option>
+								<option value="5" {{if eq .Agenda.WeekDay 5}}selected{{end}}>Quinta-feira</option>
+								<option value="6" {{if eq .Agenda.WeekDay 6}}selected{{end}}>Sexta-feira</option>
+								<option value="7" {{if eq .Agenda.WeekDay 7}}selected{{end}}>Sábado</option>
+								<option value="1" {{if eq .Agenda.WeekDay 1}}selected{{end}}>Domingo</option>
+							</select>
+						</div>
+						<div>
+							<label class="block text-[10px] text-gray-600 mb-0.5">Vigência</label>
+							<select name="edit_agenda_vigencia" class="input-inline-tabela text-xs">
+								<option value="1" {{if eq .Agenda.TermType 1}}selected{{end}}>Pré-pago</option>
+								<option value="2" {{if eq .Agenda.TermType 2}}selected{{end}}>Pós-pago</option>
+							</select>
+						</div>
+						<div>
+							<label class="block text-[10px] text-gray-600 mb-0.5">Dia Cobrança (1-31)</label>
+							<input type="number" min="1" max="31" name="edit_agenda_dia_pagamento" value="{{.Agenda.PaymentDay}}" class="input-inline-tabela text-xs">
+						</div>
+						<div>
+							<label class="block text-[10px] text-gray-600 mb-0.5">Limite Mensal</label>
+							<input type="number" min="1" name="edit_agenda_limite" value="{{if .Agenda.MonthlyServiceLimit}}{{.Agenda.MonthlyServiceLimit}}{{end}}" placeholder="Livre" class="input-inline-tabela text-xs">
+						</div>
+					</div>
+				</div>
+			{{else if eq .PlanType 2}}
+				<div class="p-3 bg-blue-50 border border-blue-100 rounded-lg mb-3">
+					<div class="text-[11px] font-bold text-blue-800 uppercase mb-2">Configurações de Pacote</div>
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+						<div>
+							<label class="block text-[10px] text-gray-600 mb-0.5">Quantidade de Sessões</label>
+							<input type="number" min="1" name="edit_pacote_quantidade" value="{{.Package.Quantity}}" class="input-inline-tabela text-xs">
+						</div>
+						<div>
+							<label class="block text-[10px] text-gray-600 mb-0.5">Data do Pagamento</label>
+							<input type="date" name="edit_pacote_data_pagamento" value="{{.Package.PaymentDate}}" class="input-inline-tabela text-xs">
+						</div>
+					</div>
+				</div>
+			{{else if eq .PlanType 3}}
+				<div class="p-3 bg-amber-50 border border-amber-100 rounded-lg mb-3">
+					<div class="text-[11px] font-bold text-amber-800 uppercase mb-2">Configurações de Caderneta (Preencha apenas um)</div>
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+						<div>
+							<label class="block text-[10px] text-gray-600 mb-0.5">Dia de Pagamento no Mês (1-31)</label>
+							<input type="number" min="1" max="31" name="edit_caderneta_dia_pagamento" value="{{if .Notebook.PaymentDay}}{{.Notebook.PaymentDay}}{{end}}" placeholder="Vazio se for prazo" class="input-inline-tabela text-xs">
+						</div>
+						<div>
+							<label class="block text-[10px] text-gray-600 mb-0.5">Prazo de Pagamento (dias)</label>
+							<input type="number" min="0" name="edit_caderneta_prazo_pagamento" value="{{if .Notebook.PaymentTerm}}{{.Notebook.PaymentTerm}}{{end}}" placeholder="Vazio se for dia fixo" class="input-inline-tabela text-xs">
+						</div>
+					</div>
+				</div>
+			{{end}}
+
+			<div class="flex justify-end gap-2 pt-2 border-t border-gray-200">
+				<button type="button" hx-get="/html/planos/cancelar-edicao?id={{.ID}}" hx-target="#linha-plano-{{.ID}}" hx-swap="outerHTML"
+						class="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-medium rounded transition">
+					Cancelar
+				</button>
+				<button type="submit"
+						class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded shadow transition"
+						style="background-color: #4f46e5;">
+					Atualizar Plano
+				</button>
+			</div>
+		</form>
+	</div>
+	{{end}}
+
+	{{define "linha_plano_deletar_aviso"}}
+	<div id="linha-plano-{{.ID}}" class="linha-box-plano aviso-deletar grade-tabela-planos" style="background-color: #fff1f2 !important; border: 1px solid #f43f5e !important;">
+		<div class="font-bold text-red-700 col-span-5 text-sm flex items-center gap-2">
+			<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-600" viewBox="0 0 20 20" fill="currentColor">
+				<path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+			</svg>
+			<span>Atenção: Deseja realmente excluir o plano #{{.ID}} do cliente <strong>{{.Nickname}}</strong>?</span>
+		</div>
+		<div class="col-span-2 flex items-center justify-end gap-2">
+			<button type="button"
+					hx-get="/html/planos/cancelar-edicao?id={{.ID}}"
+					hx-target="#linha-plano-{{.ID}}"
+					hx-swap="outerHTML"
+					class="px-3 py-1 bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-medium rounded transition cursor-pointer">
+				Cancelar
+			</button>
+			<button type="button"
+					hx-post="/html/planos/deletar?id={{.ID}}"
+					hx-target="#tabela-container-planos"
+					class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded shadow transition cursor-pointer"
+					style="background-color: #e11d48;">
+				Sim, Excluir
+			</button>
+		</div>
+	</div>
+	{{end}}

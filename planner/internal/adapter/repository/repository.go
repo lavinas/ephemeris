@@ -2,6 +2,7 @@ package repository
 
 import (
 	"fmt"
+	"time"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -336,3 +337,274 @@ func (a *Repository) GetServiceByID(id int64) (*domain.Service, error) {
 	}
 	return &service, nil
 }
+
+// SavePlan saves a plan model and its associated items and specialization table
+func (a *Repository) SavePlan(plan *domain.Plan) error {
+	db := a.DB
+	if a.Tx != nil {
+		db = a.Tx
+	}
+	now := time.Now()
+	if plan.ID == 0 {
+		plan.CreatedAt = now
+		plan.UpdatedAt = now
+		tx := db.Begin()
+		if tx.Error != nil {
+			return tx.Error
+		}
+		defer func() {
+			if r := recover(); r != nil {
+				tx.Rollback()
+			}
+		}()
+
+		if err := tx.Omit("Items", "Agenda", "Package", "Notebook", "Customer").Create(plan).Error; err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		for i := range plan.Items {
+			plan.Items[i].PlanID = plan.ID
+			plan.Items[i].CreatedAt = now
+			plan.Items[i].UpdatedAt = now
+			if err := tx.Omit("Service").Create(&plan.Items[i]).Error; err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+
+		switch plan.PlanType {
+		case int(domain.PlanTypeAgenda):
+			if plan.Agenda != nil {
+				plan.Agenda.ID = plan.ID
+				if err := tx.Create(plan.Agenda).Error; err != nil {
+					tx.Rollback()
+					return err
+				}
+			}
+		case int(domain.PlanTypePackage):
+			if plan.Package != nil {
+				plan.Package.ID = plan.ID
+				if err := tx.Create(plan.Package).Error; err != nil {
+					tx.Rollback()
+					return err
+				}
+			}
+		case int(domain.PlanTypeNotebook):
+			if plan.Notebook != nil {
+				plan.Notebook.ID = plan.ID
+				if err := tx.Create(plan.Notebook).Error; err != nil {
+					tx.Rollback()
+					return err
+				}
+			}
+		}
+
+		return tx.Commit().Error
+	}
+
+	plan.UpdatedAt = now
+	tx := db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	updates := map[string]interface{}{
+		"customer_id": plan.CustomerID,
+		"plan_start":  plan.PlanStart,
+		"plan_end":    plan.PlanEnd,
+		"plan_type":   plan.PlanType,
+		"price":       plan.Price,
+		"updated_at":  now,
+	}
+	if err := tx.Model(&domain.Plan{}).Where("id = ?", plan.ID).Updates(updates).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if len(plan.Items) > 0 {
+		if err := tx.Where("plan_id = ?", plan.ID).Delete(&domain.PlanItem{}).Error; err != nil {
+			tx.Rollback()
+			return err
+		}
+		for i := range plan.Items {
+			plan.Items[i].PlanID = plan.ID
+			plan.Items[i].CreatedAt = now
+			plan.Items[i].UpdatedAt = now
+			if err := tx.Omit("Service").Create(&plan.Items[i]).Error; err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+
+	if plan.PlanType != int(domain.PlanTypeAgenda) {
+		_ = tx.Where("id = ?", plan.ID).Delete(&domain.PlanAgenda{}).Error
+	}
+	if plan.PlanType != int(domain.PlanTypePackage) {
+		_ = tx.Where("id = ?", plan.ID).Delete(&domain.PlanPackage{}).Error
+	}
+	if plan.PlanType != int(domain.PlanTypeNotebook) {
+		_ = tx.Where("id = ?", plan.ID).Delete(&domain.PlanNotebook{}).Error
+	}
+
+	switch plan.PlanType {
+	case int(domain.PlanTypeAgenda):
+		if plan.Agenda != nil {
+			plan.Agenda.ID = plan.ID
+			if err := tx.Clauses(clause.OnConflict{UpdateAll: true}).Create(plan.Agenda).Error; err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	case int(domain.PlanTypePackage):
+		if plan.Package != nil {
+			plan.Package.ID = plan.ID
+			if err := tx.Clauses(clause.OnConflict{UpdateAll: true}).Create(plan.Package).Error; err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	case int(domain.PlanTypeNotebook):
+		if plan.Notebook != nil {
+			plan.Notebook.ID = plan.ID
+			if err := tx.Clauses(clause.OnConflict{UpdateAll: true}).Create(plan.Notebook).Error; err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+
+	return tx.Commit().Error
+}
+
+// GetPlanByID retrieves a single plan by ID with preloaded associations
+func (a *Repository) GetPlanByID(id int64) (*domain.Plan, error) {
+	db := a.DB
+	if a.Tx != nil {
+		db = a.Tx
+	}
+	var plan domain.Plan
+	err := db.Preload("Customer").
+		Preload("Items", func(tx *gorm.DB) *gorm.DB {
+			return tx.Where("deleted_at IS NULL").Order("order_index asc")
+		}).
+		Preload("Items.Service").
+		Preload("Agenda").
+		Preload("Package").
+		Preload("Notebook").
+		Where("id = ? AND deleted_at IS NULL", id).
+		First(&plan).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &plan, nil
+}
+
+// DeletePlan performs soft delete on a plan and its items
+func (a *Repository) DeletePlan(id int64) error {
+	db := a.DB
+	if a.Tx != nil {
+		db = a.Tx
+	}
+	now := time.Now()
+	tx := db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+	if err := tx.Model(&domain.Plan{}).Where("id = ?", id).Updates(map[string]interface{}{
+		"deleted_at": now,
+		"updated_at": now,
+	}).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+	if err := tx.Model(&domain.PlanItem{}).Where("plan_id = ?", id).Updates(map[string]interface{}{
+		"deleted_at": now,
+		"updated_at": now,
+	}).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit().Error
+}
+
+// FindPlans retrieves plans based on conditions, pagination and ordering
+func (a *Repository) FindPlans(page, pageSize int, conditions map[string]interface{}, orderBy ...string) ([]domain.Plan, int64, error) {
+	db := a.DB
+	if a.Tx != nil {
+		db = a.Tx
+	}
+	query := db.Model(&domain.Plan{})
+	for k, v := range conditions {
+		if v == nil {
+			query = query.Where(k)
+		} else {
+			query = query.Where(k, v)
+		}
+	}
+	var count int64
+	if err := query.Count(&count).Error; err != nil {
+		return nil, 0, err
+	}
+
+	if len(orderBy) > 0 {
+		for _, o := range orderBy {
+			if o != "" {
+				query = query.Order(o)
+			}
+		}
+	} else {
+		query = query.Order("plan_start desc").Order("id desc")
+	}
+
+	if page > 0 && pageSize > 0 {
+		offset := (page - 1) * pageSize
+		query = query.Offset(offset).Limit(pageSize)
+	}
+
+	var plans []domain.Plan
+	err := query.Preload("Customer").
+		Preload("Items", func(tx *gorm.DB) *gorm.DB {
+			return tx.Where("deleted_at IS NULL").Order("order_index asc")
+		}).
+		Preload("Items.Service").
+		Preload("Agenda").
+		Preload("Package").
+		Preload("Notebook").
+		Find(&plans).Error
+	return plans, count, err
+}
+
+// FindCustomerActivePlansWithServices finds all active non-deleted plans for a customer that include specified services
+func (a *Repository) FindCustomerActivePlansWithServices(customerID int64, serviceIDs []int64, excludePlanID int64) ([]domain.Plan, error) {
+	db := a.DB
+	if a.Tx != nil {
+		db = a.Tx
+	}
+	var plans []domain.Plan
+	query := db.Model(&domain.Plan{}).
+		Joins("JOIN planner.plan_item ON planner.plan_item.plan_id = planner.plan.id").
+		Where("planner.plan.customer_id = ? AND planner.plan.deleted_at IS NULL AND planner.plan_item.deleted_at IS NULL", customerID).
+		Where("planner.plan_item.service_id IN (?)", serviceIDs)
+	if excludePlanID > 0 {
+		query = query.Where("planner.plan.id != ?", excludePlanID)
+	}
+	query = query.Distinct().
+		Preload("Customer").
+		Preload("Items", func(tx *gorm.DB) *gorm.DB {
+			return tx.Where("deleted_at IS NULL").Order("order_index asc")
+		}).
+		Preload("Items.Service")
+	err := query.Find(&plans).Error
+	return plans, err
+}
+

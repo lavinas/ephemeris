@@ -50,6 +50,16 @@ func (d *dummyRepo) FindServices(vendorID int64) ([]domain.Service, error) {
 func (d *dummyRepo) GetServiceByID(id int64) (*domain.Service, error) {
 	return nil, nil
 }
+func (d *dummyRepo) SavePlan(plan *domain.Plan) error { return nil }
+func (d *dummyRepo) FindPlans(page, pageSize int, conditions map[string]interface{}, orderBy ...string) ([]domain.Plan, int64, error) {
+	return nil, 0, nil
+}
+func (d *dummyRepo) GetPlanByID(id int64) (*domain.Plan, error) { return nil, nil }
+func (d *dummyRepo) DeletePlan(id int64) error                    { return nil }
+func (d *dummyRepo) FindCustomerActivePlansWithServices(customerID int64, serviceIDs []int64, excludePlanID int64) ([]domain.Plan, error) {
+	return nil, nil
+}
+
 
 func TestRootEndpointServesStaticIndex(t *testing.T) {
 	// Change working directory to planner/backend for test to resolve web/static
@@ -124,4 +134,47 @@ func TestRootEndpointServesStaticIndex(t *testing.T) {
 	if !strings.Contains(recSessoes.Body.String(), "Sessions") {
 		t.Errorf("expected /html/sessoes response to contain 'Sessions'")
 	}
+
+	// 6. Test index.html references /html/planos
+	if !strings.Contains(body, `/html/planos`) {
+		t.Errorf("expected index.html to reference '/html/planos'")
+	}
+
+	// 7. Test GET /html/planos
+	reqPlanos := httptest.NewRequest(http.MethodGet, "/html/planos", nil)
+	recPlanos := httptest.NewRecorder()
+	routes.ServeHTTP(recPlanos, reqPlanos)
+	if recPlanos.Code != http.StatusOK {
+		t.Errorf("expected status 200 on /html/planos, got %d", recPlanos.Code)
+	}
+
+	// 8. Test API plan endpoints exist
+	reqPlanList := httptest.NewRequest(http.MethodGet, "/api/plan/list", nil)
+	recPlanList := httptest.NewRecorder()
+	routes.ServeHTTP(recPlanList, reqPlanList)
+	if recPlanList.Code != http.StatusOK {
+		t.Errorf("expected status 200 on /api/plan/list, got %d", recPlanList.Code)
+	}
+
+	reqPlanCreate := httptest.NewRequest(http.MethodPost, "/api/plan/create", strings.NewReader(`{}`))
+	recPlanCreate := httptest.NewRecorder()
+	routes.ServeHTTP(recPlanCreate, reqPlanCreate)
+	if recPlanCreate.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400 on empty /api/plan/create, got %d", recPlanCreate.Code)
+	}
+
+	reqPlanUpdate := httptest.NewRequest(http.MethodPatch, "/api/plan/update", strings.NewReader(`{}`))
+	recPlanUpdate := httptest.NewRecorder()
+	routes.ServeHTTP(recPlanUpdate, reqPlanUpdate)
+	if recPlanUpdate.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400 on empty /api/plan/update, got %d", recPlanUpdate.Code)
+	}
+
+	reqPlanDelete := httptest.NewRequest(http.MethodDelete, "/api/plan/delete", strings.NewReader(`{}`))
+	recPlanDelete := httptest.NewRecorder()
+	routes.ServeHTTP(recPlanDelete, reqPlanDelete)
+	if recPlanDelete.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400 on empty /api/plan/delete, got %d", recPlanDelete.Code)
+	}
 }
+

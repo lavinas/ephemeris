@@ -133,6 +133,17 @@ func (m *mockRepo) GetServiceByID(id int64) (*domain.Service, error) {
 	return nil, nil
 }
 
+func (m *mockRepo) SavePlan(plan *domain.Plan) error { return nil }
+func (m *mockRepo) FindPlans(page, pageSize int, conditions map[string]interface{}, orderBy ...string) ([]domain.Plan, int64, error) {
+	return nil, 0, nil
+}
+func (m *mockRepo) GetPlanByID(id int64) (*domain.Plan, error) { return nil, nil }
+func (m *mockRepo) DeletePlan(id int64) error                    { return nil }
+func (m *mockRepo) FindCustomerActivePlansWithServices(customerID int64, serviceIDs []int64, excludePlanID int64) ([]domain.Plan, error) {
+	return nil, nil
+}
+
+
 func TestNoopConsumer(t *testing.T) {
 	c := NewNoopConsumer()
 	if err := c.Start(context.Background()); err != nil {

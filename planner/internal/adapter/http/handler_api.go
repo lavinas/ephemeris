@@ -119,6 +119,80 @@ func (h *HandlerApi) SessionUsers(w http.ResponseWriter, r *http.Request) {
 	h.writeResponse(w, response)
 }
 
+// PlanCreate handler for the /plan/create endpoint
+func (h *HandlerApi) PlanCreate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	requestDTO := &dto.PlanCreateRequest{}
+	err := json.NewDecoder(r.Body).Decode(requestDTO)
+	if err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+	svc := service.NewPlanCreate(h.repo, h.logger)
+	response := svc.Run(requestDTO)
+	h.writeResponse(w, response)
+}
+
+// PlanList handler for the /plan/list endpoint
+func (h *HandlerApi) PlanList(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	requestDTO := &dto.PlanListRequest{}
+	if r.ContentLength > 0 {
+		err := json.NewDecoder(r.Body).Decode(requestDTO)
+		if err != nil {
+			http.Error(w, "Bad request", http.StatusBadRequest)
+			return
+		}
+	} else {
+		requestDTO.Page = 1
+		requestDTO.PageSize = 10
+	}
+	svc := service.NewPlanList(h.repo, h.logger)
+	response := svc.Run(requestDTO)
+	h.writeResponse(w, response)
+}
+
+// PlanDelete handler for the /plan/delete endpoint
+func (h *HandlerApi) PlanDelete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	requestDTO := &dto.PlanDeleteRequest{}
+	err := json.NewDecoder(r.Body).Decode(requestDTO)
+	if err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+	svc := service.NewPlanDelete(h.repo, h.logger)
+	response := svc.Run(requestDTO)
+	h.writeResponse(w, response)
+}
+
+// PlanUpdate handler for the /plan/update endpoint
+func (h *HandlerApi) PlanUpdate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPatch {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	requestDTO := &dto.PlanUpdateRequest{}
+	err := json.NewDecoder(r.Body).Decode(requestDTO)
+	if err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+	svc := service.NewPlanUpdate(h.repo, h.logger)
+	response := svc.Run(requestDTO)
+	h.writeResponse(w, response)
+}
+
+
 // writeResponse writes the given response to the http.ResponseWriter with the appropriate status
 func (h *HandlerApi) writeResponse(w http.ResponseWriter, response port.OutDTO) {
 	responseJSON, err := json.MarshalIndent(response, "", "  ")

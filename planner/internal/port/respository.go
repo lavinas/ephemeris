@@ -23,4 +23,10 @@ type Repository interface {
 	GetVendor(nickname string) (*domain.Vendor, error)
 	FindServices(vendorID int64) ([]domain.Service, error)
 	GetServiceByID(id int64) (*domain.Service, error)
+	SavePlan(plan *domain.Plan) error
+	FindPlans(page, pageSize int, conditions map[string]interface{}, orderBy ...string) ([]domain.Plan, int64, error)
+	GetPlanByID(id int64) (*domain.Plan, error)
+	DeletePlan(id int64) error
+	FindCustomerActivePlansWithServices(customerID int64, serviceIDs []int64, excludePlanID int64) ([]domain.Plan, error)
 }
+
