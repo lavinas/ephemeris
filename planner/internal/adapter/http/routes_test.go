@@ -304,6 +304,29 @@ func TestPlansSaveAndMultipleItems(t *testing.T) {
 	if recReset.Code != http.StatusOK {
 		t.Errorf("expected 200 on /html/planos/tabela/reset, got %d", recReset.Code)
 	}
+
+	// 6. Test rejection when saving plan with duplicate order
+	dupForm := strings.NewReader("add_nickname=cliente_1&add_plan_start=2026-10-01&add_plan_type=1&add_agenda_recorrencia=1&add_agenda_dia_semana=2&add_agenda_vigencia=1&add_agenda_dia_pagamento=5&add_price=150.00&add_servico_id=10&add_order_index=1&add_servico_id=20&add_order_index=1")
+	reqDup := httptest.NewRequest(http.MethodPost, "/html/planos/salvar", dupForm)
+	reqDup.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	recDup := httptest.NewRecorder()
+	routes.ServeHTTP(recDup, reqDup)
+	if !strings.Contains(recDup.Body.String(), "mesmo valor em order") {
+		t.Errorf("expected duplicate order error message in response body, got: %s", recDup.Body.String())
+	}
+
+	// 7. Test rejection when updating plan with duplicate order
+	dupEditForm := strings.NewReader("edit_plan_start=2026-10-01&edit_price=200.00&edit_servico_id=10&edit_order_index=2&edit_servico_id=20&edit_order_index=2")
+	reqDupEdit := httptest.NewRequest(http.MethodPost, "/html/planos/atualizar?id=1", dupEditForm)
+	reqDupEdit.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	recDupEdit := httptest.NewRecorder()
+	routes.ServeHTTP(recDupEdit, reqDupEdit)
+	if recDupEdit.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 on /html/planos/atualizar with duplicate order, got %d", recDupEdit.Code)
+	}
+	if !strings.Contains(recDupEdit.Body.String(), "mesmo valor em order") {
+		t.Errorf("expected duplicate order error message, got: %s", recDupEdit.Body.String())
+	}
 }
 
 

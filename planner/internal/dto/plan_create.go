@@ -187,6 +187,17 @@ func (r *PlanCreateRequest) validateItems(repo port.Repository) error {
 			r.Items[i].OrderIndex = i + 1
 		}
 	}
+
+	if len(r.Items) > 1 {
+		orders := make([]int, len(r.Items))
+		for i, item := range r.Items {
+			orders[i] = item.OrderIndex
+		}
+		if err := domain.ValidatePlanItemOrders(orders); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

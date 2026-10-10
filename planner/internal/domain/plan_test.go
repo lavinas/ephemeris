@@ -207,3 +207,59 @@ func TestValidatePlanPrices(t *testing.T) {
 		})
 	}
 }
+
+func TestValidatePlanItemOrders(t *testing.T) {
+	tests := []struct {
+		name          string
+		orders        []int
+		expectErr     bool
+		errMsgContain string
+	}{
+		{
+			name:      "Empty orders - valid",
+			orders:    []int{},
+			expectErr: false,
+		},
+		{
+			name:      "Single item - valid",
+			orders:    []int{1},
+			expectErr: false,
+		},
+		{
+			name:      "Multiple items with distinct orders - valid",
+			orders:    []int{1, 2, 3},
+			expectErr: false,
+		},
+		{
+			name:          "Two items with same order - error",
+			orders:        []int{1, 1},
+			expectErr:     true,
+			errMsgContain: "mesmo valor em order",
+		},
+		{
+			name:          "Three items with duplicate order - error",
+			orders:        []int{1, 2, 2},
+			expectErr:     true,
+			errMsgContain: "mesmo valor em order",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			err := ValidatePlanItemOrders(tc.orders)
+			if tc.expectErr {
+				if err == nil {
+					t.Fatalf("expected error containing '%s', got nil", tc.errMsgContain)
+				}
+				if tc.errMsgContain != "" && !strings.Contains(err.Error(), tc.errMsgContain) {
+					t.Fatalf("expected error containing '%s', got '%v'", tc.errMsgContain, err)
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("expected no error, got: %v", err)
+				}
+			}
+		})
+	}
+}
+

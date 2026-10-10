@@ -428,3 +428,95 @@ func TestPlanUpdateRequest_PricingValidation(t *testing.T) {
 	}
 }
 
+func TestPlanCreateRequest_DuplicateOrderValidation(t *testing.T) {
+	repo := newMockPlanRepo()
+
+	baseReq := func() *PlanCreateRequest {
+		return &PlanCreateRequest{
+			Nickname:  "cliente_teste",
+			PlanStart: "2026-01-01",
+			PlanType:  1,
+			Price:     floatPtr(100.0),
+			Agenda: &PlanAgendaRequest{
+				Recurrence: 1,
+				WeekDay:    2,
+				TermType:   1,
+				PaymentDay: 10,
+			},
+		}
+	}
+
+	// 1. Two items with same order (OrderIndex = 1) -> Error
+	r1 := baseReq()
+	r1.Items = []PlanItemRequest{
+		{ServiceID: 1, OrderIndex: 1},
+		{ServiceID: 2, OrderIndex: 1},
+	}
+	err1 := r1.Validate(repo)
+	if err1 == nil || !strings.Contains(err1.Error(), "mesmo valor em order") {
+		t.Fatalf("expected error for duplicate order in plan create, got: %v", err1)
+	}
+
+	// 2. Two items with different orders (OrderIndex = 1 and 2) -> Success
+	r2 := baseReq()
+	r2.Items = []PlanItemRequest{
+		{ServiceID: 1, OrderIndex: 1},
+		{ServiceID: 2, OrderIndex: 2},
+	}
+	if err := r2.Validate(repo); err != nil {
+		t.Fatalf("expected valid distinct orders, got: %v", err)
+	}
+
+	// 3. Single item -> Success
+	r3 := baseReq()
+	r3.Items = []PlanItemRequest{
+		{ServiceID: 1, OrderIndex: 1},
+	}
+	if err := r3.Validate(repo); err != nil {
+		t.Fatalf("expected valid single item, got: %v", err)
+	}
+}
+
+func TestPlanUpdateRequest_DuplicateOrderValidation(t *testing.T) {
+	repo := newMockPlanRepo()
+
+	pStart, _ := time.Parse("2006-01-02", "2026-01-01")
+	existingPlan := domain.Plan{
+		ID:         99,
+		CustomerID: 10,
+		PlanStart:  pStart,
+		PlanType:   1,
+		Price:      floatPtr(200.0),
+		Items: []domain.PlanItem{
+			{ID: 1, PlanID: 99, ServiceID: 1, OrderIndex: 1, Price: nil},
+		},
+	}
+	repo.existingPlan = &existingPlan
+
+	// 1. Update with 2 items having same order -> Error
+	u1 := &PlanUpdateRequest{
+		ID: 99,
+		Items: []PlanItemRequest{
+			{ServiceID: 1, OrderIndex: 2},
+			{ServiceID: 2, OrderIndex: 2},
+		},
+	}
+	err1 := u1.Validate(repo)
+	if err1 == nil || !strings.Contains(err1.Error(), "mesmo valor em order") {
+		t.Fatalf("expected error for duplicate order in plan update, got: %v", err1)
+	}
+
+	// 2. Update with 2 items having different orders -> Success
+	u2 := &PlanUpdateRequest{
+		ID: 99,
+		Items: []PlanItemRequest{
+			{ServiceID: 1, OrderIndex: 1},
+			{ServiceID: 2, OrderIndex: 2},
+		},
+	}
+	if err := u2.Validate(repo); err != nil {
+		t.Fatalf("expected valid distinct orders in update, got: %v", err)
+	}
+}
+
+

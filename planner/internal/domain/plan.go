@@ -245,3 +245,19 @@ func ValidatePlanPrices(planPrice *float64, itemPrices []*float64) error {
 	return nil
 }
 
+// ValidatePlanItemOrders checks that if there is more than one item, no two items have the same order value.
+func ValidatePlanItemOrders(orders []int) error {
+	if len(orders) <= 1 {
+		return nil
+	}
+	seen := make(map[int]bool, len(orders))
+	for _, order := range orders {
+		if seen[order] {
+			return fmt.Errorf("itens do plano não podem ter o mesmo valor em order: ordem %d duplicada", order)
+		}
+		seen[order] = true
+	}
+	return nil
+}
+
+

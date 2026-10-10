@@ -71,6 +71,23 @@
 			}
 		}
 
+		function validarOrdensItens(form) {
+			var inputs = form.querySelectorAll('.input-order-index');
+			if (inputs.length <= 1) return true;
+			var seen = {};
+			for (var i = 0; i < inputs.length; i++) {
+				var val = inputs[i].value.trim();
+				if (val === '') continue;
+				if (seen[val]) {
+					alert('Não é permitido que dois itens tenham o mesmo valor em ordem (' + val + ').');
+					inputs[i].focus();
+					return false;
+				}
+				seen[val] = true;
+			}
+			return true;
+		}
+
 		function toggleFiltroAtivo() {
 			var input = document.getElementById('filtro-ativo-input');
 			var btn = document.getElementById('btn-filtro-ativo');
@@ -303,7 +320,7 @@
 				<span>{{.ErrorMessage}}</span>
 			</div>
 		{{end}}
-		<form hx-post="/html/planos/salvar" hx-target="#tabela-container-planos" class="w-full">
+		<form hx-post="/html/planos/salvar" hx-target="#tabela-container-planos" class="w-full" onsubmit="if(!validarOrdensItens(this)){event.preventDefault(); return false;}">
 			<div class="flex items-center justify-between pb-3 mb-4 border-b border-indigo-800">
 				<h3 class="text-sm font-bold text-indigo-300 uppercase tracking-wider">Novo Plano de Serviço</h3>
 				<button type="button" hx-get="/html/planos/bloco/limpar" hx-target="#formulario-cadastro-container-planos" class="text-gray-400 hover:text-white text-xs">✕ Cancelar</button>
@@ -721,7 +738,7 @@
 
 	{{define "linha_plano_edit"}}
 	<div id="linha-plano-{{.ID}}" class="linha-box-plano formulario-edit p-4 rounded-xl border border-indigo-600 bg-white mb-2 shadow-lg">
-		<form hx-post="/html/planos/atualizar?id={{.ID}}" hx-target="#tabela-container-planos" class="w-full">
+		<form hx-post="/html/planos/atualizar?id={{.ID}}" hx-target="#tabela-container-planos" class="w-full" onsubmit="if(!validarOrdensItens(this)){event.preventDefault(); return false;}">
 			<div class="flex items-center justify-between pb-2 mb-3 border-b border-gray-200">
 				<div class="text-xs font-bold text-indigo-700 uppercase">Editando Plano #{{.ID}} - {{.Nickname}}</div>
 				<button type="button" hx-get="/html/planos/cancelar-edicao?id={{.ID}}" hx-target="#linha-plano-{{.ID}}" hx-swap="outerHTML"
