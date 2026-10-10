@@ -546,9 +546,11 @@ func (h *HandlerHtml) Plans(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	svc := service.NewPlanList(h.repo, h.logger)
+	active := true
 	req := &dto.PlanListRequest{
 		Page:     1,
 		PageSize: itensPorPag,
+		Active:   &active,
 	}
 	respdro := svc.Run(req)
 	if respdro.GetStatusCode() != 200 {
@@ -580,6 +582,13 @@ func (h *HandlerHtml) PlansCreate(w http.ResponseWriter, r *http.Request) {
 	if len(services) > 0 {
 		defaultServiceID = services[0].ID
 	}
+	defaultItems := []map[string]interface{}{
+		{
+			"ServiceID":      defaultServiceID,
+			"OrderIndex":     1,
+			"PriceFormatado": "",
+		},
+	}
 	dadosPadrao := map[string]interface{}{
 		"PlanStartPadrao":  hoje,
 		"PlanEndPadrao":    "",
@@ -587,6 +596,7 @@ func (h *HandlerHtml) PlansCreate(w http.ResponseWriter, r *http.Request) {
 		"Services":         services,
 		"DefaultServiceID": defaultServiceID,
 		"PlanType":         1,
+		"Items":            defaultItems,
 	}
 	h.tmplPlans.ExecuteTemplate(w, "formulario_cadastro", dadosPadrao)
 }
@@ -608,15 +618,32 @@ func (h *HandlerHtml) PlansSave(w http.ResponseWriter, r *http.Request) {
 			price = &p
 		}
 	}
-	var itemPrice *float64
-	if ipStr := r.FormValue("add_item_price"); ipStr != "" {
-		if ip, err := strconv.ParseFloat(ipStr, 64); err == nil {
-			itemPrice = &ip
+
+	services := r.Form["add_servico_id"]
+	orders := r.Form["add_order_index"]
+	prices := r.Form["add_item_price"]
+
+	var items []dto.PlanItemRequest
+	for i, sIDStr := range services {
+		if sID, err := strconv.ParseInt(sIDStr, 10, 64); err == nil && sID > 0 {
+			orderIdx := i + 1
+			if i < len(orders) && orders[i] != "" {
+				if o, err := strconv.Atoi(orders[i]); err == nil && o > 0 {
+					orderIdx = o
+				}
+			}
+			var itemPrice *float64
+			if price == nil && i < len(prices) && prices[i] != "" {
+				if ip, err := strconv.ParseFloat(prices[i], 64); err == nil {
+					itemPrice = &ip
+				}
+			}
+			items = append(items, dto.PlanItemRequest{
+				ServiceID:  sID,
+				OrderIndex: orderIdx,
+				Price:      itemPrice,
+			})
 		}
-	}
-	serviceID, _ := strconv.ParseInt(r.FormValue("add_servico_id"), 10, 64)
-	items := []dto.PlanItemRequest{
-		{ServiceID: serviceID, OrderIndex: 1, Price: itemPrice},
 	}
 
 	var agenda *dto.PlanAgendaRequest
@@ -696,6 +723,11 @@ func (h *HandlerHtml) PlansSave(w http.ResponseWriter, r *http.Request) {
 	tipoFiltro, _ := strconv.Atoi(r.FormValue("tipo_filtro"))
 	servicoFiltro, _ := strconv.ParseInt(r.FormValue("servico_filtro"), 10, 64)
 	listSvc := service.NewPlanList(h.repo, h.logger)
+	var activeFilter *bool
+	if r.FormValue("ativo") == "true" || r.FormValue("ativo") == "1" || r.FormValue("ativo") == "on" {
+		t := true
+		activeFilter = &t
+	}
 	listReq := &dto.PlanListRequest{
 		Page:      pagina,
 		PageSize:  itensPorPag,
@@ -704,6 +736,7 @@ func (h *HandlerHtml) PlansSave(w http.ResponseWriter, r *http.Request) {
 		ServiceID: servicoFiltro,
 		DateStart: r.FormValue("data_inicio"),
 		DateEnd:   r.FormValue("data_fim"),
+		Active:    activeFilter,
 	}
 	listResp := listSvc.Run(listReq)
 	pageResponse, _ := listResp.(*dto.PlanListResponse)
@@ -711,6 +744,22 @@ func (h *HandlerHtml) PlansSave(w http.ResponseWriter, r *http.Request) {
 
 	if respdro.GetStatusCode() != 200 {
 		pageData["ErrorMessage"] = respdro.GetMessage()
+		var formItemsData []map[string]interface{}
+		for _, it := range items {
+			pFormatted := ""
+			if it.Price != nil {
+				pFormatted = fmt.Sprintf("%.2f", *it.Price)
+			}
+			formItemsData = append(formItemsData, map[string]interface{}{
+				"ServiceID":      it.ServiceID,
+				"OrderIndex":     it.OrderIndex,
+				"PriceFormatado": pFormatted,
+			})
+		}
+		var defaultServiceID int64
+		if len(items) > 0 {
+			defaultServiceID = items[0].ServiceID
+		}
 		formDados := map[string]interface{}{
 			"ErrorMessage":     respdro.GetMessage(),
 			"Nickname":         nickname,
@@ -718,10 +767,10 @@ func (h *HandlerHtml) PlansSave(w http.ResponseWriter, r *http.Request) {
 			"PlanEndPadrao":    planEndStr,
 			"PlanType":         planType,
 			"PricePadrao":      r.FormValue("add_price"),
-			"ItemPricePadrao":  r.FormValue("add_item_price"),
 			"Nicknames":        h.getCustomersNicknames(),
 			"Services":         h.getServices(),
-			"DefaultServiceID": serviceID,
+			"DefaultServiceID": defaultServiceID,
+			"Items":            formItemsData,
 		}
 		var formBuf strings.Builder
 		_ = h.tmplPlans.ExecuteTemplate(&formBuf, "formulario_cadastro", formDados)
@@ -738,14 +787,16 @@ func (h *HandlerHtml) PlansSave(w http.ResponseWriter, r *http.Request) {
 func (h *HandlerHtml) PlansTableReset(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	svc := service.NewPlanList(h.repo, h.logger)
+	active := true
 	req := &dto.PlanListRequest{
 		Page:     1,
 		PageSize: itensPorPag,
+		Active:   &active,
 	}
 	respdro := svc.Run(req)
 	response, _ := respdro.(*dto.PlanListResponse)
 	page := h.getPlanPageData(response)
-	w.Write([]byte(`<script>document.getElementById("filtro-form-planos").reset(); document.getElementById("input-pagina-form-planos").value="1";</script>`))
+	w.Write([]byte(`<script>if(typeof resetFiltrosPlanos==='function'){resetFiltrosPlanos();}else{document.getElementById("filtro-form-planos").reset();document.getElementById("input-pagina-form-planos").value="1";}</script>`))
 	h.tmplPlans.ExecuteTemplate(w, "tabela", page)
 }
 
@@ -844,27 +895,47 @@ func (h *HandlerHtml) PlansUpdate(w http.ResponseWriter, r *http.Request) {
 	var price *float64
 	clearPrice := false
 	pStr := r.FormValue("edit_price")
-	ipStr := r.FormValue("edit_item_price")
-
 	if pStr != "" {
 		if p, err := strconv.ParseFloat(pStr, 64); err == nil {
 			price = &p
 		}
-	} else if ipStr != "" {
+	}
+
+	services := r.Form["edit_servico_id"]
+	orders := r.Form["edit_order_index"]
+	prices := r.Form["edit_item_price"]
+
+	hasAnyItemPrice := false
+	for _, ipStr := range prices {
+		if ipStr != "" {
+			hasAnyItemPrice = true
+			break
+		}
+	}
+	if price == nil && hasAnyItemPrice {
 		clearPrice = true
 	}
 
-	var itemPrice *float64
-	if ipStr != "" {
-		if ip, err := strconv.ParseFloat(ipStr, 64); err == nil {
-			itemPrice = &ip
-		}
-	}
-
 	var items []dto.PlanItemRequest
-	if sIDStr := r.FormValue("edit_servico_id"); sIDStr != "" {
+	for i, sIDStr := range services {
 		if sID, err := strconv.ParseInt(sIDStr, 10, 64); err == nil && sID > 0 {
-			items = []dto.PlanItemRequest{{ServiceID: sID, OrderIndex: 1, Price: itemPrice}}
+			orderIdx := i + 1
+			if i < len(orders) && orders[i] != "" {
+				if o, err := strconv.Atoi(orders[i]); err == nil && o > 0 {
+					orderIdx = o
+				}
+			}
+			var itemPrice *float64
+			if price == nil && i < len(prices) && prices[i] != "" {
+				if ip, err := strconv.ParseFloat(prices[i], 64); err == nil {
+					itemPrice = &ip
+				}
+			}
+			items = append(items, dto.PlanItemRequest{
+				ServiceID:  sID,
+				OrderIndex: orderIdx,
+				Price:      itemPrice,
+			})
 		}
 	}
 
@@ -944,6 +1015,11 @@ func (h *HandlerHtml) PlansUpdate(w http.ResponseWriter, r *http.Request) {
 	tipoFiltro, _ := strconv.Atoi(r.FormValue("tipo_filtro"))
 	servicoFiltro, _ := strconv.ParseInt(r.FormValue("servico_filtro"), 10, 64)
 	listSvc := service.NewPlanList(h.repo, h.logger)
+	var activeFilter *bool
+	if r.FormValue("ativo") == "true" || r.FormValue("ativo") == "1" || r.FormValue("ativo") == "on" {
+		t := true
+		activeFilter = &t
+	}
 	listReq := &dto.PlanListRequest{
 		Page:      pagina,
 		PageSize:  itensPorPag,
@@ -952,6 +1028,7 @@ func (h *HandlerHtml) PlansUpdate(w http.ResponseWriter, r *http.Request) {
 		ServiceID: servicoFiltro,
 		DateStart: r.FormValue("data_inicio"),
 		DateEnd:   r.FormValue("data_fim"),
+		Active:    activeFilter,
 	}
 	listResp := listSvc.Run(listReq)
 	response, _ := listResp.(*dto.PlanListResponse)
@@ -982,13 +1059,24 @@ func (h *HandlerHtml) PlansCancelEdit(w http.ResponseWriter, r *http.Request) {
 // PlansTable handles POST /planos/tabela
 func (h *HandlerHtml) PlansTable(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
-	pagina, _ := strconv.Atoi(r.FormValue("page"))
+	pagina := 0
+	if pStr := r.URL.Query().Get("page"); pStr != "" {
+		pagina, _ = strconv.Atoi(pStr)
+	}
+	if pagina <= 0 {
+		pagina, _ = strconv.Atoi(r.FormValue("page"))
+	}
 	if pagina <= 0 {
 		pagina = 1
 	}
 	tipoFiltro, _ := strconv.Atoi(r.FormValue("tipo_filtro"))
 	servicoFiltro, _ := strconv.ParseInt(r.FormValue("servico_filtro"), 10, 64)
 	svc := service.NewPlanList(h.repo, h.logger)
+	var activeFilter *bool
+	if r.FormValue("ativo") == "true" || r.FormValue("ativo") == "1" || r.FormValue("ativo") == "on" {
+		t := true
+		activeFilter = &t
+	}
 	req := &dto.PlanListRequest{
 		Page:      pagina,
 		PageSize:  itensPorPag,
@@ -997,6 +1085,7 @@ func (h *HandlerHtml) PlansTable(w http.ResponseWriter, r *http.Request) {
 		ServiceID: servicoFiltro,
 		DateStart: r.FormValue("data_inicio"),
 		DateEnd:   r.FormValue("data_fim"),
+		Active:    activeFilter,
 	}
 	respdro := svc.Run(req)
 	if respdro.GetStatusCode() != 200 {
@@ -1059,6 +1148,32 @@ func (h *HandlerHtml) getPlanData(response *dto.PlanListResponse) []map[string]i
 			}
 		}
 
+		var itemsData []map[string]interface{}
+		for _, it := range p.Items {
+			pFormatted := ""
+			if it.Price != nil {
+				pFormatted = fmt.Sprintf("%.2f", *it.Price)
+			}
+			itemsData = append(itemsData, map[string]interface{}{
+				"ID":             it.ID,
+				"ServiceID":      it.ServiceID,
+				"ServiceName":    it.ServiceName,
+				"OrderIndex":     it.OrderIndex,
+				"Price":          it.Price,
+				"PriceFormatado": pFormatted,
+			})
+		}
+		if len(itemsData) == 0 && serviceID > 0 {
+			itemsData = append(itemsData, map[string]interface{}{
+				"ID":             0,
+				"ServiceID":      serviceID,
+				"ServiceName":    "",
+				"OrderIndex":     1,
+				"Price":          nil,
+				"PriceFormatado": "",
+			})
+		}
+
 		m := map[string]interface{}{
 			"ID":                 p.ID,
 			"CustomerID":         p.CustomerID,
@@ -1074,11 +1189,12 @@ func (h *HandlerHtml) getPlanData(response *dto.PlanListResponse) []map[string]i
 			"PriceFormatado":     priceFormatted,
 			"ItemPrice":          itemPrice,
 			"ItemPriceFormatado": itemPriceFormatted,
-			"Items":              p.Items,
+			"Items":              itemsData,
 			"ServiceID":          serviceID,
 			"Agenda":             p.Agenda,
 			"Package":            packageData,
 			"Notebook":           p.Notebook,
+			"Active":             p.Active,
 		}
 		result = append(result, m)
 	}

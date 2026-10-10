@@ -3,6 +3,7 @@ package http
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"planner/internal/dto"
 	"planner/internal/port"
@@ -152,6 +153,11 @@ func (h *HandlerApi) PlanList(w http.ResponseWriter, r *http.Request) {
 	} else {
 		requestDTO.Page = 1
 		requestDTO.PageSize = 10
+	}
+	if activeStr := r.URL.Query().Get("active"); activeStr != "" {
+		if a, err := strconv.ParseBool(activeStr); err == nil {
+			requestDTO.Active = &a
+		}
 	}
 	svc := service.NewPlanList(h.repo, h.logger)
 	response := svc.Run(requestDTO)

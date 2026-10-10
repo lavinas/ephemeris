@@ -221,3 +221,81 @@ func TestPlanCRUD_Services(t *testing.T) {
 		t.Errorf("expected plan to be deleted, but still found")
 	}
 }
+
+func TestPlanList_ActiveFilter(t *testing.T) {
+	repo := newMockPlanRepoForService()
+	logger := &mockLogger{}
+
+	pastDate := time.Now().AddDate(-1, 0, 0)
+	futureDate := time.Now().AddDate(1, 0, 0)
+	yesterday := time.Now().AddDate(0, 0, -1)
+	tomorrow := time.Now().AddDate(0, 0, 1)
+
+	// Plan 1: Active (past start, nil end)
+	p1 := domain.NewPlan(1, pastDate, nil, 1, nil)
+	p1.ID = 1
+	repo.plans[1] = p1
+
+	// Plan 2: Active (past start, future end)
+	p2 := domain.NewPlan(1, pastDate, &tomorrow, 1, nil)
+	p2.ID = 2
+	repo.plans[2] = p2
+
+	// Plan 3: Inactive (past start, past end)
+	p3 := domain.NewPlan(1, pastDate, &yesterday, 1, nil)
+	p3.ID = 3
+	repo.plans[3] = p3
+
+	// Plan 4: Inactive (future start, future end)
+	p4 := domain.NewPlan(1, tomorrow, &futureDate, 1, nil)
+	p4.ID = 4
+	repo.plans[4] = p4
+
+	listSvc := NewPlanList(repo, logger)
+
+	// List all (Active is nil)
+	reqAll := &dto.PlanListRequest{Page: 1, PageSize: 10}
+	respAll := listSvc.Run(reqAll)
+	if respAll.GetStatusCode() != 200 {
+		t.Fatalf("PlanList failed: %s", respAll.GetMessage())
+	}
+	plans := respAll.(*dto.PlanListResponse).Plans
+	if len(plans) != 4 {
+		t.Fatalf("expected 4 plans, got %d", len(plans))
+	}
+
+	planActiveMap := map[int64]bool{}
+	for _, p := range plans {
+		planActiveMap[p.ID] = p.Active
+	}
+
+	if !planActiveMap[1] {
+		t.Errorf("expected plan 1 to be active")
+	}
+	if !planActiveMap[2] {
+		t.Errorf("expected plan 2 to be active")
+	}
+	if planActiveMap[3] {
+		t.Errorf("expected plan 3 to be inactive")
+	}
+	if planActiveMap[4] {
+		t.Errorf("expected plan 4 to be inactive")
+	}
+
+	// Test with Active = true filter
+	isTrue := true
+	reqActive := &dto.PlanListRequest{Page: 1, PageSize: 10, Active: &isTrue}
+	respActive := listSvc.Run(reqActive)
+	if respActive.GetStatusCode() != 200 {
+		t.Fatalf("PlanList with active=true failed: %s", respActive.GetMessage())
+	}
+
+	// Test with Active = false filter
+	isFalse := false
+	reqInactive := &dto.PlanListRequest{Page: 1, PageSize: 10, Active: &isFalse}
+	respInactive := listSvc.Run(reqInactive)
+	if respInactive.GetStatusCode() != 200 {
+		t.Fatalf("PlanList with active=false failed: %s", respInactive.GetMessage())
+	}
+}
+

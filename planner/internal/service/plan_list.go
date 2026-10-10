@@ -57,6 +57,15 @@ func (s *PlanList) Run(input port.InDTO) port.OutDTO {
 	if req.ServiceID != 0 {
 		conditions["id IN (SELECT plan_id FROM planner.plan_item WHERE service_id = ? AND deleted_at IS NULL)"] = req.ServiceID
 	}
+	if req.Active != nil {
+		todayStr := time.Now().Format("2006-01-02")
+		if *req.Active {
+			conditions["plan_start <= ?"] = todayStr
+			conditions["(plan_end IS NULL OR plan_end >= ?)"] = todayStr
+		} else {
+			conditions[fmt.Sprintf("(plan_start > '%s' OR (plan_end IS NOT NULL AND plan_end < '%s'))", todayStr, todayStr)] = nil
+		}
+	}
 
 	plans, total, err := s.repo.FindPlans(req.Page, req.PageSize, conditions)
 	if err != nil {
@@ -78,6 +87,7 @@ func (s *PlanList) Run(input port.InDTO) port.OutDTO {
 
 func (s *PlanList) mapPlansToDTO(plans []domain.Plan) []dto.PlanDTO {
 	result := make([]dto.PlanDTO, len(plans))
+	todayStr := time.Now().Format("2006-01-02")
 	for i, p := range plans {
 		nickname := ""
 		custName := ""
@@ -152,12 +162,19 @@ func (s *PlanList) mapPlansToDTO(plans []domain.Plan) []dto.PlanDTO {
 			}
 		}
 
+		planStartStr := p.PlanStart.Format("2006-01-02")
+		isActive := planStartStr <= todayStr
+		if p.PlanEnd != nil {
+			planEndStr := p.PlanEnd.Format("2006-01-02")
+			isActive = isActive && (todayStr <= planEndStr)
+		}
+
 		result[i] = dto.PlanDTO{
 			ID:           p.ID,
 			CustomerID:   p.CustomerID,
 			Nickname:     nickname,
 			CustomerName: custName,
-			PlanStart:    p.PlanStart.Format("2006-01-02"),
+			PlanStart:    planStartStr,
 			PlanEnd:      planEndStr,
 			PlanType:     p.PlanType,
 			PlanTypeName: domain.PlanType(p.PlanType).String(),
@@ -166,6 +183,7 @@ func (s *PlanList) mapPlansToDTO(plans []domain.Plan) []dto.PlanDTO {
 			Agenda:       agendaDTO,
 			Package:      pkgDTO,
 			Notebook:     nbDTO,
+			Active:       isActive,
 		}
 	}
 	return result

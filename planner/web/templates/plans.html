@@ -32,18 +32,95 @@
 				if (inputDia) inputDia.value = "";
 			}
 		}
+		function adicionarItemPlano(containerId, templateId) {
+			var container = document.getElementById(containerId);
+			var template = document.getElementById(templateId);
+			if (!container || !template) return;
+			
+			var existingOrders = container.querySelectorAll('.input-order-index');
+			var maxOrder = 0;
+			existingOrders.forEach(function(inp) {
+				var v = parseInt(inp.value, 10);
+				if (!isNaN(v) && v > maxOrder) maxOrder = v;
+			});
+			var nextOrder = maxOrder > 0 ? (maxOrder + 1) : (existingOrders.length + 1);
+
+			var node;
+			if (template.content && template.content.cloneNode) {
+				node = template.content.cloneNode(true);
+			} else {
+				var div = document.createElement('div');
+				div.innerHTML = template.innerHTML;
+				node = div.firstElementChild;
+			}
+			var orderInput = node.querySelector('.input-order-index');
+			if (orderInput) {
+				orderInput.value = nextOrder;
+			}
+			container.appendChild(node);
+		}
+		function removerItemPlano(btn) {
+			var linha = btn.closest('.linha-item-plano');
+			var container = linha ? linha.parentElement : null;
+			if (linha && container) {
+				if (container.querySelectorAll('.linha-item-plano').length <= 1) {
+					alert('O plano deve ter pelo menos um serviço cadastrado.');
+					return;
+				}
+				linha.remove();
+			}
+		}
+
+		function toggleFiltroAtivo() {
+			var input = document.getElementById('filtro-ativo-input');
+			var btn = document.getElementById('btn-filtro-ativo');
+			var icon = document.getElementById('btn-filtro-ativo-icon');
+			var text = document.getElementById('btn-filtro-ativo-text');
+			if (input && btn) {
+				if (input.value === "true") {
+					input.value = "";
+					btn.className = "w-full py-2 px-3 rounded-md text-xs font-bold transition duration-150 flex items-center justify-center gap-1.5 cursor-pointer shadow-sm bg-gray-800 border border-gray-700 text-gray-400 hover:bg-gray-700 hover:text-gray-200";
+					if (icon) icon.textContent = "○";
+					if (text) text.textContent = "Todos";
+				} else {
+					input.value = "true";
+					btn.className = "w-full py-2 px-3 rounded-md text-xs font-bold transition duration-150 flex items-center justify-center gap-1.5 cursor-pointer shadow-sm bg-emerald-600 border border-emerald-500 text-white hover:bg-emerald-700";
+					if (icon) icon.textContent = "✓";
+					if (text) text.textContent = "Ativos";
+				}
+			}
+			var p = document.getElementById('input-pagina-form-planos');
+			if (p) p.value = "1";
+		}
+
+		function resetFiltrosPlanos() {
+			var form = document.getElementById("filtro-form-planos");
+			if (form) form.reset();
+			var p = document.getElementById("input-pagina-form-planos");
+			if (p) p.value = "1";
+			var input = document.getElementById('filtro-ativo-input');
+			var btn = document.getElementById('btn-filtro-ativo');
+			var icon = document.getElementById('btn-filtro-ativo-icon');
+			var text = document.getElementById('btn-filtro-ativo-text');
+			if (input && btn && icon && text) {
+				input.value = "true";
+				btn.className = "w-full py-2 px-3 rounded-md text-xs font-bold transition duration-150 flex items-center justify-center gap-1.5 cursor-pointer shadow-sm bg-emerald-600 border border-emerald-500 text-white hover:bg-emerald-700";
+				icon.textContent = "✓";
+				text.textContent = "Ativos";
+			}
+		}
 	</script>
 	<style>
 		.grade-filtros-planos {
 			display: grid !important;
-			grid-template-columns: 1.5fr 1.2fr 1.3fr 1.3fr 1.3fr !important;
+			grid-template-columns: 1.4fr 1.1fr 1.2fr 1.1fr 1.1fr 0.9fr !important;
 			gap: 12px !important;
 			width: 100% !important;
 			box-sizing: border-box !important;
 		}
 		.grade-tabela-planos {
 			display: grid !important;
-			grid-template-columns: 1.8fr 1.1fr 1.6fr 1.8fr 2.6fr 1.1fr 1.2fr !important;
+			grid-template-columns: 1.8fr 1.1fr 1.6fr 2.5fr 1.8fr 1.3fr 1.1fr !important;
 			gap: 16px !important;
 			align-items: center !important;
 			width: 100% !important;
@@ -133,7 +210,7 @@
 	</style>
 	<div class="bg-gray-950 text-gray-100 font-sans antialiased min-h-screen py-10 px-4" style="background-color: #030712; color: #f3f4f6; min-height: 100vh; padding: 2.5rem 1rem;">
 		<div class="max-w-7xl mx-auto bg-gray-900 shadow-2xl rounded-2xl overflow-hidden border border-gray-800 p-8" style="max-width: 84rem; margin: 0 auto; background-color: #111827; border-radius: 1rem; border: 1px solid #1f2937; padding: 2rem;">
-			<form id="filtro-form-planos" hx-post="/html/planos/tabela" hx-target="#tabela-container-planos" hx-trigger="input delay:200ms, change" class="w-full">
+			<form id="filtro-form-planos" hx-post="/html/planos/tabela" hx-target="#tabela-container-planos" hx-trigger="input delay:200ms, change, submit" class="w-full">
 				<input type="hidden" id="input-pagina-form-planos" name="page" value="1">
 				<div class="grade-filtros-planos">
 					<div class="campo-box-plano">
@@ -171,30 +248,29 @@
 						<label>Início até</label>
 						<input type="date" name="data_fim">
 					</div>
-				</div>
-				<div class="flex items-center justify-between mt-4">
-					<button type="button" 
-							hx-post="/html/planos/tabela/reset" 
-							hx-target="#tabela-container-planos"
-							class="text-xs text-gray-400 hover:text-gray-200 underline cursor-pointer bg-transparent border-0 p-0">
-						Limpar Filtros
-					</button>
-					<button type="button" 
-							hx-get="/html/planos/novo" 
-							hx-target="#formulario-cadastro-container-planos"
-							class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs py-2 px-4 rounded-lg shadow transition duration-150 ease-in-out cursor-pointer flex items-center gap-1.5"
-							style="background-color: #4f46e5;">
-						<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-						</svg>
-						<span>Novo Plano</span>
-					</button>
+					<div class="campo-box-plano">
+						<label>Status</label>
+						<input type="hidden" id="filtro-ativo-input" name="ativo" value="true">
+						<button type="button" id="btn-filtro-ativo"
+								onclick="toggleFiltroAtivo()"
+								hx-post="/html/planos/tabela"
+								hx-target="#tabela-container-planos"
+								hx-include="#filtro-form-planos"
+								class="w-full py-2 px-3 rounded-md text-xs font-bold transition duration-150 flex items-center justify-center gap-1.5 cursor-pointer shadow-sm bg-emerald-600 border border-emerald-500 text-white hover:bg-emerald-700"
+								style="height: 38px;">
+							<span id="btn-filtro-ativo-icon">✓</span> <span id="btn-filtro-ativo-text">Ativos</span>
+						</button>
+					</div>
 				</div>
 			</form>
-
-			<div id="formulario-cadastro-container-planos" class="mt-6"></div>
-
-			<div id="tabela-container-planos" class="mt-6">
+			<div style="height: 40px; width: 100%;"></div>
+			<div class="flex justify-start gap-4" style="display: flex; gap: 1rem;">
+				<button hx-get="/html/planos/novo" hx-target="#formulario-cadastro-container-planos" hx-swap="innerHTML" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-2.5 rounded-lg border border-indigo-500 transition duration-150 shadow-md" style="background-color: #4f46e5; color: #fff; font-weight: 700; font-size: 0.875rem; padding: 0.625rem 1.5rem; border-radius: 0.5rem; border: 1px solid #6366f1; cursor: pointer;">＋ Novo Plano</button>
+				<button hx-post="/html/planos/tabela/reset" hx-target="#tabela-container-planos" onclick="resetFiltrosPlanos()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-sm px-6 py-2.5 rounded-lg border border-gray-700 transition duration-150 shadow-md" style="background-color: #1f2937; color: #d1d5db; font-weight: 700; font-size: 0.875rem; padding: 0.625rem 1.5rem; border-radius: 0.5rem; border: 1px solid #374151; cursor: pointer;">🧹 Limpar Filtros</button>
+			</div>
+			<div id="formulario-cadastro-container-planos" class="mt-4"></div>
+			<div style="height: 50px; width: 100%;"></div>
+			<div id="tabela-container-planos" class="w-full">
 				{{template "tabela" .}}
 			</div>
 		</div>
@@ -266,31 +342,124 @@
 				</div>
 			</div>
 
-			<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 p-3 bg-gray-900 rounded-lg border border-gray-800">
-				<div>
-					<label class="block text-xs font-semibold text-gray-300 mb-1">SERVIÇO PRINCIPAL DO PLANO *</label>
-					<select name="add_servico_id" required
-							class="w-full p-2 bg-gray-950 border border-gray-700 rounded text-sm text-white focus:outline-none focus:border-indigo-400">
-						{{range .Services}}
-							<option value="{{.ID}}" {{if eq .ID $.DefaultServiceID}}selected{{end}}>{{.Name}}</option>
-						{{end}}
-					</select>
-				</div>
-				<div>
-					<label class="block text-xs font-semibold text-gray-300 mb-1">VALOR DO PLANO (R$)</label>
-					<input type="number" step="0.01" min="0" name="add_price" id="add_price_input" value="{{.PricePadrao}}" placeholder="Exclusivo c/ item"
-						   oninput="if(this.value) document.getElementById('add_item_price_input').value='';"
-						   class="w-full p-2 bg-gray-950 border border-gray-700 rounded text-sm text-white focus:outline-none focus:border-indigo-400">
-					<span class="text-[10px] text-indigo-400">Preencha valor do plano OU do item</span>
-				</div>
-				<div>
-					<label class="block text-xs font-semibold text-gray-300 mb-1">VALOR DO ITEM (R$)</label>
-					<input type="number" step="0.01" min="0" name="add_item_price" id="add_item_price_input" value="{{.ItemPricePadrao}}" placeholder="Exclusivo c/ plano"
-						   oninput="if(this.value) document.getElementById('add_price_input').value='';"
-						   class="w-full p-2 bg-gray-950 border border-gray-700 rounded text-sm text-white focus:outline-none focus:border-indigo-400">
-					<span class="text-[10px] text-emerald-400">Se item tem valor, todos itens devem ter</span>
+			<!-- Valor Global do Plano (Opcional caso itens tenham valor) -->
+			<div class="p-3 bg-gray-900 rounded-lg border border-gray-800 mb-4">
+				<div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+					<div>
+						<label class="block text-xs font-semibold text-gray-300 mb-1">VALOR GLOBAL DO PLANO (R$)</label>
+						<span class="text-[11px] text-indigo-400">Preencha caso o plano tenha valor único global. Se for cobrar individualmente por serviço, deixe vazio e preencha os valores nos itens.</span>
+					</div>
+					<div class="w-full md:w-56">
+						<input type="number" step="0.01" min="0" name="add_price" id="add_price_input" value="{{.PricePadrao}}" placeholder="Exclusivo c/ itens"
+							   oninput="if(this.value) { document.querySelectorAll('#itens-cadastro-planos .item-price-input').forEach(function(e){ e.value=''; }); }"
+							   class="w-full p-2 bg-gray-950 border border-gray-700 rounded text-sm text-white focus:outline-none focus:border-indigo-400">
+					</div>
 				</div>
 			</div>
+
+			<!-- Serviços do Plano (Itens) -->
+			<div class="mb-4 p-4 bg-gray-900 rounded-lg border border-indigo-900/60">
+				<div class="flex items-center justify-between mb-3 pb-2 border-b border-gray-800">
+					<div>
+						<h4 class="text-xs font-bold text-indigo-300 uppercase tracking-wider">Serviços do Plano (Itens) *</h4>
+						<span class="text-[11px] text-gray-400">O primeiro serviço é o principal. Adicione outros itens caso o plano contemple múltiplos serviços.</span>
+					</div>
+					<button type="button" onclick="adicionarItemPlano('itens-cadastro-planos', 'template-item-plano-add')"
+							class="text-xs font-semibold text-indigo-400 hover:text-indigo-300 bg-indigo-950/70 hover:bg-indigo-900/80 px-3 py-1.5 rounded border border-indigo-700 transition cursor-pointer flex items-center gap-1 shadow-sm">
+						<span>＋</span> Adicionar outro serviço
+					</button>
+				</div>
+
+				<div id="itens-cadastro-planos" class="space-y-2">
+					{{range $i, $item := .Items}}
+						<div class="linha-item-plano flex items-center gap-3 p-2.5 bg-gray-950 rounded-lg border border-gray-800">
+							<div class="flex-1">
+								<label class="block text-[10px] font-semibold text-gray-400 mb-1">SERVIÇO {{if eq $item.OrderIndex 1}}(PRINCIPAL){{end}} *</label>
+								<select name="add_servico_id" required class="w-full p-2 bg-gray-900 border border-gray-700 rounded text-xs text-white focus:outline-none focus:border-indigo-400">
+									{{range $.Services}}
+										<option value="{{.ID}}" {{if eq .ID $item.ServiceID}}selected{{end}}>{{.Name}}</option>
+									{{end}}
+								</select>
+							</div>
+							<div class="w-24">
+								<label class="block text-[10px] font-semibold text-gray-400 mb-1">ORDEM *</label>
+								<input type="number" min="1" name="add_order_index" value="{{$item.OrderIndex}}" required
+									   class="w-full p-2 bg-gray-900 border border-gray-700 rounded text-xs text-white text-center focus:outline-none focus:border-indigo-400 input-order-index">
+							</div>
+							<div class="w-36">
+								<label class="block text-[10px] font-semibold text-gray-400 mb-1">VALOR ITEM (R$)</label>
+								<input type="number" step="0.01" min="0" name="add_item_price" value="{{$item.PriceFormatado}}" placeholder="Opcional"
+									   oninput="if(this.value) { var gp = document.getElementById('add_price_input'); if(gp) gp.value=''; }"
+									   class="w-full p-2 bg-gray-900 border border-gray-700 rounded text-xs text-white focus:outline-none focus:border-indigo-400 item-price-input">
+							</div>
+							<div class="pt-4">
+								<button type="button" onclick="removerItemPlano(this)"
+										class="p-2 text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 rounded transition cursor-pointer" title="Remover item">
+									✕
+								</button>
+							</div>
+						</div>
+					{{else}}
+						<div class="linha-item-plano flex items-center gap-3 p-2.5 bg-gray-950 rounded-lg border border-gray-800">
+							<div class="flex-1">
+								<label class="block text-[10px] font-semibold text-gray-400 mb-1">SERVIÇO (PRINCIPAL) *</label>
+								<select name="add_servico_id" required class="w-full p-2 bg-gray-900 border border-gray-700 rounded text-xs text-white focus:outline-none focus:border-indigo-400">
+									{{range .Services}}
+										<option value="{{.ID}}" {{if eq .ID $.DefaultServiceID}}selected{{end}}>{{.Name}}</option>
+									{{end}}
+								</select>
+							</div>
+							<div class="w-24">
+								<label class="block text-[10px] font-semibold text-gray-400 mb-1">ORDEM *</label>
+								<input type="number" min="1" name="add_order_index" value="1" required
+									   class="w-full p-2 bg-gray-900 border border-gray-700 rounded text-xs text-white text-center focus:outline-none focus:border-indigo-400 input-order-index">
+							</div>
+							<div class="w-36">
+								<label class="block text-[10px] font-semibold text-gray-400 mb-1">VALOR ITEM (R$)</label>
+								<input type="number" step="0.01" min="0" name="add_item_price" placeholder="Opcional"
+									   oninput="if(this.value) { var gp = document.getElementById('add_price_input'); if(gp) gp.value=''; }"
+									   class="w-full p-2 bg-gray-900 border border-gray-700 rounded text-xs text-white focus:outline-none focus:border-indigo-400 item-price-input">
+							</div>
+							<div class="pt-4">
+								<button type="button" onclick="removerItemPlano(this)"
+										class="p-2 text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 rounded transition cursor-pointer" title="Remover item">
+									✕
+								</button>
+							</div>
+						</div>
+					{{end}}
+				</div>
+			</div>
+
+			<template id="template-item-plano-add">
+				<div class="linha-item-plano flex items-center gap-3 p-2.5 bg-gray-950 rounded-lg border border-gray-800">
+					<div class="flex-1">
+						<label class="block text-[10px] font-semibold text-gray-400 mb-1">SERVIÇO *</label>
+						<select name="add_servico_id" required class="w-full p-2 bg-gray-900 border border-gray-700 rounded text-xs text-white focus:outline-none focus:border-indigo-400">
+							{{range .Services}}
+								<option value="{{.ID}}">{{.Name}}</option>
+							{{end}}
+						</select>
+					</div>
+					<div class="w-24">
+						<label class="block text-[10px] font-semibold text-gray-400 mb-1">ORDEM *</label>
+						<input type="number" min="1" name="add_order_index" value="1" required
+							   class="w-full p-2 bg-gray-900 border border-gray-700 rounded text-xs text-white text-center focus:outline-none focus:border-indigo-400 input-order-index">
+					</div>
+					<div class="w-36">
+						<label class="block text-[10px] font-semibold text-gray-400 mb-1">VALOR ITEM (R$)</label>
+						<input type="number" step="0.01" min="0" name="add_item_price" placeholder="Opcional"
+							   oninput="if(this.value) { var gp = document.getElementById('add_price_input'); if(gp) gp.value=''; }"
+							   class="w-full p-2 bg-gray-900 border border-gray-700 rounded text-xs text-white focus:outline-none focus:border-indigo-400 item-price-input">
+					</div>
+					<div class="pt-4">
+						<button type="button" onclick="removerItemPlano(this)"
+								class="p-2 text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 rounded transition cursor-pointer" title="Remover item">
+							✕
+						</button>
+					</div>
+				</div>
+			</template>
 
 			<!-- Seção Especializada: AGENDA (Tipo 1) -->
 			<div class="secao-agenda mb-4 p-4 bg-gray-900 rounded-lg border border-indigo-900 {{if and (ne .PlanType 1) (ne .PlanType 0)}}oculto{{end}}">
@@ -400,8 +569,8 @@
 			<div>CLIENTE</div>
 			<div>TIPO</div>
 			<div>VIGÊNCIA</div>
-			<div>SERVIÇOS</div>
 			<div>DETALHES DA REGRA</div>
+			<div>SERVIÇOS</div>
 			<div>PREÇO</div>
 			<div style="text-align: right;">AÇÕES</div>
 		</div>
@@ -424,20 +593,27 @@
 			<div class="flex gap-2">
 				{{if .TemAnterior}}
 					<button type="button"
-							onclick="document.getElementById('input-pagina-form-planos').value='{{.PagAnterior}}'; htmx.trigger(document.getElementById('filtro-form-planos'), 'submit');"
+							hx-post="/html/planos/tabela?page={{.PagAnterior}}"
+							hx-target="#tabela-container-planos"
+							hx-include="#filtro-form-planos"
+							onclick="var p = document.getElementById('input-pagina-form-planos'); if(p) p.value='{{.PagAnterior}}';"
 							class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded border border-gray-700 cursor-pointer">
 						&larr; Anterior
 					</button>
 				{{end}}
 				{{if .TemProximo}}
 					<button type="button"
-							onclick="document.getElementById('input-pagina-form-planos').value='{{.PagProxima}}'; htmx.trigger(document.getElementById('filtro-form-planos'), 'submit');"
+							hx-post="/html/planos/tabela?page={{.PagProxima}}"
+							hx-target="#tabela-container-planos"
+							hx-include="#filtro-form-planos"
+							onclick="var p = document.getElementById('input-pagina-form-planos'); if(p) p.value='{{.PagProxima}}';"
 							class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded border border-gray-700 cursor-pointer">
 						Próxima &rarr;
 					</button>
 				{{end}}
 			</div>
 		</div>
+		<script>var p = document.getElementById("input-pagina-form-planos"); if(p) p.value="{{.PaginaAtual}}";</script>
 	</div>
 	{{end}}
 
@@ -465,13 +641,13 @@
 					<span class="text-emerald-700 font-semibold">Em andamento</span>
 				{{end}}
 			</div>
-		</div>
-		<div class="text-xs text-gray-700">
-			{{range .Items}}
-				<div class="truncate font-medium text-gray-800">• {{.ServiceName}}</div>
-			{{else}}
-				<span class="text-gray-400">Nenhum</span>
-			{{end}}
+			<div class="mt-1">
+				{{if .Active}}
+					<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">● Ativo</span>
+				{{else}}
+					<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-gray-200 text-gray-600 border border-gray-300">○ Inativo</span>
+				{{end}}
+			</div>
 		</div>
 		<div class="text-xs text-gray-600">
 			{{if eq .PlanType 1}}
@@ -494,13 +670,28 @@
 				{{end}}
 			{{end}}
 		</div>
+		<div class="text-xs text-gray-700">
+			{{range .Items}}
+				<div class="truncate font-medium text-gray-800">• {{.ServiceName}}</div>
+			{{else}}
+				<span class="text-gray-400">Nenhum</span>
+			{{end}}
+		</div>
 		<div class="text-xs font-semibold text-gray-800">
 			{{if .PriceFormatado}}
-				R$ {{.PriceFormatado}} <span class="text-[10px] text-indigo-700 font-normal">(plano)</span>
-			{{else if .ItemPriceFormatado}}
-				R$ {{.ItemPriceFormatado}} <span class="text-[10px] text-emerald-700 font-normal">(item)</span>
+				<div class="truncate font-medium text-gray-800">R$ {{.PriceFormatado}} <span class="text-[10px] text-indigo-700 font-normal">(plano)</span></div>
 			{{else}}
-				<span class="text-gray-500 font-normal">Valor padrão</span>
+				{{range .Items}}
+					<div class="truncate font-medium text-gray-800">
+						{{if .PriceFormatado}}
+							• R$ {{.PriceFormatado}}
+						{{else}}
+							• <span class="text-gray-400 font-normal">-</span>
+						{{end}}
+					</div>
+				{{else}}
+					<span class="text-gray-500 font-normal">Valor padrão</span>
+				{{end}}
 			{{end}}
 		</div>
 		<div class="flex items-center justify-end gap-2">
@@ -537,7 +728,8 @@
 						class="text-xs text-gray-500 hover:text-gray-700">✕ Cancelar</button>
 			</div>
 
-			<div class="grid grid-cols-1 md:grid-cols-5 gap-3 mb-3">
+			<!-- Datas e Preço Global -->
+			<div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
 				<div>
 					<label class="block text-[11px] font-semibold text-gray-600 mb-1">INÍCIO *</label>
 					<input type="date" name="edit_plan_start" value="{{.PlanStart}}" required class="input-inline-tabela">
@@ -547,24 +739,86 @@
 					<input type="date" name="edit_plan_end" value="{{if .PlanEnd}}{{.PlanEnd}}{{end}}" class="input-inline-tabela">
 				</div>
 				<div>
-					<label class="block text-[11px] font-semibold text-gray-600 mb-1">SERVIÇO PRINCIPAL</label>
-					<select name="edit_servico_id" class="input-inline-tabela">
-						{{range $.Services}}
-							<option value="{{.ID}}" {{if eq .ID $.ServiceID}}selected{{end}}>{{.Name}}</option>
-						{{end}}
-					</select>
-				</div>
-				<div>
-					<label class="block text-[11px] font-semibold text-gray-600 mb-1">VALOR PLANO (R$)</label>
-					<input type="number" step="0.01" min="0" name="edit_price" id="edit_price_{{.ID}}" value="{{if .Price}}{{.Price}}{{end}}" placeholder="Plano" 
-						   oninput="if(this.value) document.getElementById('edit_item_price_{{.ID}}').value='';" class="input-inline-tabela">
-				</div>
-				<div>
-					<label class="block text-[11px] font-semibold text-gray-600 mb-1">VALOR ITEM (R$)</label>
-					<input type="number" step="0.01" min="0" name="edit_item_price" id="edit_item_price_{{.ID}}" value="{{if .ItemPrice}}{{.ItemPrice}}{{end}}" placeholder="Item" 
-						   oninput="if(this.value) document.getElementById('edit_price_{{.ID}}').value='';" class="input-inline-tabela">
+					<label class="block text-[11px] font-semibold text-gray-600 mb-1">VALOR GLOBAL DO PLANO (R$)</label>
+					<input type="number" step="0.01" min="0" name="edit_price" id="edit_price_{{.ID}}" value="{{if .PriceFormatado}}{{.PriceFormatado}}{{end}}" placeholder="Exclusivo c/ itens" 
+						   oninput="if(this.value) { document.querySelectorAll('#itens-edit-planos-{{.ID}} .item-price-input').forEach(function(e){ e.value=''; }); }" class="input-inline-tabela">
 				</div>
 			</div>
+
+			<!-- Serviços do Plano (Itens) -->
+			<div class="p-3 bg-indigo-50/50 border border-indigo-100 rounded-lg mb-3">
+				<div class="flex items-center justify-between mb-2 pb-1.5 border-b border-indigo-100">
+					<div>
+						<div class="text-[11px] font-bold text-indigo-900 uppercase">Serviços do Plano (Itens) *</div>
+						<span class="text-[10px] text-gray-500">Defina os serviços contratados e a ordem de execução.</span>
+					</div>
+					<button type="button" onclick="adicionarItemPlano('itens-edit-planos-{{.ID}}', 'template-item-plano-edit-{{.ID}}')"
+							class="text-[11px] font-semibold text-indigo-700 hover:text-indigo-900 bg-white hover:bg-indigo-50 px-2.5 py-1 rounded border border-indigo-200 transition cursor-pointer flex items-center gap-1 shadow-sm">
+						<span>＋</span> Adicionar outro serviço
+					</button>
+				</div>
+				<div id="itens-edit-planos-{{.ID}}" class="space-y-2">
+					{{range $idx, $item := .Items}}
+						<div class="linha-item-plano flex items-center gap-2.5 p-2 bg-white rounded border border-gray-200 shadow-sm">
+							<div class="flex-1">
+								<label class="block text-[10px] font-semibold text-gray-500 mb-0.5">SERVIÇO *</label>
+								<select name="edit_servico_id" required class="input-inline-tabela text-xs">
+									{{range $.Services}}
+										<option value="{{.ID}}" {{if eq .ID $item.ServiceID}}selected{{end}}>{{.Name}}</option>
+									{{end}}
+								</select>
+							</div>
+							<div class="w-24">
+								<label class="block text-[10px] font-semibold text-gray-500 mb-0.5">ORDEM *</label>
+								<input type="number" min="1" name="edit_order_index" value="{{$item.OrderIndex}}" required
+									   class="input-inline-tabela text-xs text-center input-order-index">
+							</div>
+							<div class="w-36">
+								<label class="block text-[10px] font-semibold text-gray-500 mb-0.5">VALOR ITEM (R$)</label>
+								<input type="number" step="0.01" min="0" name="edit_item_price" value="{{$item.PriceFormatado}}" placeholder="Opcional"
+									   oninput="if(this.value) { var gp = document.getElementById('edit_price_{{$.ID}}'); if(gp) gp.value=''; }"
+									   class="input-inline-tabela text-xs item-price-input">
+							</div>
+							<div class="pt-3">
+								<button type="button" onclick="removerItemPlano(this)"
+										class="p-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded transition cursor-pointer" title="Remover item">
+									✕
+								</button>
+							</div>
+						</div>
+					{{end}}
+				</div>
+			</div>
+
+			<template id="template-item-plano-edit-{{.ID}}">
+				<div class="linha-item-plano flex items-center gap-2.5 p-2 bg-white rounded border border-gray-200 shadow-sm">
+					<div class="flex-1">
+						<label class="block text-[10px] font-semibold text-gray-500 mb-0.5">SERVIÇO *</label>
+						<select name="edit_servico_id" required class="input-inline-tabela text-xs">
+							{{range $.Services}}
+								<option value="{{.ID}}">{{.Name}}</option>
+							{{end}}
+						</select>
+					</div>
+					<div class="w-24">
+						<label class="block text-[10px] font-semibold text-gray-500 mb-0.5">ORDEM *</label>
+						<input type="number" min="1" name="edit_order_index" value="1" required
+							   class="input-inline-tabela text-xs text-center input-order-index">
+					</div>
+					<div class="w-36">
+						<label class="block text-[10px] font-semibold text-gray-500 mb-0.5">VALOR ITEM (R$)</label>
+						<input type="number" step="0.01" min="0" name="edit_item_price" placeholder="Opcional"
+							   oninput="if(this.value) { var gp = document.getElementById('edit_price_{{$.ID}}'); if(gp) gp.value=''; }"
+							   class="input-inline-tabela text-xs item-price-input">
+					</div>
+					<div class="pt-3">
+						<button type="button" onclick="removerItemPlano(this)"
+								class="p-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-100 rounded transition cursor-pointer" title="Remover item">
+							✕
+						</button>
+					</div>
+				</div>
+			</template>
 
 			<!-- Edição Especializada por Tipo -->
 			{{if eq .PlanType 1}}

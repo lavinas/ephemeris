@@ -19,6 +19,7 @@ type PlanListRequest struct {
 	DateStart   string  `json:"date_start,omitempty"`
 	DateEnd     string  `json:"date_end,omitempty"`
 	ServiceID   int64   `json:"service_id,omitempty"`
+	Active      *bool   `json:"active,omitempty"`
 }
 
 // PlanListResponse represents the response containing a list of plans
@@ -46,6 +47,7 @@ type PlanDTO struct {
 	Agenda       *PlanAgendaDTO   `json:"agenda,omitempty"`
 	Package      *PlanPackageDTO  `json:"package,omitempty"`
 	Notebook     *PlanNotebookDTO `json:"notebook,omitempty"`
+	Active       bool             `json:"active"`
 }
 
 // PlanItemDTO represents a service item within a plan
@@ -216,4 +218,5 @@ func (r *PlanListRequest) Reset() {
 	r.DateStart = ""
 	r.DateEnd = ""
 	r.ServiceID = 0
+	r.Active = nil
 }
