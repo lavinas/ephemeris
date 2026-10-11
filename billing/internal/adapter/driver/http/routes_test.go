@@ -257,3 +257,77 @@ func TestBillingRoutes(t *testing.T) {
 		})
 	}
 }
+
+func TestInvoicesRealTemplate(t *testing.T) {
+	paths := []string{
+		"../../../../web/templates/invoices.html",
+		"web/templates/invoices.html",
+		"billing/web/templates/invoices.html",
+	}
+	var templateData []byte
+	var err error
+	wd, _ := os.Getwd()
+	for _, p := range paths {
+		if data, errRead := os.ReadFile(p); errRead == nil && len(data) > 0 {
+			templateData = data
+			break
+		}
+	}
+	if len(templateData) == 0 {
+		t.Fatalf("could not find real invoices.html template (wd: %s)", wd)
+	}
+
+	routes, err := NewRoutes(newDummyRepo(), &dummyLogger{}, &dummyTaxer{}, &dummyPixer{}, &dummyIssuer{}, templateData)
+	if err != nil {
+		t.Fatalf("failed to parse real template into routes: %v", err)
+	}
+
+	// Test GET /html/invoices
+	req := httptest.NewRequest(http.MethodGet, "/html/invoices", nil)
+	rec := httptest.NewRecorder()
+	routes.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "Envio Nota") {
+		t.Errorf("expected body to contain 'Envio Nota'")
+	}
+	if !strings.Contains(body, "Envio Recibo") {
+		t.Errorf("expected body to contain 'Envio Recibo'")
+	}
+	if !strings.Contains(body, `name="tax"`) {
+		t.Errorf("expected filter form to contain input name=\"tax\"")
+	}
+
+	// Test POST /html/invoices/tabela with filter
+	formData := url.Values{
+		"page":          {"1"},
+		"tax":           {"2026-10"},
+		"email_receipt": {"2026-10"},
+	}
+	reqTable := httptest.NewRequest(http.MethodPost, "/html/invoices/tabela", strings.NewReader(formData.Encode()))
+	reqTable.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	recTable := httptest.NewRecorder()
+	routes.ServeHTTP(recTable, reqTable)
+	if recTable.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", recTable.Code, recTable.Body.String())
+	}
+	bodyTable := recTable.Body.String()
+	if !strings.Contains(bodyTable, "Envio Nota") {
+		t.Errorf("expected table body to contain 'Envio Nota'")
+	}
+
+	// Test GET /html/invoices/editar?id=1
+	reqEdit := httptest.NewRequest(http.MethodGet, "/html/invoices/editar?id=1", nil)
+	recEdit := httptest.NewRecorder()
+	routes.ServeHTTP(recEdit, reqEdit)
+	if recEdit.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", recEdit.Code, recEdit.Body.String())
+	}
+	bodyEdit := recEdit.Body.String()
+	if !strings.Contains(bodyEdit, `name="edit_tax"`) {
+		t.Errorf("expected edit row to contain 'name=\"edit_tax\"'")
+	}
+}
+

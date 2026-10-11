@@ -3,14 +3,14 @@
 	<style>
 		.grade-filtros {
 			display: grid !important;
-			grid-template-columns: 1.3fr 1.05fr 1.05fr 1.05fr 1.05fr 1.05fr 1.4fr 0.8fr !important;
+			grid-template-columns: 1.3fr 1.05fr 1.05fr 1.05fr 1.05fr 1.05fr 1.05fr 1.4fr 0.8fr !important;
 			gap: 10px !important;
 			width: 100% !important;
 			box-sizing: border-box !important;
 		}
 		.grade-tabela {
 			display: grid !important;
-			grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2.35fr) minmax(0, 2.6fr) !important;
+			grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2.35fr) minmax(0, 2.6fr) !important;
 			gap: 12px !important;
 			align-items: center !important;
 			width: 100% !important;
@@ -124,16 +124,20 @@
 						<input type="text" name="due" placeholder="AAAA-MM...">
 					</div>
 					<div class="campo-box">
+						<label>Envio Fatura</label>
+						<input type="text" name="email_sent" placeholder="AAAA-MM...">
+					</div>
+					<div class="campo-box">
 						<label>Pagamento</label>
 						<input type="text" name="payment" placeholder="AAAA-MM...">
 					</div>
 					<div class="campo-box">
-						<label>Envio Email</label>
-						<input type="text" name="email_sent" placeholder="AAAA-MM...">
+						<label>Envio Recibo</label>
+						<input type="text" name="email_receipt" placeholder="AAAA-MM...">
 					</div>
 					<div class="campo-box">
-						<label>Recibo Email</label>
-						<input type="text" name="email_receipt" placeholder="AAAA-MM...">
+						<label>Envio Nota</label>
+						<input type="text" name="tax" placeholder="AAAA-MM...">
 					</div>
 					<div class="campo-box">
 						<label>Itens / Descrição</label>
@@ -248,14 +252,14 @@
 		<style>
 			.grade-filtros {
 				display: grid !important;
-				grid-template-columns: 1.3fr 1.05fr 1.05fr 1.05fr 1.05fr 1.05fr 1.4fr 0.8fr !important;
+				grid-template-columns: 1.3fr 1.05fr 1.05fr 1.05fr 1.05fr 1.05fr 1.05fr 1.4fr 0.8fr !important;
 				gap: 10px !important;
 				width: 100% !important;
 				box-sizing: border-box !important;
 			}
 			.grade-tabela {
 				display: grid !important;
-				grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2.35fr) minmax(0, 2.6fr) !important;
+				grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2.35fr) minmax(0, 2.6fr) !important;
 				gap: 12px !important;
 				align-items: center !important;
 				width: 100% !important;
@@ -394,8 +398,12 @@
 						<input type="text" name="email_sent" placeholder="AAAA-MM...">
 					</div>
 					<div class="campo-box">
-						<label>Recibo Email</label>
+						<label>Envio Recibo</label>
 						<input type="text" name="email_receipt" placeholder="AAAA-MM...">
+					</div>
+					<div class="campo-box">
+						<label>Envio Nota</label>
+						<input type="text" name="tax" placeholder="AAAA-MM...">
 					</div>
 					<div class="campo-box">
 						<label>Itens / Descrição</label>
@@ -544,7 +552,7 @@
 				<input type="date" name="add_payment" value="{{.PaymentDate}}" class="input-inline-tabela">
 			</div>
 			<div>
-				<label class="block text-xs font-bold text-gray-600 uppercase mb-1">Envio Invoice</label>
+				<label class="block text-xs font-bold text-gray-600 uppercase mb-1">Envio Fatura</label>
 				<input type="date" name="add_email_sent" value="{{.EmailSentDate}}" class="input-inline-tabela">
 			</div>
 			<div>
@@ -683,9 +691,10 @@
 			<div>Data</div>
 			<div>Cliente</div>
 			<div>Vencimento</div>
-			<div>Envio Invoice</div>
+			<div>Envio Fatura</div>
 			<div>Pagamento</div>
 			<div>Envio Recibo</div>
+			<div>Envio Nota</div>
 			<div>Itens & Total</div>
 			<div style="text-align: right !important; width: 100%;">Ações</div>
 		</div>
@@ -742,6 +751,13 @@
 				<span class="badge-tag bg-gray-200 text-gray-600 border border-gray-300 text-xs">Não enviado</span>
 			{{end}}
 		</div>
+		<div>
+			{{if .TaxDateRaw}}
+				<span class="badge-tag bg-teal-100 text-teal-800 border border-teal-300 font-mono text-xs">✓ {{.TaxDateFormatada}}</span>
+			{{else}}
+				<span class="badge-tag bg-gray-200 text-gray-600 border border-gray-300 text-xs">Não enviado</span>
+			{{end}}
+		</div>
 		<div class="comentario-multilinha" style="min-width: 0;">
 			<div class="font-mono font-bold text-indigo-700 text-sm mb-1">{{.ValorFormatado}}</div>
 			{{if .Items}}
@@ -787,12 +803,16 @@
 			<input type="date" name="edit_payment" value="{{.PaymentDateRaw}}" class="input-inline-tabela">
 		</div>
 		<div>
-			<label class="block text-2xs font-bold text-gray-500 uppercase">Envio Invoice</label>
+			<label class="block text-2xs font-bold text-gray-500 uppercase">Envio Fatura</label>
 			<input type="date" name="edit_email_sent" value="{{.EmailSentDateRaw}}" class="input-inline-tabela">
 		</div>
 		<div>
 			<label class="block text-2xs font-bold text-gray-500 uppercase">Envio Recibo</label>
 			<input type="date" name="edit_email_receipt" value="{{.EmailReceiptDateRaw}}" class="input-inline-tabela">
+		</div>
+		<div>
+			<label class="block text-2xs font-bold text-gray-500 uppercase">Envio Nota</label>
+			<input type="date" name="edit_tax" value="{{.TaxDateRaw}}" class="input-inline-tabela">
 		</div>
 		<div>
 			<div class="font-mono font-bold text-indigo-700 text-xs mb-1">{{.ValorFormatado}}</div>
@@ -807,7 +827,7 @@
 
 	{{define "linha_invoice_deletar_aviso"}}
 	<div id="invoice-{{.ID}}" class="linha-box grade-tabela aviso-deletar text-sm bg-rose-50/50 py-5" style="align-items: center !important;">
-		<div class="col-span-6 text-rose-700 font-bold flex items-center gap-2" style="grid-column: span 6 / span 6 !important;">
+		<div class="col-span-7 text-rose-700 font-bold flex items-center gap-2" style="grid-column: span 7 / span 7 !important;">
 			<span>⚠️</span>
 			<span>Deseja realmente cancelar/excluir permanentemente a invoice <strong>#{{.ID}}</strong> de <span class="underline">{{.Customer}}</span> no valor de <strong>{{.ValorFormatado}}</strong>?</span>
 		</div>
@@ -820,7 +840,7 @@
 
 	{{define "linha_invoice_pagamento_aviso"}}
 	<form id="invoice-{{.ID}}" hx-post="/html/invoices/pagar?id={{.ID}}" hx-target="#tabela-container" hx-include="#filtro-form" hx-indicator="#spinner-pay-{{.ID}}" hx-disabled-elt="find button, find input" class="linha-box grade-tabela aviso-pagar text-sm bg-emerald-50/50 py-4" style="align-items: center !important;">
-		<div class="col-span-5 text-emerald-800 font-bold flex items-center gap-2" style="grid-column: span 5 / span 5 !important;">
+		<div class="col-span-6 text-emerald-800 font-bold flex items-center gap-2" style="grid-column: span 6 / span 6 !important;">
 			<span>💰</span>
 			<span>Confirmar pagamento de <span class="underline">{{.Customer}}</span> ({{.ValorFormatado}})? Data:</span>
 			<input type="date" name="payment_date" value="{{.DataHoje}}" required class="input-inline-tabela" style="width: auto !important; display: inline-block !important;">
