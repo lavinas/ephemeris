@@ -116,7 +116,7 @@
 						</datalist>
 					</div>
 					<div class="campo-box">
-						<label>Data Invoice</label>
+						<label>Data Fatura</label>
 						<input type="text" name="invoicing" placeholder="AAAA-MM...">
 					</div>
 					<div class="campo-box">
@@ -154,7 +154,7 @@
 			<div style="height: 35px; width: 100%;"></div>
 			<div class="flex justify-between items-center w-full" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
 				<div class="flex justify-start gap-4" style="display: flex; gap: 1rem;">
-					<button hx-get="/html/invoices/novo" hx-target="#formulario-cadastro-container" hx-swap="innerHTML" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-2.5 rounded-lg border border-indigo-500 transition duration-150 shadow-md" style="background-color: #4f46e5; color: #fff; font-weight: 700; font-size: 0.875rem; padding: 0.625rem 1.5rem; border-radius: 0.5rem; border: 1px solid #6366f1; cursor: pointer;">＋ Adicionar Invoice</button>
+					<button hx-get="/html/invoices/novo" hx-target="#formulario-cadastro-container" hx-swap="innerHTML" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-2.5 rounded-lg border border-indigo-500 transition duration-150 shadow-md" style="background-color: #4f46e5; color: #fff; font-weight: 700; font-size: 0.875rem; padding: 0.625rem 1.5rem; border-radius: 0.5rem; border: 1px solid #6366f1; cursor: pointer;">＋ Adicionar Fatura</button>
 					<button hx-post="/html/invoices/tabela/reset" hx-target="#tabela-container" class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-sm px-6 py-2.5 rounded-lg border border-gray-700 transition duration-150 shadow-md" style="background-color: #1f2937; color: #d1d5db; font-weight: 700; font-size: 0.875rem; padding: 0.625rem 1.5rem; border-radius: 0.5rem; border: 1px solid #374151; cursor: pointer;">🧹 Limpar Filtros</button>
 				</div>
 				<div id="totais-container">
@@ -246,7 +246,7 @@
 	<html lang="pt-BR">
 	<head>
 		<meta charset="UTF-8">
-		<title>Dashboard de Invoices</title>
+		<title>Dashboard de Faturas</title>
 		<script src="https://cdn.tailwindcss.com"></script>
 		<script src="/static/htmx.min.js"></script>
 		<style>
@@ -382,7 +382,7 @@
 						</datalist>
 					</div>
 					<div class="campo-box">
-						<label>Data Invoice</label>
+						<label>Data Fatura</label>
 						<input type="text" name="invoicing" placeholder="AAAA-MM...">
 					</div>
 					<div class="campo-box">
@@ -420,7 +420,7 @@
 			<div style="height: 35px; width: 100%;"></div>
 			<div class="flex justify-between items-center w-full" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
 				<div class="flex justify-start gap-4">
-					<button hx-get="/html/invoices/novo" hx-target="#formulario-cadastro-container" hx-swap="innerHTML" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-2.5 rounded-lg border border-indigo-500 transition duration-150 shadow-md">＋ Adicionar Invoice</button>
+					<button hx-get="/html/invoices/novo" hx-target="#formulario-cadastro-container" hx-swap="innerHTML" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-2.5 rounded-lg border border-indigo-500 transition duration-150 shadow-md">＋ Adicionar Fatura</button>
 					<button hx-post="/html/invoices/tabela/reset" hx-target="#tabela-container" class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-sm px-6 py-2.5 rounded-lg border border-gray-700 transition duration-150 shadow-md">🧹 Limpar Filtros</button>
 				</div>
 				<div id="totais-container">
@@ -525,7 +525,7 @@
 		<div class="font-bold text-base text-indigo-900 border-b pb-3 mb-4 flex items-center justify-between">
 			<div class="flex items-center gap-2">
 				<span class="text-indigo-600">📄</span>
-				<span>Nova Invoice</span>
+				<span>Nova Fatura</span>
 			</div>
 			<span class="text-xs font-normal text-gray-500">Preencha os dados e adicione os itens correspondentes</span>
 		</div>
@@ -540,7 +540,7 @@
 				</datalist>
 			</div>
 			<div>
-				<label class="block text-xs font-bold text-gray-600 uppercase mb-1">Data Invoice *</label>
+				<label class="block text-xs font-bold text-gray-600 uppercase mb-1">Data Fatura *</label>
 				<input type="date" name="add_invoicing" value="{{.InvoiceDate}}" required class="input-inline-tabela">
 			</div>
 			<div>
@@ -563,13 +563,13 @@
 		
 		<div class="mb-4">
 			<label class="block text-xs font-bold text-gray-600 uppercase mb-1">Observações</label>
-			<input type="text" name="add_notes" value="{{.Notes}}" placeholder="Observações adicionais da invoice..." class="input-inline-tabela">
+			<input type="text" name="add_notes" value="{{.Notes}}" placeholder="Observações adicionais da fatura..." class="input-inline-tabela">
 		</div>
 
 		<!-- Lista de Itens Dinâmicos -->
 		<div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
 			<div class="flex items-center justify-between mb-3">
-				<span class="text-xs font-bold text-gray-700 uppercase tracking-wider">Itens da Invoice</span>
+				<span class="text-xs font-bold text-gray-700 uppercase tracking-wider">Itens da Fatura</span>
 				<button type="button" onclick="adicionarLinhaItem()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs px-3 py-1.5 rounded border border-indigo-200 transition flex items-center gap-1 cursor-pointer">
 					<span>＋</span> Adicionar Linha
 				</button>
@@ -616,7 +616,7 @@
 		</div>
 
 		<div class="flex gap-3 justify-start items-center">
-			<button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold text-sm px-6 py-2 rounded-lg transition shadow-md cursor-pointer">Salvar Invoice</button>
+			<button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold text-sm px-6 py-2 rounded-lg transition shadow-md cursor-pointer">Salvar Fatura</button>
 			<button type="button" hx-get="/html/invoices/bloco/limpar" hx-target="#formulario-cadastro-container" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-sm px-6 py-2 rounded-lg border border-gray-300 transition cursor-pointer">Cancelar</button>
 		</div>
 	</form>
@@ -650,7 +650,7 @@
 				btn.closest('.linha-item-form').remove();
 				calcularTotalForm();
 			} else {
-				alert('A invoice deve ter pelo menos um item.');
+				alert('A fatura deve ter pelo menos um item.');
 			}
 		}
 
@@ -712,7 +712,7 @@
 				</div>
 			</div>
 		{{else}}
-			<div class="bg-gray-900/50 border border-gray-800 rounded-xl py-12 text-center text-gray-500 italic">Nenhuma invoice corresponde aos filtros selecionados.</div>
+			<div class="bg-gray-900/50 border border-gray-800 rounded-xl py-12 text-center text-gray-500 italic">Nenhuma fatura corresponde aos filtros selecionados.</div>
 		{{end}}
 	</div>
 	{{end}}
@@ -772,7 +772,7 @@
 			{{end}}
 		</div>
 		<div class="flex flex-wrap gap-1.5 justify-end w-full" style="justify-content: flex-end !important; align-items: start !important; text-align: right;">
-			<button type="button" data-id="{{.ID}}" onclick="baixarDocumentoPDF(this.dataset.id, 0, this)" class="text-indigo-700 hover:text-white font-bold text-xs px-2 py-1 bg-indigo-50 hover:bg-indigo-600 rounded border border-indigo-200 transition shadow-sm cursor-pointer" title="Baixar Invoice PDF">Invoice</button>
+			<button type="button" data-id="{{.ID}}" onclick="baixarDocumentoPDF(this.dataset.id, 0, this)" class="text-indigo-700 hover:text-white font-bold text-xs px-2 py-1 bg-indigo-50 hover:bg-indigo-600 rounded border border-indigo-200 transition shadow-sm cursor-pointer" title="Baixar Fatura PDF">Fatura</button>
 			{{if .PaymentDateRaw}}
 				<button type="button" data-id="{{.ID}}" onclick="baixarDocumentoPDF(this.dataset.id, 1, this)" class="text-purple-700 hover:text-white font-bold text-xs px-2 py-1 bg-purple-50 hover:bg-purple-600 rounded border border-purple-200 transition shadow-sm cursor-pointer" title="Baixar Recibo PDF">Recibo</button>
 			{{end}}
