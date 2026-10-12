@@ -1,4 +1,4 @@
--- Active: 1790470840125@@192.168.1.138@5433@planner@planner
+-- Active: 1790015123887@@127.0.0.1@5433@planner@planner
 create schema if not exists planner;
 
 set search_path to planner;
@@ -64,4 +64,3 @@ create table plan_notebook (
     constraint check_payment_day_or_term_exclusive 
         check (num_nonnulls(payment_day, payment_term) = 1)
 );
-
