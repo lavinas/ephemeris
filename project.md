@@ -118,6 +118,7 @@ No subsistema planner:
                     invoice.updated_at = now()
                     invoice.deleted_at = null
     * Modelar a arquitetura das diversas estratégias descritas acima dentro de adapters (cadas estrategia um adapter) dentro da pasta adapters/invoicing que já foi criada.
+    * Colocar as chamadas ao serviço para ser chamado dentro do hadler_api....em um segundo momento irei fazer um handler para se fazer chamada automática
     
 
 
