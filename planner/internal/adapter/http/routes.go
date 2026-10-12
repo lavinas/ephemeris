@@ -76,6 +76,8 @@ func NewHTMLRoutes(repo port.Repository, logger port.Logger, htmlTemplate []byte
 	mux.HandleFunc("/planos/deletar-aviso", handler.PlansDeleteWarning)
 	mux.HandleFunc("/planos/cancelar-edicao", handler.PlansCancelEdit)
 	mux.HandleFunc("/planos/deletar", handler.PlansDelete)
+	mux.HandleFunc("/planos/encerrar-aviso", handler.PlansEndWarning)
+	mux.HandleFunc("/planos/encerrar", handler.PlansEnd)
 	mux.HandleFunc("/planos/editar", handler.PlansEdit)
 	mux.HandleFunc("/planos/atualizar", handler.PlansUpdate)
 	mux.HandleFunc("/planos/tabela", handler.PlansTable)

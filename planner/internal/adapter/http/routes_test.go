@@ -198,13 +198,30 @@ func (m *mockPlanRepoWithItems) FindServices(vendorID int64) ([]domain.Service, 
 
 func (m *mockPlanRepoWithItems) GetPlanByID(id int64) (*domain.Plan, error) {
 	now := time.Now()
+	price := 100.0
 	return &domain.Plan{
 		ID:         id,
 		CustomerID: 100,
 		PlanStart:  now,
 		PlanType:   1,
+		Price:      &price,
 		Items:      []domain.PlanItem{{ServiceID: 10, OrderIndex: 1}},
 	}, nil
+}
+
+func (m *mockPlanRepoWithItems) FindPlans(page, pageSize int, conditions map[string]interface{}, orderBy ...string) ([]domain.Plan, int64, error) {
+	now := time.Now()
+	price := 100.0
+	return []domain.Plan{
+		{
+			ID:         1,
+			CustomerID: 100,
+			PlanStart:  now,
+			PlanType:   1,
+			Price:      &price,
+			Items:      []domain.PlanItem{{ServiceID: 10, OrderIndex: 1}},
+		},
+	}, 1, nil
 }
 
 func (m *mockPlanRepoWithItems) SavePlan(plan *domain.Plan) error {
@@ -326,6 +343,43 @@ func TestPlansSaveAndMultipleItems(t *testing.T) {
 	}
 	if !strings.Contains(recDupEdit.Body.String(), "mesmo valor em order") {
 		t.Errorf("expected duplicate order error message, got: %s", recDupEdit.Body.String())
+	}
+
+	// 8. Test GET /html/planos/encerrar-aviso?id=1
+	reqEncerrarAviso := httptest.NewRequest(http.MethodGet, "/html/planos/encerrar-aviso?id=1", nil)
+	recEncerrarAviso := httptest.NewRecorder()
+	routes.ServeHTTP(recEncerrarAviso, reqEncerrarAviso)
+	if recEncerrarAviso.Code != http.StatusOK {
+		t.Errorf("expected 200 on /html/planos/encerrar-aviso, got %d: %s", recEncerrarAviso.Code, recEncerrarAviso.Body.String())
+	}
+	if !strings.Contains(recEncerrarAviso.Body.String(), "encerrar_plan_end") {
+		t.Errorf("expected /html/planos/encerrar-aviso to render input encerrar_plan_end, got: %s", recEncerrarAviso.Body.String())
+	}
+
+	// 9. Test POST /html/planos/encerrar?id=1 with valid date
+	encerrarForm := strings.NewReader("encerrar_plan_end=2026-10-25&page=1")
+	reqEncerrar := httptest.NewRequest(http.MethodPost, "/html/planos/encerrar?id=1", encerrarForm)
+	reqEncerrar.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	recEncerrar := httptest.NewRecorder()
+	routes.ServeHTTP(recEncerrar, reqEncerrar)
+	if recEncerrar.Code != http.StatusOK {
+		t.Errorf("expected 200 on /html/planos/encerrar, got %d: %s", recEncerrar.Code, recEncerrar.Body.String())
+	}
+	if mockR.lastSavedPlan == nil || mockR.lastSavedPlan.PlanEnd == nil {
+		t.Fatalf("expected lastSavedPlan.PlanEnd to be set, got nil")
+	}
+	if mockR.lastSavedPlan.PlanEnd.Format("2006-01-02") != "2026-10-25" {
+		t.Errorf("expected PlanEnd 2026-10-25, got %s", mockR.lastSavedPlan.PlanEnd.Format("2006-01-02"))
+	}
+
+	// 10. Test POST /html/planos/encerrar?id=1 with date before plan_start (error 400)
+	invalidDateForm := strings.NewReader("encerrar_plan_end=2020-01-01")
+	reqInvalid := httptest.NewRequest(http.MethodPost, "/html/planos/encerrar?id=1", invalidDateForm)
+	reqInvalid.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	recInvalid := httptest.NewRecorder()
+	routes.ServeHTTP(recInvalid, reqInvalid)
+	if recInvalid.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 on /html/planos/encerrar with date before start, got %d", recInvalid.Code)
 	}
 }
 

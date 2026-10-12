@@ -66,7 +66,7 @@ func NewHandlerHtml(repo port.Repository, logger port.Logger, tdata []byte, plan
 		} else if data, err := os.ReadFile("../../../web/templates/plans.html"); err == nil {
 			pData = data
 		} else {
-			pData = []byte(`{{define "index"}}<html><body>Plans</body></html>{{end}}{{define "fragment"}}<div>Plans</div>{{end}}{{define "tabela"}}<div>Tabela</div>{{end}}`)
+			pData = []byte(`{{define "index"}}<html><body>Plans</body></html>{{end}}{{define "fragment"}}<div>Plans</div>{{end}}{{define "tabela"}}<div>Tabela</div>{{end}}{{define "linha_plano_encerrar_aviso"}}<div>Encerrar</div>{{end}}`)
 		}
 	}
 
@@ -858,6 +858,83 @@ func (h *HandlerHtml) PlansDelete(w http.ResponseWriter, r *http.Request) {
 	page := h.getPlanPageData(response)
 	w.Write([]byte(`<script>document.getElementById("formulario-cadastro-container-planos").innerHTML = "";</script>`))
 	h.tmplPlans.ExecuteTemplate(w, "tabela", page)
+}
+
+// PlansEndWarning handles GET /planos/encerrar-aviso
+func (h *HandlerHtml) PlansEndWarning(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.Atoi(r.URL.Query().Get("id"))
+	svc := service.NewPlanList(h.repo, h.logger)
+	req := &dto.PlanListRequest{
+		Page:     1,
+		PageSize: 1,
+		PlanID:   int64(id),
+	}
+	respdro := svc.Run(req)
+	response, ok := respdro.(*dto.PlanListResponse)
+	if !ok || len(response.Plans) == 0 {
+		http.Error(w, "Plan not found", http.StatusNotFound)
+		return
+	}
+	planSel := h.getPlanData(response)[0]
+	hoje := time.Now().Format("2006-01-02")
+	dataPadrao := hoje
+	if pStart, ok := planSel["PlanStart"].(string); ok && pStart > hoje {
+		dataPadrao = pStart
+	}
+	planSel["DataHoje"] = dataPadrao
+	h.tmplPlans.ExecuteTemplate(w, "linha_plano_encerrar_aviso", planSel)
+}
+
+// PlansEnd handles POST /planos/encerrar
+func (h *HandlerHtml) PlansEnd(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	id, _ := strconv.Atoi(r.URL.Query().Get("id"))
+	planEndStr := r.FormValue("encerrar_plan_end")
+	if planEndStr == "" {
+		planEndStr = r.FormValue("plan_end")
+	}
+	if planEndStr == "" {
+		planEndStr = time.Now().Format("2006-01-02")
+	}
+
+	updateSvc := service.NewPlanUpdate(h.repo, h.logger)
+	updateReq := &dto.PlanUpdateRequest{
+		ID:      int64(id),
+		PlanEnd: &planEndStr,
+	}
+	respdro := updateSvc.Run(updateReq)
+	if respdro.GetStatusCode() != 200 {
+		http.Error(w, respdro.GetMessage(), http.StatusBadRequest)
+		return
+	}
+
+	pagina, _ := strconv.Atoi(r.FormValue("page"))
+	if pagina <= 0 {
+		pagina = 1
+	}
+	tipoFiltro, _ := strconv.Atoi(r.FormValue("tipo_filtro"))
+	servicoFiltro, _ := strconv.ParseInt(r.FormValue("servico_filtro"), 10, 64)
+	listSvc := service.NewPlanList(h.repo, h.logger)
+	var activeFilter *bool
+	if r.FormValue("ativo") == "true" || r.FormValue("ativo") == "1" || r.FormValue("ativo") == "on" {
+		t := true
+		activeFilter = &t
+	}
+	listReq := &dto.PlanListRequest{
+		Page:      pagina,
+		PageSize:  itensPorPag,
+		Nickname:  r.FormValue("nickname"),
+		PlanType:  tipoFiltro,
+		ServiceID: servicoFiltro,
+		DateStart: r.FormValue("data_inicio"),
+		DateEnd:   r.FormValue("data_fim"),
+		Active:    activeFilter,
+	}
+	listResp := listSvc.Run(listReq)
+	response, _ := listResp.(*dto.PlanListResponse)
+	pageData := h.getPlanPageData(response)
+	w.Write([]byte(`<script>document.getElementById("formulario-cadastro-container-planos").innerHTML = "";</script>`))
+	h.tmplPlans.ExecuteTemplate(w, "tabela", pageData)
 }
 
 // PlansEdit handles GET /planos/editar
