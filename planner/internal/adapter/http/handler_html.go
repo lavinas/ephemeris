@@ -649,6 +649,7 @@ func (h *HandlerHtml) PlansSave(w http.ResponseWriter, r *http.Request) {
 	var agenda *dto.PlanAgendaRequest
 	var pkg *dto.PlanPackageRequest
 	var notebook *dto.PlanNotebookRequest
+	var payperview *dto.PlanPayPerViewRequest
 
 	switch planType {
 	case 1:
@@ -677,41 +678,29 @@ func (h *HandlerHtml) PlansSave(w http.ResponseWriter, r *http.Request) {
 			PaymentDate: pDate,
 		}
 	case 3:
-		modo := r.FormValue("caderneta_modo")
-		var pDay *int
-		var pTerm *int
-		if modo == "dia" {
-			d, _ := strconv.Atoi(r.FormValue("add_caderneta_dia_pagamento"))
-			pDay = &d
-		} else if modo == "prazo" {
-			t, _ := strconv.Atoi(r.FormValue("add_caderneta_prazo_pagamento"))
-			pTerm = &t
-		} else {
-			if dStr := r.FormValue("add_caderneta_dia_pagamento"); dStr != "" {
-				d, _ := strconv.Atoi(dStr)
-				pDay = &d
-			} else if tStr := r.FormValue("add_caderneta_prazo_pagamento"); tStr != "" {
-				t, _ := strconv.Atoi(tStr)
-				pTerm = &t
-			}
-		}
+		d, _ := strconv.Atoi(r.FormValue("add_caderneta_dia_pagamento"))
 		notebook = &dto.PlanNotebookRequest{
-			PaymentDay:  pDay,
-			PaymentTerm: pTerm,
+			PaymentDay: d,
+		}
+	case 4:
+		term, _ := strconv.Atoi(r.FormValue("add_payperview_prazo_pagamento"))
+		payperview = &dto.PlanPayPerViewRequest{
+			PaymentTerm: term,
 		}
 	}
 
 	createSvc := service.NewPlanCreate(h.repo, h.logger)
 	createReq := &dto.PlanCreateRequest{
-		Nickname:  nickname,
-		PlanStart: planStart,
-		PlanEnd:   planEnd,
-		PlanType:  planType,
-		Price:     price,
-		Items:     items,
-		Agenda:    agenda,
-		Package:   pkg,
-		Notebook:  notebook,
+		Nickname:   nickname,
+		PlanStart:  planStart,
+		PlanEnd:    planEnd,
+		PlanType:   planType,
+		Price:      price,
+		Items:      items,
+		Agenda:     agenda,
+		Package:    pkg,
+		Notebook:   notebook,
+		PayPerView: payperview,
 	}
 	respdro := createSvc.Run(createReq)
 
@@ -1048,21 +1037,18 @@ func (h *HandlerHtml) PlansUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var notebook *dto.PlanNotebookRequest
-	dStr := r.FormValue("edit_caderneta_dia_pagamento")
-	tStr := r.FormValue("edit_caderneta_prazo_pagamento")
-	if dStr != "" || tStr != "" {
-		var pDay *int
-		var pTerm *int
-		if dStr != "" {
-			d, _ := strconv.Atoi(dStr)
-			pDay = &d
-		} else if tStr != "" {
-			t, _ := strconv.Atoi(tStr)
-			pTerm = &t
-		}
+	if dStr := r.FormValue("edit_caderneta_dia_pagamento"); dStr != "" {
+		d, _ := strconv.Atoi(dStr)
 		notebook = &dto.PlanNotebookRequest{
-			PaymentDay:  pDay,
-			PaymentTerm: pTerm,
+			PaymentDay: d,
+		}
+	}
+
+	var payperview *dto.PlanPayPerViewRequest
+	if tStr := r.FormValue("edit_payperview_prazo_pagamento"); tStr != "" {
+		term, _ := strconv.Atoi(tStr)
+		payperview = &dto.PlanPayPerViewRequest{
+			PaymentTerm: term,
 		}
 	}
 
@@ -1078,6 +1064,7 @@ func (h *HandlerHtml) PlansUpdate(w http.ResponseWriter, r *http.Request) {
 		Agenda:       agenda,
 		Package:      pkg,
 		Notebook:     notebook,
+		PayPerView:   payperview,
 	}
 	respdro := updateSvc.Run(updateReq)
 	if respdro.GetStatusCode() != 200 {
@@ -1271,6 +1258,7 @@ func (h *HandlerHtml) getPlanData(response *dto.PlanListResponse) []map[string]i
 			"Agenda":             p.Agenda,
 			"Package":            packageData,
 			"Notebook":           p.Notebook,
+			"PayPerView":         p.PayPerView,
 			"Active":             p.Active,
 		}
 		result = append(result, m)

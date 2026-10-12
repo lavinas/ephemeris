@@ -116,6 +116,9 @@ func TestPlanTypeString(t *testing.T) {
 	if PlanTypeNotebook.String() != "Caderneta" {
 		t.Errorf("expected Caderneta, got %s", PlanTypeNotebook.String())
 	}
+	if PlanTypePayPerView.String() != "Pay-per-view" {
+		t.Errorf("expected Pay-per-view, got %s", PlanTypePayPerView.String())
+	}
 	if PlanType(99).String() != "Desconhecido" {
 		t.Errorf("expected Desconhecido, got %s", PlanType(99).String())
 	}

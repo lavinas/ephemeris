@@ -22,10 +22,11 @@ type PlanUpdateRequest struct {
 	Price        *float64             `json:"price,omitempty"`
 	ClearPrice   bool                 `json:"clear_price,omitempty"`
 	Items        []PlanItemRequest    `json:"items,omitempty"`
-	Agenda       *PlanAgendaRequest   `json:"agenda,omitempty"`
-	Package      *PlanPackageRequest  `json:"package,omitempty"`
-	Notebook     *PlanNotebookRequest `json:"notebook,omitempty"`
-	Plan         domain.Plan          `json:"-"`
+	Agenda       *PlanAgendaRequest     `json:"agenda,omitempty"`
+	Package      *PlanPackageRequest    `json:"package,omitempty"`
+	Notebook     *PlanNotebookRequest   `json:"notebook,omitempty"`
+	PayPerView   *PlanPayPerViewRequest `json:"payperview,omitempty"`
+	Plan         domain.Plan            `json:"-"`
 }
 
 // PlanUpdateResponse represents the response after updating a plan
@@ -162,8 +163,8 @@ func (r *PlanUpdateRequest) validateDates() error {
 }
 
 func (r *PlanUpdateRequest) validatePlanType() error {
-	if r.PlanType != 0 && (r.PlanType < 1 || r.PlanType > 3) {
-		return fmt.Errorf("tipo de plano inválido (%d), deve ser 1, 2 ou 3", r.PlanType)
+	if r.PlanType != 0 && (r.PlanType < 1 || r.PlanType > 4) {
+		return fmt.Errorf("tipo de plano inválido (%d), deve ser 1, 2, 3 ou 4", r.PlanType)
 	}
 	return nil
 }
@@ -244,19 +245,14 @@ func (r *PlanUpdateRequest) validateSpecialized() error {
 		}
 	case int(domain.PlanTypeNotebook):
 		if r.Notebook != nil {
-			hasPaymentDay := r.Notebook.PaymentDay != nil
-			hasPaymentTerm := r.Notebook.PaymentTerm != nil
-			if !hasPaymentDay && !hasPaymentTerm {
-				return fmt.Errorf("plano caderneta deve ter uma e apenas uma das opções preenchidas: dia de pagamento ou prazo de pagamento")
-			}
-			if hasPaymentDay && hasPaymentTerm {
-				return fmt.Errorf("plano caderneta deve ter apenas uma opção preenchida (dia de pagamento OU prazo de pagamento), não ambas")
-			}
-			if hasPaymentDay && (*r.Notebook.PaymentDay < 1 || *r.Notebook.PaymentDay > 31) {
+			if r.Notebook.PaymentDay < 1 || r.Notebook.PaymentDay > 31 {
 				return fmt.Errorf("dia de pagamento na caderneta deve ser entre 1 e 31")
 			}
-			if hasPaymentTerm && *r.Notebook.PaymentTerm < 0 {
-				return fmt.Errorf("prazo de pagamento na caderneta deve ser maior ou igual a zero")
+		}
+	case int(domain.PlanTypePayPerView):
+		if r.PayPerView != nil {
+			if r.PayPerView.PaymentTerm < 0 {
+				return fmt.Errorf("prazo de pagamento no pay-per-view deve ser maior ou igual a zero")
 			}
 		}
 	}
@@ -377,4 +373,5 @@ func (r *PlanUpdateRequest) Reset() {
 	r.Agenda = nil
 	r.Package = nil
 	r.Notebook = nil
+	r.PayPerView = nil
 }

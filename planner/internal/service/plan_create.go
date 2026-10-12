@@ -89,8 +89,13 @@ func (s *PlanCreate) createPlanModel(req *dto.PlanCreateRequest) *domain.Plan {
 	case int(domain.PlanTypeNotebook):
 		if req.Notebook != nil {
 			plan.Notebook = &domain.PlanNotebook{
-				PaymentDay:  req.Notebook.PaymentDay,
-				PaymentTerm: req.Notebook.PaymentTerm,
+				PaymentDay: req.Notebook.PaymentDay,
+			}
+		}
+	case int(domain.PlanTypePayPerView):
+		if req.PayPerView != nil {
+			plan.PayPerView = &domain.PlanPayPerView{
+				PaymentTerm: req.PayPerView.PaymentTerm,
 			}
 		}
 	}

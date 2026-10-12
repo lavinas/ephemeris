@@ -9,9 +9,11 @@
 			var secAgenda = form.querySelector('.secao-agenda');
 			var secPacote = form.querySelector('.secao-pacote');
 			var secCaderneta = form.querySelector('.secao-caderneta');
+			var secPayPerView = form.querySelector('.secao-payperview');
 			if (secAgenda) { if (val === "1") { secAgenda.classList.remove('oculto'); } else { secAgenda.classList.add('oculto'); } }
 			if (secPacote) { if (val === "2") { secPacote.classList.remove('oculto'); } else { secPacote.classList.add('oculto'); } }
 			if (secCaderneta) { if (val === "3") { secCaderneta.classList.remove('oculto'); } else { secCaderneta.classList.add('oculto'); } }
+			if (secPayPerView) { if (val === "4") { secPayPerView.classList.remove('oculto'); } else { secPayPerView.classList.add('oculto'); } }
 		}
 		function alternarModoCaderneta(radioElem) {
 			if (!radioElem) return;
@@ -247,6 +249,7 @@
 							<option value="1">Agenda (Recorrente)</option>
 							<option value="2">Pacote</option>
 							<option value="3">Caderneta</option>
+							<option value="4">Pay-per-view</option>
 						</select>
 					</div>
 					<div class="campo-box-plano">
@@ -355,6 +358,7 @@
 						<option value="1" {{if eq .PlanType 1}}selected{{end}}>Agenda (Recorrente)</option>
 						<option value="2" {{if eq .PlanType 2}}selected{{end}}>Pacote de Sessões</option>
 						<option value="3" {{if eq .PlanType 3}}selected{{end}}>Caderneta</option>
+						<option value="4" {{if eq .PlanType 4}}selected{{end}}>Pay-per-view</option>
 					</select>
 				</div>
 			</div>
@@ -537,27 +541,19 @@
 
 			<!-- Seção Especializada: CADERNETA (Tipo 3) -->
 			<div class="secao-caderneta p-3 bg-amber-50 border border-amber-100 rounded-lg mb-3 {{if ne .PlanType 3}}oculto{{end}}">
-				<div class="text-[11px] font-bold text-amber-800 uppercase mb-2">Configurações de Caderneta (Preencha apenas um)</div>
-				<p class="text-[10px] text-gray-600 mb-2">Escolha apenas UMA forma de pagamento (exclusiva):</p>
-				<div class="flex items-center gap-6 mb-3">
-					<label class="inline-flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
-						<input type="radio" name="caderneta_modo" value="dia" checked onchange="alternarModoCaderneta(this)">
-						<span>Dia Fixo do Mês (1-31)</span>
-					</label>
-					<label class="inline-flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
-						<input type="radio" name="caderneta_modo" value="prazo" onchange="alternarModoCaderneta(this)">
-						<span>Prazo de Pagamento (dias corridos)</span>
-					</label>
+				<div class="text-[11px] font-bold text-amber-800 uppercase mb-2">Configurações de Caderneta</div>
+				<div class="max-w-xs">
+					<label class="block text-[10px] text-gray-600 mb-0.5">Dia de Pagamento no Mês (1-31)</label>
+					<input type="number" min="1" max="31" name="add_caderneta_dia_pagamento" value="5" class="input-inline-tabela text-xs">
 				</div>
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-					<div class="box-caderneta-dia">
-						<label class="block text-[10px] text-gray-600 mb-0.5">Dia de Pagamento no Mês (1-31)</label>
-						<input type="number" min="1" max="31" name="add_caderneta_dia_pagamento" value="5" placeholder="Vazio se for prazo" class="input-inline-tabela text-xs">
-					</div>
-					<div class="box-caderneta-prazo oculto">
-						<label class="block text-[10px] text-gray-600 mb-0.5">Prazo de Pagamento (dias)</label>
-						<input type="number" min="0" name="add_caderneta_prazo_pagamento" placeholder="Vazio se for dia fixo" class="input-inline-tabela text-xs">
-					</div>
+			</div>
+
+			<!-- Seção Especializada: PAY-PER-VIEW (Tipo 4) -->
+			<div class="secao-payperview p-3 bg-purple-50 border border-purple-100 rounded-lg mb-3 {{if ne .PlanType 4}}oculto{{end}}">
+				<div class="text-[11px] font-bold text-purple-800 uppercase mb-2">Configurações de Pay-per-view</div>
+				<div class="max-w-xs">
+					<label class="block text-[10px] text-gray-600 mb-0.5">Prazo de Pagamento (dias)</label>
+					<input type="number" min="0" name="add_payperview_prazo_pagamento" value="30" class="input-inline-tabela text-xs">
 				</div>
 			</div>
 
@@ -641,8 +637,12 @@
 				<span class="badge-plano bg-blue-100 text-blue-800 border border-blue-300">Agenda</span>
 			{{else if eq .PlanType 2}}
 				<span class="badge-plano bg-emerald-100 text-emerald-800 border border-emerald-300">Pacote</span>
-			{{else}}
+			{{else if eq .PlanType 3}}
 				<span class="badge-plano bg-amber-100 text-amber-800 border border-amber-300">Caderneta</span>
+			{{else if eq .PlanType 4}}
+				<span class="badge-plano bg-purple-100 text-purple-800 border border-purple-300">Pay-per-view</span>
+			{{else}}
+				<span class="badge-plano bg-gray-100 text-gray-800 border border-gray-300">{{.PlanTypeName}}</span>
 			{{end}}
 		</div>
 		<div class="text-xs text-gray-700">
@@ -675,11 +675,11 @@
 				{{end}}
 			{{else if eq .PlanType 3}}
 				{{if .Notebook}}
-					{{if .Notebook.PaymentDay}}
-						<span class="font-medium text-amber-900">Cobrança mensal no dia {{.Notebook.PaymentDay}}</span>
-					{{else if .Notebook.PaymentTerm}}
-						<span class="font-medium text-amber-900">Prazo de {{.Notebook.PaymentTerm}} dias</span>
-					{{end}}
+					<span class="font-medium text-amber-900">Cobrança mensal no dia {{.Notebook.PaymentDay}}</span>
+				{{end}}
+			{{else if eq .PlanType 4}}
+				{{if .PayPerView}}
+					<span class="font-medium text-purple-900">Prazo de {{.PayPerView.PaymentTerm}} dias</span>
 				{{end}}
 			{{end}}
 		</div>
@@ -717,16 +717,6 @@
 				<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l4 4m0-4l-4 4" />
-				</svg>
-			</button>
-			<button type="button"
-					hx-get="/html/planos/editar?id={{.ID}}"
-					hx-target="#linha-plano-{{.ID}}"
-					hx-swap="outerHTML"
-					class="p-1.5 text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 rounded transition cursor-pointer"
-					title="Editar">
-				<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
 				</svg>
 			</button>
 			<button type="button"
@@ -902,16 +892,18 @@
 				</div>
 			{{else if eq .PlanType 3}}
 				<div class="p-3 bg-amber-50 border border-amber-100 rounded-lg mb-3">
-					<div class="text-[11px] font-bold text-amber-800 uppercase mb-2">Configurações de Caderneta (Preencha apenas um)</div>
-					<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-						<div>
-							<label class="block text-[10px] text-gray-600 mb-0.5">Dia de Pagamento no Mês (1-31)</label>
-							<input type="number" min="1" max="31" name="edit_caderneta_dia_pagamento" value="{{if .Notebook.PaymentDay}}{{.Notebook.PaymentDay}}{{end}}" placeholder="Vazio se for prazo" class="input-inline-tabela text-xs">
-						</div>
-						<div>
-							<label class="block text-[10px] text-gray-600 mb-0.5">Prazo de Pagamento (dias)</label>
-							<input type="number" min="0" name="edit_caderneta_prazo_pagamento" value="{{if .Notebook.PaymentTerm}}{{.Notebook.PaymentTerm}}{{end}}" placeholder="Vazio se for dia fixo" class="input-inline-tabela text-xs">
-						</div>
+					<div class="text-[11px] font-bold text-amber-800 uppercase mb-2">Configurações de Caderneta</div>
+					<div class="max-w-xs">
+						<label class="block text-[10px] text-gray-600 mb-0.5">Dia de Pagamento no Mês (1-31)</label>
+						<input type="number" min="1" max="31" name="edit_caderneta_dia_pagamento" value="{{if .Notebook}}{{.Notebook.PaymentDay}}{{end}}" class="input-inline-tabela text-xs">
+					</div>
+				</div>
+			{{else if eq .PlanType 4}}
+				<div class="p-3 bg-purple-50 border border-purple-100 rounded-lg mb-3">
+					<div class="text-[11px] font-bold text-purple-800 uppercase mb-2">Configurações de Pay-per-view</div>
+					<div class="max-w-xs">
+						<label class="block text-[10px] text-gray-600 mb-0.5">Prazo de Pagamento (dias)</label>
+						<input type="number" min="0" name="edit_payperview_prazo_pagamento" value="{{if .PayPerView}}{{.PayPerView.PaymentTerm}}{{end}}" class="input-inline-tabela text-xs">
 					</div>
 				</div>
 			{{end}}

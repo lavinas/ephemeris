@@ -44,10 +44,11 @@ type PlanDTO struct {
 	PlanTypeName string           `json:"plan_type_name"`
 	Price        *float64         `json:"price,omitempty"`
 	Items        []PlanItemDTO    `json:"items"`
-	Agenda       *PlanAgendaDTO   `json:"agenda,omitempty"`
-	Package      *PlanPackageDTO  `json:"package,omitempty"`
-	Notebook     *PlanNotebookDTO `json:"notebook,omitempty"`
-	Active       bool             `json:"active"`
+	Agenda       *PlanAgendaDTO     `json:"agenda,omitempty"`
+	Package      *PlanPackageDTO    `json:"package,omitempty"`
+	Notebook     *PlanNotebookDTO   `json:"notebook,omitempty"`
+	PayPerView   *PlanPayPerViewDTO `json:"payperview,omitempty"`
+	Active       bool               `json:"active"`
 }
 
 // PlanItemDTO represents a service item within a plan
@@ -79,8 +80,12 @@ type PlanPackageDTO struct {
 
 // PlanNotebookDTO represents notebook specialized details
 type PlanNotebookDTO struct {
-	PaymentDay  *int `json:"payment_day,omitempty"`
-	PaymentTerm *int `json:"payment_term,omitempty"`
+	PaymentDay int `json:"payment_day"`
+}
+
+// PlanPayPerViewDTO represents pay-per-view specialized details
+type PlanPayPerViewDTO struct {
+	PaymentTerm int `json:"payment_term"`
 }
 
 // NewPlanListResponse creates a new instance of PlanListResponse
@@ -194,8 +199,8 @@ func (r *PlanListRequest) validatePagination() error {
 }
 
 func (r *PlanListRequest) validatePlanType() error {
-	if r.PlanType < 0 || r.PlanType > 3 {
-		return errors.New("plan_type inválido, deve ser entre 1 e 3")
+	if r.PlanType < 0 || r.PlanType > 4 {
+		return errors.New("plan_type inválido, deve ser entre 1 e 4")
 	}
 	return nil
 }

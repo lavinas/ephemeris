@@ -34,22 +34,27 @@ type PlanPackageRequest struct {
 
 // PlanNotebookRequest represents details for notebook plan
 type PlanNotebookRequest struct {
-	PaymentDay  *int `json:"payment_day,omitempty"`
-	PaymentTerm *int `json:"payment_term,omitempty"`
+	PaymentDay int `json:"payment_day"`
+}
+
+// PlanPayPerViewRequest represents details for pay-per-view plan
+type PlanPayPerViewRequest struct {
+	PaymentTerm int `json:"payment_term"`
 }
 
 // PlanCreateRequest represents a request to create a new plan
 type PlanCreateRequest struct {
-	CustomerID int64                `json:"customer_id,omitempty"`
-	Nickname   string               `json:"nickname" validate:"required"`
-	PlanStart  string               `json:"plan_start" validate:"required"`
-	PlanEnd    *string              `json:"plan_end,omitempty"`
-	PlanType   int                  `json:"plan_type" validate:"required"`
-	Price      *float64             `json:"price,omitempty"`
-	Items      []PlanItemRequest    `json:"items" validate:"required"`
-	Agenda     *PlanAgendaRequest   `json:"agenda,omitempty"`
-	Package    *PlanPackageRequest  `json:"package,omitempty"`
-	Notebook   *PlanNotebookRequest `json:"notebook,omitempty"`
+	CustomerID int64                  `json:"customer_id,omitempty"`
+	Nickname   string                 `json:"nickname" validate:"required"`
+	PlanStart  string                 `json:"plan_start" validate:"required"`
+	PlanEnd    *string                `json:"plan_end,omitempty"`
+	PlanType   int                    `json:"plan_type" validate:"required"`
+	Price      *float64               `json:"price,omitempty"`
+	Items      []PlanItemRequest      `json:"items" validate:"required"`
+	Agenda     *PlanAgendaRequest     `json:"agenda,omitempty"`
+	Package    *PlanPackageRequest    `json:"package,omitempty"`
+	Notebook   *PlanNotebookRequest   `json:"notebook,omitempty"`
+	PayPerView *PlanPayPerViewRequest `json:"payperview,omitempty"`
 }
 
 // PlanCreateResponse represents response after creating a new plan
@@ -157,8 +162,8 @@ func (r *PlanCreateRequest) validateDates() error {
 }
 
 func (r *PlanCreateRequest) validatePlanType() error {
-	if r.PlanType < 1 || r.PlanType > 3 {
-		return fmt.Errorf("tipo de plano inválido (%d), deve ser 1 (agenda), 2 (pacote) ou 3 (caderneta)", r.PlanType)
+	if r.PlanType < 1 || r.PlanType > 4 {
+		return fmt.Errorf("tipo de plano inválido (%d), deve ser 1 (agenda), 2 (pacote), 3 (caderneta) ou 4 (pay-per-view)", r.PlanType)
 	}
 	return nil
 }
@@ -239,23 +244,15 @@ func (r *PlanCreateRequest) validateSpecialized() error {
 		if r.Notebook == nil {
 			return fmt.Errorf("registro na tabela especializada plan_notebook é obrigatório para plano tipo caderneta")
 		}
-		hasPaymentDay := r.Notebook.PaymentDay != nil
-		hasPaymentTerm := r.Notebook.PaymentTerm != nil
-		if !hasPaymentDay && !hasPaymentTerm {
-			return fmt.Errorf("plano caderneta deve ter uma e apenas uma das opções preenchidas: dia de pagamento ou prazo de pagamento")
+		if r.Notebook.PaymentDay < 1 || r.Notebook.PaymentDay > 31 {
+			return fmt.Errorf("dia de pagamento na caderneta deve ser entre 1 e 31")
 		}
-		if hasPaymentDay && hasPaymentTerm {
-			return fmt.Errorf("plano caderneta deve ter apenas uma opção preenchida (dia de pagamento OU prazo de pagamento), não ambas")
+	case int(domain.PlanTypePayPerView):
+		if r.PayPerView == nil {
+			return fmt.Errorf("registro na tabela especializada plan_payperview é obrigatório para plano tipo pay-per-view")
 		}
-		if hasPaymentDay {
-			if *r.Notebook.PaymentDay < 1 || *r.Notebook.PaymentDay > 31 {
-				return fmt.Errorf("dia de pagamento na caderneta deve ser entre 1 e 31")
-			}
-		}
-		if hasPaymentTerm {
-			if *r.Notebook.PaymentTerm < 0 {
-				return fmt.Errorf("prazo de pagamento na caderneta deve ser maior ou igual a zero")
-			}
+		if r.PayPerView.PaymentTerm < 0 {
+			return fmt.Errorf("prazo de pagamento no pay-per-view deve ser maior ou igual a zero")
 		}
 	}
 	return nil
@@ -331,4 +328,5 @@ func (r *PlanCreateRequest) Reset() {
 	r.Agenda = nil
 	r.Package = nil
 	r.Notebook = nil
+	r.PayPerView = nil
 }

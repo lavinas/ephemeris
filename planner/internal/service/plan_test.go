@@ -25,6 +25,7 @@ func newMockPlanRepoForService() *mockPlanRepoForService {
 	return &mockPlanRepoForService{
 		customers: map[string]*domain.Customer{
 			"cliente_1": {ID: 1, Nickname: "cliente_1", Name: "Cliente Um", VendorID: 1},
+			"cliente_2": {ID: 2, Nickname: "cliente_2", Name: "Cliente Dois", VendorID: 1},
 		},
 		services: map[int64]*domain.Service{
 			1: {ID: 1, Name: "Aula Canto 30", VendorID: 1},
@@ -296,6 +297,91 @@ func TestPlanList_ActiveFilter(t *testing.T) {
 	respInactive := listSvc.Run(reqInactive)
 	if respInactive.GetStatusCode() != 200 {
 		t.Fatalf("PlanList with active=false failed: %s", respInactive.GetMessage())
+	}
+}
+
+func TestPlanService_NotebookAndPayPerView(t *testing.T) {
+	repo := newMockPlanRepoForService()
+	logger := &mockLogger{}
+
+	// 1. Create Notebook Plan (PlanType = 3)
+	createSvc := NewPlanCreate(repo, logger)
+	price3 := 150.0
+	createReq3 := &dto.PlanCreateRequest{
+		Nickname:  "cliente_1",
+		PlanStart: "2026-01-01",
+		PlanType:  3,
+		Price:     &price3,
+		Items:     []dto.PlanItemRequest{{ServiceID: 1, OrderIndex: 1}},
+		Notebook: &dto.PlanNotebookRequest{
+			PaymentDay: 10,
+		},
+	}
+	resp3 := createSvc.Run(createReq3)
+	if resp3.GetStatusCode() != 200 {
+		t.Fatalf("PlanCreate Notebook failed: %s", resp3.GetMessage())
+	}
+	nbID := resp3.(*dto.PlanCreateResponse).PlanID
+
+	// 2. Create PayPerView Plan (PlanType = 4)
+	price4 := 200.0
+	createReq4 := &dto.PlanCreateRequest{
+		Nickname:  "cliente_2",
+		PlanStart: "2026-01-01",
+		PlanType:  4,
+		Price:     &price4,
+		Items:     []dto.PlanItemRequest{{ServiceID: 1, OrderIndex: 1}},
+		PayPerView: &dto.PlanPayPerViewRequest{
+			PaymentTerm: 45,
+		},
+	}
+	resp4 := createSvc.Run(createReq4)
+	if resp4.GetStatusCode() != 200 {
+		t.Fatalf("PlanCreate PayPerView failed: %s", resp4.GetMessage())
+	}
+	ppvID := resp4.(*dto.PlanCreateResponse).PlanID
+
+	// 3. List plans and verify
+	listSvc := NewPlanList(repo, logger)
+	listResp := listSvc.Run(&dto.PlanListRequest{Page: 1, PageSize: 10})
+	if listResp.GetStatusCode() != 200 {
+		t.Fatalf("PlanList failed: %s", listResp.GetMessage())
+	}
+	plans := listResp.(*dto.PlanListResponse).Plans
+	if len(plans) != 2 {
+		t.Fatalf("expected 2 plans, got %d", len(plans))
+	}
+
+	var nbPlan, ppvPlan *dto.PlanDTO
+	for i := range plans {
+		if plans[i].ID == nbID {
+			nbPlan = &plans[i]
+		} else if plans[i].ID == ppvID {
+			ppvPlan = &plans[i]
+		}
+	}
+	if nbPlan == nil || nbPlan.PlanTypeName != "Caderneta" || nbPlan.Notebook == nil || nbPlan.Notebook.PaymentDay != 10 {
+		t.Errorf("unexpected notebook plan: %+v", nbPlan)
+	}
+	if ppvPlan == nil || ppvPlan.PlanTypeName != "Pay-per-view" || ppvPlan.PayPerView == nil || ppvPlan.PayPerView.PaymentTerm != 45 {
+		t.Errorf("unexpected payperview plan: %+v", ppvPlan)
+	}
+
+	// 4. Update PayPerView plan
+	updateSvc := NewPlanUpdate(repo, logger)
+	updateReq4 := &dto.PlanUpdateRequest{
+		ID: ppvID,
+		PayPerView: &dto.PlanPayPerViewRequest{
+			PaymentTerm: 60,
+		},
+	}
+	upResp4 := updateSvc.Run(updateReq4)
+	if upResp4.GetStatusCode() != 200 {
+		t.Fatalf("PlanUpdate PayPerView failed: %s", upResp4.GetMessage())
+	}
+	p4Saved, _ := repo.GetPlanByID(ppvID)
+	if p4Saved.PayPerView == nil || p4Saved.PayPerView.PaymentTerm != 60 {
+		t.Errorf("expected updated payment term 60, got %+v", p4Saved.PayPerView)
 	}
 }
 

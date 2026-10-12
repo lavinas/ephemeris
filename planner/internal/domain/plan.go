@@ -10,9 +10,10 @@ import (
 type PlanType int
 
 const (
-	PlanTypeAgenda   PlanType = 1 // 1: plan_agenda
-	PlanTypePackage  PlanType = 2 // 2: plan_package
-	PlanTypeNotebook PlanType = 3 // 3: plan_notebook
+	PlanTypeAgenda     PlanType = 1 // 1: plan_agenda
+	PlanTypePackage    PlanType = 2 // 2: plan_package
+	PlanTypeNotebook   PlanType = 3 // 3: plan_notebook
+	PlanTypePayPerView PlanType = 4 // 4: plan_payperview
 )
 
 // String returns human-readable label for PlanType
@@ -24,6 +25,8 @@ func (pt PlanType) String() string {
 		return "Pacote"
 	case PlanTypeNotebook:
 		return "Caderneta"
+	case PlanTypePayPerView:
+		return "Pay-per-view"
 	default:
 		return "Desconhecido"
 	}
@@ -116,10 +119,11 @@ type Plan struct {
 	CreatedAt  time.Time     `gorm:"not null"`
 	UpdatedAt  time.Time     `gorm:"not null"`
 	DeletedAt  *time.Time    `gorm:"index"`
-	Items      []PlanItem    `gorm:"foreignKey:PlanID;references:ID"`
-	Agenda     *PlanAgenda   `gorm:"foreignKey:ID;references:ID"`
-	Package    *PlanPackage  `gorm:"foreignKey:ID;references:ID"`
-	Notebook   *PlanNotebook `gorm:"foreignKey:ID;references:ID"`
+	Items      []PlanItem      `gorm:"foreignKey:PlanID;references:ID"`
+	Agenda     *PlanAgenda     `gorm:"foreignKey:ID;references:ID"`
+	Package    *PlanPackage    `gorm:"foreignKey:ID;references:ID"`
+	Notebook   *PlanNotebook   `gorm:"foreignKey:ID;references:ID"`
+	PayPerView *PlanPayPerView `gorm:"foreignKey:ID;references:ID"`
 }
 
 // TableName specifies table name for Plan
@@ -189,14 +193,24 @@ func (PlanPackage) TableName() string {
 
 // PlanNotebook represents specialization for notebook plans (plan_type = 3).
 type PlanNotebook struct {
-	ID          int64 `gorm:"primaryKey"`
-	PaymentDay  *int  `gorm:"null"` // 1..31
-	PaymentTerm *int  `gorm:"null"` // >= 0
+	ID         int64 `gorm:"primaryKey"`
+	PaymentDay int   `gorm:"not null"` // 1..31
 }
 
 // TableName specifies table name for PlanNotebook
 func (PlanNotebook) TableName() string {
 	return "plan_notebook"
+}
+
+// PlanPayPerView represents specialization for pay-per-view plans (plan_type = 4).
+type PlanPayPerView struct {
+	ID          int64 `gorm:"primaryKey"`
+	PaymentTerm int   `gorm:"not null"` // >= 0
+}
+
+// TableName specifies table name for PlanPayPerView
+func (PlanPayPerView) TableName() string {
+	return "plan_payperview"
 }
 
 // PeriodsOverlap checks if two date periods overlap.

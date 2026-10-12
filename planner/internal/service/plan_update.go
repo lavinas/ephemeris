@@ -107,9 +107,15 @@ func (s *PlanUpdate) applyUpdates(plan *domain.Plan, req *dto.PlanUpdateRequest)
 	case int(domain.PlanTypeNotebook):
 		if req.Notebook != nil {
 			plan.Notebook = &domain.PlanNotebook{
+				ID:         plan.ID,
+				PaymentDay: req.Notebook.PaymentDay,
+			}
+		}
+	case int(domain.PlanTypePayPerView):
+		if req.PayPerView != nil {
+			plan.PayPerView = &domain.PlanPayPerView{
 				ID:          plan.ID,
-				PaymentDay:  req.Notebook.PaymentDay,
-				PaymentTerm: req.Notebook.PaymentTerm,
+				PaymentTerm: req.PayPerView.PaymentTerm,
 			}
 		}
 	}

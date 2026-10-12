@@ -146,26 +146,23 @@ func TestPlanCreateRequest_ValidAgenda(t *testing.T) {
 	}
 }
 
-func TestPlanCreateRequest_NotebookExclusiveValidation(t *testing.T) {
+func TestPlanCreateRequest_NotebookAndPayPerViewValidation(t *testing.T) {
 	repo := newMockPlanRepo()
 
-	// 1. Both nil -> should error
+	// 1. Notebook without Notebook struct -> should error
 	req1 := &PlanCreateRequest{
 		Nickname:  "cliente_teste",
 		PlanStart: "2026-01-01",
 		PlanType:  3,
 		Price:     floatPtr(100.0),
 		Items:     []PlanItemRequest{{ServiceID: 1}},
-		Notebook:  &PlanNotebookRequest{},
 	}
 	err1 := req1.Validate(repo)
-	if err1 == nil || !strings.Contains(err1.Error(), "uma e apenas uma") {
-		t.Errorf("expected error for notebook with both nil, got: %v", err1)
+	if err1 == nil || !strings.Contains(err1.Error(), "plan_notebook é obrigatório") {
+		t.Errorf("expected error for notebook nil, got: %v", err1)
 	}
 
-	// 2. Both non-nil -> should error
-	d := 15
-	term := 30
+	// 2. Notebook with invalid PaymentDay -> should error
 	req2 := &PlanCreateRequest{
 		Nickname:  "cliente_teste",
 		PlanStart: "2026-01-01",
@@ -173,16 +170,15 @@ func TestPlanCreateRequest_NotebookExclusiveValidation(t *testing.T) {
 		Price:     floatPtr(100.0),
 		Items:     []PlanItemRequest{{ServiceID: 1}},
 		Notebook: &PlanNotebookRequest{
-			PaymentDay:  &d,
-			PaymentTerm: &term,
+			PaymentDay: 32,
 		},
 	}
 	err2 := req2.Validate(repo)
-	if err2 == nil || !strings.Contains(err2.Error(), "não ambas") {
-		t.Errorf("expected error for notebook with both non-nil, got: %v", err2)
+	if err2 == nil || !strings.Contains(err2.Error(), "entre 1 e 31") {
+		t.Errorf("expected error for notebook with invalid payment day, got: %v", err2)
 	}
 
-	// 3. Only PaymentDay -> should succeed
+	// 3. Notebook with valid PaymentDay -> should succeed
 	req3 := &PlanCreateRequest{
 		Nickname:  "cliente_teste",
 		PlanStart: "2026-01-01",
@@ -190,26 +186,55 @@ func TestPlanCreateRequest_NotebookExclusiveValidation(t *testing.T) {
 		Price:     floatPtr(100.0),
 		Items:     []PlanItemRequest{{ServiceID: 1}},
 		Notebook: &PlanNotebookRequest{
-			PaymentDay: &d,
+			PaymentDay: 15,
 		},
 	}
 	if err := req3.Validate(repo); err != nil {
 		t.Errorf("expected valid notebook with payment_day only, got: %v", err)
 	}
 
-	// 4. Only PaymentTerm -> should succeed
+	// 4. PayPerView without PayPerView struct -> should error
 	req4 := &PlanCreateRequest{
 		Nickname:  "cliente_teste",
 		PlanStart: "2026-01-01",
-		PlanType:  3,
+		PlanType:  4,
 		Price:     floatPtr(100.0),
 		Items:     []PlanItemRequest{{ServiceID: 1}},
-		Notebook: &PlanNotebookRequest{
-			PaymentTerm: &term,
+	}
+	err4 := req4.Validate(repo)
+	if err4 == nil || !strings.Contains(err4.Error(), "plan_payperview é obrigatório") {
+		t.Errorf("expected error for payperview nil, got: %v", err4)
+	}
+
+	// 5. PayPerView with negative PaymentTerm -> should error
+	req5 := &PlanCreateRequest{
+		Nickname:  "cliente_teste",
+		PlanStart: "2026-01-01",
+		PlanType:  4,
+		Price:     floatPtr(100.0),
+		Items:     []PlanItemRequest{{ServiceID: 1}},
+		PayPerView: &PlanPayPerViewRequest{
+			PaymentTerm: -1,
 		},
 	}
-	if err := req4.Validate(repo); err != nil {
-		t.Errorf("expected valid notebook with payment_term only, got: %v", err)
+	err5 := req5.Validate(repo)
+	if err5 == nil || !strings.Contains(err5.Error(), "maior ou igual a zero") {
+		t.Errorf("expected error for negative payment term, got: %v", err5)
+	}
+
+	// 6. PayPerView with valid PaymentTerm -> should succeed
+	req6 := &PlanCreateRequest{
+		Nickname:  "cliente_teste",
+		PlanStart: "2026-01-01",
+		PlanType:  4,
+		Price:     floatPtr(100.0),
+		Items:     []PlanItemRequest{{ServiceID: 1}},
+		PayPerView: &PlanPayPerViewRequest{
+			PaymentTerm: 30,
+		},
+	}
+	if err := req6.Validate(repo); err != nil {
+		t.Errorf("expected valid payperview, got: %v", err)
 	}
 }
 

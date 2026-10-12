@@ -358,7 +358,7 @@ func (a *Repository) SavePlan(plan *domain.Plan) error {
 			}
 		}()
 
-		if err := tx.Omit("Items", "Agenda", "Package", "Notebook", "Customer").Create(plan).Error; err != nil {
+		if err := tx.Omit("Items", "Agenda", "Package", "Notebook", "PayPerView", "Customer").Create(plan).Error; err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -394,6 +394,14 @@ func (a *Repository) SavePlan(plan *domain.Plan) error {
 			if plan.Notebook != nil {
 				plan.Notebook.ID = plan.ID
 				if err := tx.Create(plan.Notebook).Error; err != nil {
+					tx.Rollback()
+					return err
+				}
+			}
+		case int(domain.PlanTypePayPerView):
+			if plan.PayPerView != nil {
+				plan.PayPerView.ID = plan.ID
+				if err := tx.Create(plan.PayPerView).Error; err != nil {
 					tx.Rollback()
 					return err
 				}
@@ -452,6 +460,9 @@ func (a *Repository) SavePlan(plan *domain.Plan) error {
 	if plan.PlanType != int(domain.PlanTypeNotebook) {
 		_ = tx.Where("id = ?", plan.ID).Delete(&domain.PlanNotebook{}).Error
 	}
+	if plan.PlanType != int(domain.PlanTypePayPerView) {
+		_ = tx.Where("id = ?", plan.ID).Delete(&domain.PlanPayPerView{}).Error
+	}
 
 	switch plan.PlanType {
 	case int(domain.PlanTypeAgenda):
@@ -478,6 +489,14 @@ func (a *Repository) SavePlan(plan *domain.Plan) error {
 				return err
 			}
 		}
+	case int(domain.PlanTypePayPerView):
+		if plan.PayPerView != nil {
+			plan.PayPerView.ID = plan.ID
+			if err := tx.Clauses(clause.OnConflict{UpdateAll: true}).Create(plan.PayPerView).Error; err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
 	}
 
 	return tx.Commit().Error
@@ -498,6 +517,7 @@ func (a *Repository) GetPlanByID(id int64) (*domain.Plan, error) {
 		Preload("Agenda").
 		Preload("Package").
 		Preload("Notebook").
+		Preload("PayPerView").
 		Where("id = ? AND deleted_at IS NULL", id).
 		First(&plan).Error
 	if err == gorm.ErrRecordNotFound {
@@ -580,6 +600,7 @@ func (a *Repository) FindPlans(page, pageSize int, conditions map[string]interfa
 		Preload("Agenda").
 		Preload("Package").
 		Preload("Notebook").
+		Preload("PayPerView").
 		Find(&plans).Error
 	return plans, count, err
 }

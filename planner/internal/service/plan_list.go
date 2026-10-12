@@ -157,8 +157,14 @@ func (s *PlanList) mapPlansToDTO(plans []domain.Plan) []dto.PlanDTO {
 		var nbDTO *dto.PlanNotebookDTO
 		if p.Notebook != nil {
 			nbDTO = &dto.PlanNotebookDTO{
-				PaymentDay:  p.Notebook.PaymentDay,
-				PaymentTerm: p.Notebook.PaymentTerm,
+				PaymentDay: p.Notebook.PaymentDay,
+			}
+		}
+
+		var ppvDTO *dto.PlanPayPerViewDTO
+		if p.PayPerView != nil {
+			ppvDTO = &dto.PlanPayPerViewDTO{
+				PaymentTerm: p.PayPerView.PaymentTerm,
 			}
 		}
 
@@ -183,6 +189,7 @@ func (s *PlanList) mapPlansToDTO(plans []domain.Plan) []dto.PlanDTO {
 			Agenda:       agendaDTO,
 			Package:      pkgDTO,
 			Notebook:     nbDTO,
+			PayPerView:   ppvDTO,
 			Active:       isActive,
 		}
 	}
