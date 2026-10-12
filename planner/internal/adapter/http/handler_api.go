@@ -198,6 +198,25 @@ func (h *HandlerApi) PlanUpdate(w http.ResponseWriter, r *http.Request) {
 	h.writeResponse(w, response)
 }
 
+// Invoicing handler for the /invoicing or /plan/invoicing endpoint
+func (h *HandlerApi) Invoicing(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	requestDTO := &dto.InvoicingRequest{}
+	if r.ContentLength > 0 {
+		err := json.NewDecoder(r.Body).Decode(requestDTO)
+		if err != nil {
+			http.Error(w, "Bad request", http.StatusBadRequest)
+			return
+		}
+	}
+	svc := service.NewInvoicing(h.repo, h.logger)
+	response := svc.Run(requestDTO)
+	h.writeResponse(w, response)
+}
+
 
 // writeResponse writes the given response to the http.ResponseWriter with the appropriate status
 func (h *HandlerApi) writeResponse(w http.ResponseWriter, response port.OutDTO) {

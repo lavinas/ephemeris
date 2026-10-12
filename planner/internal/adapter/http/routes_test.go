@@ -60,6 +60,13 @@ func (d *dummyRepo) DeletePlan(id int64) error                    { return nil }
 func (d *dummyRepo) FindCustomerActivePlansWithServices(customerID int64, serviceIDs []int64, excludePlanID int64) ([]domain.Plan, error) {
 	return nil, nil
 }
+func (d *dummyRepo) SaveInvoice(invoice *domain.Invoice) error { return nil }
+func (d *dummyRepo) GetInvoiceByID(id int64) (*domain.Invoice, error) { return nil, nil }
+func (d *dummyRepo) FindInvoices(conditions map[string]interface{}, orderBy ...string) ([]domain.Invoice, error) { return nil, nil }
+func (d *dummyRepo) DeleteInvoice(id int64) error { return nil }
+func (d *dummyRepo) FindActivePlansForInvoicing(vendorID *int64, customerID *int64, planType *int, serviceID *int64, startDate, endDate time.Time) ([]domain.Plan, error) { return nil, nil }
+func (d *dummyRepo) FindBillableSessions(customerID int64, serviceID int64, startDate, endDate time.Time) ([]domain.Session, error) { return nil, nil }
+func (d *dummyRepo) GetInvoiceForSession(sessionID int64) (*domain.Invoice, error) { return nil, nil }
 
 
 func TestRootEndpointServesStaticIndex(t *testing.T) {
@@ -176,6 +183,21 @@ func TestRootEndpointServesStaticIndex(t *testing.T) {
 	routes.ServeHTTP(recPlanDelete, reqPlanDelete)
 	if recPlanDelete.Code != http.StatusBadRequest {
 		t.Errorf("expected status 400 on empty /api/plan/delete, got %d", recPlanDelete.Code)
+	}
+
+	// 9. Test API invoicing endpoints exist
+	reqInvoicing := httptest.NewRequest(http.MethodPost, "/api/invoicing", strings.NewReader(`{}`))
+	recInvoicing := httptest.NewRecorder()
+	routes.ServeHTTP(recInvoicing, reqInvoicing)
+	if recInvoicing.Code != http.StatusOK {
+		t.Errorf("expected status 200 on /api/invoicing, got %d: %s", recInvoicing.Code, recInvoicing.Body.String())
+	}
+
+	reqPlanInvoicing := httptest.NewRequest(http.MethodPost, "/api/plan/invoicing", strings.NewReader(`{}`))
+	recPlanInvoicing := httptest.NewRecorder()
+	routes.ServeHTTP(recPlanInvoicing, reqPlanInvoicing)
+	if recPlanInvoicing.Code != http.StatusOK {
+		t.Errorf("expected status 200 on /api/plan/invoicing, got %d: %s", recPlanInvoicing.Code, recPlanInvoicing.Body.String())
 	}
 }
 

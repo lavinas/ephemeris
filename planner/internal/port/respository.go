@@ -1,6 +1,8 @@
 package port
 
 import (
+	"time"
+
 	"planner/internal/domain"
 )
 
@@ -28,5 +30,12 @@ type Repository interface {
 	GetPlanByID(id int64) (*domain.Plan, error)
 	DeletePlan(id int64) error
 	FindCustomerActivePlansWithServices(customerID int64, serviceIDs []int64, excludePlanID int64) ([]domain.Plan, error)
+	SaveInvoice(invoice *domain.Invoice) error
+	GetInvoiceByID(id int64) (*domain.Invoice, error)
+	FindInvoices(conditions map[string]interface{}, orderBy ...string) ([]domain.Invoice, error)
+	DeleteInvoice(id int64) error
+	FindActivePlansForInvoicing(vendorID *int64, customerID *int64, planType *int, serviceID *int64, startDate, endDate time.Time) ([]domain.Plan, error)
+	FindBillableSessions(customerID int64, serviceID int64, startDate, endDate time.Time) ([]domain.Session, error)
+	GetInvoiceForSession(sessionID int64) (*domain.Invoice, error)
 }
 

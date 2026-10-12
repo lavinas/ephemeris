@@ -142,6 +142,13 @@ func (m *mockRepo) DeletePlan(id int64) error                    { return nil }
 func (m *mockRepo) FindCustomerActivePlansWithServices(customerID int64, serviceIDs []int64, excludePlanID int64) ([]domain.Plan, error) {
 	return nil, nil
 }
+func (m *mockRepo) SaveInvoice(invoice *domain.Invoice) error { return nil }
+func (m *mockRepo) GetInvoiceByID(id int64) (*domain.Invoice, error) { return nil, nil }
+func (m *mockRepo) FindInvoices(conditions map[string]interface{}, orderBy ...string) ([]domain.Invoice, error) { return nil, nil }
+func (m *mockRepo) DeleteInvoice(id int64) error { return nil }
+func (m *mockRepo) FindActivePlansForInvoicing(vendorID *int64, customerID *int64, planType *int, serviceID *int64, startDate, endDate time.Time) ([]domain.Plan, error) { return nil, nil }
+func (m *mockRepo) FindBillableSessions(customerID int64, serviceID int64, startDate, endDate time.Time) ([]domain.Session, error) { return nil, nil }
+func (m *mockRepo) GetInvoiceForSession(sessionID int64) (*domain.Invoice, error) { return nil, nil }
 
 
 func TestNoopConsumer(t *testing.T) {

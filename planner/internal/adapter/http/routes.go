@@ -39,6 +39,9 @@ func NewAPIRoutes(repo port.Repository, logger port.Logger) *http.ServeMux {
 	mux.HandleFunc("/plano/list", handler.PlanList)
 	mux.HandleFunc("/plano/delete", handler.PlanDelete)
 	mux.HandleFunc("/plano/update", handler.PlanUpdate)
+	mux.HandleFunc("/invoicing", handler.Invoicing)
+	mux.HandleFunc("/plan/invoicing", handler.Invoicing)
+	mux.HandleFunc("/plano/invoicing", handler.Invoicing)
 	mux.HandleFunc("/ping2", handler.Ping)
 	return mux
 }

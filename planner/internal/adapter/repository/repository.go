@@ -629,3 +629,221 @@ func (a *Repository) FindCustomerActivePlansWithServices(customerID int64, servi
 	return plans, err
 }
 
+// SaveInvoice saves an invoice, its items and session links in a transaction
+func (a *Repository) SaveInvoice(invoice *domain.Invoice) error {
+	db := a.DB
+	if a.Tx != nil {
+		db = a.Tx
+	}
+	now := time.Now()
+	invoice.UpdatedAt = now
+	if invoice.CreatedAt.IsZero() {
+		invoice.CreatedAt = now
+	}
+
+	tx := db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	if err := tx.Omit("Items", "Plan").Create(invoice).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	for i := range invoice.Items {
+		invoice.Items[i].InvoiceID = invoice.ID
+		invoice.Items[i].CreatedAt = now
+		invoice.Items[i].UpdatedAt = now
+		if err := tx.Omit("ItemSessions", "Service", "Invoice").Create(&invoice.Items[i]).Error; err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		for j := range invoice.Items[i].ItemSessions {
+			invoice.Items[i].ItemSessions[j].InvoiceItemID = invoice.Items[i].ID
+			invoice.Items[i].ItemSessions[j].CreatedAt = now
+			if err := tx.Omit("InvoiceItem", "Session").Create(&invoice.Items[i].ItemSessions[j]).Error; err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+
+	return tx.Commit().Error
+}
+
+// GetInvoiceByID retrieves an invoice by ID
+func (a *Repository) GetInvoiceByID(id int64) (*domain.Invoice, error) {
+	db := a.DB
+	if a.Tx != nil {
+		db = a.Tx
+	}
+	var invoice domain.Invoice
+	err := db.Preload("Plan").
+		Preload("Items", func(tx *gorm.DB) *gorm.DB {
+			return tx.Where("deleted_at IS NULL")
+		}).
+		Preload("Items.Service").
+		Preload("Items.ItemSessions").
+		Where("id = ? AND deleted_at IS NULL", id).
+		First(&invoice).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &invoice, nil
+}
+
+// FindInvoices retrieves invoices matching conditions
+func (a *Repository) FindInvoices(conditions map[string]interface{}, orderBy ...string) ([]domain.Invoice, error) {
+	db := a.DB
+	if a.Tx != nil {
+		db = a.Tx
+	}
+	query := db.Model(&domain.Invoice{})
+	for k, v := range conditions {
+		if v == nil {
+			query = query.Where(k)
+		} else {
+			query = query.Where(k, v)
+		}
+	}
+	if len(orderBy) > 0 {
+		for _, o := range orderBy {
+			if o != "" {
+				query = query.Order(o)
+			}
+		}
+	} else {
+		query = query.Order("invoicing_date desc, id desc")
+	}
+
+	var invoices []domain.Invoice
+	err := query.Preload("Plan").
+		Preload("Items", func(tx *gorm.DB) *gorm.DB {
+			return tx.Where("deleted_at IS NULL")
+		}).
+		Preload("Items.Service").
+		Preload("Items.ItemSessions").
+		Find(&invoices).Error
+	return invoices, err
+}
+
+// DeleteInvoice soft-deletes an invoice and its items
+func (a *Repository) DeleteInvoice(id int64) error {
+	db := a.DB
+	if a.Tx != nil {
+		db = a.Tx
+	}
+	now := time.Now()
+	tx := db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+	if err := tx.Model(&domain.Invoice{}).Where("id = ?", id).Updates(map[string]interface{}{
+		"deleted_at": now,
+		"updated_at": now,
+	}).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+	if err := tx.Model(&domain.InvoiceItem{}).Where("invoice_id = ?", id).Updates(map[string]interface{}{
+		"deleted_at": now,
+		"updated_at": now,
+	}).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit().Error
+}
+
+// FindActivePlansForInvoicing finds all non-deleted plans active in the given period matching filters
+func (a *Repository) FindActivePlansForInvoicing(vendorID *int64, customerID *int64, planType *int, serviceID *int64, startDate, endDate time.Time) ([]domain.Plan, error) {
+	db := a.DB
+	if a.Tx != nil {
+		db = a.Tx
+	}
+	query := db.Model(&domain.Plan{}).
+		Where("planner.plan.deleted_at IS NULL").
+		Where("planner.plan.plan_start <= ?", endDate).
+		Where("(planner.plan.plan_end IS NULL OR planner.plan.plan_end >= ?)", startDate)
+
+	if vendorID != nil && *vendorID != 0 {
+		query = query.Where("planner.plan.customer_id IN (SELECT id FROM planner.customer WHERE vendor_id = ? AND deleted_at IS NULL)", *vendorID)
+	}
+	if customerID != nil && *customerID != 0 {
+		query = query.Where("planner.plan.customer_id = ?", *customerID)
+	}
+	if planType != nil && *planType != 0 {
+		query = query.Where("planner.plan.plan_type = ?", *planType)
+	}
+	if serviceID != nil && *serviceID != 0 {
+		query = query.Where("planner.plan.id IN (SELECT plan_id FROM planner.plan_item WHERE service_id = ? AND deleted_at IS NULL)", *serviceID)
+	}
+
+	var plans []domain.Plan
+	err := query.Preload("Customer").
+		Preload("Items", func(tx *gorm.DB) *gorm.DB {
+			return tx.Where("deleted_at IS NULL").Order("order_index asc")
+		}).
+		Preload("Items.Service").
+		Preload("Agenda").
+		Preload("Package").
+		Preload("Notebook").
+		Preload("PayPerView").
+		Order("planner.plan.plan_start asc, planner.plan.id asc").
+		Find(&plans).Error
+	return plans, err
+}
+
+// FindBillableSessions finds non-deleted, billable sessions for a customer and service in a date range
+func (a *Repository) FindBillableSessions(customerID int64, serviceID int64, startDate, endDate time.Time) ([]domain.Session, error) {
+	db := a.DB
+	if a.Tx != nil {
+		db = a.Tx
+	}
+	var sessions []domain.Session
+	query := db.Model(&domain.Session{}).
+		Where("customer_id = ? AND service_id = ?", customerID, serviceID).
+		Where("session_date >= ? AND session_date <= ?", startDate, endDate).
+		Where("deleted_at IS NULL").
+		Where("session_status != ?", domain.StatusCancelNotCharge).
+		Order("session_date asc, id asc")
+
+	err := query.Preload("Customer").Preload("Service").Find(&sessions).Error
+	return sessions, err
+}
+
+// GetInvoiceForSession finds active invoice for a session
+func (a *Repository) GetInvoiceForSession(sessionID int64) (*domain.Invoice, error) {
+	db := a.DB
+	if a.Tx != nil {
+		db = a.Tx
+	}
+	var invoice domain.Invoice
+	err := db.Model(&domain.Invoice{}).
+		Joins("JOIN planner.invoice_item ON planner.invoice_item.invoice_id = planner.invoice.id").
+		Joins("JOIN planner.invoice_item_session ON planner.invoice_item_session.invoice_item_id = planner.invoice_item.id").
+		Where("planner.invoice_item_session.session_id = ? AND planner.invoice.deleted_at IS NULL AND planner.invoice_item.deleted_at IS NULL", sessionID).
+		Preload("Items", func(tx *gorm.DB) *gorm.DB {
+			return tx.Where("deleted_at IS NULL")
+		}).
+		First(&invoice).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &invoice, nil
+}
+
+
