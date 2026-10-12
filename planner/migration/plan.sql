@@ -36,7 +36,7 @@ create table plan_item (
 # plan_agenda é uma especialização da tabela plan para plano de agenda recorrente (plan_type = 1)
 create table plan_agenda (
     id bigserial primary key references plan(id) on delete cascade,
-    recurrence int not null check (recurrence in (1, 2, 3)), -- 1: weekly, 2: bi-weekly, 3: monthly
+    recurrence int not null check (recurrence in (1, 2)), -- 1: weekly, 2: bi-weekly
     week_day int not null check (week_day in (1, 2, 3, 4, 5, 6, 7)), -- 1: sunday, 2: monday, 3: tuesday, 4: wednesday, 5: thursday, 6: friday, 7: saturday
     term_type int not null check (term_type in (1, 2)), -- 1 - pre-paid, 2 - post-paid
     payment_day int not null check (payment_day between 1 and 31), -- day of the month to charge (1-31)
