@@ -10,7 +10,7 @@ create table plan (
     customer_id bigint not null references customer(id) on delete cascade,
     plan_start date not null,
     plan_end date null,
-    plan_type int not null check(plan_type in (1,2,3)), -- 1: plan_agenda, 2: plan_package, 3: plan_notebook
+    plan_type int not null check(plan_type in (1,2,3,4)), -- 1: plan_agenda, 2: plan_package, 3: plan_notebook, 4: pay_per_view
     price numeric(15, 2) null, -- if not null, then override the item prices
     created_at timestamp not null,
     updated_at timestamp not null,
@@ -52,15 +52,84 @@ create table plan_package (
     payment_date date not null 
 );
 
-
-
 # notebook plan
 # plan_notebook é uma especialização da tabela plan para plano de caderneta (plan_type = 3)
 drop table plan_notebook cascade;
 create table plan_notebook (
     id bigserial primary key references plan(id) on delete cascade,
-    payment_day int null check (payment_day between 1 and 31),
-    payment_term int null check (payment_term >= 0),
-    constraint check_payment_day_or_term_exclusive 
-        check (num_nonnulls(payment_day, payment_term) = 1)
+    payment_day int null check (payment_day between 1 and 31)
+);
+
+# plan_payperview
+# plan_payperview é uma especialização da tabela plan para plano de pay-per-view (plan_type = 4)
+create table plan_payperview (
+    id bigserial primary key references plan(id) on delete cascade,
+    payment_term int not null
+)
+
+---- adjusting
+
+create table tmp_plan as
+select *
+from plan;
+
+create table tmp_plan_item as
+select *
+from plan_item;
+
+create table tmp_plan_agenda as
+select *
+from plan_agenda;
+
+create table tmp_plan_package as
+select *
+from plan_package;
+
+create table tmp_plan_notebook as
+select *
+from plan_notebook;
+
+drop table plan_agenda;
+drop table plan_package;
+drop table plan_notebook;
+
+drop table plan_item;
+
+drop table plan;
+
+
+insert into plan
+select *
+  from tmp_plan;
+
+insert into plan_item
+select *
+  from tmp_plan_item;
+
+insert into plan_agenda
+select *
+  from tmp_plan_agenda;
+
+insert into plan_package
+select *
+  from tmp_plan_package;
+
+select * from plan_notebook
+
+
+insert into plan_notebook
+select id, payment_day
+  from tmp_plan_notebook
+where payment_day is not null;
+
+insert into plan_payperview
+select id, payment_term
+  from tmp_plan_notebook
+where payment_day is null;
+
+update plan
+set plan_type = 4
+where id in (
+    select id
+    from plan_payperview
 );
