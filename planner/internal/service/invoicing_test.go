@@ -9,12 +9,17 @@ import (
 )
 
 type mockInvoicingRepoForService struct {
-	plans    []domain.Plan
-	invoices []domain.Invoice
+	plans         []domain.Plan
+	invoices      []domain.Invoice
+	nextInvoiceID int64
+	sessions      []domain.Session
+	deletedIDs    []int64
 }
 
 func newMockInvoicingRepoForService() *mockInvoicingRepoForService {
-	return &mockInvoicingRepoForService{}
+	return &mockInvoicingRepoForService{
+		nextInvoiceID: 1,
+	}
 }
 
 func (m *mockInvoicingRepoForService) BeginTransaction() error    { return nil }
@@ -65,16 +70,74 @@ func (m *mockInvoicingRepoForService) FindCustomerActivePlansWithServices(custom
 }
 
 func (m *mockInvoicingRepoForService) SaveInvoice(invoice *domain.Invoice) error {
+	if invoice.ID == 0 {
+		invoice.ID = m.nextInvoiceID
+		m.nextInvoiceID++
+	}
+	for i := range invoice.Items {
+		if invoice.Items[i].ID == 0 {
+			invoice.Items[i].ID = int64(i + 1)
+			invoice.Items[i].InvoiceID = invoice.ID
+		}
+	}
 	m.invoices = append(m.invoices, *invoice)
 	return nil
 }
+
 func (m *mockInvoicingRepoForService) GetInvoiceByID(id int64) (*domain.Invoice, error) {
+	for _, inv := range m.invoices {
+		if inv.ID == id && inv.DeletedAt == nil {
+			return &inv, nil
+		}
+	}
 	return nil, nil
 }
+
 func (m *mockInvoicingRepoForService) FindInvoices(conditions map[string]interface{}, orderBy ...string) ([]domain.Invoice, error) {
-	return m.invoices, nil
+	var result []domain.Invoice
+	planID, hasPlanID := conditions["plan_id = ?"]
+	for _, inv := range m.invoices {
+		if inv.DeletedAt != nil {
+			continue
+		}
+		if hasPlanID && inv.PlanID != planID.(int64) {
+			continue
+		}
+		if start, ok := conditions["invoicing_date >= ?"]; ok {
+			if inv.InvoicingDate.Before(start.(time.Time)) {
+				continue
+			}
+		}
+		if end, ok := conditions["invoicing_date <= ?"]; ok {
+			if inv.InvoicingDate.After(end.(time.Time)) {
+				continue
+			}
+		}
+		if start, ok := conditions["due_date >= ?"]; ok {
+			if inv.DueDate.Before(start.(time.Time)) {
+				continue
+			}
+		}
+		if end, ok := conditions["due_date <= ?"]; ok {
+			if inv.DueDate.After(end.(time.Time)) {
+				continue
+			}
+		}
+		result = append(result, inv)
+	}
+	return result, nil
 }
-func (m *mockInvoicingRepoForService) DeleteInvoice(id int64) error { return nil }
+
+func (m *mockInvoicingRepoForService) DeleteInvoice(id int64) error {
+	m.deletedIDs = append(m.deletedIDs, id)
+	now := time.Now()
+	for i := range m.invoices {
+		if m.invoices[i].ID == id {
+			m.invoices[i].DeletedAt = &now
+		}
+	}
+	return nil
+}
 
 func (m *mockInvoicingRepoForService) FindActivePlansForInvoicing(vendorID *int64, customerID *int64, planType *int, serviceID *int64, startDate, endDate time.Time) ([]domain.Plan, error) {
 	var result []domain.Plan
@@ -94,11 +157,36 @@ func (m *mockInvoicingRepoForService) FindActivePlansForInvoicing(vendorID *int6
 }
 
 func (m *mockInvoicingRepoForService) FindBillableSessions(customerID int64, serviceID int64, startDate, endDate time.Time) ([]domain.Session, error) {
-	return nil, nil
+	var result []domain.Session
+	for _, s := range m.sessions {
+		if s.CustomerID == customerID && s.ServiceID == serviceID &&
+			!s.SessionDate.Before(startDate) && !s.SessionDate.After(endDate) &&
+			s.SessionStatus != string(domain.StatusCancelNotCharge) && s.DeletedAt == nil {
+			result = append(result, s)
+		}
+	}
+	return result, nil
 }
+
 func (m *mockInvoicingRepoForService) GetInvoiceForSession(sessionID int64) (*domain.Invoice, error) {
+	for _, inv := range m.invoices {
+		if inv.DeletedAt != nil {
+			continue
+		}
+		for _, item := range inv.Items {
+			for _, sessLink := range item.ItemSessions {
+				if sessLink.SessionID == sessionID {
+					return &inv, nil
+				}
+			}
+		}
+	}
 	return nil, nil
 }
+
+func floatPtr(v float64) *float64 { return &v }
+func intPtr(v int) *int          { return &v }
+func stringPtr(v string) *string  { return &v }
 
 func TestInvoicingService_Run(t *testing.T) {
 	logger := &mockLogger{}
@@ -158,6 +246,162 @@ func TestInvoicingService_Run(t *testing.T) {
 		}
 		if len(repo.invoices) != 1 {
 			t.Errorf("expected 1 invoice created, got %d", len(repo.invoices))
+		}
+	})
+
+	t.Run("Success invoicing agenda plan", func(t *testing.T) {
+		repo := newMockInvoicingRepoForService()
+		planStart := time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC)
+		repo.plans = []domain.Plan{
+			{
+				ID:         2,
+				CustomerID: 20,
+				PlanStart:  planStart,
+				PlanType:   1,
+				Agenda: &domain.PlanAgenda{
+					ID:         2,
+					Recurrence: int(domain.RecurrenceWeekly),
+					WeekDay:    int(domain.WeekDayMonday),
+					TermType:   int(domain.TermTypePrePaid),
+					PaymentDay: 5,
+				},
+				Items: []domain.PlanItem{
+					{ServiceID: 1, OrderIndex: 1, Price: floatPtr(50.0)},
+				},
+			},
+		}
+
+		svc := NewInvoicing(repo, logger)
+		start := "2026-09-01"
+		end := "2026-09-30"
+		req := &dto.InvoicingRequest{StartDate: &start, EndDate: &end}
+		resp := svc.Run(req)
+		if resp.GetStatusCode() != 200 {
+			t.Errorf("expected 200, got %d (msg: %s)", resp.GetStatusCode(), resp.GetMessage())
+		}
+		if len(repo.invoices) != 1 {
+			t.Errorf("expected 1 invoice created, got %d", len(repo.invoices))
+		}
+	})
+
+	t.Run("Success invoicing notebook plan", func(t *testing.T) {
+		repo := newMockInvoicingRepoForService()
+		planStart := time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC)
+		repo.plans = []domain.Plan{
+			{
+				ID:         3,
+				CustomerID: 30,
+				PlanStart:  planStart,
+				PlanType:   3,
+				Notebook: &domain.PlanNotebook{
+					ID:         3,
+					PaymentDay: 10,
+				},
+				Items: []domain.PlanItem{
+					{ServiceID: 1, OrderIndex: 1, Price: floatPtr(70.0)},
+				},
+			},
+		}
+		repo.sessions = []domain.Session{
+			{ID: 301, CustomerID: 30, ServiceID: 1, SessionDate: time.Date(2026, 8, 10, 0, 0, 0, 0, time.UTC), SessionStatus: "realizada"},
+		}
+
+		svc := NewInvoicing(repo, logger)
+		start := "2026-09-01"
+		end := "2026-09-30"
+		req := &dto.InvoicingRequest{StartDate: &start, EndDate: &end}
+		resp := svc.Run(req)
+		if resp.GetStatusCode() != 200 {
+			t.Errorf("expected 200, got %d (msg: %s)", resp.GetStatusCode(), resp.GetMessage())
+		}
+		if len(repo.invoices) != 1 {
+			t.Errorf("expected 1 invoice created, got %d", len(repo.invoices))
+		}
+	})
+
+	t.Run("Success invoicing pay-per-view plan", func(t *testing.T) {
+		repo := newMockInvoicingRepoForService()
+		planStart := time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)
+		repo.plans = []domain.Plan{
+			{
+				ID:         4,
+				CustomerID: 40,
+				PlanStart:  planStart,
+				PlanType:   4,
+				PayPerView: &domain.PlanPayPerView{
+					ID:          4,
+					PaymentTerm: 5,
+				},
+				Items: []domain.PlanItem{
+					{ServiceID: 1, OrderIndex: 1, Price: floatPtr(120.0)},
+				},
+			},
+		}
+		repo.sessions = []domain.Session{
+			{ID: 401, CustomerID: 40, ServiceID: 1, SessionDate: time.Date(2026, 9, 15, 0, 0, 0, 0, time.UTC), SessionStatus: "realizada"},
+		}
+
+		svc := NewInvoicing(repo, logger)
+		start := "2026-09-01"
+		end := "2026-09-30"
+		req := &dto.InvoicingRequest{StartDate: &start, EndDate: &end}
+		resp := svc.Run(req)
+		if resp.GetStatusCode() != 200 {
+			t.Errorf("expected 200, got %d (msg: %s)", resp.GetStatusCode(), resp.GetMessage())
+		}
+		if len(repo.invoices) != 1 {
+			t.Errorf("expected 1 invoice created, got %d", len(repo.invoices))
+		}
+	})
+
+	t.Run("Idempotency and reprocess", func(t *testing.T) {
+		repo := newMockInvoicingRepoForService()
+		planStart := time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)
+		price := 200.0
+		repo.plans = []domain.Plan{
+			{
+				ID:         5,
+				CustomerID: 50,
+				PlanStart:  planStart,
+				PlanType:   2,
+				Price:      &price,
+				Package: &domain.PlanPackage{
+					ID:          5,
+					Quantity:    4,
+					PaymentDate: time.Date(2026, 9, 10, 0, 0, 0, 0, time.UTC),
+				},
+				Items: []domain.PlanItem{
+					{ServiceID: 1, OrderIndex: 1},
+				},
+			},
+		}
+
+		svc := NewInvoicing(repo, logger)
+		start := "2026-09-01"
+		end := "2026-09-30"
+
+		// 1. First run generates 1 invoice
+		req := &dto.InvoicingRequest{StartDate: &start, EndDate: &end}
+		svc.Run(req)
+		if len(repo.invoices) != 1 {
+			t.Fatalf("expected 1 invoice, got %d", len(repo.invoices))
+		}
+
+		// 2. Second run without reprocess skips
+		svc.Run(req)
+		if len(repo.invoices) != 1 {
+			t.Fatalf("expected still 1 invoice, got %d", len(repo.invoices))
+		}
+
+		// 3. Third run with reprocess = true deletes previous and creates new
+		reprocessVal := true
+		reqReprocess := &dto.InvoicingRequest{StartDate: &start, EndDate: &end, Reprocess: &reprocessVal}
+		svc.Run(reqReprocess)
+		if len(repo.deletedIDs) != 1 {
+			t.Errorf("expected 1 deleted invoice, got %d", len(repo.deletedIDs))
+		}
+		if len(repo.invoices) != 2 {
+			t.Errorf("expected 2 total invoices (1 deleted, 1 active), got %d", len(repo.invoices))
 		}
 	})
 }

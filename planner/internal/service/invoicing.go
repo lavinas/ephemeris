@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"planner/internal/adapter/invoicing"
 	"planner/internal/domain"
+	domainInvoicing "planner/internal/domain/invoicing"
 	"planner/internal/dto"
 	"planner/internal/port"
 )
@@ -13,12 +13,20 @@ import (
 // Invoicing is a service that handles generating invoices based on registered plans.
 type Invoicing struct {
 	Base
+	agendaStrat     *domainInvoicing.AgendaStrategy
+	packageStrat    *domainInvoicing.PackageStrategy
+	notebookStrat   *domainInvoicing.NotebookStrategy
+	payPerViewStrat *domainInvoicing.PayPerViewStrategy
 }
 
 // NewInvoicing creates a new instance of Invoicing service.
 func NewInvoicing(repo port.Repository, logger port.Logger) *Invoicing {
 	return &Invoicing{
-		Base: *NewBase(repo, logger),
+		Base:            *NewBase(repo, logger),
+		agendaStrat:     domainInvoicing.NewAgendaStrategy(),
+		packageStrat:    domainInvoicing.NewPackageStrategy(),
+		notebookStrat:   domainInvoicing.NewNotebookStrategy(),
+		payPerViewStrat: domainInvoicing.NewPayPerViewStrategy(),
 	}
 }
 
@@ -55,27 +63,32 @@ func (s *Invoicing) Run(input port.InDTO) port.OutDTO {
 		return dto.NewInvoicingResponse(200, "OK", "nenhum plano ativo encontrado para os filtros informados no período")
 	}
 
-	factory := invoicing.NewStrategyFactory(s.repo, s.logger)
 	reprocess := req.IsReprocess()
-
 	successCount := 0
 	errorCount := 0
 	var lastErr error
 
 	for i := range plans {
 		plan := &plans[i]
-		strategy, err := factory.GetStrategy(domain.PlanType(plan.PlanType))
-		if err != nil {
-			s.logger.IPrintf(2, "Erro ao obter estratégia para o plano %d (tipo %d): %v", plan.ID, plan.PlanType, err)
-			errorCount++
-			lastErr = err
-			continue
+		var procErr error
+
+		switch domain.PlanType(plan.PlanType) {
+		case domain.PlanTypeAgenda:
+			procErr = s.processAgenda(plan, startDate, endDate, reprocess)
+		case domain.PlanTypePackage:
+			procErr = s.processPackage(plan, reprocess)
+		case domain.PlanTypeNotebook:
+			procErr = s.processNotebook(plan, startDate, endDate, reprocess)
+		case domain.PlanTypePayPerView:
+			procErr = s.processPayPerView(plan, startDate, endDate, reprocess)
+		default:
+			procErr = fmt.Errorf("tipo de plano desconhecido ou não suportado: %d", plan.PlanType)
 		}
 
-		if err := strategy.Process(plan, startDate, endDate, reprocess); err != nil {
-			s.logger.IPrintf(2, "Erro ao processar faturamento do plano %d: %v", plan.ID, err)
+		if procErr != nil {
+			s.logger.IPrintf(2, "Erro ao processar faturamento do plano %d (tipo %d): %v", plan.ID, plan.PlanType, procErr)
 			errorCount++
-			lastErr = err
+			lastErr = procErr
 			continue
 		}
 
@@ -91,4 +104,231 @@ func (s *Invoicing) Run(input port.InDTO) port.OutDTO {
 
 	msg := fmt.Sprintf("faturamento processado com sucesso: %d planos processados, %d erros", successCount, errorCount)
 	return dto.NewInvoicingResponse(200, "OK", msg)
+}
+
+func (s *Invoicing) processPackage(plan *domain.Plan, reprocess bool) error {
+	existingInvoices, err := s.repo.FindInvoices(map[string]interface{}{
+		"plan_id = ?":        plan.ID,
+		"deleted_at IS NULL": nil,
+	})
+	if err != nil {
+		return fmt.Errorf("plano %d: erro ao verificar faturas existentes: %w", plan.ID, err)
+	}
+
+	if len(existingInvoices) > 0 {
+		if !reprocess {
+			s.logger.IPrintf(2, "Plano pacote %d já possui fatura gerada (id: %d). Pulando processamento.",
+				plan.ID, existingInvoices[0].ID)
+			return nil
+		}
+
+		for _, inv := range existingInvoices {
+			s.logger.IPrintf(2, "Reprocessando plano pacote %d: excluindo fatura anterior (id: %d).", plan.ID, inv.ID)
+			if err := s.repo.DeleteInvoice(inv.ID); err != nil {
+				return fmt.Errorf("plano %d: erro ao excluir fatura anterior %d: %w", plan.ID, inv.ID, err)
+			}
+		}
+	}
+
+	now := time.Now()
+	invoice, err := s.packageStrat.Calculate(plan, now)
+	if err != nil {
+		return err
+	}
+
+	if err := s.repo.SaveInvoice(invoice); err != nil {
+		return fmt.Errorf("plano %d: erro ao salvar fatura pacote: %w", plan.ID, err)
+	}
+
+	s.logger.IPrintf(2, "Fatura gerada com sucesso para plano pacote %d (invoice id: %d, valor: %.2f)",
+		plan.ID, invoice.ID, invoice.Amount)
+	return nil
+}
+
+func (s *Invoicing) processAgenda(plan *domain.Plan, startDate, endDate time.Time, reprocess bool) error {
+	now := time.Now()
+	currentMonth := time.Date(startDate.Year(), startDate.Month(), 1, 0, 0, 0, 0, time.UTC)
+	endLimit := time.Date(endDate.Year(), endDate.Month(), 1, 0, 0, 0, 0, time.UTC)
+
+	for !currentMonth.After(endLimit) {
+		monthStart := currentMonth
+		monthEnd := currentMonth.AddDate(0, 1, -1)
+		monthLabel := currentMonth.Format("2006-01")
+
+		if !s.agendaStrat.IsActiveInMonth(plan, monthStart) {
+			currentMonth = currentMonth.AddDate(0, 1, 0)
+			continue
+		}
+
+		existingInvoices, err := s.repo.FindInvoices(map[string]interface{}{
+			"plan_id = ?":        plan.ID,
+			"deleted_at IS NULL": nil,
+			"due_date >= ?":      monthStart,
+			"due_date <= ?":      monthEnd,
+		})
+		if err != nil {
+			return fmt.Errorf("plano %d: erro ao verificar faturas existentes para %s: %w", plan.ID, monthLabel, err)
+		}
+
+		if len(existingInvoices) > 0 {
+			if !reprocess {
+				s.logger.IPrintf(2, "Plano agenda %d já possui fatura para o mês %s (invoice id: %d). Pulando mês.",
+					plan.ID, monthLabel, existingInvoices[0].ID)
+				currentMonth = currentMonth.AddDate(0, 1, 0)
+				continue
+			}
+
+			for _, inv := range existingInvoices {
+				s.logger.IPrintf(2, "Reprocessando plano agenda %d para o mês %s: excluindo fatura anterior (id: %d).",
+					plan.ID, monthLabel, inv.ID)
+				if err := s.repo.DeleteInvoice(inv.ID); err != nil {
+					return fmt.Errorf("plano %d: erro ao excluir fatura anterior %d: %w", plan.ID, inv.ID, err)
+				}
+			}
+		}
+
+		invoice, err := s.agendaStrat.CalculateMonth(plan, monthStart, now)
+		if err != nil {
+			return fmt.Errorf("plano %d: erro ao calcular fatura agenda para %s: %w", plan.ID, monthLabel, err)
+		}
+		if invoice == nil {
+			currentMonth = currentMonth.AddDate(0, 1, 0)
+			continue
+		}
+
+		if err := s.repo.SaveInvoice(invoice); err != nil {
+			return fmt.Errorf("plano %d: erro ao salvar fatura agenda para %s: %w", plan.ID, monthLabel, err)
+		}
+
+		s.logger.IPrintf(2, "Fatura gerada com sucesso para plano agenda %d no mês %s (invoice id: %d, valor: %.2f)",
+			plan.ID, monthLabel, invoice.ID, invoice.Amount)
+
+		currentMonth = currentMonth.AddDate(0, 1, 0)
+	}
+
+	return nil
+}
+
+func (s *Invoicing) processNotebook(plan *domain.Plan, startDate, endDate time.Time, reprocess bool) error {
+	now := time.Now()
+	currentMonth := time.Date(startDate.Year(), startDate.Month(), 1, 0, 0, 0, 0, time.UTC)
+	endLimit := time.Date(endDate.Year(), endDate.Month(), 1, 0, 0, 0, 0, time.UTC)
+
+	for !currentMonth.After(endLimit) {
+		monthStart := currentMonth
+		monthLabel := currentMonth.Format("2006-01")
+
+		if !s.notebookStrat.IsActiveInMonth(plan, monthStart) {
+			currentMonth = currentMonth.AddDate(0, 1, 0)
+			continue
+		}
+
+		monthEnd := currentMonth.AddDate(0, 1, -1)
+		existingInvoices, err := s.repo.FindInvoices(map[string]interface{}{
+			"plan_id = ?":         plan.ID,
+			"deleted_at IS NULL":  nil,
+			"invoicing_date >= ?": monthStart,
+			"invoicing_date <= ?": monthEnd,
+		})
+		if err != nil {
+			return fmt.Errorf("plano %d: erro ao verificar faturas existentes para %s: %w", plan.ID, monthLabel, err)
+		}
+
+		if len(existingInvoices) > 0 {
+			if !reprocess {
+				s.logger.IPrintf(2, "Plano caderneta %d já possui fatura para o mês %s (invoice id: %d). Pulando mês.",
+					plan.ID, monthLabel, existingInvoices[0].ID)
+				currentMonth = currentMonth.AddDate(0, 1, 0)
+				continue
+			}
+
+			for _, inv := range existingInvoices {
+				s.logger.IPrintf(2, "Reprocessando plano caderneta %d para o mês %s: excluindo fatura anterior (id: %d).",
+					plan.ID, monthLabel, inv.ID)
+				if err := s.repo.DeleteInvoice(inv.ID); err != nil {
+					return fmt.Errorf("plano %d: erro ao excluir fatura anterior %d: %w", plan.ID, inv.ID, err)
+				}
+			}
+		}
+
+		prevMonthStart, prevMonthEnd := s.notebookStrat.PreviousMonthPeriod(monthStart)
+		sessionsByService := make(map[int64][]domain.Session, len(plan.Items))
+		for _, item := range plan.Items {
+			sessions, err := s.repo.FindBillableSessions(plan.CustomerID, item.ServiceID, prevMonthStart, prevMonthEnd)
+			if err != nil {
+				return fmt.Errorf("plano %d: erro ao buscar sessões do serviço %d: %w", plan.ID, item.ServiceID, err)
+			}
+			sessionsByService[item.ServiceID] = sessions
+		}
+
+		invoice, err := s.notebookStrat.CalculateMonth(plan, monthStart, sessionsByService, now)
+		if err != nil {
+			return fmt.Errorf("plano %d: erro ao calcular fatura caderneta para %s: %w", plan.ID, monthLabel, err)
+		}
+		if invoice == nil {
+			s.logger.IPrintf(2, "Plano caderneta %d: nenhuma fatura gerada para o mês %s. Pulando.",
+				plan.ID, monthLabel)
+			currentMonth = currentMonth.AddDate(0, 1, 0)
+			continue
+		}
+
+		if err := s.repo.SaveInvoice(invoice); err != nil {
+			return fmt.Errorf("plano %d: erro ao salvar fatura caderneta para %s: %w", plan.ID, monthLabel, err)
+		}
+
+		s.logger.IPrintf(2, "Fatura gerada com sucesso para plano caderneta %d no mês %s (invoice id: %d, valor: %.2f)",
+			plan.ID, monthLabel, invoice.ID, invoice.Amount)
+
+		currentMonth = currentMonth.AddDate(0, 1, 0)
+	}
+
+	return nil
+}
+
+func (s *Invoicing) processPayPerView(plan *domain.Plan, startDate, endDate time.Time, reprocess bool) error {
+	now := time.Now()
+	for _, item := range plan.Items {
+		sessions, err := s.repo.FindBillableSessions(plan.CustomerID, item.ServiceID, startDate, endDate)
+		if err != nil {
+			return fmt.Errorf("plano %d: erro ao buscar sessões do serviço %d: %w", plan.ID, item.ServiceID, err)
+		}
+
+		for _, session := range sessions {
+			existingInvoice, err := s.repo.GetInvoiceForSession(session.ID)
+			if err != nil {
+				return fmt.Errorf("plano %d: erro ao verificar fatura para a sessão %d: %w", plan.ID, session.ID, err)
+			}
+
+			if existingInvoice != nil {
+				if !reprocess {
+					s.logger.IPrintf(2, "Plano pay-per-view %d: sessão %d já faturada (invoice id: %d). Pulando sessão.",
+						plan.ID, session.ID, existingInvoice.ID)
+					continue
+				}
+
+				s.logger.IPrintf(2, "Reprocessando plano pay-per-view %d para sessão %d: excluindo fatura anterior (id: %d).",
+					plan.ID, session.ID, existingInvoice.ID)
+				if err := s.repo.DeleteInvoice(existingInvoice.ID); err != nil {
+					return fmt.Errorf("plano %d: erro ao excluir fatura anterior %d da sessão %d: %w",
+						plan.ID, existingInvoice.ID, session.ID, err)
+				}
+			}
+
+			invoice, err := s.payPerViewStrat.CalculateSession(plan, item, session, now)
+			if err != nil {
+				return fmt.Errorf("plano %d: erro ao calcular fatura pay-per-view para sessão %d: %w",
+					plan.ID, session.ID, err)
+			}
+
+			if err := s.repo.SaveInvoice(invoice); err != nil {
+				return fmt.Errorf("plano %d: erro ao salvar fatura pay-per-view para sessão %d: %w",
+					plan.ID, session.ID, err)
+			}
+
+			s.logger.IPrintf(2, "Fatura gerada com sucesso para plano pay-per-view %d, sessão %d (invoice id: %d, valor: %.2f)",
+				plan.ID, session.ID, invoice.ID, invoice.Amount)
+		}
+	}
+
+	return nil
 }

@@ -51,3 +51,23 @@ __pycache__/
 *.db
 *.sqlite
 *.sqlite3
+
+
+# Ignorar dependências e builds (geralmente já estão no gitignore)
+node_modules/
+.venv/
+dist/
+build/
+
+# Ignorar arquivos de mídia pesados que gastam contexto da IA
+*.png
+*.jpg
+*.jpeg
+*.svg
+*.mp4
+*.pdf
+
+# Ignorar logs e arquivos temporários de execução
+*.log
+.env*
+.ds_store
