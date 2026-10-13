@@ -1,0 +1,11 @@
+@baseUrl = http://localhost:8083/api
+
+### Faturar planos Agenda
+POST {{baseUrl}}/invoicing
+Content-Type: application/json
+
+{
+  "start_date": "2026-09-01",
+  "end_date": "2026-09-30",
+  "reprocess": false
+}
