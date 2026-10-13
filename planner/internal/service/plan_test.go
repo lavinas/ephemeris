@@ -361,9 +361,10 @@ func TestPlanService_NotebookAndPayPerView(t *testing.T) {
 
 	var nbPlan, ppvPlan *dto.PlanDTO
 	for i := range plans {
-		if plans[i].ID == nbID {
+		switch plans[i].ID {
+		case nbID:
 			nbPlan = &plans[i]
-		} else if plans[i].ID == ppvID {
+		case ppvID:
 			ppvPlan = &plans[i]
 		}
 	}
