@@ -737,6 +737,56 @@ func (a *Repository) FindInvoices(conditions map[string]interface{}, orderBy ...
 	return invoices, err
 }
 
+// FindInvoicesPaged retrieves invoices matching conditions with pagination, ordering, total count and total amount
+func (a *Repository) FindInvoicesPaged(page, pageSize int, conditions map[string]interface{}, orderBy ...string) ([]domain.Invoice, int64, float64, error) {
+	db := a.DB
+	if a.Tx != nil {
+		db = a.Tx
+	}
+	query := db.Model(&domain.Invoice{})
+	for k, v := range conditions {
+		if v == nil {
+			query = query.Where(k)
+		} else {
+			query = query.Where(k, v)
+		}
+	}
+	var count int64
+	if err := query.Count(&count).Error; err != nil {
+		return nil, 0, 0, err
+	}
+
+	var totalAmount float64
+	if err := query.Session(&gorm.Session{}).Select("COALESCE(SUM(amount), 0)").Row().Scan(&totalAmount); err != nil {
+		return nil, 0, 0, err
+	}
+
+	if len(orderBy) > 0 {
+		for _, o := range orderBy {
+			if o != "" {
+				query = query.Order(o)
+			}
+		}
+	} else {
+		query = query.Order("invoicing_date desc").Order("id desc")
+	}
+
+	if page > 0 && pageSize > 0 {
+		offset := (page - 1) * pageSize
+		query = query.Offset(offset).Limit(pageSize)
+	}
+
+	var invoices []domain.Invoice
+	err := query.Preload("Plan").
+		Preload("Plan.Customer").
+		Preload("Items", func(tx *gorm.DB) *gorm.DB {
+			return tx.Where("deleted_at IS NULL").Order("id asc")
+		}).
+		Preload("Items.Service").
+		Find(&invoices).Error
+	return invoices, count, totalAmount, err
+}
+
 // DeleteInvoice soft-deletes an invoice and its items
 func (a *Repository) DeleteInvoice(id int64) error {
 	db := a.DB

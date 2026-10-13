@@ -16,10 +16,12 @@ const (
 	// ServerShutdownTimeout is the timeout duration for server shutdown
 	ServerShutdownTimeout = 10 * time.Second
 
-	htmlTemplatePath       = "/app/web/templates/sessions.html"
-	localHtmlTemplatePath  = "./web/templates/sessions.html"
-	plansTemplatePath      = "/app/web/templates/plans.html"
-	localPlansTemplatePath = "./web/templates/plans.html"
+	htmlTemplatePath           = "/app/web/templates/sessions.html"
+	localHtmlTemplatePath      = "./web/templates/sessions.html"
+	plansTemplatePath          = "/app/web/templates/plans.html"
+	localPlansTemplatePath     = "./web/templates/plans.html"
+	invoicingTemplatePath      = "/app/web/templates/invoicing.html"
+	localInvoicingTemplatePath = "./web/templates/invoicing.html"
 )
 
 // Handler is an HTTP handler for the API
@@ -47,8 +49,12 @@ func (h *Handler) Run(addr string) error {
 	if err != nil {
 		h.logger.IPrintf(1, "Warning reading plans template (%v), fallback will be used", err)
 	}
+	invoicingTemplate, err := h.getInvoicingTemplate()
+	if err != nil {
+		h.logger.IPrintf(1, "Warning reading invoicing template (%v), fallback will be used", err)
+	}
 	h.logger.IPrintf(0, "HTML templates loaded successfully")
-	mainMux, err := NewRoutes(h.repo, h.logger, sessionsTemplate, plansTemplate)
+	mainMux, err := NewRoutes(h.repo, h.logger, sessionsTemplate, plansTemplate, invoicingTemplate)
 	if err != nil {
 		return fmt.Errorf("error creating routes: %v", err)
 	}
@@ -76,6 +82,15 @@ func (h *Handler) getPlansTemplate() ([]byte, error) {
 		return template, nil
 	}
 	return os.ReadFile(localPlansTemplatePath)
+}
+
+// getInvoicingTemplate returns the HTML invoicing template
+func (h *Handler) getInvoicingTemplate() ([]byte, error) {
+	template, err := os.ReadFile(invoicingTemplatePath)
+	if err == nil {
+		return template, nil
+	}
+	return os.ReadFile(localInvoicingTemplatePath)
 }
 
 // exec executes the server and handles graceful shutdown

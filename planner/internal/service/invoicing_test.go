@@ -128,6 +128,18 @@ func (m *mockInvoicingRepoForService) FindInvoices(conditions map[string]interfa
 	return result, nil
 }
 
+func (m *mockInvoicingRepoForService) FindInvoicesPaged(page, pageSize int, conditions map[string]interface{}, orderBy ...string) ([]domain.Invoice, int64, float64, error) {
+	invoices, err := m.FindInvoices(conditions, orderBy...)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	var totalAmount float64
+	for _, inv := range invoices {
+		totalAmount += inv.Amount
+	}
+	return invoices, int64(len(invoices)), totalAmount, nil
+}
+
 func (m *mockInvoicingRepoForService) DeleteInvoice(id int64) error {
 	m.deletedIDs = append(m.deletedIDs, id)
 	now := time.Now()

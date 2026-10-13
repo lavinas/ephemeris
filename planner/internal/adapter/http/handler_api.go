@@ -217,6 +217,75 @@ func (h *HandlerApi) Invoicing(w http.ResponseWriter, r *http.Request) {
 	h.writeResponse(w, response)
 }
 
+// InvoiceList handler for querying invoices (/plan/invoicing/invoices and /plan/invoicing/list)
+func (h *HandlerApi) InvoiceList(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	requestDTO := &dto.InvoiceListRequest{
+		Page:     1,
+		PageSize: 10,
+	}
+	if r.ContentLength > 0 {
+		err := json.NewDecoder(r.Body).Decode(requestDTO)
+		if err != nil {
+			http.Error(w, "Bad request", http.StatusBadRequest)
+			return
+		}
+	}
+
+	q := r.URL.Query()
+	if pageStr := q.Get("page"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			requestDTO.Page = p
+		}
+	}
+	if pageSizeStr := q.Get("page_size"); pageSizeStr != "" {
+		if ps, err := strconv.Atoi(pageSizeStr); err == nil && ps > 0 {
+			requestDTO.PageSize = ps
+		}
+	}
+	if sd := q.Get("start_date"); sd != "" {
+		requestDTO.StartDate = sd
+	}
+	if ed := q.Get("end_date"); ed != "" {
+		requestDTO.EndDate = ed
+	}
+	if invID := q.Get("invoice_id"); invID != "" {
+		if id, err := strconv.ParseInt(invID, 10, 64); err == nil {
+			requestDTO.InvoiceID = id
+		}
+	}
+	if nick := q.Get("nickname"); nick != "" {
+		requestDTO.Nickname = nick
+	}
+	if ptStr := q.Get("plan_type"); ptStr != "" {
+		if pt, err := strconv.Atoi(ptStr); err == nil {
+			requestDTO.PlanType = pt
+		}
+	}
+	if svcID := q.Get("service_id"); svcID != "" {
+		if sid, err := strconv.ParseInt(svcID, 10, 64); err == nil {
+			requestDTO.ServiceID = sid
+		}
+	}
+	if planID := q.Get("plan_id"); planID != "" {
+		if pid, err := strconv.ParseInt(planID, 10, 64); err == nil {
+			requestDTO.PlanID = pid
+		}
+	}
+
+	svc := service.NewInvoiceList(h.repo, h.logger)
+	response := svc.Run(requestDTO)
+	h.writeResponse(w, response)
+}
+
+// Invoices is an alias for InvoiceList handler
+func (h *HandlerApi) Invoices(w http.ResponseWriter, r *http.Request) {
+	h.InvoiceList(w, r)
+}
+
 
 // writeResponse writes the given response to the http.ResponseWriter with the appropriate status
 func (h *HandlerApi) writeResponse(w http.ResponseWriter, response port.OutDTO) {

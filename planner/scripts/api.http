@@ -9,3 +9,12 @@ Content-Type: application/json
   "end_date": "2026-09-30",
   "reprocess": false
 }
+
+### Consultar faturas (plan/invoicing/invoices)
+GET {{baseUrl}}/plan/invoicing/invoices?page=1&page_size=10
+Content-Type: application/json
+
+### Consultar faturas com filtros (plan/invoicing/list)
+GET {{baseUrl}}/plan/invoicing/list?page=1&page_size=10&nickname=joao&plan_type=1
+Content-Type: application/json
+

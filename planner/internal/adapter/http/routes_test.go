@@ -63,6 +63,7 @@ func (d *dummyRepo) FindCustomerActivePlansWithServices(customerID int64, servic
 func (d *dummyRepo) SaveInvoice(invoice *domain.Invoice) error { return nil }
 func (d *dummyRepo) GetInvoiceByID(id int64) (*domain.Invoice, error) { return nil, nil }
 func (d *dummyRepo) FindInvoices(conditions map[string]interface{}, orderBy ...string) ([]domain.Invoice, error) { return nil, nil }
+func (d *dummyRepo) FindInvoicesPaged(page, pageSize int, conditions map[string]interface{}, orderBy ...string) ([]domain.Invoice, int64, float64, error) { return nil, 0, 0, nil }
 func (d *dummyRepo) DeleteInvoice(id int64) error { return nil }
 func (d *dummyRepo) FindActivePlansForInvoicing(vendorID *int64, customerID *int64, planType *int, serviceID *int64, startDate, endDate time.Time) ([]domain.Plan, error) { return nil, nil }
 func (d *dummyRepo) FindBillableSessions(customerID int64, serviceID int64, startDate, endDate time.Time) ([]domain.Session, error) { return nil, nil }
@@ -198,6 +199,42 @@ func TestRootEndpointServesStaticIndex(t *testing.T) {
 	routes.ServeHTTP(recPlanInvoicing, reqPlanInvoicing)
 	if recPlanInvoicing.Code != http.StatusOK {
 		t.Errorf("expected status 200 on /api/plan/invoicing, got %d: %s", recPlanInvoicing.Code, recPlanInvoicing.Body.String())
+	}
+
+	// 10. Test API invoicing list endpoints exist
+	reqInvList := httptest.NewRequest(http.MethodGet, "/api/plan/invoicing/list", nil)
+	recInvList := httptest.NewRecorder()
+	routes.ServeHTTP(recInvList, reqInvList)
+	if recInvList.Code != http.StatusOK {
+		t.Errorf("expected status 200 on /api/plan/invoicing/list, got %d: %s", recInvList.Code, recInvList.Body.String())
+	}
+
+	reqInvInvoices := httptest.NewRequest(http.MethodGet, "/api/plan/invoicing/invoices", nil)
+	recInvInvoices := httptest.NewRecorder()
+	routes.ServeHTTP(recInvInvoices, reqInvInvoices)
+	if recInvInvoices.Code != http.StatusOK {
+		t.Errorf("expected status 200 on /api/plan/invoicing/invoices, got %d: %s", recInvInvoices.Code, recInvInvoices.Body.String())
+	}
+
+	// 11. Test index.html references /html/invoicing
+	if !strings.Contains(body, `/html/invoicing`) {
+		t.Errorf("expected index.html to reference '/html/invoicing'")
+	}
+
+	// 12. Test GET /html/invoicing
+	reqInvoicingHTML := httptest.NewRequest(http.MethodGet, "/html/invoicing", nil)
+	recInvoicingHTML := httptest.NewRecorder()
+	routes.ServeHTTP(recInvoicingHTML, reqInvoicingHTML)
+	if recInvoicingHTML.Code != http.StatusOK {
+		t.Errorf("expected status 200 on /html/invoicing, got %d", recInvoicingHTML.Code)
+	}
+
+	// 13. Test POST /html/invoicing/tabela
+	reqInvoicingTabela := httptest.NewRequest(http.MethodPost, "/html/invoicing/tabela", nil)
+	recInvoicingTabela := httptest.NewRecorder()
+	routes.ServeHTTP(recInvoicingTabela, reqInvoicingTabela)
+	if recInvoicingTabela.Code != http.StatusOK {
+		t.Errorf("expected status 200 on /html/invoicing/tabela, got %d", recInvoicingTabela.Code)
 	}
 }
 

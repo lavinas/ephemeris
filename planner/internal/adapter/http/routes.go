@@ -42,6 +42,10 @@ func NewAPIRoutes(repo port.Repository, logger port.Logger) *http.ServeMux {
 	mux.HandleFunc("/invoicing", handler.Invoicing)
 	mux.HandleFunc("/plan/invoicing", handler.Invoicing)
 	mux.HandleFunc("/plano/invoicing", handler.Invoicing)
+	mux.HandleFunc("/plan/invoicing/list", handler.InvoiceList)
+	mux.HandleFunc("/plan/invoicing/invoices", handler.InvoiceList)
+	mux.HandleFunc("/invoicing/list", handler.InvoiceList)
+	mux.HandleFunc("/invoicing/invoices", handler.InvoiceList)
 	mux.HandleFunc("/ping2", handler.Ping)
 	return mux
 }
@@ -84,6 +88,15 @@ func NewHTMLRoutes(repo port.Repository, logger port.Logger, htmlTemplate []byte
 	mux.HandleFunc("/planos/editar", handler.PlansEdit)
 	mux.HandleFunc("/planos/atualizar", handler.PlansUpdate)
 	mux.HandleFunc("/planos/tabela", handler.PlansTable)
+
+	mux.HandleFunc("/invoicing", handler.InvoicingHTML)
+	mux.HandleFunc("/invoicing/", handler.InvoicingHTML)
+	mux.HandleFunc("/invoicing/tabela", handler.InvoicingTable)
+	mux.HandleFunc("/invoicing/tabela/reset", handler.InvoicingTableReset)
+	mux.HandleFunc("/pre-faturas", handler.InvoicingHTML)
+	mux.HandleFunc("/pre-faturas/", handler.InvoicingHTML)
+	mux.HandleFunc("/pre-faturas/tabela", handler.InvoicingTable)
+	mux.HandleFunc("/pre-faturas/tabela/reset", handler.InvoicingTableReset)
 	return mux, handler, nil
 }
 
