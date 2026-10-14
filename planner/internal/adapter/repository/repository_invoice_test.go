@@ -19,7 +19,7 @@ func TestInvoiceRepository_Integration(t *testing.T) {
 	// 1. Test FindActivePlansForInvoicing
 	startDate := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	endDate := time.Date(2026, 12, 31, 0, 0, 0, 0, time.UTC)
-	plans, err := repo.FindActivePlansForInvoicing(nil, nil, nil, nil, startDate, endDate)
+	plans, err := repo.FindActivePlansForInvoicing(nil, nil, nil, nil, nil, startDate, endDate)
 	if err != nil {
 		t.Fatalf("FindActivePlansForInvoicing failed: %v", err)
 	}

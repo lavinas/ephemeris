@@ -816,7 +816,7 @@ func (a *Repository) DeleteInvoice(id int64) error {
 }
 
 // FindActivePlansForInvoicing finds all non-deleted plans active in the given period matching filters
-func (a *Repository) FindActivePlansForInvoicing(vendorID *int64, customerID *int64, planType *int, serviceID *int64, startDate, endDate time.Time) ([]domain.Plan, error) {
+func (a *Repository) FindActivePlansForInvoicing(planID *int64, vendorID *int64, customerID *int64, planType *int, serviceID *int64, startDate, endDate time.Time) ([]domain.Plan, error) {
 	db := a.DB
 	if a.Tx != nil {
 		db = a.Tx
@@ -826,6 +826,9 @@ func (a *Repository) FindActivePlansForInvoicing(vendorID *int64, customerID *in
 		Where("planner.plan.plan_start <= ?", endDate).
 		Where("(planner.plan.plan_end IS NULL OR planner.plan.plan_end >= ?)", startDate)
 
+	if planID != nil && *planID != 0 {
+		query = query.Where("planner.plan.id = ?", *planID)
+	}
 	if vendorID != nil && *vendorID != 0 {
 		query = query.Where("planner.plan.customer_id IN (SELECT id FROM planner.customer WHERE vendor_id = ? AND deleted_at IS NULL)", *vendorID)
 	}

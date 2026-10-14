@@ -52,7 +52,7 @@ func (s *Invoicing) Run(input port.InDTO) port.OutDTO {
 	s.logger.IPrintf(2, "Buscando planos ativos para faturamento no período de %s a %s",
 		startDate.Format("2006-01-02"), endDate.Format("2006-01-02"))
 
-	plans, err := s.repo.FindActivePlansForInvoicing(req.VendorID, req.CustomerID, req.PlanType, req.ServiceID, startDate, endDate)
+	plans, err := s.repo.FindActivePlansForInvoicing(req.PlanID, req.VendorID, req.CustomerID, req.PlanType, req.ServiceID, startDate, endDate)
 	if err != nil {
 		s.logger.IPrintf(2, "Error finding plans for invoicing: %v", err)
 		return dto.NewInvoicingResponse(500, "Internal Server Error", fmt.Sprintf("erro ao buscar planos: %v", err))

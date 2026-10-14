@@ -10,7 +10,7 @@
 		}
 		.grade-tabela-invoicing {
 			display: grid !important;
-			grid-template-columns: 1.1fr 1.4fr 1.1fr 1.2fr 5.2fr !important;
+			grid-template-columns: 1.1fr 1.3fr 1.1fr 1.1fr 4.8fr 0.6fr !important;
 			gap: 16px !important;
 			align-items: start !important;
 			width: 100% !important;
@@ -39,6 +39,10 @@
 		}
 		.linha-box-invoicing:hover {
 			background-color: #e5e7eb !important;
+		}
+		.linha-box-invoicing.aviso-deletar {
+			background-color: #fff1f2 !important;
+			border: 1px solid #f43f5e !important;
 		}
 		.campo-box {
 			background-color: #1f2937 !important;
@@ -219,6 +223,7 @@
 			<div>VENCIMENTO</div>
 			<div>VALOR TOTAL</div>
 			<div>ITENS DA PRÉ-FATURA</div>
+			<div class="text-right">AÇÕES</div>
 		</div>
 
 		{{if not .Invoices}}
@@ -317,6 +322,46 @@
 					<div class="text-xs text-gray-400 italic py-1">Sem itens associados.</div>
 				{{end}}
 			</div>
+		</div>
+		<div class="flex items-center justify-end">
+			<button type="button"
+					hx-get="/html/invoicing/deletar-aviso?id={{.ID}}"
+					hx-target="#linha-invoice-{{.ID}}"
+					hx-swap="outerHTML"
+					class="p-1.5 text-rose-600 hover:text-rose-900 hover:bg-rose-50 rounded transition cursor-pointer"
+					title="Excluir Pré-Fatura">
+				<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+				</svg>
+			</button>
+		</div>
+	</div>
+	{{end}}
+
+	{{define "linha_invoice_deletar_aviso"}}
+	<div id="linha-invoice-{{.ID}}" class="linha-box-invoicing aviso-deletar grade-tabela-invoicing" style="background-color: #fff1f2 !important; border: 1px solid #f43f5e !important;">
+		<div class="font-bold text-red-700 col-span-5 text-sm flex items-center gap-2">
+			<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+				<path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+			</svg>
+			<span>Atenção: Deseja realmente excluir a pré-fatura #{{.ID}} do cliente <strong>{{.Nickname}}</strong> (R$ {{.ValorFormatado}})?</span>
+		</div>
+		<div class="col-span-1 flex items-center justify-end gap-2">
+			<button type="button"
+					hx-get="/html/invoicing/cancelar-delete?id={{.ID}}"
+					hx-target="#linha-invoice-{{.ID}}"
+					hx-swap="outerHTML"
+					class="px-3 py-1 bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-medium rounded transition cursor-pointer">
+				Cancelar
+			</button>
+			<button type="button"
+					hx-post="/html/invoicing/deletar?id={{.ID}}"
+					hx-target="#tabela-container-invoicing"
+					hx-include="#filtro-form-invoicing"
+					class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded shadow transition cursor-pointer"
+					style="background-color: #e11d48;">
+				Sim, Excluir
+			</button>
 		</div>
 	</div>
 	{{end}}

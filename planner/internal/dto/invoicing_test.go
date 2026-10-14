@@ -9,6 +9,7 @@ import (
 func TestInvoicingRequest_UnmarshalJSON(t *testing.T) {
 	t.Run("English fields", func(t *testing.T) {
 		payload := `{
+			"plan_id": 42,
 			"vendor_id": 1,
 			"start_date": "2026-08-01",
 			"end_date": "2026-10-31",
@@ -21,6 +22,9 @@ func TestInvoicingRequest_UnmarshalJSON(t *testing.T) {
 		var req InvoicingRequest
 		if err := json.Unmarshal([]byte(payload), &req); err != nil {
 			t.Fatalf("unexpected unmarshal error: %v", err)
+		}
+		if req.PlanID == nil || *req.PlanID != 42 {
+			t.Errorf("expected PlanID 42, got %v", req.PlanID)
 		}
 		if req.VendorID == nil || *req.VendorID != 1 {
 			t.Errorf("expected VendorID 1, got %v", req.VendorID)
@@ -50,6 +54,7 @@ func TestInvoicingRequest_UnmarshalJSON(t *testing.T) {
 
 	t.Run("Portuguese fields", func(t *testing.T) {
 		payload := `{
+			"plano_id": 99,
 			"vendor": 2,
 			"data_inicio": "2026-09-01",
 			"data_fim": "2026-09-30",
@@ -62,6 +67,9 @@ func TestInvoicingRequest_UnmarshalJSON(t *testing.T) {
 		var req InvoicingRequest
 		if err := json.Unmarshal([]byte(payload), &req); err != nil {
 			t.Fatalf("unexpected unmarshal error: %v", err)
+		}
+		if req.PlanID == nil || *req.PlanID != 99 {
+			t.Errorf("expected PlanID 99, got %v", req.PlanID)
 		}
 		if req.VendorID == nil || *req.VendorID != 2 {
 			t.Errorf("expected VendorID 2, got %v", req.VendorID)
@@ -86,6 +94,11 @@ func TestInvoicingRequest_UnmarshalJSON(t *testing.T) {
 		}
 		if req.NMonths == nil || *req.NMonths != 3 {
 			t.Errorf("expected NMonths 3, got %v", req.NMonths)
+		}
+
+		req.Reset()
+		if req.PlanID != nil || req.VendorID != nil {
+			t.Errorf("expected fields to be reset, got: %+v", req)
 		}
 	})
 }

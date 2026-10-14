@@ -63,7 +63,14 @@ func (m *mockInvoicingRepoForService) SavePlan(plan *domain.Plan) error { return
 func (m *mockInvoicingRepoForService) FindPlans(page, pageSize int, conditions map[string]interface{}, orderBy ...string) ([]domain.Plan, int64, error) {
 	return nil, 0, nil
 }
-func (m *mockInvoicingRepoForService) GetPlanByID(id int64) (*domain.Plan, error) { return nil, nil }
+func (m *mockInvoicingRepoForService) GetPlanByID(id int64) (*domain.Plan, error) {
+	for i := range m.plans {
+		if m.plans[i].ID == id {
+			return &m.plans[i], nil
+		}
+	}
+	return nil, nil
+}
 func (m *mockInvoicingRepoForService) DeletePlan(id int64) error                    { return nil }
 func (m *mockInvoicingRepoForService) FindCustomerActivePlansWithServices(customerID int64, serviceIDs []int64, excludePlanID int64) ([]domain.Plan, error) {
 	return nil, nil
@@ -151,9 +158,12 @@ func (m *mockInvoicingRepoForService) DeleteInvoice(id int64) error {
 	return nil
 }
 
-func (m *mockInvoicingRepoForService) FindActivePlansForInvoicing(vendorID *int64, customerID *int64, planType *int, serviceID *int64, startDate, endDate time.Time) ([]domain.Plan, error) {
+func (m *mockInvoicingRepoForService) FindActivePlansForInvoicing(planID *int64, vendorID *int64, customerID *int64, planType *int, serviceID *int64, startDate, endDate time.Time) ([]domain.Plan, error) {
 	var result []domain.Plan
 	for _, p := range m.plans {
+		if planID != nil && *planID != 0 && p.ID != *planID {
+			continue
+		}
 		if vendorID != nil && *vendorID != 0 && p.Customer != nil && p.Customer.VendorID != *vendorID {
 			continue
 		}
@@ -414,6 +424,63 @@ func TestInvoicingService_Run(t *testing.T) {
 		}
 		if len(repo.invoices) != 2 {
 			t.Errorf("expected 2 total invoices (1 deleted, 1 active), got %d", len(repo.invoices))
+		}
+	})
+
+	t.Run("Process specific plan using plan_id", func(t *testing.T) {
+		repo := newMockInvoicingRepoForService()
+		logger := &mockLogger{}
+		price := 200.0
+		planStart := time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)
+
+		repo.plans = []domain.Plan{
+			{
+				ID:         10,
+				CustomerID: 1,
+				PlanStart:  planStart,
+				PlanType:   2,
+				Price:      &price,
+				Package: &domain.PlanPackage{
+					ID:          1,
+					Quantity:    4,
+					PaymentDate: time.Date(2026, 9, 5, 0, 0, 0, 0, time.UTC),
+				},
+				Items: []domain.PlanItem{{ServiceID: 1, OrderIndex: 1}},
+			},
+			{
+				ID:         20,
+				CustomerID: 2,
+				PlanStart:  planStart,
+				PlanType:   2,
+				Price:      &price,
+				Package: &domain.PlanPackage{
+					ID:          2,
+					Quantity:    8,
+					PaymentDate: time.Date(2026, 9, 10, 0, 0, 0, 0, time.UTC),
+				},
+				Items: []domain.PlanItem{{ServiceID: 1, OrderIndex: 1}},
+			},
+		}
+
+		svc := NewInvoicing(repo, logger)
+		start := "2026-09-01"
+		end := "2026-09-30"
+		planID := int64(20)
+
+		req := &dto.InvoicingRequest{
+			PlanID:    &planID,
+			StartDate: &start,
+			EndDate:   &end,
+		}
+		resp := svc.Run(req)
+		if resp.GetStatusCode() != 200 {
+			t.Fatalf("invoicing failed: %s", resp.GetMessage())
+		}
+		if len(repo.invoices) != 1 {
+			t.Fatalf("expected 1 invoice for plan 20, got %d", len(repo.invoices))
+		}
+		if repo.invoices[0].PlanID != 20 {
+			t.Errorf("expected invoice plan_id 20, got %d", repo.invoices[0].PlanID)
 		}
 	})
 }

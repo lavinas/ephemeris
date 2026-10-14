@@ -122,7 +122,7 @@ func (m *mockPlanRepo) GetInvoiceByID(id int64) (*domain.Invoice, error) { retur
 func (m *mockPlanRepo) FindInvoices(conditions map[string]interface{}, orderBy ...string) ([]domain.Invoice, error) { return nil, nil }
 func (m *mockPlanRepo) FindInvoicesPaged(page, pageSize int, conditions map[string]interface{}, orderBy ...string) ([]domain.Invoice, int64, float64, error) { return nil, 0, 0, nil }
 func (m *mockPlanRepo) DeleteInvoice(id int64) error { return nil }
-func (m *mockPlanRepo) FindActivePlansForInvoicing(vendorID *int64, customerID *int64, planType *int, serviceID *int64, startDate, endDate time.Time) ([]domain.Plan, error) { return nil, nil }
+func (m *mockPlanRepo) FindActivePlansForInvoicing(planID *int64, vendorID *int64, customerID *int64, planType *int, serviceID *int64, startDate, endDate time.Time) ([]domain.Plan, error) { return nil, nil }
 func (m *mockPlanRepo) FindBillableSessions(customerID int64, serviceID int64, startDate, endDate time.Time) ([]domain.Session, error) { return nil, nil }
 func (m *mockPlanRepo) GetInvoiceForSession(sessionID int64) (*domain.Invoice, error) { return nil, nil }
 

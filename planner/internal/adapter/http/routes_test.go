@@ -65,7 +65,7 @@ func (d *dummyRepo) GetInvoiceByID(id int64) (*domain.Invoice, error) { return n
 func (d *dummyRepo) FindInvoices(conditions map[string]interface{}, orderBy ...string) ([]domain.Invoice, error) { return nil, nil }
 func (d *dummyRepo) FindInvoicesPaged(page, pageSize int, conditions map[string]interface{}, orderBy ...string) ([]domain.Invoice, int64, float64, error) { return nil, 0, 0, nil }
 func (d *dummyRepo) DeleteInvoice(id int64) error { return nil }
-func (d *dummyRepo) FindActivePlansForInvoicing(vendorID *int64, customerID *int64, planType *int, serviceID *int64, startDate, endDate time.Time) ([]domain.Plan, error) { return nil, nil }
+func (d *dummyRepo) FindActivePlansForInvoicing(planID *int64, vendorID *int64, customerID *int64, planType *int, serviceID *int64, startDate, endDate time.Time) ([]domain.Plan, error) { return nil, nil }
 func (d *dummyRepo) FindBillableSessions(customerID int64, serviceID int64, startDate, endDate time.Time) ([]domain.Session, error) { return nil, nil }
 func (d *dummyRepo) GetInvoiceForSession(sessionID int64) (*domain.Invoice, error) { return nil, nil }
 
@@ -441,5 +441,173 @@ func TestPlansSaveAndMultipleItems(t *testing.T) {
 		t.Errorf("expected 400 on /html/planos/encerrar with date before start, got %d", recInvalid.Code)
 	}
 }
+
+type mockInvoiceRouteRepo struct {
+	dummyRepo
+	deletedInvoiceID int64
+}
+
+func (m *mockInvoiceRouteRepo) GetCustomerByID(id int64) (*domain.Customer, error) {
+	return &domain.Customer{ID: id, Nickname: "cliente_teste"}, nil
+}
+
+func (m *mockInvoiceRouteRepo) GetInvoiceByID(id int64) (*domain.Invoice, error) {
+	return &domain.Invoice{
+		ID:            id,
+		PlanID:        1,
+		Plan:          &domain.Plan{CustomerID: 10},
+		InvoicingDate: time.Now(),
+		DueDate:       time.Now().AddDate(0, 0, 5),
+		Amount:        150.0,
+	}, nil
+}
+
+func (m *mockInvoiceRouteRepo) DeleteInvoice(id int64) error {
+	m.deletedInvoiceID = id
+	return nil
+}
+
+func (m *mockInvoiceRouteRepo) FindInvoicesPaged(page, pageSize int, conditions map[string]interface{}, orderBy ...string) ([]domain.Invoice, int64, float64, error) {
+	return []domain.Invoice{
+		{
+			ID:            1,
+			PlanID:        1,
+			Plan:          &domain.Plan{CustomerID: 10},
+			InvoicingDate: time.Now(),
+			DueDate:       time.Now().AddDate(0, 0, 5),
+			Amount:        150.0,
+		},
+	}, 1, 150.0, nil
+}
+
+func (m *mockInvoiceRouteRepo) FindPlans(page, pageSize int, conditions map[string]interface{}, orderBy ...string) ([]domain.Plan, int64, error) {
+	return []domain.Plan{
+		{
+			ID:         1,
+			CustomerID: 10,
+			PlanStart:  time.Now(),
+			PlanType:   1,
+		},
+	}, 1, nil
+}
+
+func (m *mockInvoiceRouteRepo) FindActivePlansForInvoicing(planID *int64, vendorID *int64, customerID *int64, planType *int, serviceID *int64, startDate, endDate time.Time) ([]domain.Plan, error) {
+	return []domain.Plan{
+		{
+			ID:         1,
+			CustomerID: 10,
+			PlanStart:  time.Now(),
+			PlanType:   1,
+		},
+	}, nil
+}
+
+func TestPlanGenerateInvoiceModalAndAction(t *testing.T) {
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("could not get working dir: %v", err)
+	}
+	defer os.Chdir(origDir)
+
+	if err := os.Chdir("../../.."); err != nil {
+		t.Fatalf("could not chdir to planner/backend: %v", err)
+	}
+
+	mockR := &mockInvoiceRouteRepo{}
+	routes, err := NewRoutes(mockR, &dummyLogger{}, nil)
+	if err != nil {
+		t.Fatalf("failed to create routes: %v", err)
+	}
+
+	// 1. GET /html/planos/gerar-invoice-modal?id=1
+	reqModal := httptest.NewRequest(http.MethodGet, "/html/planos/gerar-invoice-modal?id=1", nil)
+	recModal := httptest.NewRecorder()
+	routes.ServeHTTP(recModal, reqModal)
+	if recModal.Code != http.StatusOK {
+		t.Errorf("expected 200 on /html/planos/gerar-invoice-modal, got %d", recModal.Code)
+	}
+	if !strings.Contains(recModal.Body.String(), "Gerar Pré-Fatura") {
+		t.Errorf("expected modal to contain 'Gerar Pré-Fatura', got: %s", recModal.Body.String())
+	}
+
+	// 2. POST /html/planos/gerar-invoice?id=1
+	form := strings.NewReader("start_date=2026-10-01&end_date=2026-10-31")
+	reqGen := httptest.NewRequest(http.MethodPost, "/html/planos/gerar-invoice?id=1", form)
+	reqGen.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	recGen := httptest.NewRecorder()
+	routes.ServeHTTP(recGen, reqGen)
+	if recGen.Code != http.StatusOK {
+		t.Errorf("expected 200 on /html/planos/gerar-invoice, got %d", recGen.Code)
+	}
+}
+
+func TestInvoiceDeleteRoutes(t *testing.T) {
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("could not get working dir: %v", err)
+	}
+	defer os.Chdir(origDir)
+
+	if err := os.Chdir("../../.."); err != nil {
+		t.Fatalf("could not chdir to planner/backend: %v", err)
+	}
+
+	mockR := &mockInvoiceRouteRepo{}
+	routes, err := NewRoutes(mockR, &dummyLogger{}, nil)
+	if err != nil {
+		t.Fatalf("failed to create routes: %v", err)
+	}
+
+	// 1. DELETE /api/invoice/delete?id=1
+	reqDelAPI := httptest.NewRequest(http.MethodDelete, "/api/invoice/delete?id=1", nil)
+	recDelAPI := httptest.NewRecorder()
+	routes.ServeHTTP(recDelAPI, reqDelAPI)
+	if recDelAPI.Code != http.StatusOK {
+		t.Errorf("expected 200 on /api/invoice/delete, got %d: %s", recDelAPI.Code, recDelAPI.Body.String())
+	}
+	if mockR.deletedInvoiceID != 1 {
+		t.Errorf("expected deletedInvoiceID 1, got %d", mockR.deletedInvoiceID)
+	}
+
+	// 2. POST /api/invoicing/delete (JSON body)
+	reqDelJSON := httptest.NewRequest(http.MethodPost, "/api/invoicing/delete", strings.NewReader(`{"id": 2}`))
+	reqDelJSON.Header.Set("Content-Type", "application/json")
+	recDelJSON := httptest.NewRecorder()
+	routes.ServeHTTP(recDelJSON, reqDelJSON)
+	if recDelJSON.Code != http.StatusOK {
+		t.Errorf("expected 200 on /api/invoicing/delete, got %d: %s", recDelJSON.Code, recDelJSON.Body.String())
+	}
+	if mockR.deletedInvoiceID != 2 {
+		t.Errorf("expected deletedInvoiceID 2, got %d", mockR.deletedInvoiceID)
+	}
+
+	// 3. GET /html/invoicing/deletar-aviso?id=1
+	reqAviso := httptest.NewRequest(http.MethodGet, "/html/invoicing/deletar-aviso?id=1", nil)
+	recAviso := httptest.NewRecorder()
+	routes.ServeHTTP(recAviso, reqAviso)
+	if recAviso.Code != http.StatusOK {
+		t.Errorf("expected 200 on /html/invoicing/deletar-aviso, got %d", recAviso.Code)
+	}
+	if !strings.Contains(recAviso.Body.String(), "Sim, Excluir") {
+		t.Errorf("expected warning to contain 'Sim, Excluir', got: %s", recAviso.Body.String())
+	}
+
+	// 4. GET /html/invoicing/cancelar-delete?id=1
+	reqCancel := httptest.NewRequest(http.MethodGet, "/html/invoicing/cancelar-delete?id=1", nil)
+	recCancel := httptest.NewRecorder()
+	routes.ServeHTTP(recCancel, reqCancel)
+	if recCancel.Code != http.StatusOK {
+		t.Errorf("expected 200 on /html/invoicing/cancelar-delete, got %d", recCancel.Code)
+	}
+
+	// 5. POST /html/invoicing/deletar?id=1
+	reqDelHTML := httptest.NewRequest(http.MethodPost, "/html/invoicing/deletar?id=1", nil)
+	recDelHTML := httptest.NewRecorder()
+	routes.ServeHTTP(recDelHTML, reqDelHTML)
+	if recDelHTML.Code != http.StatusOK {
+		t.Errorf("expected 200 on /html/invoicing/deletar, got %d", recDelHTML.Code)
+	}
+}
+
 
 

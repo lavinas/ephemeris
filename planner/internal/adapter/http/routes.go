@@ -46,6 +46,10 @@ func NewAPIRoutes(repo port.Repository, logger port.Logger) *http.ServeMux {
 	mux.HandleFunc("/plan/invoicing/invoices", handler.InvoiceList)
 	mux.HandleFunc("/invoicing/list", handler.InvoiceList)
 	mux.HandleFunc("/invoicing/invoices", handler.InvoiceList)
+	mux.HandleFunc("/invoice/delete", handler.InvoiceDelete)
+	mux.HandleFunc("/invoicing/delete", handler.InvoiceDelete)
+	mux.HandleFunc("/plan/invoicing/delete", handler.InvoiceDelete)
+	mux.HandleFunc("/plano/invoicing/delete", handler.InvoiceDelete)
 	mux.HandleFunc("/ping2", handler.Ping)
 	return mux
 }
@@ -88,15 +92,23 @@ func NewHTMLRoutes(repo port.Repository, logger port.Logger, htmlTemplate []byte
 	mux.HandleFunc("/planos/editar", handler.PlansEdit)
 	mux.HandleFunc("/planos/atualizar", handler.PlansUpdate)
 	mux.HandleFunc("/planos/tabela", handler.PlansTable)
+	mux.HandleFunc("/planos/gerar-invoice-modal", handler.PlansGenerateInvoiceModal)
+	mux.HandleFunc("/planos/gerar-invoice", handler.PlansGenerateInvoice)
 
 	mux.HandleFunc("/invoicing", handler.InvoicingHTML)
 	mux.HandleFunc("/invoicing/", handler.InvoicingHTML)
 	mux.HandleFunc("/invoicing/tabela", handler.InvoicingTable)
 	mux.HandleFunc("/invoicing/tabela/reset", handler.InvoicingTableReset)
+	mux.HandleFunc("/invoicing/deletar-aviso", handler.InvoicingDeleteWarning)
+	mux.HandleFunc("/invoicing/cancelar-delete", handler.InvoicingCancelDelete)
+	mux.HandleFunc("/invoicing/deletar", handler.InvoicingDelete)
 	mux.HandleFunc("/pre-faturas", handler.InvoicingHTML)
 	mux.HandleFunc("/pre-faturas/", handler.InvoicingHTML)
 	mux.HandleFunc("/pre-faturas/tabela", handler.InvoicingTable)
 	mux.HandleFunc("/pre-faturas/tabela/reset", handler.InvoicingTableReset)
+	mux.HandleFunc("/pre-faturas/deletar-aviso", handler.InvoicingDeleteWarning)
+	mux.HandleFunc("/pre-faturas/cancelar-delete", handler.InvoicingCancelDelete)
+	mux.HandleFunc("/pre-faturas/deletar", handler.InvoicingDelete)
 	return mux, handler, nil
 }
 

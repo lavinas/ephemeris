@@ -13,6 +13,7 @@ import (
 
 // InvoicingRequest represents the request DTO for generating invoices from plans.
 type InvoicingRequest struct {
+	PlanID     *int64  `json:"plan_id,omitempty"`
 	VendorID   *int64  `json:"vendor_id,omitempty"`
 	StartDate  *string `json:"start_date,omitempty"`
 	EndDate    *string `json:"end_date,omitempty"`
@@ -86,6 +87,7 @@ func (r *InvoicingRequest) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 
+	r.PlanID = getInt64("plan_id", "plano_id", "plan")
 	r.VendorID = getInt64("vendor_id", "vendor")
 	r.CustomerID = getInt64("customer_id", "cliente_id", "customer")
 	r.ServiceID = getInt64("service_id", "tipo_servico", "service")
@@ -146,11 +148,22 @@ func (r *InvoicingRequest) Validate(repo port.Repository) error {
 		}
 	}
 
+	if r.PlanID != nil && *r.PlanID > 0 && repo != nil {
+		p, err := repo.GetPlanByID(*r.PlanID)
+		if err != nil {
+			return fmt.Errorf("erro ao verificar plano: %w", err)
+		}
+		if p == nil {
+			return fmt.Errorf("plano com id %d não encontrado", *r.PlanID)
+		}
+	}
+
 	return nil
 }
 
 // Reset resets all fields in InvoicingRequest.
 func (r *InvoicingRequest) Reset() {
+	r.PlanID = nil
 	r.VendorID = nil
 	r.StartDate = nil
 	r.EndDate = nil

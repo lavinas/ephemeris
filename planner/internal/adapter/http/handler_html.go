@@ -67,7 +67,7 @@ func NewHandlerHtml(repo port.Repository, logger port.Logger, tdata []byte, plan
 		} else if data, err := os.ReadFile("../../../web/templates/plans.html"); err == nil {
 			pData = data
 		} else {
-			pData = []byte(`{{define "index"}}<html><body>Plans</body></html>{{end}}{{define "fragment"}}<div>Plans</div>{{end}}{{define "tabela"}}<div>Tabela</div>{{end}}{{define "linha_plano_encerrar_aviso"}}<div>Encerrar</div>{{end}}`)
+			pData = []byte(`{{define "index"}}<html><body>Plans</body></html>{{end}}{{define "fragment"}}<div>Plans</div>{{end}}{{define "tabela"}}<div>Tabela</div>{{end}}{{define "linha_plano_encerrar_aviso"}}<div>Encerrar</div>{{end}}{{define "linha_plano_deletar_aviso"}}<div>Deletar</div>{{end}}{{define "modal_gerar_invoice"}}<div>Modal</div>{{end}}{{define "modal_gerar_invoice_resultado"}}<div>Resultado</div>{{end}}`)
 		}
 	}
 
@@ -87,7 +87,7 @@ func NewHandlerHtml(repo port.Repository, logger port.Logger, tdata []byte, plan
 		} else if data, err := os.ReadFile("../../../web/templates/invoicing.html"); err == nil {
 			invData = data
 		} else {
-			invData = []byte(`{{define "index"}}<html><body>Invoicing</body></html>{{end}}{{define "fragment"}}<div>Invoicing</div>{{end}}{{define "tabela"}}<div>Tabela</div>{{end}}`)
+			invData = []byte(`{{define "index"}}<html><body>Invoicing</body></html>{{end}}{{define "fragment"}}<div>Invoicing</div>{{end}}{{define "tabela"}}<div>Tabela</div>{{end}}{{define "linha_invoice"}}<div>Linha</div>{{end}}{{define "linha_invoice_deletar_aviso"}}<div>Aviso</div>{{end}}`)
 		}
 	}
 
@@ -1430,6 +1430,165 @@ func (h *HandlerHtml) InvoicingTableReset(w http.ResponseWriter, r *http.Request
 	}
 	page := h.getInvoicePageData(response)
 	h.tmplInvoicing.ExecuteTemplate(w, "tabela", page)
+}
+
+// PlansGenerateInvoiceModal handles GET /planos/gerar-invoice-modal
+func (h *HandlerHtml) PlansGenerateInvoiceModal(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.Atoi(r.URL.Query().Get("id"))
+	svc := service.NewPlanList(h.repo, h.logger)
+	req := &dto.PlanListRequest{
+		Page:     1,
+		PageSize: 1,
+		PlanID:   int64(id),
+	}
+	respdro := svc.Run(req)
+	response, ok := respdro.(*dto.PlanListResponse)
+	if !ok || len(response.Plans) == 0 {
+		http.Error(w, "Plan not found", http.StatusNotFound)
+		return
+	}
+	planSel := h.getPlanData(response)[0]
+
+	now := time.Now()
+	inicioMes := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.Local).Format("2006-01-02")
+	fimMes := time.Date(now.Year(), now.Month()+1, 0, 0, 0, 0, 0, time.Local).Format("2006-01-02")
+
+	data := map[string]interface{}{
+		"Plan":             planSel,
+		"ID":               planSel["ID"],
+		"Nickname":         planSel["Nickname"],
+		"PlanType":         planSel["PlanType"],
+		"DataInicioPadrao": inicioMes,
+		"DataFimPadrao":    fimMes,
+	}
+	h.tmplPlans.ExecuteTemplate(w, "modal_gerar_invoice", data)
+}
+
+// PlansGenerateInvoice handles POST /planos/gerar-invoice
+func (h *HandlerHtml) PlansGenerateInvoice(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid form data", http.StatusBadRequest)
+		return
+	}
+	idStr := r.URL.Query().Get("id")
+	if idStr == "" {
+		idStr = r.FormValue("id")
+	}
+	if idStr == "" {
+		idStr = r.FormValue("plan_id")
+	}
+	id, _ := strconv.ParseInt(idStr, 10, 64)
+	if id <= 0 {
+		http.Error(w, "ID do plano inválido", http.StatusBadRequest)
+		return
+	}
+
+	startDate := strings.TrimSpace(r.FormValue("start_date"))
+	endDate := strings.TrimSpace(r.FormValue("end_date"))
+	reprocess := r.FormValue("reprocess") == "true" || r.FormValue("reprocess") == "1" || r.FormValue("reprocess") == "on"
+
+	invoicingSvc := service.NewInvoicing(h.repo, h.logger)
+	invReq := &dto.InvoicingRequest{
+		PlanID:    &id,
+		StartDate: &startDate,
+		EndDate:   &endDate,
+		Reprocess: &reprocess,
+	}
+
+	resp := invoicingSvc.Run(invReq)
+	isSuccess := resp.GetStatusCode() == 200
+
+	data := map[string]interface{}{
+		"Success":   isSuccess,
+		"Message":   resp.GetMessage(),
+		"PlanID":    id,
+		"StartDate": startDate,
+		"EndDate":   endDate,
+	}
+	h.tmplPlans.ExecuteTemplate(w, "modal_gerar_invoice_resultado", data)
+}
+
+// InvoicingDeleteWarning handles GET /invoicing/deletar-aviso
+func (h *HandlerHtml) InvoicingDeleteWarning(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.ParseInt(r.URL.Query().Get("id"), 10, 64)
+	if id <= 0 {
+		http.Error(w, "Invalid invoice ID", http.StatusBadRequest)
+		return
+	}
+	svc := service.NewInvoiceList(h.repo, h.logger)
+	req := &dto.InvoiceListRequest{
+		Page:      1,
+		PageSize:  1,
+		InvoiceID: id,
+	}
+	respdro := svc.Run(req)
+	response, ok := respdro.(*dto.InvoiceListResponse)
+	if !ok || len(response.Invoices) == 0 {
+		http.Error(w, "Invoice not found", http.StatusNotFound)
+		return
+	}
+	invoiceSel := h.getInvoiceData(response)[0]
+	h.tmplInvoicing.ExecuteTemplate(w, "linha_invoice_deletar_aviso", invoiceSel)
+}
+
+// InvoicingCancelDelete handles GET /invoicing/cancelar-delete
+func (h *HandlerHtml) InvoicingCancelDelete(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.ParseInt(r.URL.Query().Get("id"), 10, 64)
+	if id <= 0 {
+		http.Error(w, "Invalid invoice ID", http.StatusBadRequest)
+		return
+	}
+	svc := service.NewInvoiceList(h.repo, h.logger)
+	req := &dto.InvoiceListRequest{
+		Page:      1,
+		PageSize:  1,
+		InvoiceID: id,
+	}
+	respdro := svc.Run(req)
+	response, ok := respdro.(*dto.InvoiceListResponse)
+	if !ok || len(response.Invoices) == 0 {
+		http.Error(w, "Invoice not found", http.StatusNotFound)
+		return
+	}
+	invoiceSel := h.getInvoiceData(response)[0]
+	h.tmplInvoicing.ExecuteTemplate(w, "linha_invoice", invoiceSel)
+}
+
+// InvoicingDelete handles POST /invoicing/deletar
+func (h *HandlerHtml) InvoicingDelete(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid form data", http.StatusBadRequest)
+		return
+	}
+	idStr := r.URL.Query().Get("id")
+	if idStr == "" {
+		idStr = r.FormValue("id")
+	}
+	if idStr == "" {
+		idStr = r.FormValue("invoice_id")
+	}
+	id, _ := strconv.ParseInt(idStr, 10, 64)
+	if id <= 0 {
+		http.Error(w, "Invalid invoice ID", http.StatusBadRequest)
+		return
+	}
+
+	svc := service.NewInvoiceDelete(h.repo, h.logger)
+	req := &dto.InvoiceDeleteRequest{
+		InvoiceID: id,
+	}
+	resp := svc.Run(req)
+	if resp.GetStatusCode() != 200 {
+		http.Error(w, resp.GetMessage(), resp.GetStatusCode())
+		return
+	}
+
+	// Remove single-invoice filters so InvoicingTable re-renders the complete filtered list
+	r.Form.Del("invoice_id")
+	r.Form.Del("fatura_id")
+	r.Form.Del("id")
+
+	h.InvoicingTable(w, r)
 }
 
 // getInvoiceData prepares invoice rows and items for template rendering

@@ -212,7 +212,57 @@ func (h *HandlerApi) Invoicing(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	q := r.URL.Query()
+	if requestDTO.PlanID == nil {
+		if pStr := q.Get("plan_id"); pStr != "" {
+			if id, err := strconv.ParseInt(pStr, 10, 64); err == nil && id > 0 {
+				requestDTO.PlanID = &id
+			}
+		} else if pStr := q.Get("plano_id"); pStr != "" {
+			if id, err := strconv.ParseInt(pStr, 10, 64); err == nil && id > 0 {
+				requestDTO.PlanID = &id
+			}
+		}
+	}
+	if requestDTO.StartDate == nil && q.Get("start_date") != "" {
+		s := q.Get("start_date")
+		requestDTO.StartDate = &s
+	}
+	if requestDTO.EndDate == nil && q.Get("end_date") != "" {
+		e := q.Get("end_date")
+		requestDTO.EndDate = &e
+	}
 	svc := service.NewInvoicing(h.repo, h.logger)
+	response := svc.Run(requestDTO)
+	h.writeResponse(w, response)
+}
+
+// InvoiceDelete handler for deleting (soft-delete) an invoice (/invoice/delete or /invoicing/delete)
+func (h *HandlerApi) InvoiceDelete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete && r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	requestDTO := &dto.InvoiceDeleteRequest{}
+	if r.ContentLength > 0 {
+		err := json.NewDecoder(r.Body).Decode(requestDTO)
+		if err != nil {
+			http.Error(w, "Bad request", http.StatusBadRequest)
+			return
+		}
+	}
+	if requestDTO.InvoiceID <= 0 {
+		if idStr := r.URL.Query().Get("id"); idStr != "" {
+			if id, err := strconv.ParseInt(idStr, 10, 64); err == nil && id > 0 {
+				requestDTO.InvoiceID = id
+			}
+		} else if idStr := r.URL.Query().Get("invoice_id"); idStr != "" {
+			if id, err := strconv.ParseInt(idStr, 10, 64); err == nil && id > 0 {
+				requestDTO.InvoiceID = id
+			}
+		}
+	}
+	svc := service.NewInvoiceDelete(h.repo, h.logger)
 	response := svc.Run(requestDTO)
 	h.writeResponse(w, response)
 }
