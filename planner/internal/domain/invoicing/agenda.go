@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"planner/internal/domain"
@@ -17,10 +18,17 @@ func NewAgendaStrategy() *AgendaStrategy {
 	return &AgendaStrategy{}
 }
 
-// IsActiveInMonth checks if the plan is active in the given month.
+// IsActiveInMonth checks if the plan is active for invoicing in the given calculation month.
+// For pre-paid plans, the active period is the calculation month.
+// For post-paid plans, the active period is the previous month (the month of scheduled sessions).
 func (s *AgendaStrategy) IsActiveInMonth(plan *domain.Plan, monthStart time.Time) bool {
-	monthEnd := monthStart.AddDate(0, 1, -1)
-	return !plan.PlanStart.After(monthEnd) && (plan.PlanEnd == nil || !plan.PlanEnd.Before(monthStart))
+	checkMonth := monthStart
+	if plan.Agenda != nil && plan.Agenda.TermType == int(domain.TermTypePostPaid) {
+		checkMonth = monthStart.AddDate(0, -1, 0)
+	}
+	checkStart := time.Date(checkMonth.Year(), checkMonth.Month(), 1, 0, 0, 0, 0, time.UTC)
+	checkEnd := checkStart.AddDate(0, 1, -1)
+	return !plan.PlanStart.After(checkEnd) && (plan.PlanEnd == nil || !plan.PlanEnd.Before(checkStart))
 }
 
 // CalculateMonth calculates the invoice for a recurring agenda plan in a given month.
@@ -73,6 +81,11 @@ func (s *AgendaStrategy) CalculateMonth(plan *domain.Plan, monthStart, refDate t
 		}
 	}
 
+	// Se não há sessões calculadas e o plano não tem preço fixo, não gera fatura
+	if calculatedQty == 0 && (plan.Price == nil || *plan.Price == 0) {
+		return nil, nil
+	}
+
 	// Ordenar itens pelo order_index
 	items := make([]domain.PlanItem, len(plan.Items))
 	copy(items, plan.Items)
@@ -87,6 +100,8 @@ func (s *AgendaStrategy) CalculateMonth(plan *domain.Plan, monthStart, refDate t
 	baseQty := calculatedQty / nItems
 	remainder := calculatedQty % nItems
 
+	monthYearSuffix := fmt.Sprintf("%s de %d", MonthNameInPortuguese(targetMonth.Month()), targetMonth.Year())
+
 	for i, item := range items {
 		invoicedQty := baseQty
 		if i < remainder {
@@ -99,8 +114,11 @@ func (s *AgendaStrategy) CalculateMonth(plan *domain.Plan, monthStart, refDate t
 		}
 
 		var desc *string
-		if item.Service != nil && item.Service.Description != nil {
-			descCopy := *item.Service.Description
+		if item.Service != nil && item.Service.Description != nil && strings.TrimSpace(*item.Service.Description) != "" {
+			d := fmt.Sprintf("%s - %s", strings.TrimSpace(*item.Service.Description), monthYearSuffix)
+			desc = &d
+		} else {
+			descCopy := monthYearSuffix
 			desc = &descCopy
 		}
 
@@ -123,9 +141,9 @@ func (s *AgendaStrategy) CalculateMonth(plan *domain.Plan, monthStart, refDate t
 		amount = *plan.Price
 	}
 
-	// invoice.invoice_date = o primeiro dia do mês do período especificado ou a data de início, o que for menor
+	// invoice.invoice_date = o primeiro dia do mês corrente do cálculo ou a data de início do plano, o que for maior
 	invoicingDate := monthStart
-	if plan.PlanStart.Before(invoicingDate) {
+	if plan.PlanStart.After(invoicingDate) {
 		invoicingDate = plan.PlanStart
 	}
 
@@ -200,5 +218,37 @@ func (s *AgendaStrategy) CalculateSessionsCount(planStart, effStart, effEnd time
 			d = d.AddDate(0, 0, 7)
 		}
 		return count
+	}
+}
+
+// MonthNameInPortuguese returns the lowercase Portuguese name for the given month.
+func MonthNameInPortuguese(m time.Month) string {
+	switch m {
+	case time.January:
+		return "janeiro"
+	case time.February:
+		return "fevereiro"
+	case time.March:
+		return "março"
+	case time.April:
+		return "abril"
+	case time.May:
+		return "maio"
+	case time.June:
+		return "junho"
+	case time.July:
+		return "julho"
+	case time.August:
+		return "agosto"
+	case time.September:
+		return "setembro"
+	case time.October:
+		return "outubro"
+	case time.November:
+		return "novembro"
+	case time.December:
+		return "dezembro"
+	default:
+		return ""
 	}
 }

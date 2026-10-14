@@ -161,10 +161,10 @@ func (s *Invoicing) processAgenda(plan *domain.Plan, startDate, endDate time.Tim
 		}
 
 		existingInvoices, err := s.repo.FindInvoices(map[string]interface{}{
-			"plan_id = ?":        plan.ID,
-			"deleted_at IS NULL": nil,
-			"due_date >= ?":      monthStart,
-			"due_date <= ?":      monthEnd,
+			"plan_id = ?":         plan.ID,
+			"deleted_at IS NULL":  nil,
+			"invoicing_date >= ?": monthStart,
+			"invoicing_date <= ?": monthEnd,
 		})
 		if err != nil {
 			return fmt.Errorf("plano %d: erro ao verificar faturas existentes para %s: %w", plan.ID, monthLabel, err)
@@ -191,7 +191,7 @@ func (s *Invoicing) processAgenda(plan *domain.Plan, startDate, endDate time.Tim
 		if err != nil {
 			return fmt.Errorf("plano %d: erro ao calcular fatura agenda para %s: %w", plan.ID, monthLabel, err)
 		}
-		if invoice == nil {
+		if invoice == nil || invoice.Amount == 0 {
 			currentMonth = currentMonth.AddDate(0, 1, 0)
 			continue
 		}

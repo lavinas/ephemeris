@@ -160,6 +160,9 @@ func (m *mockInvoicingRepoForService) DeleteInvoice(id int64) error {
 
 func (m *mockInvoicingRepoForService) FindActivePlansForInvoicing(planID *int64, vendorID *int64, customerID *int64, planType *int, serviceID *int64, startDate, endDate time.Time) ([]domain.Plan, error) {
 	var result []domain.Plan
+	firstOfStartMonth := time.Date(startDate.Year(), startDate.Month(), 1, 0, 0, 0, 0, time.UTC)
+	minActiveDate := firstOfStartMonth.AddDate(0, -1, 0)
+
 	for _, p := range m.plans {
 		if planID != nil && *planID != 0 && p.ID != *planID {
 			continue
@@ -171,6 +174,12 @@ func (m *mockInvoicingRepoForService) FindActivePlansForInvoicing(planID *int64,
 			continue
 		}
 		if planType != nil && *planType != 0 && p.PlanType != *planType {
+			continue
+		}
+		if p.PlanStart.After(endDate) {
+			continue
+		}
+		if p.PlanEnd != nil && p.PlanEnd.Before(minActiveDate) {
 			continue
 		}
 		result = append(result, p)
@@ -303,6 +312,117 @@ func TestInvoicingService_Run(t *testing.T) {
 		}
 		if len(repo.invoices) != 1 {
 			t.Errorf("expected 1 invoice created, got %d", len(repo.invoices))
+		}
+		// Invoicing date: max(2026-09-01, 2026-08-01) -> 2026-09-01
+		expectedInvoicingDate := time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)
+		if !repo.invoices[0].InvoicingDate.Equal(expectedInvoicingDate) {
+			t.Errorf("expected InvoicingDate %v, got %v", expectedInvoicingDate, repo.invoices[0].InvoicingDate)
+		}
+	})
+
+	t.Run("Success invoicing agenda post-paid plan", func(t *testing.T) {
+		repo := newMockInvoicingRepoForService()
+		planStart := time.Date(2026, 8, 15, 0, 0, 0, 0, time.UTC)
+		repo.plans = []domain.Plan{
+			{
+				ID:         21,
+				CustomerID: 21,
+				PlanStart:  planStart,
+				PlanType:   1,
+				Agenda: &domain.PlanAgenda{
+					ID:         21,
+					Recurrence: int(domain.RecurrenceWeekly),
+					WeekDay:    int(domain.WeekDayMonday),
+					TermType:   int(domain.TermTypePostPaid),
+					PaymentDay: 5,
+				},
+				Items: []domain.PlanItem{
+					{ServiceID: 1, OrderIndex: 1, Price: floatPtr(50.0)},
+				},
+			},
+		}
+
+		svc := NewInvoicing(repo, logger)
+		start := "2026-09-01"
+		end := "2026-09-30"
+		req := &dto.InvoicingRequest{StartDate: &start, EndDate: &end}
+		resp := svc.Run(req)
+		if resp.GetStatusCode() != 200 {
+			t.Errorf("expected 200, got %d (msg: %s)", resp.GetStatusCode(), resp.GetMessage())
+		}
+		if len(repo.invoices) != 1 {
+			t.Fatalf("expected 1 invoice created, got %d", len(repo.invoices))
+		}
+		// Post-paid: calculation month is September 2026 (monthStart = 2026-09-01).
+		// Invoicing date: max(2026-09-01, 2026-08-15) -> 2026-09-01
+		expectedInvoicingDate := time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)
+		if !repo.invoices[0].InvoicingDate.Equal(expectedInvoicingDate) {
+			t.Errorf("expected InvoicingDate %v, got %v", expectedInvoicingDate, repo.invoices[0].InvoicingDate)
+		}
+	})
+
+	t.Run("Success invoicing agenda post-paid plan ending in previous month", func(t *testing.T) {
+		repo := newMockInvoicingRepoForService()
+		planStart := time.Date(2026, 10, 14, 0, 0, 0, 0, time.UTC)
+		planEnd := time.Date(2027, 2, 5, 0, 0, 0, 0, time.UTC)
+		repo.plans = []domain.Plan{
+			{
+				ID:         80,
+				CustomerID: 80,
+				PlanStart:  planStart,
+				PlanEnd:    &planEnd,
+				PlanType:   1,
+				Agenda: &domain.PlanAgenda{
+					ID:         80,
+					Recurrence: int(domain.RecurrenceWeekly),
+					WeekDay:    int(domain.WeekDayMonday),
+					TermType:   int(domain.TermTypePostPaid),
+					PaymentDay: 15,
+				},
+				Items: []domain.PlanItem{
+					{ServiceID: 5, OrderIndex: 1, Price: floatPtr(100.0)},
+				},
+			},
+		}
+
+		svc := NewInvoicing(repo, logger)
+		// Process March 2027 (bills February 2027 sessions: 1 Monday on 01/02/2027)
+		startMar := "2027-03-01"
+		endMar := "2027-03-31"
+		reqMar := &dto.InvoicingRequest{StartDate: &startMar, EndDate: &endMar}
+		respMar := svc.Run(reqMar)
+		if respMar.GetStatusCode() != 200 {
+			t.Errorf("expected 200, got %d (msg: %s)", respMar.GetStatusCode(), respMar.GetMessage())
+		}
+		if len(repo.invoices) != 1 {
+			t.Fatalf("expected 1 invoice created, got %d", len(repo.invoices))
+		}
+		inv := repo.invoices[0]
+		expectedInvoicingDate := time.Date(2027, 3, 1, 0, 0, 0, 0, time.UTC)
+		if !inv.InvoicingDate.Equal(expectedInvoicingDate) {
+			t.Errorf("expected InvoicingDate %v, got %v", expectedInvoicingDate, inv.InvoicingDate)
+		}
+		expectedDueDate := time.Date(2027, 3, 15, 0, 0, 0, 0, time.UTC)
+		if !inv.DueDate.Equal(expectedDueDate) {
+			t.Errorf("expected DueDate %v, got %v", expectedDueDate, inv.DueDate)
+		}
+		if inv.Amount != 100.0 {
+			t.Errorf("expected Amount 100.0, got %.2f", inv.Amount)
+		}
+		if len(inv.Items) != 1 || inv.Items[0].InvoicedQuantity != 1 {
+			t.Errorf("expected 1 invoiced item with quantity 1, got %+v", inv.Items)
+		}
+
+		// Process April 2027 (plan ended on 2027-02-05 -> no sessions in March -> 0 invoices)
+		startApr := "2027-04-01"
+		endApr := "2027-04-30"
+		reqApr := &dto.InvoicingRequest{StartDate: &startApr, EndDate: &endApr}
+		respApr := svc.Run(reqApr)
+		if respApr.GetStatusCode() != 200 {
+			t.Errorf("expected 200, got %d (msg: %s)", respApr.GetStatusCode(), respApr.GetMessage())
+		}
+		if len(repo.invoices) != 1 {
+			t.Errorf("expected still only 1 invoice after April processing, got %d", len(repo.invoices))
 		}
 	})
 

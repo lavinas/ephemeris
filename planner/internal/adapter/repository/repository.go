@@ -815,16 +815,21 @@ func (a *Repository) DeleteInvoice(id int64) error {
 	return tx.Commit().Error
 }
 
-// FindActivePlansForInvoicing finds all non-deleted plans active in the given period matching filters
+// FindActivePlansForInvoicing finds all non-deleted plans active in the given period matching filters.
+// For post-paid plans (agenda post-paid, notebook), sessions from the previous month are billed in the current month,
+// so plans active in the month prior to startDate are included.
 func (a *Repository) FindActivePlansForInvoicing(planID *int64, vendorID *int64, customerID *int64, planType *int, serviceID *int64, startDate, endDate time.Time) ([]domain.Plan, error) {
 	db := a.DB
 	if a.Tx != nil {
 		db = a.Tx
 	}
+	firstOfStartMonth := time.Date(startDate.Year(), startDate.Month(), 1, 0, 0, 0, 0, time.UTC)
+	minActiveDate := firstOfStartMonth.AddDate(0, -1, 0)
+
 	query := db.Model(&domain.Plan{}).
 		Where("planner.plan.deleted_at IS NULL").
 		Where("planner.plan.plan_start <= ?", endDate).
-		Where("(planner.plan.plan_end IS NULL OR planner.plan.plan_end >= ?)", startDate)
+		Where("(planner.plan.plan_end IS NULL OR planner.plan.plan_end >= ?)", minActiveDate)
 
 	if planID != nil && *planID != 0 {
 		query = query.Where("planner.plan.id = ?", *planID)

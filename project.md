@@ -4,17 +4,17 @@
 * Revisar log billing e planner
 
 
-No subsistema planner:
-- Para o htmx de planos, colocar na tabela de planos mais um action para a geração da invoice correspondente
+
+Invoices errors/Improvements
+- No invoicing, estratégia agenda, utilizar como data da invoice (invoice_date) o primeiro dia da data do mes que está se gerando ao inves do primeiro dia do mes da data atual.
+- Ao gerar a invoice no html, o botão ver pré-faturas não esta redirecionando para pré-fatura
 
 
-No subprojeto vendor:
-- na api e serviço invoicing, receber no dto como parametro o plan_id e considerar este parametro na execução do serviço.
-- no htmx de planos, prever mais uma ação na listagem de planos que permita a geração da invoice correspondente ao plano, abrindo um modal para que seja informada as datas de inicio e fim.
-- fazer um serviço completo (dto, service, etc) para deletar (soft-delete) uma invoice, recebendo o id da invoice e atualizando a data de delete da base.
-- no htmx de invoicing (pré fatura), colocar um action para apagar a fatura perguntando antes se deseja apagar
-
-
+No subprojeto planner:
+- Existe um erro conceitual na geração das invoices da estrategia de agenda:
+    - A dada da invoice e data de vencimento são sempre de acordo com o mês corrente do calculo tanto pra pré-pago como pós-pago
+    - A diferença entre pré-pago e pós-pago é somente que no pós-pago é calculado o número de sessões previstas do mês anterior e no pré-pago do mes atual
+    - A validação se a invoice já existe portanto é com base na data da invoice e não na data de vencimento 
 
 
 Outros:

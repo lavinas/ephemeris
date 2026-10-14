@@ -16,10 +16,11 @@ func NewNotebookStrategy() *NotebookStrategy {
 	return &NotebookStrategy{}
 }
 
-// IsActiveInMonth checks if the plan is active in the given month.
+// IsActiveInMonth checks if the plan is active for invoicing in the given calculation month.
+// Since notebook plans are always post-paid, the active period evaluated is the previous month (where sessions occurred).
 func (s *NotebookStrategy) IsActiveInMonth(plan *domain.Plan, monthStart time.Time) bool {
-	monthEnd := monthStart.AddDate(0, 1, -1)
-	return !plan.PlanStart.After(monthEnd) && (plan.PlanEnd == nil || !plan.PlanEnd.Before(monthStart))
+	prevMonthStart, prevMonthEnd := s.PreviousMonthPeriod(monthStart)
+	return !plan.PlanStart.After(prevMonthEnd) && (plan.PlanEnd == nil || !plan.PlanEnd.Before(prevMonthStart))
 }
 
 // PreviousMonthPeriod returns the start and end of the previous month for billing sessions.

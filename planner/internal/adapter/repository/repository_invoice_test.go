@@ -30,6 +30,45 @@ func TestInvoiceRepository_Integration(t *testing.T) {
 	t.Logf("Found %d active plans for invoicing. First plan ID: %d, Customer: %+v, Type: %d, Items: %d",
 		len(plans), firstPlan.ID, firstPlan.Customer, firstPlan.PlanType, len(firstPlan.Items))
 
+	// Test post-paid plan ending in Feb 2027 is found in March 2027
+	testEnd := time.Date(2027, 2, 5, 0, 0, 0, 0, time.UTC)
+	testPlan := &domain.Plan{
+		CustomerID: firstPlan.CustomerID,
+		PlanStart:  time.Date(2026, 10, 14, 0, 0, 0, 0, time.UTC),
+		PlanEnd:    &testEnd,
+		PlanType:   1,
+		Agenda: &domain.PlanAgenda{
+			Recurrence: int(domain.RecurrenceWeekly),
+			WeekDay:    int(domain.WeekDayMonday),
+			TermType:   int(domain.TermTypePostPaid),
+			PaymentDay: 15,
+		},
+		Items: []domain.PlanItem{
+			{ServiceID: firstPlan.Items[0].ServiceID, OrderIndex: 1},
+		},
+	}
+	if err := repo.SavePlan(testPlan); err != nil {
+		t.Fatalf("SavePlan failed: %v", err)
+	}
+	defer repo.DeletePlan(testPlan.ID)
+
+	plansMar, err := repo.FindActivePlansForInvoicing(&testPlan.ID, nil, nil, nil, nil, time.Date(2027, 3, 1, 0, 0, 0, 0, time.UTC), time.Date(2027, 3, 31, 0, 0, 0, 0, time.UTC))
+	if err != nil {
+		t.Fatalf("FindActivePlansForInvoicing for March 2027 failed: %v", err)
+	}
+	if len(plansMar) != 1 {
+		t.Errorf("expected test plan to be found for March 2027 invoicing, got %d", len(plansMar))
+	}
+
+	// Test testPlan is NOT found for April 2027
+	plansApr, err := repo.FindActivePlansForInvoicing(&testPlan.ID, nil, nil, nil, nil, time.Date(2027, 4, 1, 0, 0, 0, 0, time.UTC), time.Date(2027, 4, 30, 0, 0, 0, 0, time.UTC))
+	if err != nil {
+		t.Fatalf("FindActivePlansForInvoicing for April 2027 failed: %v", err)
+	}
+	if len(plansApr) != 0 {
+		t.Errorf("expected test plan to NOT be found for April 2027 invoicing, got %d", len(plansApr))
+	}
+
 	// 2. Test SaveInvoice
 	now := time.Now()
 	desc := "Aula Teste Fatura"
