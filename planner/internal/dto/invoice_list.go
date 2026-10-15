@@ -108,12 +108,14 @@ type InvoiceListResponse struct {
 
 // InvoiceDTO represents an invoice and its summary information.
 type InvoiceDTO struct {
-	ID          int64            `json:"id"`
-	InvoiceDate string           `json:"invoice_date"`
-	Nickname    string           `json:"nickname"`
-	DueDate     string           `json:"due_date"`
-	Amount      float64          `json:"amount"`
-	Items       []InvoiceItemDTO `json:"items"`
+	ID           int64            `json:"id"`
+	InvoiceDate  string           `json:"invoice_date"`
+	Nickname     string           `json:"nickname"`
+	PlanType     int              `json:"plan_type"`
+	PlanTypeName string           `json:"plan_type_name"`
+	DueDate      string           `json:"due_date"`
+	Amount       float64          `json:"amount"`
+	Items        []InvoiceItemDTO `json:"items"`
 }
 
 // InvoiceItemDTO represents an item contained within an invoice.

@@ -11,7 +11,16 @@ Invoices errors/Improvements
 
 
 No subprojeto planner:
-- Fazer com que ao cadastrar um novo plano do tipo pacote (apenas o pacote), criar automaticamente no final (apos salvar) uma pré-fatura de acordo com o periodo do pacote (pode-se acionar o serviço de invoicing neste caso com o periodo do dia inicial do plano como inicio e fim, porém apenas para este plano
+    - No htmx de pré-faturas, na tabela, acrescentar o campo tipo plano, após o cliente e antes do vencimento.
+    - Utilizar a mesma formatação de tipo de plano que no htmx de gestão de planos
+
+
+- Fazer um serviço de conciliação das sessões criadas com as pré faturas, prevendo as seguintes regras:
+    - Deve-se encontrar ao item da pré-fatura correspondente a esta sessão, ou seja, do mesmo customer, do mesmo serviço, e que a data da sessão esteja dentro do período de competência da pré-fatura (data inicial e data final)
+    - Deve-se verificar que a sessão já não está associada a uma pré-fatura, ou seja, que não existe uma entry em invoice_item_session com o session_id e o invoice_item_id correspondentes
+    - Caso a pré-fatura seja do tipo agenda ou do tipo pacote ou tipo notebook, deve-se somar 1 na coluna de quantidade realizado do item da fatura e registrar a associação na tabale invoice_item_session
+     
+     
 
 
 Outros:

@@ -47,7 +47,8 @@ func TestInvoiceList_Success(t *testing.T) {
 			DueDate:       dueDate,
 			Amount:        250.00,
 			Plan: &domain.Plan{
-				ID: 5,
+				ID:       5,
+				PlanType: 2,
 				Customer: &domain.Customer{
 					ID:       1,
 					Nickname: "carlos",
@@ -96,6 +97,9 @@ func TestInvoiceList_Success(t *testing.T) {
 	inv := listResp.Invoices[0]
 	if inv.ID != 101 || inv.InvoiceDate != "2026-09-15" || inv.DueDate != "2026-09-25" || inv.Nickname != "carlos" || inv.Amount != 250.00 {
 		t.Errorf("invoice fields mismatch: %+v", inv)
+	}
+	if inv.PlanType != 2 || inv.PlanTypeName != "Pacote" {
+		t.Errorf("expected plan_type=2 and plan_type_name='Pacote', got %d and %q", inv.PlanType, inv.PlanTypeName)
 	}
 
 	if len(inv.Items) != 1 {

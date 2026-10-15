@@ -105,16 +105,21 @@ func (s *InvoiceList) mapInvoicesToDTO(invoices []domain.Invoice) []dto.InvoiceD
 	result := make([]dto.InvoiceDTO, len(invoices))
 	for i, inv := range invoices {
 		nickname := ""
-		if inv.Plan != nil && inv.Plan.Customer != nil {
-			nickname = inv.Plan.Customer.Nickname
-		} else if inv.Plan != nil && inv.Plan.CustomerID != 0 && s.repo != nil {
-			c, err := s.repo.GetCustomerByID(inv.Plan.CustomerID)
-			if err == nil && c != nil {
-				nickname = c.Nickname
+		planType := 0
+		if inv.Plan != nil {
+			planType = inv.Plan.PlanType
+			if inv.Plan.Customer != nil {
+				nickname = inv.Plan.Customer.Nickname
+			} else if inv.Plan.CustomerID != 0 && s.repo != nil {
+				c, err := s.repo.GetCustomerByID(inv.Plan.CustomerID)
+				if err == nil && c != nil {
+					nickname = c.Nickname
+				}
 			}
 		} else if inv.PlanID != 0 && s.repo != nil {
 			p, err := s.repo.GetPlanByID(inv.PlanID)
 			if err == nil && p != nil {
+				planType = p.PlanType
 				if p.Customer != nil {
 					nickname = p.Customer.Nickname
 				} else if p.CustomerID != 0 {
@@ -124,6 +129,11 @@ func (s *InvoiceList) mapInvoicesToDTO(invoices []domain.Invoice) []dto.InvoiceD
 					}
 				}
 			}
+		}
+
+		var planTypeName string
+		if planType > 0 {
+			planTypeName = domain.PlanType(planType).String()
 		}
 
 		items := make([]dto.InvoiceItemDTO, len(inv.Items))
@@ -151,12 +161,14 @@ func (s *InvoiceList) mapInvoicesToDTO(invoices []domain.Invoice) []dto.InvoiceD
 		}
 
 		result[i] = dto.InvoiceDTO{
-			ID:          inv.ID,
-			InvoiceDate: inv.InvoicingDate.Format("2006-01-02"),
-			Nickname:    nickname,
-			DueDate:     inv.DueDate.Format("2006-01-02"),
-			Amount:      inv.Amount,
-			Items:       items,
+			ID:           inv.ID,
+			InvoiceDate:  inv.InvoicingDate.Format("2006-01-02"),
+			Nickname:     nickname,
+			PlanType:     planType,
+			PlanTypeName: planTypeName,
+			DueDate:      inv.DueDate.Format("2006-01-02"),
+			Amount:       inv.Amount,
+			Items:        items,
 		}
 	}
 	return result
