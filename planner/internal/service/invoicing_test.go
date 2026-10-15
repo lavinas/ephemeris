@@ -192,7 +192,9 @@ func (m *mockInvoicingRepoForService) FindBillableSessions(customerID int64, ser
 	for _, s := range m.sessions {
 		if s.CustomerID == customerID && s.ServiceID == serviceID &&
 			!s.SessionDate.Before(startDate) && !s.SessionDate.After(endDate) &&
-			s.SessionStatus != string(domain.StatusCancelNotCharge) && s.DeletedAt == nil {
+			s.SessionStatus != string(domain.StatusCancelNotCharge) &&
+			s.SessionStatus != "Cancelada/Não Cobrar" &&
+			s.DeletedAt == nil {
 			result = append(result, s)
 		}
 	}
@@ -458,6 +460,53 @@ func TestInvoicingService_Run(t *testing.T) {
 		}
 		if len(repo.invoices) != 1 {
 			t.Errorf("expected 1 invoice created, got %d", len(repo.invoices))
+		}
+	})
+
+	t.Run("Notebook plan ignores Cancelada/Não Cobrar sessions", func(t *testing.T) {
+		repo := newMockInvoicingRepoForService()
+		planStart := time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC)
+		repo.plans = []domain.Plan{
+			{
+				ID:         3,
+				CustomerID: 30,
+				PlanStart:  planStart,
+				PlanType:   3,
+				Notebook: &domain.PlanNotebook{
+					ID:         3,
+					PaymentDay: 10,
+				},
+				Items: []domain.PlanItem{
+					{ServiceID: 1, OrderIndex: 1, Price: floatPtr(70.0)},
+				},
+			},
+		}
+		repo.sessions = []domain.Session{
+			{ID: 301, CustomerID: 30, ServiceID: 1, SessionDate: time.Date(2026, 8, 10, 0, 0, 0, 0, time.UTC), SessionStatus: "realizada"},
+			{ID: 302, CustomerID: 30, ServiceID: 1, SessionDate: time.Date(2026, 8, 15, 0, 0, 0, 0, time.UTC), SessionStatus: "cancelada_nao_cobrar"},
+			{ID: 303, CustomerID: 30, ServiceID: 1, SessionDate: time.Date(2026, 8, 20, 0, 0, 0, 0, time.UTC), SessionStatus: "Cancelada/Não Cobrar"},
+		}
+
+		svc := NewInvoicing(repo, logger)
+		start := "2026-09-01"
+		end := "2026-09-30"
+		req := &dto.InvoicingRequest{StartDate: &start, EndDate: &end}
+		resp := svc.Run(req)
+		if resp.GetStatusCode() != 200 {
+			t.Errorf("expected 200, got %d (msg: %s)", resp.GetStatusCode(), resp.GetMessage())
+		}
+		if len(repo.invoices) != 1 {
+			t.Fatalf("expected 1 invoice created, got %d", len(repo.invoices))
+		}
+		inv := repo.invoices[0]
+		if len(inv.Items) != 1 {
+			t.Fatalf("expected 1 item, got %d", len(inv.Items))
+		}
+		if inv.Items[0].InvoicedQuantity != 1 {
+			t.Errorf("expected InvoicedQuantity 1, got %d", inv.Items[0].InvoicedQuantity)
+		}
+		if inv.Amount != 70.0 {
+			t.Errorf("expected Amount 70.0, got %.2f", inv.Amount)
 		}
 	})
 

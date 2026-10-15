@@ -3,6 +3,7 @@ package invoicing
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"planner/internal/domain"
@@ -57,7 +58,15 @@ func (s *NotebookStrategy) CalculateMonth(
 
 	for _, item := range plan.Items {
 		sessions := sessionsByServiceID[item.ServiceID]
-		invoicedQty := len(sessions)
+		var billableSessions []domain.Session
+		for _, sess := range sessions {
+			if isCancelledNotCharge(sess.SessionStatus) {
+				continue
+			}
+			billableSessions = append(billableSessions, sess)
+		}
+
+		invoicedQty := len(billableSessions)
 		totalSessionsCount += invoicedQty
 
 		price := 0.0
@@ -72,7 +81,7 @@ func (s *NotebookStrategy) CalculateMonth(
 		}
 
 		itemSessions := make([]domain.InvoiceItemSession, invoicedQty)
-		for idx, sess := range sessions {
+		for idx, sess := range billableSessions {
 			itemSessions[idx] = domain.InvoiceItemSession{
 				SessionID: sess.ID,
 				CreatedAt: refDate,
@@ -142,4 +151,13 @@ func (s *NotebookStrategy) CalculateMonth(
 	}
 
 	return invoice, nil
+}
+
+func isCancelledNotCharge(status string) bool {
+	trimmed := strings.TrimSpace(status)
+	return trimmed == string(domain.StatusCancelNotCharge) ||
+		trimmed == "Cancelada/Não Cobrar" ||
+		strings.EqualFold(trimmed, "cancelada_nao_cobrar") ||
+		strings.EqualFold(trimmed, "cancelada/não cobrar") ||
+		strings.EqualFold(trimmed, "cancelada/nao cobrar")
 }

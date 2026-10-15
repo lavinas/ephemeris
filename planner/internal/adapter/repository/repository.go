@@ -873,7 +873,7 @@ func (a *Repository) FindBillableSessions(customerID int64, serviceID int64, sta
 		Where("customer_id = ? AND service_id = ?", customerID, serviceID).
 		Where("session_date >= ? AND session_date <= ?", startDate, endDate).
 		Where("deleted_at IS NULL").
-		Where("session_status != ?", domain.StatusCancelNotCharge).
+		Where("session_status NOT IN (?)", []string{string(domain.StatusCancelNotCharge), "Cancelada/Não Cobrar"}).
 		Order("session_date asc, id asc")
 
 	err := query.Preload("Customer").Preload("Service").Find(&sessions).Error
