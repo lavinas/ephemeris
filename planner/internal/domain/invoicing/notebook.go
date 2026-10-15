@@ -56,7 +56,7 @@ func (s *NotebookStrategy) CalculateMonth(
 	var itemsTotalAmount float64
 	var totalSessionsCount int
 
-	prevMonthStart, _ := s.PreviousMonthPeriod(monthStart)
+	prevMonthStart, prevMonthEnd := s.PreviousMonthPeriod(monthStart)
 	monthYearSuffix := fmt.Sprintf("%s de %d", MonthNameInPortuguese(prevMonthStart.Month()), prevMonthStart.Year())
 
 	for _, item := range plan.Items {
@@ -148,6 +148,8 @@ func (s *NotebookStrategy) CalculateMonth(
 		PlanID:             plan.ID,
 		InvoicingDate:      invoicingDate,
 		DueDate:            dueDate,
+		PeriodStart:        prevMonthStart,
+		PeriodEnd:          prevMonthEnd,
 		Amount:             amount,
 		ReferenceInvoiceID: nil,
 		CreatedAt:          refDate,

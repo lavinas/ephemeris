@@ -89,6 +89,8 @@ func (s *PayPerViewStrategy) CalculateSession(
 		PlanID:             plan.ID,
 		InvoicingDate:      invoicingDate,
 		DueDate:            dueDate,
+		PeriodStart:        session.SessionDate,
+		PeriodEnd:          session.SessionDate,
 		Amount:             amount,
 		ReferenceInvoiceID: nil,
 		CreatedAt:          refDate,

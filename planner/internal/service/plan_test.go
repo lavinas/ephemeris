@@ -453,9 +453,11 @@ func TestPlanCreate_AutomaticPackageInvoicing(t *testing.T) {
 		createSvc := NewPlanCreate(repo, logger)
 
 		itemPrice := 50.0
+		planEnd := "2027-10-01"
 		createReq := &dto.PlanCreateRequest{
 			Nickname:  "cliente_1",
 			PlanStart: "2027-09-01",
+			PlanEnd:   &planEnd,
 			PlanType:  int(domain.PlanTypePackage),
 			Items: []dto.PlanItemRequest{
 				{ServiceID: 1, OrderIndex: 1, Price: &itemPrice},
@@ -495,10 +497,18 @@ func TestPlanCreate_AutomaticPackageInvoicing(t *testing.T) {
 		if !inv.DueDate.Equal(expectedDueDate) {
 			t.Errorf("expected DueDate %v, got %v", expectedDueDate, inv.DueDate)
 		}
+		expectedPeriodStart := time.Date(2027, 9, 1, 0, 0, 0, 0, time.UTC)
+		if !inv.PeriodStart.Equal(expectedPeriodStart) {
+			t.Errorf("expected PeriodStart %v, got %v", expectedPeriodStart, inv.PeriodStart)
+		}
+		expectedPeriodEnd := time.Date(2027, 10, 1, 0, 0, 0, 0, time.UTC)
+		if !inv.PeriodEnd.Equal(expectedPeriodEnd) {
+			t.Errorf("expected PeriodEnd %v, got %v", expectedPeriodEnd, inv.PeriodEnd)
+		}
 		if len(inv.Items) != 1 {
 			t.Fatalf("expected 1 invoice item, got %d", len(inv.Items))
 		}
-		expectedDesc := "Aula Canto 30 - 01/09/2027"
+		expectedDesc := "Aula Canto 30 - 01/09/2027 a 01/10/2027"
 		if inv.Items[0].Description == nil || *inv.Items[0].Description != expectedDesc {
 			t.Errorf("expected item description %q, got %v", expectedDesc, inv.Items[0].Description)
 		}
@@ -538,9 +548,11 @@ func TestPlanCreate_AutomaticPackageInvoicing(t *testing.T) {
 		createSvc := NewPlanCreateWithInvoicing(repo, logger, spyInvoicing)
 
 		itemPrice := 50.0
+		planEnd := "2026-11-05"
 		createReq := &dto.PlanCreateRequest{
 			Nickname:  "cliente_1",
 			PlanStart: "2026-10-05",
+			PlanEnd:   &planEnd,
 			PlanType:  int(domain.PlanTypePackage),
 			Items: []dto.PlanItemRequest{
 				{ServiceID: 1, OrderIndex: 1, Price: &itemPrice},

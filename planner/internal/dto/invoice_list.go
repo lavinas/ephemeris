@@ -114,6 +114,8 @@ type InvoiceDTO struct {
 	PlanType     int              `json:"plan_type"`
 	PlanTypeName string           `json:"plan_type_name"`
 	DueDate      string           `json:"due_date"`
+	PeriodStart  string           `json:"period_start"`
+	PeriodEnd    string           `json:"period_end"`
 	Amount       float64          `json:"amount"`
 	Items        []InvoiceItemDTO `json:"items"`
 }

@@ -76,6 +76,8 @@ func TestInvoiceRepository_Integration(t *testing.T) {
 		PlanID:        firstPlan.ID,
 		InvoicingDate: time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC),
 		DueDate:       time.Date(2026, 9, 15, 0, 0, 0, 0, time.UTC),
+		PeriodStart:   time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC),
+		PeriodEnd:     time.Date(2026, 9, 30, 0, 0, 0, 0, time.UTC),
 		Amount:        150.00,
 		CreatedAt:     now,
 		UpdatedAt:     now,
@@ -113,6 +115,12 @@ func TestInvoiceRepository_Integration(t *testing.T) {
 	}
 	if inv.Amount != 150.00 {
 		t.Errorf("expected amount 150.00, got %.2f", inv.Amount)
+	}
+	if !inv.PeriodStart.Equal(time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)) {
+		t.Errorf("expected PeriodStart 2026-09-01, got %v", inv.PeriodStart)
+	}
+	if !inv.PeriodEnd.Equal(time.Date(2026, 9, 30, 0, 0, 0, 0, time.UTC)) {
+		t.Errorf("expected PeriodEnd 2026-09-30, got %v", inv.PeriodEnd)
 	}
 
 	// 4. Test FindInvoices

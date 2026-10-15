@@ -250,12 +250,14 @@ func TestInvoicingService_Run(t *testing.T) {
 	t.Run("Success invoicing package plan", func(t *testing.T) {
 		repo := newMockInvoicingRepoForService()
 		planStart := time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)
+		planEnd := time.Date(2026, 10, 31, 0, 0, 0, 0, time.UTC)
 		price := 200.0
 		repo.plans = []domain.Plan{
 			{
 				ID:         1,
 				CustomerID: 10,
 				PlanStart:  planStart,
+				PlanEnd:    &planEnd,
 				PlanType:   2,
 				Price:      &price,
 				Package: &domain.PlanPackage{
@@ -279,6 +281,13 @@ func TestInvoicingService_Run(t *testing.T) {
 		}
 		if len(repo.invoices) != 1 {
 			t.Errorf("expected 1 invoice created, got %d", len(repo.invoices))
+		}
+		inv := repo.invoices[0]
+		if !inv.PeriodStart.Equal(planStart) {
+			t.Errorf("expected PeriodStart %v, got %v", planStart, inv.PeriodStart)
+		}
+		if !inv.PeriodEnd.Equal(planEnd) {
+			t.Errorf("expected PeriodEnd %v, got %v", planEnd, inv.PeriodEnd)
 		}
 	})
 
@@ -320,6 +329,12 @@ func TestInvoicingService_Run(t *testing.T) {
 		if !repo.invoices[0].InvoicingDate.Equal(expectedInvoicingDate) {
 			t.Errorf("expected InvoicingDate %v, got %v", expectedInvoicingDate, repo.invoices[0].InvoicingDate)
 		}
+		if !repo.invoices[0].PeriodStart.Equal(time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)) {
+			t.Errorf("expected PeriodStart 2026-09-01, got %v", repo.invoices[0].PeriodStart)
+		}
+		if !repo.invoices[0].PeriodEnd.Equal(time.Date(2026, 9, 30, 0, 0, 0, 0, time.UTC)) {
+			t.Errorf("expected PeriodEnd 2026-09-30, got %v", repo.invoices[0].PeriodEnd)
+		}
 	})
 
 	t.Run("Success invoicing agenda post-paid plan", func(t *testing.T) {
@@ -360,6 +375,12 @@ func TestInvoicingService_Run(t *testing.T) {
 		expectedInvoicingDate := time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)
 		if !repo.invoices[0].InvoicingDate.Equal(expectedInvoicingDate) {
 			t.Errorf("expected InvoicingDate %v, got %v", expectedInvoicingDate, repo.invoices[0].InvoicingDate)
+		}
+		if !repo.invoices[0].PeriodStart.Equal(time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC)) {
+			t.Errorf("expected PeriodStart 2026-08-01, got %v", repo.invoices[0].PeriodStart)
+		}
+		if !repo.invoices[0].PeriodEnd.Equal(time.Date(2026, 8, 31, 0, 0, 0, 0, time.UTC)) {
+			t.Errorf("expected PeriodEnd 2026-08-31, got %v", repo.invoices[0].PeriodEnd)
 		}
 	})
 
@@ -461,6 +482,12 @@ func TestInvoicingService_Run(t *testing.T) {
 		if len(repo.invoices) != 1 {
 			t.Errorf("expected 1 invoice created, got %d", len(repo.invoices))
 		}
+		if !repo.invoices[0].PeriodStart.Equal(time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC)) {
+			t.Errorf("expected PeriodStart 2026-08-01, got %v", repo.invoices[0].PeriodStart)
+		}
+		if !repo.invoices[0].PeriodEnd.Equal(time.Date(2026, 8, 31, 0, 0, 0, 0, time.UTC)) {
+			t.Errorf("expected PeriodEnd 2026-08-31, got %v", repo.invoices[0].PeriodEnd)
+		}
 	})
 
 	t.Run("Notebook plan ignores Cancelada/Não Cobrar sessions", func(t *testing.T) {
@@ -542,6 +569,13 @@ func TestInvoicingService_Run(t *testing.T) {
 		}
 		if len(repo.invoices) != 1 {
 			t.Errorf("expected 1 invoice created, got %d", len(repo.invoices))
+		}
+		sessDate := time.Date(2026, 9, 15, 0, 0, 0, 0, time.UTC)
+		if !repo.invoices[0].PeriodStart.Equal(sessDate) {
+			t.Errorf("expected PeriodStart %v, got %v", sessDate, repo.invoices[0].PeriodStart)
+		}
+		if !repo.invoices[0].PeriodEnd.Equal(sessDate) {
+			t.Errorf("expected PeriodEnd %v, got %v", sessDate, repo.invoices[0].PeriodEnd)
 		}
 	})
 

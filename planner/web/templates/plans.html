@@ -14,6 +14,21 @@
 			if (secPacote) { if (val === "2") { secPacote.classList.remove('oculto'); } else { secPacote.classList.add('oculto'); } }
 			if (secCaderneta) { if (val === "3") { secCaderneta.classList.remove('oculto'); } else { secCaderneta.classList.add('oculto'); } }
 			if (secPayPerView) { if (val === "4") { secPayPerView.classList.remove('oculto'); } else { secPayPerView.classList.add('oculto'); } }
+
+			var inputEnd = form.querySelector('input[name="add_plan_end"]');
+			var labelEnd = form.querySelector('#label-add-plan-end');
+			var hintEnd = form.querySelector('#hint-add-plan-end');
+			if (inputEnd) {
+				if (val === "2") {
+					inputEnd.required = true;
+					if (labelEnd) labelEnd.textContent = "DATA FIM *";
+					if (hintEnd) hintEnd.textContent = "Obrigatório para plano pacote";
+				} else {
+					inputEnd.required = false;
+					if (labelEnd) labelEnd.textContent = "DATA FIM (OPCIONAL)";
+					if (hintEnd) hintEnd.textContent = "Deixe vazio para plano em andamento";
+				}
+			}
 		}
 		function alternarModoCaderneta(radioElem) {
 			if (!radioElem) return;
@@ -349,9 +364,13 @@
 					<input type="date" name="add_plan_start" value="{{.PlanStartPadrao}}" required class="input-inline-tabela">
 				</div>
 				<div>
-					<label class="block text-[11px] font-semibold text-gray-600 mb-1">DATA FIM (OPCIONAL)</label>
-					<input type="date" name="add_plan_end" value="{{.PlanEndPadrao}}" class="input-inline-tabela">
-					<span class="text-[10px] text-gray-500">Deixe vazio para plano em andamento</span>
+					<label id="label-add-plan-end" class="block text-[11px] font-semibold text-gray-600 mb-1">
+						{{if eq .PlanType 2}}DATA FIM *{{else}}DATA FIM (OPCIONAL){{end}}
+					</label>
+					<input type="date" name="add_plan_end" value="{{.PlanEndPadrao}}" {{if eq .PlanType 2}}required{{end}} class="input-inline-tabela">
+					<span id="hint-add-plan-end" class="text-[10px] text-gray-500">
+						{{if eq .PlanType 2}}Obrigatório para plano pacote{{else}}Deixe vazio para plano em andamento{{end}}
+					</span>
 				</div>
 				<div>
 					<label class="block text-[11px] font-semibold text-gray-600 mb-1">TIPO DE PLANO *</label>

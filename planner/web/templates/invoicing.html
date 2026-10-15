@@ -10,7 +10,7 @@
 		}
 		.grade-tabela-invoicing {
 			display: grid !important;
-			grid-template-columns: 0.85fr 1fr 0.95fr 0.85fr 0.95fr 5.8fr 0.45fr !important;
+			grid-template-columns: 0.85fr 1fr 1.15fr 0.85fr 0.95fr 5.8fr 0.45fr !important;
 			gap: 16px !important;
 			align-items: start !important;
 			width: 100% !important;
@@ -346,18 +346,24 @@
 		<div class="flex flex-col">
 			<span class="font-bold text-sm text-indigo-900">{{.Nickname}}</span>
 		</div>
-		<div>
-			{{if eq .PlanType 1}}
-				<span class="badge-plano bg-blue-100 text-blue-800 border border-blue-300">Agenda</span>
-			{{else if eq .PlanType 2}}
-				<span class="badge-plano bg-emerald-100 text-emerald-800 border border-emerald-300">Pacote</span>
-			{{else if eq .PlanType 3}}
-				<span class="badge-plano bg-amber-100 text-amber-800 border border-amber-300">Caderneta</span>
-			{{else if eq .PlanType 4}}
-				<span class="badge-plano bg-purple-100 text-purple-800 border border-purple-300">Pay-per-view</span>
-			{{else if .PlanTypeName}}
-				<span class="badge-plano bg-gray-100 text-gray-800 border border-gray-300">{{.PlanTypeName}}</span>
-			{{end}}
+		<div class="flex flex-col items-start gap-2" style="gap: 8px;">
+			<div>
+				{{if eq .PlanType 1}}
+					<span class="badge-plano bg-blue-100 text-blue-800 border border-blue-300">Agenda</span>
+				{{else if eq .PlanType 2}}
+					<span class="badge-plano bg-emerald-100 text-emerald-800 border border-emerald-300">Pacote</span>
+				{{else if eq .PlanType 3}}
+					<span class="badge-plano bg-amber-100 text-amber-800 border border-amber-300">Caderneta</span>
+				{{else if eq .PlanType 4}}
+					<span class="badge-plano bg-purple-100 text-purple-800 border border-purple-300">Pay-per-view</span>
+				{{else if .PlanTypeName}}
+					<span class="badge-plano bg-gray-100 text-gray-800 border border-gray-300">{{.PlanTypeName}}</span>
+				{{end}}
+			</div>
+			<div class="text-[11px] text-gray-600 leading-tight pt-1" style="padding-top: 3px;">
+				<div><span class="text-[9px] text-gray-400 uppercase font-semibold">De: </span><span class="font-mono text-gray-700 font-medium">{{if .PeriodStartFormatada}}{{.PeriodStartFormatada}}{{else}}-{{end}}</span></div>
+				<div><span class="text-[9px] text-gray-400 uppercase font-semibold">Até: </span><span class="font-mono text-gray-700 font-medium">{{if .PeriodEndFormatada}}{{.PeriodEndFormatada}}{{else}}-{{end}}</span></div>
+			</div>
 		</div>
 		<div class="text-sm font-mono text-gray-700 font-medium">
 			{{.VencimentoFormatado}}

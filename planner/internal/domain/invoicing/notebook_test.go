@@ -60,6 +60,14 @@ func TestNotebookStrategy_CalculateMonth(t *testing.T) {
 	if len(item.ItemSessions) != 3 {
 		t.Errorf("expected 3 session links, got %d", len(item.ItemSessions))
 	}
+	expectedPeriodStart := time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC)
+	if !inv.PeriodStart.Equal(expectedPeriodStart) {
+		t.Errorf("expected PeriodStart %v, got %v", expectedPeriodStart, inv.PeriodStart)
+	}
+	expectedPeriodEnd := time.Date(2026, 8, 31, 0, 0, 0, 0, time.UTC)
+	if !inv.PeriodEnd.Equal(expectedPeriodEnd) {
+		t.Errorf("expected PeriodEnd %v, got %v", expectedPeriodEnd, inv.PeriodEnd)
+	}
 	if inv.Amount != 240.0 {
 		t.Errorf("expected Amount 240.0, got %.2f", inv.Amount)
 	}

@@ -156,6 +156,16 @@ func (r *PlanUpdateRequest) validateDates() error {
 		endTime = r.Plan.PlanEnd
 	}
 
+	effectivePlanType := r.Plan.PlanType
+	if r.PlanType != 0 {
+		effectivePlanType = r.PlanType
+	}
+	if effectivePlanType == int(domain.PlanTypePackage) {
+		if endTime == nil || endTime.IsZero() {
+			return fmt.Errorf("data de término (plan_end) é obrigatória para plano do tipo pacote")
+		}
+	}
+
 	if endTime != nil && endTime.Before(startTime) {
 		return fmt.Errorf("data de término não pode ser anterior à data de início")
 	}

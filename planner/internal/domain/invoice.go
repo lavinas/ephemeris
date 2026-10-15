@@ -11,6 +11,8 @@ type Invoice struct {
 	Plan               *Plan          `gorm:"foreignKey:PlanID;references:ID"`
 	InvoicingDate      time.Time      `gorm:"type:date;column:invoicing_date;not null"`
 	DueDate            time.Time      `gorm:"type:date;column:due_date;not null"`
+	PeriodStart        time.Time      `gorm:"type:date;column:period_start;not null"`
+	PeriodEnd          time.Time      `gorm:"type:date;column:period_end;not null"`
 	Amount             float64        `gorm:"type:numeric(15,2);column:amount;not null"`
 	ReferenceInvoiceID *int64         `gorm:"column:reference_invoice_id"`
 	CreatedAt          time.Time      `gorm:"column:created_at;not null"`
@@ -25,12 +27,14 @@ func (Invoice) TableName() string {
 }
 
 // NewInvoice creates a new Invoice instance.
-func NewInvoice(planID int64, invoicingDate, dueDate time.Time, amount float64, refInvoiceID *int64) *Invoice {
+func NewInvoice(planID int64, invoicingDate, dueDate, periodStart, periodEnd time.Time, amount float64, refInvoiceID *int64) *Invoice {
 	now := time.Now()
 	return &Invoice{
 		PlanID:             planID,
 		InvoicingDate:      invoicingDate,
 		DueDate:            dueDate,
+		PeriodStart:        periodStart,
+		PeriodEnd:          periodEnd,
 		Amount:             amount,
 		ReferenceInvoiceID: refInvoiceID,
 		CreatedAt:          now,

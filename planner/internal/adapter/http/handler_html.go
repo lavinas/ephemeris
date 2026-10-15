@@ -1623,18 +1623,31 @@ func (h *HandlerHtml) getInvoiceData(response *dto.InvoiceListResponse) []map[st
 			})
 		}
 
+		periodStartFormatada := inv.PeriodStart
+		if t, err := time.Parse("2006-01-02", inv.PeriodStart); err == nil {
+			periodStartFormatada = t.Format("02/01/2006")
+		}
+		periodEndFormatada := inv.PeriodEnd
+		if t, err := time.Parse("2006-01-02", inv.PeriodEnd); err == nil {
+			periodEndFormatada = t.Format("02/01/2006")
+		}
+
 		result = append(result, map[string]interface{}{
-			"ID":                  inv.ID,
-			"InvoiceDate":         inv.InvoiceDate,
-			"DataFaturaFormatada": dataFaturaFormatada,
-			"Nickname":            inv.Nickname,
-			"PlanType":            inv.PlanType,
-			"PlanTypeName":        inv.PlanTypeName,
-			"DueDate":             inv.DueDate,
-			"VencimentoFormatado": vencimentoFormatado,
-			"Amount":              inv.Amount,
-			"ValorFormatado":      valorFormatado,
-			"Items":               itemsData,
+			"ID":                   inv.ID,
+			"InvoiceDate":          inv.InvoiceDate,
+			"DataFaturaFormatada":  dataFaturaFormatada,
+			"Nickname":             inv.Nickname,
+			"PlanType":             inv.PlanType,
+			"PlanTypeName":         inv.PlanTypeName,
+			"DueDate":              inv.DueDate,
+			"VencimentoFormatado":  vencimentoFormatado,
+			"PeriodStart":          inv.PeriodStart,
+			"PeriodStartFormatada": periodStartFormatada,
+			"PeriodEnd":            inv.PeriodEnd,
+			"PeriodEndFormatada":   periodEndFormatada,
+			"Amount":               inv.Amount,
+			"ValorFormatado":       valorFormatado,
+			"Items":                itemsData,
 		})
 	}
 	return result

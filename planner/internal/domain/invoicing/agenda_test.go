@@ -54,10 +54,18 @@ func TestAgendaStrategy_CalculateMonth(t *testing.T) {
 		t.Errorf("expected DueDate %v, got %v", expectedDueDate, inv.DueDate)
 	}
 
+	expectedPeriodStart := time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)
+	if !inv.PeriodStart.Equal(expectedPeriodStart) {
+		t.Errorf("expected PeriodStart %v, got %v", expectedPeriodStart, inv.PeriodStart)
+	}
+	expectedPeriodEnd := time.Date(2026, 9, 30, 0, 0, 0, 0, time.UTC)
+	if !inv.PeriodEnd.Equal(expectedPeriodEnd) {
+		t.Errorf("expected PeriodEnd %v, got %v", expectedPeriodEnd, inv.PeriodEnd)
+	}
+
 	if len(inv.Items) != 1 {
 		t.Fatalf("expected 1 item, got %d", len(inv.Items))
 	}
-
 	// Sept 2026 has 5 Tuesdays, but limit is 4
 	if inv.Items[0].InvoicedQuantity != 4 {
 		t.Errorf("expected InvoicedQuantity 4, got %d", inv.Items[0].InvoicedQuantity)
@@ -99,6 +107,15 @@ func TestAgendaStrategy_PostPaid(t *testing.T) {
 	}
 	if inv == nil {
 		t.Fatal("expected invoice, got nil")
+	}
+
+	expectedPeriodStart := time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC)
+	if !inv.PeriodStart.Equal(expectedPeriodStart) {
+		t.Errorf("expected PeriodStart %v, got %v", expectedPeriodStart, inv.PeriodStart)
+	}
+	expectedPeriodEnd := time.Date(2026, 8, 31, 0, 0, 0, 0, time.UTC)
+	if !inv.PeriodEnd.Equal(expectedPeriodEnd) {
+		t.Errorf("expected PeriodEnd %v, got %v", expectedPeriodEnd, inv.PeriodEnd)
 	}
 
 	if inv.Items[0].InvoicedQuantity != 5 {

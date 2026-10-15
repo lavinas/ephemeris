@@ -266,9 +266,11 @@ func TestPlanCreateRequest_ActivePeriodOverlapConflict(t *testing.T) {
 	}
 
 	// New plan for same customer with Service 1 starting 2026-05-01 -> conflict!
+	planEndConflict := "2026-06-01"
 	reqConflict := &PlanCreateRequest{
 		Nickname:  "cliente_teste",
 		PlanStart: "2026-05-01",
+		PlanEnd:   &planEndConflict,
 		PlanType:  2,
 		Price:     floatPtr(200.0),
 		Items:     []PlanItemRequest{{ServiceID: 1}},
@@ -283,9 +285,11 @@ func TestPlanCreateRequest_ActivePeriodOverlapConflict(t *testing.T) {
 	}
 
 	// New plan for same customer with DIFFERENT service (Service 2) -> NO conflict!
+	planEndDiff := "2026-06-01"
 	reqDifferentService := &PlanCreateRequest{
 		Nickname:  "cliente_teste",
 		PlanStart: "2026-05-01",
+		PlanEnd:   &planEndDiff,
 		PlanType:  2,
 		Price:     floatPtr(200.0),
 		Items:     []PlanItemRequest{{ServiceID: 2}},
@@ -297,6 +301,67 @@ func TestPlanCreateRequest_ActivePeriodOverlapConflict(t *testing.T) {
 	if err := reqDifferentService.Validate(repo); err != nil {
 		t.Errorf("expected different service to succeed without conflict, got: %v", err)
 	}
+}
+
+func TestPlanCreateRequest_PackagePlanRequiresDates(t *testing.T) {
+	repo := newMockPlanRepo()
+
+	t.Run("Package plan without PlanEnd fails validation", func(t *testing.T) {
+		req := &PlanCreateRequest{
+			Nickname:  "cliente_teste",
+			PlanStart: "2026-01-01",
+			PlanType:  2,
+			Price:     floatPtr(100.0),
+			Items:     []PlanItemRequest{{ServiceID: 1}},
+			Package: &PlanPackageRequest{
+				Quantity:    5,
+				PaymentDate: "2026-01-15",
+			},
+		}
+		err := req.Validate(repo)
+		if err == nil || !strings.Contains(err.Error(), "data de término (plan_end) é obrigatória para plano do tipo pacote") {
+			t.Errorf("expected plan_end required error, got: %v", err)
+		}
+	})
+
+	t.Run("Package plan with empty PlanEnd fails validation", func(t *testing.T) {
+		emptyEnd := "   "
+		req := &PlanCreateRequest{
+			Nickname:  "cliente_teste",
+			PlanStart: "2026-01-01",
+			PlanEnd:   &emptyEnd,
+			PlanType:  2,
+			Price:     floatPtr(100.0),
+			Items:     []PlanItemRequest{{ServiceID: 1}},
+			Package: &PlanPackageRequest{
+				Quantity:    5,
+				PaymentDate: "2026-01-15",
+			},
+		}
+		err := req.Validate(repo)
+		if err == nil || !strings.Contains(err.Error(), "data de término (plan_end) é obrigatória para plano do tipo pacote") {
+			t.Errorf("expected plan_end required error, got: %v", err)
+		}
+	})
+
+	t.Run("Agenda plan without PlanEnd is allowed", func(t *testing.T) {
+		req := &PlanCreateRequest{
+			Nickname:  "cliente_teste",
+			PlanStart: "2026-01-01",
+			PlanType:  1,
+			Price:     floatPtr(100.0),
+			Items:     []PlanItemRequest{{ServiceID: 1}},
+			Agenda: &PlanAgendaRequest{
+				Recurrence: 1,
+				WeekDay:    2,
+				TermType:   1,
+				PaymentDay: 10,
+			},
+		}
+		if err := req.Validate(repo); err != nil {
+			t.Errorf("expected agenda plan without plan_end to succeed, got: %v", err)
+		}
+	})
 }
 
 func TestPlanCreateRequest_InvalidDates(t *testing.T) {

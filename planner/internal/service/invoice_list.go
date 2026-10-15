@@ -160,6 +160,15 @@ func (s *InvoiceList) mapInvoicesToDTO(invoices []domain.Invoice) []dto.InvoiceD
 			}
 		}
 
+		periodStartStr := ""
+		if !inv.PeriodStart.IsZero() {
+			periodStartStr = inv.PeriodStart.Format("2006-01-02")
+		}
+		periodEndStr := ""
+		if !inv.PeriodEnd.IsZero() {
+			periodEndStr = inv.PeriodEnd.Format("2006-01-02")
+		}
+
 		result[i] = dto.InvoiceDTO{
 			ID:           inv.ID,
 			InvoiceDate:  inv.InvoicingDate.Format("2006-01-02"),
@@ -167,6 +176,8 @@ func (s *InvoiceList) mapInvoicesToDTO(invoices []domain.Invoice) []dto.InvoiceD
 			PlanType:     planType,
 			PlanTypeName: planTypeName,
 			DueDate:      inv.DueDate.Format("2006-01-02"),
+			PeriodStart:  periodStartStr,
+			PeriodEnd:    periodEndStr,
 			Amount:       inv.Amount,
 			Items:        items,
 		}

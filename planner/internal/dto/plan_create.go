@@ -149,7 +149,13 @@ func (r *PlanCreateRequest) validateDates() error {
 		return fmt.Errorf("data de início não pode ser nula")
 	}
 
-	if r.PlanEnd != nil && *r.PlanEnd != "" {
+	if r.PlanType == int(domain.PlanTypePackage) {
+		if r.PlanEnd == nil || strings.TrimSpace(*r.PlanEnd) == "" {
+			return fmt.Errorf("data de término (plan_end) é obrigatória para plano do tipo pacote")
+		}
+	}
+
+	if r.PlanEnd != nil && strings.TrimSpace(*r.PlanEnd) != "" {
 		endTime, err := time.Parse("2006-01-02", *r.PlanEnd)
 		if err != nil {
 			return fmt.Errorf("formato inválido para data de fim, esperado AAAA-MM-DD")

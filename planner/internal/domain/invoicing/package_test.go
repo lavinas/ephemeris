@@ -53,6 +53,12 @@ func TestPackageStrategy_Calculate(t *testing.T) {
 	if !inv.DueDate.Equal(paymentDate) {
 		t.Errorf("expected DueDate %v, got %v", paymentDate, inv.DueDate)
 	}
+	if !inv.PeriodStart.Equal(planStart) {
+		t.Errorf("expected PeriodStart %v, got %v", planStart, inv.PeriodStart)
+	}
+	if !inv.PeriodEnd.Equal(planStart) {
+		t.Errorf("expected PeriodEnd %v, got %v", planStart, inv.PeriodEnd)
+	}
 	if len(inv.Items) != 3 {
 		t.Fatalf("expected 3 items, got %d", len(inv.Items))
 	}
@@ -161,6 +167,12 @@ func TestPackageStrategy_ItemDescriptionFormat(t *testing.T) {
 		inv, err := strat.Calculate(plan, refDate)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
+		}
+		if !inv.PeriodStart.Equal(planStart) {
+			t.Errorf("expected PeriodStart %v, got %v", planStart, inv.PeriodStart)
+		}
+		if !inv.PeriodEnd.Equal(planEndDiff) {
+			t.Errorf("expected PeriodEnd %v, got %v", planEndDiff, inv.PeriodEnd)
 		}
 		expected := "Pacote de Pilates - 01/09/2026 a 31/12/2026"
 		if inv.Items[0].Description == nil || *inv.Items[0].Description != expected {

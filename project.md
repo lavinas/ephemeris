@@ -11,15 +11,27 @@ Invoices errors/Improvements
 
 
 No subprojeto planner:
-    - No htmx de pré-faturas, na tabela, acrescentar o campo tipo plano, após o cliente e antes do vencimento.
-    - Utilizar a mesma formatação de tipo de plano que no htmx de gestão de planos
+- Na tabela invoice, criei os campos period_start date e period_end date para armazenar o periodo considerado no faturamento, ou seja, o periodo de calculo das sessoes consideradas em seus itens;
+- Da mesma forma que foram calculados as quantidades de itens;
+    - na estrategia agenda - recorrencia pre-paga - o periodo é o primeiro e ultimo mes em processamento corrente
+    - na estrategia agenda - recorrencia pos-paga - o periodo é o primeiro e ultimo mes anterior do mes em processamento corrente
+    - na estrategia notebook (caderneta) - o periodo é o primeiro e ultimo mes anterior do mes em processamento corrente
+    - na estrategia pay-per-view - o periodo é o dia da sessão no inicio e fim do período
+    - na estrategia pacote - o período é o período é o período do plan_package - ou seja, o período é do dia do início do plano até o dia do fim do plano
+- Adicionalmente no caso de cadastro de planos pacote (e somente do pacote), deixar obrigatório e fazer a validação de que a data inicio e data fim são obrigatórias
 
 
+
+No subprojeto planner:
 - Fazer um serviço de conciliação das sessões criadas com as pré faturas, prevendo as seguintes regras:
     - Deve-se encontrar ao item da pré-fatura correspondente a esta sessão, ou seja, do mesmo customer, do mesmo serviço, e que a data da sessão esteja dentro do período de competência da pré-fatura (data inicial e data final)
     - Deve-se verificar que a sessão já não está associada a uma pré-fatura, ou seja, que não existe uma entry em invoice_item_session com o session_id e o invoice_item_id correspondentes
     - Caso a pré-fatura seja do tipo agenda ou do tipo pacote ou tipo notebook, deve-se somar 1 na coluna de quantidade realizado do item da fatura e registrar a associação na tabale invoice_item_session
-     
+    - No caso de pay-per-view, a associação já deve criar a pré-fatura, de novo, caso já não exista o plano e o registro na tabela de associação.
+    - A conciliação deve ser disparada a cada criação de sessão ou a cada criação de uma nova pré-fatura, ou seja, no caso da criação da sessão, deve-se buscar a pré-fatura e seus itens e no caso da criação da pré-fatura deve-se buscar as sessões de mesmo customer e serviço dentro do período de inicio e fim de cada item de pré-fatura
+    - Caso a sessão seja deletada, deve-se fazer o mesmo, porém subtrindo 1 na coluna de quantidade realizado do item da fatura e deletando o registro na tabela de associação.
+    
+
      
 
 
