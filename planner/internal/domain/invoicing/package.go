@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"planner/internal/domain"
@@ -56,6 +57,14 @@ func (s *PackageStrategy) Calculate(plan *domain.Plan, refDate time.Time) (*doma
 		dueDate = currentDate
 	}
 
+	startDateStr := plan.PlanStart.Format("02/01/2006")
+	var dateSuffix string
+	if plan.PlanEnd == nil || plan.PlanEnd.IsZero() || plan.PlanStart.Format("02/01/2006") == plan.PlanEnd.Format("02/01/2006") {
+		dateSuffix = startDateStr
+	} else {
+		dateSuffix = fmt.Sprintf("%s a %s", startDateStr, plan.PlanEnd.Format("02/01/2006"))
+	}
+
 	invoiceItems := make([]domain.InvoiceItem, nItems)
 	var itemsTotalAmount float64
 
@@ -71,8 +80,11 @@ func (s *PackageStrategy) Calculate(plan *domain.Plan, refDate time.Time) (*doma
 		}
 
 		var desc *string
-		if item.Service != nil && item.Service.Description != nil {
-			descCopy := *item.Service.Description
+		if item.Service != nil && item.Service.Description != nil && strings.TrimSpace(*item.Service.Description) != "" {
+			d := fmt.Sprintf("%s - %s", strings.TrimSpace(*item.Service.Description), dateSuffix)
+			desc = &d
+		} else {
+			descCopy := dateSuffix
 			desc = &descCopy
 		}
 

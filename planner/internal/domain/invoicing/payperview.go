@@ -2,6 +2,8 @@ package invoicing
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"planner/internal/domain"
@@ -33,9 +35,13 @@ func (s *PayPerViewStrategy) CalculateSession(
 		price = *item.Price
 	}
 
+	sessionDateStr := session.SessionDate.Format("02/01/2006")
 	var desc *string
-	if item.Service != nil && item.Service.Description != nil {
-		descCopy := *item.Service.Description
+	if item.Service != nil && item.Service.Description != nil && strings.TrimSpace(*item.Service.Description) != "" {
+		d := fmt.Sprintf("%s - %s", strings.TrimSpace(*item.Service.Description), sessionDateStr)
+		desc = &d
+	} else {
+		descCopy := sessionDateStr
 		desc = &descCopy
 	}
 

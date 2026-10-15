@@ -11,11 +11,8 @@ Invoices errors/Improvements
 
 
 No subprojeto planner:
-- Existe um erro conceitual na geração das invoices da estrategia de agenda:
-    - A dada da invoice e data de vencimento são sempre de acordo com o mês corrente do calculo tanto pra pré-pago como pós-pago
-    - A diferença entre pré-pago e pós-pago é somente que no pós-pago é calculado o número de sessões previstas do mês anterior e no pré-pago do mes atual
-    - A validação se a invoice já existe portanto é com base na data da invoice e não na data de vencimento 
-
+- No serviço de invoicing, na estratégia de pacote, na descrição do serviço, colocar service.description + ' - ' data_inicial + ' a ' + data_final...se data_inicial = data_final ou data_final = null, colocar somente data_inicial...datas no formato dd/mm/aaaa
+- No serviço de invoicing, na estratégia payperview, na descrição do serviço, colocar service.description + ' - ' + data da sessão (dd/mm/aaaa)
 
 Outros:
     * Verificar que no caso do plano pacote o número de items seja menor que a quantidade de aulas
