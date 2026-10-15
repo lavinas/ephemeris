@@ -211,3 +211,74 @@ func TestNotebookStrategy_AllSessionsCancelledNotCharge(t *testing.T) {
 	}
 }
 
+func TestNotebookStrategy_ItemDescriptionFormat(t *testing.T) {
+	strat := NewNotebookStrategy()
+
+	serviceDesc := "Atendimento Psicológico"
+	planWithServiceDesc := &domain.Plan{
+		ID:        20,
+		PlanStart: time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC),
+		PlanType:  3,
+		Items: []domain.PlanItem{
+			{
+				ServiceID:  1,
+				OrderIndex: 1,
+				Price:      floatPtr(100.0),
+				Service:    &domain.Service{ID: 1, Description: &serviceDesc},
+			},
+		},
+	}
+
+	planWithoutServiceDesc := &domain.Plan{
+		ID:        21,
+		PlanStart: time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC),
+		PlanType:  3,
+		Items: []domain.PlanItem{
+			{
+				ServiceID:  1,
+				OrderIndex: 1,
+				Price:      floatPtr(100.0),
+				Service:    nil,
+			},
+		},
+	}
+
+	sessions := []domain.Session{
+		{ID: 101, CustomerID: 200, ServiceID: 1, SessionDate: time.Date(2026, 8, 5, 0, 0, 0, 0, time.UTC), SessionStatus: string(domain.StatusDone)},
+	}
+	sessionsByService := map[int64][]domain.Session{1: sessions}
+
+	// Calculation month is September 2026 -> considered sessions are from August 2026
+	monthStart := time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)
+	refDate := time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)
+
+	t.Run("With service description includes description and month/year", func(t *testing.T) {
+		inv, err := strat.CalculateMonth(planWithServiceDesc, monthStart, sessionsByService, refDate)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if inv == nil || len(inv.Items) == 0 {
+			t.Fatal("expected invoice with items")
+		}
+		expectedDesc := "Atendimento Psicológico - agosto de 2026"
+		if inv.Items[0].Description == nil || *inv.Items[0].Description != expectedDesc {
+			t.Errorf("expected Description %q, got %v", expectedDesc, inv.Items[0].Description)
+		}
+	})
+
+	t.Run("With nil service description formats only month and year without hyphen", func(t *testing.T) {
+		inv, err := strat.CalculateMonth(planWithoutServiceDesc, monthStart, sessionsByService, refDate)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if inv == nil || len(inv.Items) == 0 {
+			t.Fatal("expected invoice with items")
+		}
+		expectedDesc := "agosto de 2026"
+		if inv.Items[0].Description == nil || *inv.Items[0].Description != expectedDesc {
+			t.Errorf("expected Description %q, got %v", expectedDesc, inv.Items[0].Description)
+		}
+	})
+}
+
+

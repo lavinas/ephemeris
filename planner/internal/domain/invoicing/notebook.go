@@ -56,6 +56,9 @@ func (s *NotebookStrategy) CalculateMonth(
 	var itemsTotalAmount float64
 	var totalSessionsCount int
 
+	prevMonthStart, _ := s.PreviousMonthPeriod(monthStart)
+	monthYearSuffix := fmt.Sprintf("%s de %d", MonthNameInPortuguese(prevMonthStart.Month()), prevMonthStart.Year())
+
 	for _, item := range plan.Items {
 		sessions := sessionsByServiceID[item.ServiceID]
 		var billableSessions []domain.Session
@@ -75,8 +78,11 @@ func (s *NotebookStrategy) CalculateMonth(
 		}
 
 		var desc *string
-		if item.Service != nil && item.Service.Description != nil {
-			descCopy := *item.Service.Description
+		if item.Service != nil && item.Service.Description != nil && strings.TrimSpace(*item.Service.Description) != "" {
+			d := fmt.Sprintf("%s - %s", strings.TrimSpace(*item.Service.Description), monthYearSuffix)
+			desc = &d
+		} else {
+			descCopy := monthYearSuffix
 			desc = &descCopy
 		}
 
