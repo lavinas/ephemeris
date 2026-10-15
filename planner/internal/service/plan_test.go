@@ -6,6 +6,7 @@ import (
 
 	"planner/internal/domain"
 	"planner/internal/dto"
+	"planner/internal/port"
 )
 
 type mockLogger struct{}
@@ -19,19 +20,22 @@ type mockPlanRepoForService struct {
 	plans        map[int64]*domain.Plan
 	nextPlanID   int64
 	activePlans  []domain.Plan
+	invoices     []domain.Invoice
 }
 
 func newMockPlanRepoForService() *mockPlanRepoForService {
+	desc1 := "Aula Canto 30"
 	return &mockPlanRepoForService{
 		customers: map[string]*domain.Customer{
 			"cliente_1": {ID: 1, Nickname: "cliente_1", Name: "Cliente Um", VendorID: 1},
 			"cliente_2": {ID: 2, Nickname: "cliente_2", Name: "Cliente Dois", VendorID: 1},
 		},
 		services: map[int64]*domain.Service{
-			1: {ID: 1, Name: "Aula Canto 30", VendorID: 1},
+			1: {ID: 1, Name: "Aula Canto 30", Description: &desc1, VendorID: 1},
 		},
 		plans:      make(map[int64]*domain.Plan),
 		nextPlanID: 1,
+		invoices:   make([]domain.Invoice, 0),
 	}
 }
 
@@ -92,6 +96,9 @@ func (m *mockPlanRepoForService) SavePlan(plan *domain.Plan) error {
 		plan.ID = m.nextPlanID
 		m.nextPlanID++
 	}
+	if plan.Package != nil {
+		plan.Package.ID = plan.ID
+	}
 	m.plans[plan.ID] = plan
 	return nil
 }
@@ -126,12 +133,43 @@ func (m *mockPlanRepoForService) FindCustomerActivePlansWithServices(customerID 
 	}
 	return list, nil
 }
-func (m *mockPlanRepoForService) SaveInvoice(invoice *domain.Invoice) error { return nil }
+func (m *mockPlanRepoForService) SaveInvoice(invoice *domain.Invoice) error {
+	m.invoices = append(m.invoices, *invoice)
+	return nil
+}
 func (m *mockPlanRepoForService) GetInvoiceByID(id int64) (*domain.Invoice, error) { return nil, nil }
-func (m *mockPlanRepoForService) FindInvoices(conditions map[string]interface{}, orderBy ...string) ([]domain.Invoice, error) { return nil, nil }
+func (m *mockPlanRepoForService) FindInvoices(conditions map[string]interface{}, orderBy ...string) ([]domain.Invoice, error) {
+	return nil, nil
+}
 func (m *mockPlanRepoForService) FindInvoicesPaged(page, pageSize int, conditions map[string]interface{}, orderBy ...string) ([]domain.Invoice, int64, float64, error) { return nil, 0, 0, nil }
 func (m *mockPlanRepoForService) DeleteInvoice(id int64) error { return nil }
-func (m *mockPlanRepoForService) FindActivePlansForInvoicing(planID *int64, vendorID *int64, customerID *int64, planType *int, serviceID *int64, startDate, endDate time.Time) ([]domain.Plan, error) { return nil, nil }
+func (m *mockPlanRepoForService) FindActivePlansForInvoicing(planID *int64, vendorID *int64, customerID *int64, planType *int, serviceID *int64, startDate, endDate time.Time) ([]domain.Plan, error) {
+	var list []domain.Plan
+	for _, p := range m.plans {
+		if p.DeletedAt != nil {
+			continue
+		}
+		if planID != nil && *planID != 0 && p.ID != *planID {
+			continue
+		}
+		if planType != nil && *planType != 0 && p.PlanType != *planType {
+			continue
+		}
+		planCopy := *p
+		itemsCopy := make([]domain.PlanItem, len(p.Items))
+		for i, it := range p.Items {
+			itemsCopy[i] = it
+			if it.Service == nil && m.services != nil {
+				if s, ok := m.services[it.ServiceID]; ok {
+					itemsCopy[i].Service = s
+				}
+			}
+		}
+		planCopy.Items = itemsCopy
+		list = append(list, planCopy)
+	}
+	return list, nil
+}
 func (m *mockPlanRepoForService) FindBillableSessions(customerID int64, serviceID int64, startDate, endDate time.Time) ([]domain.Session, error) { return nil, nil }
 func (m *mockPlanRepoForService) GetInvoiceForSession(sessionID int64) (*domain.Invoice, error) { return nil, nil }
 
@@ -393,4 +431,152 @@ func TestPlanService_NotebookAndPayPerView(t *testing.T) {
 		t.Errorf("expected updated payment term 60, got %+v", p4Saved.PayPerView)
 	}
 }
+
+type spyInvoicingService struct {
+	called bool
+	req    *dto.InvoicingRequest
+}
+
+func (s *spyInvoicingService) Run(input port.InDTO) port.OutDTO {
+	s.called = true
+	if r, ok := input.(*dto.InvoicingRequest); ok {
+		s.req = r
+	}
+	return dto.NewInvoicingResponse(200, "OK", "fatura gerada com sucesso")
+}
+
+func TestPlanCreate_AutomaticPackageInvoicing(t *testing.T) {
+	logger := &mockLogger{}
+
+	t.Run("Creating package plan automatically creates invoice for package plan", func(t *testing.T) {
+		repo := newMockPlanRepoForService()
+		createSvc := NewPlanCreate(repo, logger)
+
+		itemPrice := 50.0
+		createReq := &dto.PlanCreateRequest{
+			Nickname:  "cliente_1",
+			PlanStart: "2027-09-01",
+			PlanType:  int(domain.PlanTypePackage),
+			Items: []dto.PlanItemRequest{
+				{ServiceID: 1, OrderIndex: 1, Price: &itemPrice},
+			},
+			Package: &dto.PlanPackageRequest{
+				Quantity:    4,
+				PaymentDate: "2027-09-15",
+			},
+		}
+
+		resp := createSvc.Run(createReq)
+		if resp.GetStatusCode() != 200 {
+			t.Fatalf("PlanCreate failed: %s", resp.GetMessage())
+		}
+		createdPlanID := resp.(*dto.PlanCreateResponse).PlanID
+		if createdPlanID <= 0 {
+			t.Fatalf("expected positive plan ID, got %d", createdPlanID)
+		}
+
+		// Verify that an invoice was generated
+		if len(repo.invoices) != 1 {
+			t.Fatalf("expected 1 invoice created, got %d", len(repo.invoices))
+		}
+		inv := repo.invoices[0]
+		if inv.PlanID != createdPlanID {
+			t.Errorf("expected invoice PlanID %d, got %d", createdPlanID, inv.PlanID)
+		}
+		expectedAmount := 200.0 // 4 * 50
+		if inv.Amount != expectedAmount {
+			t.Errorf("expected invoice Amount %.2f, got %.2f", expectedAmount, inv.Amount)
+		}
+		expectedInvoicingDate := time.Date(2027, 9, 1, 0, 0, 0, 0, time.UTC)
+		if !inv.InvoicingDate.Equal(expectedInvoicingDate) {
+			t.Errorf("expected InvoicingDate %v, got %v", expectedInvoicingDate, inv.InvoicingDate)
+		}
+		expectedDueDate := time.Date(2027, 9, 15, 0, 0, 0, 0, time.UTC)
+		if !inv.DueDate.Equal(expectedDueDate) {
+			t.Errorf("expected DueDate %v, got %v", expectedDueDate, inv.DueDate)
+		}
+		if len(inv.Items) != 1 {
+			t.Fatalf("expected 1 invoice item, got %d", len(inv.Items))
+		}
+		expectedDesc := "Aula Canto 30 - 01/09/2027"
+		if inv.Items[0].Description == nil || *inv.Items[0].Description != expectedDesc {
+			t.Errorf("expected item description %q, got %v", expectedDesc, inv.Items[0].Description)
+		}
+	})
+
+	t.Run("Creating agenda plan does not automatically create invoice", func(t *testing.T) {
+		repo := newMockPlanRepoForService()
+		createSvc := NewPlanCreate(repo, logger)
+
+		initPrice := 100.0
+		createReq := &dto.PlanCreateRequest{
+			Nickname:  "cliente_1",
+			PlanStart: "2026-09-01",
+			PlanType:  int(domain.PlanTypeAgenda),
+			Price:     &initPrice,
+			Items:     []dto.PlanItemRequest{{ServiceID: 1, OrderIndex: 1}},
+			Agenda: &dto.PlanAgendaRequest{
+				Recurrence: 1,
+				WeekDay:    2,
+				TermType:   1,
+				PaymentDay: 5,
+			},
+		}
+
+		resp := createSvc.Run(createReq)
+		if resp.GetStatusCode() != 200 {
+			t.Fatalf("PlanCreate failed: %s", resp.GetMessage())
+		}
+		if len(repo.invoices) != 0 {
+			t.Errorf("expected 0 invoices created for agenda plan, got %d", len(repo.invoices))
+		}
+	})
+
+	t.Run("Verifies exact parameters passed to invoicing service for package plan", func(t *testing.T) {
+		repo := newMockPlanRepoForService()
+		spyInvoicing := &spyInvoicingService{}
+		createSvc := NewPlanCreateWithInvoicing(repo, logger, spyInvoicing)
+
+		itemPrice := 50.0
+		createReq := &dto.PlanCreateRequest{
+			Nickname:  "cliente_1",
+			PlanStart: "2026-10-05",
+			PlanType:  int(domain.PlanTypePackage),
+			Items: []dto.PlanItemRequest{
+				{ServiceID: 1, OrderIndex: 1, Price: &itemPrice},
+			},
+			Package: &dto.PlanPackageRequest{
+				Quantity:    2,
+				PaymentDate: "2026-10-20",
+			},
+		}
+
+		resp := createSvc.Run(createReq)
+		if resp.GetStatusCode() != 200 {
+			t.Fatalf("PlanCreate failed: %s", resp.GetMessage())
+		}
+		createdPlanID := resp.(*dto.PlanCreateResponse).PlanID
+
+		if !spyInvoicing.called {
+			t.Fatal("expected invoicing service to be called")
+		}
+		if spyInvoicing.req == nil {
+			t.Fatal("expected invoicing request to be non-nil")
+		}
+		if spyInvoicing.req.PlanID == nil || *spyInvoicing.req.PlanID != createdPlanID {
+			t.Errorf("expected PlanID %d, got %v", createdPlanID, spyInvoicing.req.PlanID)
+		}
+		if spyInvoicing.req.PlanType == nil || *spyInvoicing.req.PlanType != int(domain.PlanTypePackage) {
+			t.Errorf("expected PlanType %d, got %v", int(domain.PlanTypePackage), spyInvoicing.req.PlanType)
+		}
+		expectedDate := "2026-10-05"
+		if spyInvoicing.req.StartDate == nil || *spyInvoicing.req.StartDate != expectedDate {
+			t.Errorf("expected StartDate %q, got %v", expectedDate, spyInvoicing.req.StartDate)
+		}
+		if spyInvoicing.req.EndDate == nil || *spyInvoicing.req.EndDate != expectedDate {
+			t.Errorf("expected EndDate %q, got %v", expectedDate, spyInvoicing.req.EndDate)
+		}
+	})
+}
+
 

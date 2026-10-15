@@ -11,8 +11,8 @@ Invoices errors/Improvements
 
 
 No subprojeto planner:
-- No serviço de invoicing, na estratégia de pacote, na descrição do serviço, colocar service.description + ' - ' data_inicial + ' a ' + data_final...se data_inicial = data_final ou data_final = null, colocar somente data_inicial...datas no formato dd/mm/aaaa
-- No serviço de invoicing, na estratégia payperview, na descrição do serviço, colocar service.description + ' - ' + data da sessão (dd/mm/aaaa)
+- Fazer com que ao cadastrar um novo plano do tipo pacote (apenas o pacote), criar automaticamente no final (apos salvar) uma pré-fatura de acordo com o periodo do pacote (pode-se acionar o serviço de invoicing neste caso com o periodo do dia inicial do plano como inicio e fim, porém apenas para este plano
+
 
 Outros:
     * Verificar que no caso do plano pacote o número de items seja menor que a quantidade de aulas

@@ -8,15 +8,30 @@ import (
 	"planner/internal/port"
 )
 
+// InvoicingService defines the interface for running invoicing logic.
+type InvoicingService interface {
+	Run(input port.InDTO) port.OutDTO
+}
+
 // PlanCreate is a service that handles the creation of plans.
 type PlanCreate struct {
 	Base
+	invoicing InvoicingService
 }
 
 // NewPlanCreate creates a new instance of PlanCreate.
 func NewPlanCreate(repo port.Repository, logger port.Logger) *PlanCreate {
 	return &PlanCreate{
-		Base: *NewBase(repo, logger),
+		Base:      *NewBase(repo, logger),
+		invoicing: NewInvoicing(repo, logger),
+	}
+}
+
+// NewPlanCreateWithInvoicing creates a new instance of PlanCreate with a custom invoicing service.
+func NewPlanCreateWithInvoicing(repo port.Repository, logger port.Logger, invoicing InvoicingService) *PlanCreate {
+	return &PlanCreate{
+		Base:      *NewBase(repo, logger),
+		invoicing: invoicing,
 	}
 }
 
@@ -36,7 +51,36 @@ func (s *PlanCreate) Run(input port.InDTO) port.OutDTO {
 	}
 
 	s.logger.IPrintf(2, "Successfully created plan with ID: %d", planModel.ID)
+
+	if planModel.PlanType == int(domain.PlanTypePackage) {
+		s.generatePackageInvoice(planModel)
+	}
+
 	return dto.NewPlanCreateResponse(200, "success", "plano criado com sucesso", planModel.ID)
+}
+
+func (s *PlanCreate) generatePackageInvoice(plan *domain.Plan) {
+	planStartStr := plan.PlanStart.Format("2006-01-02")
+	planType := int(domain.PlanTypePackage)
+	invReq := &dto.InvoicingRequest{
+		PlanID:    &plan.ID,
+		PlanType:  &planType,
+		StartDate: &planStartStr,
+		EndDate:   &planStartStr,
+	}
+
+	invSvc := s.invoicing
+	if invSvc == nil {
+		invSvc = NewInvoicing(s.repo, s.logger)
+	}
+
+	resp := invSvc.Run(invReq)
+	if resp != nil && resp.GetStatusCode() != 200 {
+		s.logger.IPrintf(2, "Aviso: falha ao gerar pré-fatura automática para plano pacote %d: %s",
+			plan.ID, resp.GetMessage())
+	} else {
+		s.logger.IPrintf(2, "Pré-fatura gerada automaticamente com sucesso para plano pacote %d", plan.ID)
+	}
 }
 
 func (s *PlanCreate) createPlanModel(req *dto.PlanCreateRequest) *domain.Plan {
