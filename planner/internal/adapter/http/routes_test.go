@@ -616,7 +616,29 @@ func TestPlanGenerateInvoiceModalAndAction(t *testing.T) {
 		t.Errorf("expected alias response to contain 'Processamento Concluído', got: %s", recAlias.Body.String())
 	}
 
-	// 5. GET /html/planos should contain 'Gerar pré-faturas' button
+	// 5. GET /html/planos/gerar-invoices-modal
+	reqBatchModal := httptest.NewRequest(http.MethodGet, "/html/planos/gerar-invoices-modal?nickname=cliente_teste&tipo_filtro=1", nil)
+	recBatchModal := httptest.NewRecorder()
+	routes.ServeHTTP(recBatchModal, reqBatchModal)
+	if recBatchModal.Code != http.StatusOK {
+		t.Errorf("expected 200 on /html/planos/gerar-invoices-modal, got %d", recBatchModal.Code)
+	}
+	if !strings.Contains(recBatchModal.Body.String(), "Gerar Pré-Faturas") {
+		t.Errorf("expected batch modal to contain 'Gerar Pré-Faturas', got: %s", recBatchModal.Body.String())
+	}
+	if !strings.Contains(recBatchModal.Body.String(), "name=\"start_date\"") || !strings.Contains(recBatchModal.Body.String(), "name=\"end_date\"") {
+		t.Errorf("expected batch modal to contain start_date and end_date inputs, got: %s", recBatchModal.Body.String())
+	}
+
+	// 6. GET /html/planos/gerar-pre-faturas-modal (alias)
+	reqAliasModal := httptest.NewRequest(http.MethodGet, "/html/planos/gerar-pre-faturas-modal", nil)
+	recAliasModal := httptest.NewRecorder()
+	routes.ServeHTTP(recAliasModal, reqAliasModal)
+	if recAliasModal.Code != http.StatusOK {
+		t.Errorf("expected 200 on /html/planos/gerar-pre-faturas-modal, got %d", recAliasModal.Code)
+	}
+
+	// 7. GET /html/planos should contain 'Gerar pré-faturas' button with hx-get to modal
 	reqPlans := httptest.NewRequest(http.MethodGet, "/html/planos", nil)
 	recPlans := httptest.NewRecorder()
 	routes.ServeHTTP(recPlans, reqPlans)
@@ -625,6 +647,9 @@ func TestPlanGenerateInvoiceModalAndAction(t *testing.T) {
 	}
 	if !strings.Contains(recPlans.Body.String(), "Gerar pré-faturas") {
 		t.Errorf("expected /html/planos to contain 'Gerar pré-faturas' button, got: %s", recPlans.Body.String())
+	}
+	if !strings.Contains(recPlans.Body.String(), "hx-get=\"/html/planos/gerar-invoices-modal\"") {
+		t.Errorf("expected 'Gerar pré-faturas' button to have hx-get to modal, got: %s", recPlans.Body.String())
 	}
 }
 

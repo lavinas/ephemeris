@@ -94,6 +94,8 @@ func NewHTMLRoutes(repo port.Repository, logger port.Logger, htmlTemplate []byte
 	mux.HandleFunc("/planos/atualizar", handler.PlansUpdate)
 	mux.HandleFunc("/planos/tabela", handler.PlansTable)
 	mux.HandleFunc("/planos/gerar-invoice-modal", handler.PlansGenerateInvoiceModal)
+	mux.HandleFunc("/planos/gerar-invoices-modal", handler.PlansGenerateInvoicesModal)
+	mux.HandleFunc("/planos/gerar-pre-faturas-modal", handler.PlansGenerateInvoicesModal)
 	mux.HandleFunc("/planos/gerar-invoice", handler.PlansGenerateInvoice)
 	mux.HandleFunc("/planos/gerar-invoices", handler.PlansGenerateInvoices)
 	mux.HandleFunc("/planos/gerar-pre-faturas", handler.PlansGenerateInvoices)
