@@ -452,6 +452,41 @@
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
 				</svg>
 			</button>
+			{{if .Reconciliada}}
+			<button type="button"
+					hx-post="/html/sessoes/reconciliar?id={{.ID}}"
+					hx-target="#tabela-container"
+					hx-include="#filtro-form"
+					class="p-1.5 text-white bg-emerald-600 hover:bg-emerald-700 rounded transition cursor-pointer shadow-sm flex items-center justify-center"
+					style="background-color: #059669; color: #ffffff; border: none; border-radius: 6px; padding: 6px; cursor: pointer;"
+					title="Sessão conciliada com pré-fatura (Clique para conciliar novamente)">
+				<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+				</svg>
+			</button>
+			{{else if not .Elegivel}}
+			<button type="button"
+					disabled
+					class="p-1.5 text-gray-400 bg-gray-200 border border-gray-300 rounded opacity-60 cursor-not-allowed flex items-center justify-center"
+					style="background-color: #e5e7eb; color: #9ca3af; border: 1px solid #d1d5db; border-radius: 6px; padding: 6px; opacity: 0.6; cursor: not-allowed;"
+					title="Sessão cancelada sem cobrança (não elegível para conciliação)">
+				<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+				</svg>
+			</button>
+			{{else}}
+			<button type="button"
+					hx-post="/html/sessoes/reconciliar?id={{.ID}}"
+					hx-target="#tabela-container"
+					hx-include="#filtro-form"
+					class="p-1.5 text-white bg-rose-600 hover:bg-rose-700 rounded transition cursor-pointer shadow-sm flex items-center justify-center"
+					style="background-color: #e11d48; color: #ffffff; border: none; border-radius: 6px; padding: 6px; cursor: pointer;"
+					title="Sessão não conciliada - Clique para conciliar com pré-fatura">
+				<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+				</svg>
+			</button>
+			{{end}}
 		</div>
 	</div>
 	{{end}}

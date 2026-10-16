@@ -77,6 +77,7 @@ func NewHTMLRoutes(repo port.Repository, logger port.Logger, htmlTemplate []byte
 	mux.HandleFunc("/sessoes/editar", handler.SessionsEdit)
 	mux.HandleFunc("/sessoes/atualizar", handler.SessionsUpdate)
 	mux.HandleFunc("/sessoes/tabela", handler.SessionsTable)
+	mux.HandleFunc("/sessoes/reconciliar", handler.SessionsReconcile)
 
 	mux.HandleFunc("/planos", handler.Plans)
 	mux.HandleFunc("/planos/", handler.Plans)
@@ -102,6 +103,7 @@ func NewHTMLRoutes(repo port.Repository, logger port.Logger, htmlTemplate []byte
 	mux.HandleFunc("/invoicing/deletar-aviso", handler.InvoicingDeleteWarning)
 	mux.HandleFunc("/invoicing/cancelar-delete", handler.InvoicingCancelDelete)
 	mux.HandleFunc("/invoicing/deletar", handler.InvoicingDelete)
+	mux.HandleFunc("/invoicing/reconciliar", handler.InvoicingReconcile)
 	mux.HandleFunc("/pre-faturas", handler.InvoicingHTML)
 	mux.HandleFunc("/pre-faturas/", handler.InvoicingHTML)
 	mux.HandleFunc("/pre-faturas/tabela", handler.InvoicingTable)
@@ -109,6 +111,7 @@ func NewHTMLRoutes(repo port.Repository, logger port.Logger, htmlTemplate []byte
 	mux.HandleFunc("/pre-faturas/deletar-aviso", handler.InvoicingDeleteWarning)
 	mux.HandleFunc("/pre-faturas/cancelar-delete", handler.InvoicingCancelDelete)
 	mux.HandleFunc("/pre-faturas/deletar", handler.InvoicingDelete)
+	mux.HandleFunc("/pre-faturas/reconciliar", handler.InvoicingReconcile)
 	return mux, handler, nil
 }
 

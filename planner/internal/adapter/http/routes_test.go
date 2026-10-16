@@ -609,5 +609,339 @@ func TestInvoiceDeleteRoutes(t *testing.T) {
 	}
 }
 
+type mockReconcileRouteRepo struct {
+	dummyRepo
+	reconciledSessions map[int64]bool
+	sessions           []domain.Session
+	invoices           []domain.Invoice
+}
+
+func (m *mockReconcileRouteRepo) GetSessionByID(id int64) (*domain.Session, error) {
+	for _, s := range m.sessions {
+		if s.ID == id {
+			return &s, nil
+		}
+	}
+	return nil, nil
+}
+
+func (m *mockReconcileRouteRepo) FindMatchingInvoiceItem(customerID, serviceID int64, sessionDate time.Time) (*domain.InvoiceItem, *domain.Invoice, error) {
+	return nil, nil, nil
+}
+
+func (m *mockReconcileRouteRepo) IsSessionReconciled(sessionID int64) (bool, error) {
+	return m.reconciledSessions[sessionID], nil
+}
+
+func (m *mockReconcileRouteRepo) FindUnreconciledSessions(customerID, serviceID int64, startDate, endDate time.Time) ([]domain.Session, error) {
+	return nil, nil
+}
+
+func (m *mockReconcileRouteRepo) AssociateSessionToInvoiceItem(invoiceItemID, sessionID int64) error {
+	return nil
+}
+
+func (m *mockReconcileRouteRepo) DissociateSessionFromInvoiceItem(sessionID int64) (*domain.InvoiceItem, error) {
+	return nil, nil
+}
+
+func (m *mockReconcileRouteRepo) FindActivePayPerViewPlan(customerID, serviceID int64, sessionDate time.Time) (*domain.Plan, *domain.PlanItem, error) {
+	return nil, nil, nil
+}
+
+func (m *mockReconcileRouteRepo) GetInvoiceByID(id int64) (*domain.Invoice, error) {
+	for _, inv := range m.invoices {
+		if inv.ID == id {
+			return &inv, nil
+		}
+	}
+	return nil, nil
+}
+
+func (m *mockReconcileRouteRepo) SaveInvoice(invoice *domain.Invoice) error {
+	return nil
+}
+
+func (m *mockReconcileRouteRepo) FindCount(conditions map[string]interface{}) (int64, error) {
+	return int64(len(m.sessions)), nil
+}
+
+func (m *mockReconcileRouteRepo) Find(page, pagesize int, conditions map[string]interface{}, orderBy ...string) ([]interface{}, error) {
+	res := make([]interface{}, len(m.sessions))
+	for i, s := range m.sessions {
+		res[i] = s
+	}
+	return res, nil
+}
+
+func (m *mockReconcileRouteRepo) GetCustomerByID(id int64) (*domain.Customer, error) {
+	return &domain.Customer{ID: id, Nickname: "cliente_teste"}, nil
+}
+
+func (m *mockReconcileRouteRepo) GetServiceByID(id int64) (*domain.Service, error) {
+	return &domain.Service{ID: id, Name: "Serviço Teste"}, nil
+}
+
+func (m *mockReconcileRouteRepo) FindInvoicesPaged(page, pageSize int, conditions map[string]interface{}, orderBy ...string) ([]domain.Invoice, int64, float64, error) {
+	total := 0.0
+	for _, inv := range m.invoices {
+		total += inv.Amount
+	}
+	return m.invoices, int64(len(m.invoices)), total, nil
+}
+
+type mockReconciliationTracker struct {
+	sessionReconciledID int64
+	invoiceReconciledID int64
+}
+
+func (m *mockReconciliationTracker) ReconcileSession(sessionID int64) error {
+	m.sessionReconciledID = sessionID
+	return nil
+}
+
+func (m *mockReconciliationTracker) DeconcileSession(sessionID int64) error {
+	return nil
+}
+
+func (m *mockReconciliationTracker) ReconcileInvoice(invoiceID int64) error {
+	m.invoiceReconciledID = invoiceID
+	return nil
+}
+
+func TestHTMLReconciliationRoutes(t *testing.T) {
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("could not get working dir: %v", err)
+	}
+	defer os.Chdir(origDir)
+
+	if err := os.Chdir("../../.."); err != nil {
+		t.Fatalf("could not chdir to planner/backend: %v", err)
+	}
+
+	sessionsTmpl, err := os.ReadFile("web/templates/sessions.html")
+	if err != nil {
+		t.Fatalf("failed reading sessions template: %v", err)
+	}
+	plansTmpl, _ := os.ReadFile("web/templates/plans.html")
+	invTmpl, _ := os.ReadFile("web/templates/invoicing.html")
+
+	mockRepo := &mockReconcileRouteRepo{
+		reconciledSessions: make(map[int64]bool),
+	}
+	mux, htmlHandler, err := NewHTMLRoutes(mockRepo, &dummyLogger{}, sessionsTmpl, plansTmpl, invTmpl)
+	if err != nil {
+		t.Fatalf("failed creating HTML routes: %v", err)
+	}
+
+	tracker := &mockReconciliationTracker{}
+	htmlHandler.SetReconciler(tracker)
+
+	// 1. Test POST /sessoes/reconciliar?id=42
+	reqSess := httptest.NewRequest(http.MethodPost, "/sessoes/reconciliar?id=42", nil)
+	recSess := httptest.NewRecorder()
+	mux.ServeHTTP(recSess, reqSess)
+	if recSess.Code != http.StatusOK {
+		t.Errorf("expected 200 on /sessoes/reconciliar, got %d", recSess.Code)
+	}
+	if tracker.sessionReconciledID != 42 {
+		t.Errorf("expected session 42 to be reconciled, got %d", tracker.sessionReconciledID)
+	}
+
+	// 2. Test POST /invoicing/reconciliar?id=99
+	reqInv := httptest.NewRequest(http.MethodPost, "/invoicing/reconciliar?id=99", nil)
+	recInv := httptest.NewRecorder()
+	mux.ServeHTTP(recInv, reqInv)
+	if recInv.Code != http.StatusOK {
+		t.Errorf("expected 200 on /invoicing/reconciliar, got %d", recInv.Code)
+	}
+	if tracker.invoiceReconciledID != 99 {
+		t.Errorf("expected invoice 99 to be reconciled, got %d", tracker.invoiceReconciledID)
+	}
+
+	// 3. Test POST /pre-faturas/reconciliar?id=101
+	reqPre := httptest.NewRequest(http.MethodPost, "/pre-faturas/reconciliar?id=101", nil)
+	recPre := httptest.NewRecorder()
+	mux.ServeHTTP(recPre, reqPre)
+	if recPre.Code != http.StatusOK {
+		t.Errorf("expected 200 on /pre-faturas/reconciliar, got %d", recPre.Code)
+	}
+	if tracker.invoiceReconciledID != 101 {
+		t.Errorf("expected invoice 101 to be reconciled, got %d", tracker.invoiceReconciledID)
+	}
+}
+
+func TestHTMLSessionReconciliationButtonStates(t *testing.T) {
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("could not get working dir: %v", err)
+	}
+	defer os.Chdir(origDir)
+
+	if err := os.Chdir("../../.."); err != nil {
+		t.Fatalf("could not chdir to planner/backend: %v", err)
+	}
+
+	sessionsTmpl, err := os.ReadFile("web/templates/sessions.html")
+	if err != nil {
+		t.Fatalf("failed reading sessions template: %v", err)
+	}
+
+	now := time.Now()
+	comment := "Sessão de teste"
+	mockRepo := &mockReconcileRouteRepo{
+		reconciledSessions: map[int64]bool{
+			1: true,
+			2: false,
+			3: false,
+		},
+		sessions: []domain.Session{
+			{
+				ID:             1,
+				CustomerID:     10,
+				ServiceID:      20,
+				SessionDate:    now,
+				SessionMinutes: 60,
+				SessionStatus:  "realizada",
+				Comments:       &comment,
+			},
+			{
+				ID:             2,
+				CustomerID:     10,
+				ServiceID:      20,
+				SessionDate:    now,
+				SessionMinutes: 60,
+				SessionStatus:  "realizada",
+				Comments:       &comment,
+			},
+			{
+				ID:             3,
+				CustomerID:     10,
+				ServiceID:      20,
+				SessionDate:    now,
+				SessionMinutes: 60,
+				SessionStatus:  "cancelada_nao_cobrar",
+				Comments:       &comment,
+			},
+		},
+	}
+
+	mux, _, err := NewHTMLRoutes(mockRepo, &dummyLogger{}, sessionsTmpl)
+	if err != nil {
+		t.Fatalf("failed creating HTML routes: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/sessoes/tabela", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 on /sessoes/tabela, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	body := rec.Body.String()
+
+	// Verify Session 1 (Reconciled): green button with emerald style and title "Sessão conciliada com pré-fatura"
+	if !strings.Contains(body, "bg-emerald-600") {
+		t.Errorf("expected session table to contain green button (bg-emerald-600)")
+	}
+	if !strings.Contains(body, "Sessão conciliada com pré-fatura") {
+		t.Errorf("expected session table to have reconciled tooltip 'Sessão conciliada com pré-fatura'")
+	}
+
+	// Verify Session 2 (Unreconciled): red button with rose style and title "Sessão não conciliada - Clique para conciliar"
+	if !strings.Contains(body, "bg-rose-600") {
+		t.Errorf("expected session table to contain red button (bg-rose-600)")
+	}
+	if !strings.Contains(body, "Sessão não conciliada - Clique para conciliar") {
+		t.Errorf("expected session table to have unreconciled tooltip 'Sessão não conciliada - Clique para conciliar'")
+	}
+
+	// Verify Session 3 (Not eligible): disabled gray button
+	if !strings.Contains(body, "Sessão cancelada sem cobrança (não elegível para conciliação)") {
+		t.Errorf("expected session table to contain disabled button for non-chargeable session")
+	}
+
+	// Verify reconciliation action attribute
+	if !strings.Contains(body, `hx-post="/html/sessoes/reconciliar?id=1"`) {
+		t.Errorf("expected session row to contain hx-post to /html/sessoes/reconciliar?id=1")
+	}
+	if !strings.Contains(body, `hx-post="/html/sessoes/reconciliar?id=2"`) {
+		t.Errorf("expected session row to contain hx-post to /html/sessoes/reconciliar?id=2")
+	}
+}
+
+func TestHTMLInvoicingReconciliationButton(t *testing.T) {
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("could not get working dir: %v", err)
+	}
+	defer os.Chdir(origDir)
+
+	if err := os.Chdir("../../.."); err != nil {
+		t.Fatalf("could not chdir to planner/backend: %v", err)
+	}
+
+	sessionsTmpl, _ := os.ReadFile("web/templates/sessions.html")
+	plansTmpl, _ := os.ReadFile("web/templates/plans.html")
+	invTmpl, err := os.ReadFile("web/templates/invoicing.html")
+	if err != nil {
+		t.Fatalf("failed reading invoicing template: %v", err)
+	}
+
+	now := time.Now()
+	desc := "Sessão Terapia"
+	mockRepo := &mockReconcileRouteRepo{
+		invoices: []domain.Invoice{
+			{
+				ID:            5,
+				PlanID:        1,
+				Plan:          &domain.Plan{CustomerID: 10, Customer: &domain.Customer{ID: 10, Nickname: "cliente_teste"}},
+				InvoicingDate: now,
+				DueDate:       now.AddDate(0, 0, 5),
+				PeriodStart:   now.AddDate(0, -1, 0),
+				PeriodEnd:     now,
+				Amount:        200.0,
+				Items: []domain.InvoiceItem{
+					{
+						ID:               1,
+						InvoiceID:        5,
+						ServiceID:        10,
+						Price:            100.0,
+						Description:      &desc,
+						InvoicedQuantity: 2,
+						RealizedQuantity: 1,
+					},
+				},
+			},
+		},
+	}
+
+	mux, _, err := NewHTMLRoutes(mockRepo, &dummyLogger{}, sessionsTmpl, plansTmpl, invTmpl)
+	if err != nil {
+		t.Fatalf("failed creating HTML routes: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/invoicing/tabela", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 on /invoicing/tabela, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	body := rec.Body.String()
+
+	// Verify that the reconcile button is present on the invoice row
+	if !strings.Contains(body, `hx-post="/html/invoicing/reconciliar?id=5"`) {
+		t.Errorf("expected invoicing table to contain hx-post to /html/invoicing/reconciliar?id=5, got: %s", body)
+	}
+	if !strings.Contains(body, "Conciliar pré-fatura com sessões pendentes") {
+		t.Errorf("expected invoicing table to contain tooltip 'Conciliar pré-fatura com sessões pendentes'")
+	}
+}
+
+
 
 

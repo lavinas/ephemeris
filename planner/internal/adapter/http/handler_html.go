@@ -30,6 +30,7 @@ var (
 type HandlerHtml struct {
 	logger        port.Logger
 	repo          port.Repository
+	reconciler    port.ReconciliationService
 	tmpl          *template.Template
 	tmplPlans     *template.Template
 	tmplInvoicing *template.Template
@@ -96,13 +97,34 @@ func NewHandlerHtml(repo port.Repository, logger port.Logger, tdata []byte, plan
 		return nil, err
 	}
 
+	var reconciler port.ReconciliationService
+	if r, ok := repo.(port.ReconciliationRepository); ok {
+		reconciler = service.NewReconciliation(r, logger)
+	}
+
 	return &HandlerHtml{
 		repo:          repo,
 		logger:        logger,
+		reconciler:    reconciler,
 		tmpl:          tmpl,
 		tmplPlans:     tmplPlans,
 		tmplInvoicing: tmplInvoicing,
 	}, nil
+}
+
+// SetReconciler allows injecting a custom ReconciliationService (e.g. for testing)
+func (h *HandlerHtml) SetReconciler(r port.ReconciliationService) {
+	h.reconciler = r
+}
+
+func (h *HandlerHtml) getReconciler() port.ReconciliationService {
+	if h.reconciler != nil {
+		return h.reconciler
+	}
+	if r, ok := h.repo.(port.ReconciliationRepository); ok {
+		return service.NewReconciliation(r, h.logger)
+	}
+	return nil
 }
 
 // Index handles requests to the root "/" endpoint, serving the static dashboard page.
@@ -463,6 +485,14 @@ func (h *HandlerHtml) SessionsCancelEdit(w http.ResponseWriter, r *http.Request)
 func (h *HandlerHtml) SessionsTable(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	pagina, _ := strconv.Atoi(r.FormValue("page"))
+	if pagina <= 0 {
+		if pStr := r.URL.Query().Get("page"); pStr != "" {
+			pagina, _ = strconv.Atoi(pStr)
+		}
+	}
+	if pagina <= 0 {
+		pagina = 1
+	}
 	svc := service.NewSessionList(h.repo, h.logger)
 	dur, _ := strconv.Atoi(r.FormValue("duracao_filtro"))
 	serviceIDFiltro, _ := strconv.ParseInt(r.FormValue("servico_filtro"), 10, 64)
@@ -492,6 +522,41 @@ func (h *HandlerHtml) SessionsTable(w http.ResponseWriter, r *http.Request) {
 	h.tmpl.ExecuteTemplate(w, "tabela", page)
 }
 
+// SessionsReconcile handles POST /sessoes/reconciliar
+func (h *HandlerHtml) SessionsReconcile(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid form data", http.StatusBadRequest)
+		return
+	}
+	idStr := r.URL.Query().Get("id")
+	if idStr == "" {
+		idStr = r.FormValue("id")
+	}
+	if idStr == "" {
+		idStr = r.FormValue("session_id")
+	}
+	id, _ := strconv.ParseInt(idStr, 10, 64)
+	if id <= 0 {
+		http.Error(w, "Invalid session ID", http.StatusBadRequest)
+		return
+	}
+
+	reconciler := h.getReconciler()
+	if reconciler != nil {
+		if err := reconciler.ReconcileSession(id); err != nil {
+			h.logger.IPrintf(1, "Erro ao conciliar sessão %d: %v", id, err)
+		}
+	} else {
+		h.logger.IPrintf(1, "ReconciliationService não disponível para sessão %d", id)
+	}
+
+	// Remove single-session filters so SessionsTable re-renders the complete filtered list
+	r.Form.Del("session_id")
+	r.Form.Del("id")
+
+	h.SessionsTable(w, r)
+}
+
 // getSessionData retrieves the session data formatted for template rendering
 func (h *HandlerHtml) getSessionData(response *dto.SessionListResponse) []map[string]interface{} {
 	sessions := response.Sessions
@@ -501,6 +566,24 @@ func (h *HandlerHtml) getSessionData(response *dto.SessionListResponse) []map[st
 	result := []map[string]interface{}{}
 	for _, session := range sessions {
 		formatedDate, _ := time.Parse("2006-01-02", session.Date)
+		status := strings.ToLower(strings.TrimSpace(session.Status))
+		elegivel := status != "cancelada_nao_cobrar" && status != "cancelada/não cobrar"
+
+		reconciled := false
+		if recRepo, ok := h.repo.(port.ReconciliationRepository); ok {
+			r, err := recRepo.IsSessionReconciled(session.SessionID)
+			if err == nil {
+				reconciled = r
+			}
+		} else if isRec, ok := h.repo.(interface{ IsSessionReconciled(int64) (bool, error) }); ok {
+			r, err := isRec.IsSessionReconciled(session.SessionID)
+			if err == nil {
+				reconciled = r
+			}
+		} else if inv, err := h.repo.GetInvoiceForSession(session.SessionID); err == nil && inv != nil {
+			reconciled = true
+		}
+
 		ss := map[string]interface{}{
 			"ID":            session.SessionID,
 			"Nickname":      session.Nickname,
@@ -512,6 +595,8 @@ func (h *HandlerHtml) getSessionData(response *dto.SessionListResponse) []map[st
 			"ServiceID":     session.ServiceID,
 			"Servico":       session.Service,
 			"Comentario":    session.Comments,
+			"Reconciliada":  reconciled,
+			"Elegivel":      elegivel,
 		}
 		result = append(result, ss)
 	}
@@ -1581,6 +1666,42 @@ func (h *HandlerHtml) InvoicingDelete(w http.ResponseWriter, r *http.Request) {
 	if resp.GetStatusCode() != 200 {
 		http.Error(w, resp.GetMessage(), resp.GetStatusCode())
 		return
+	}
+
+	// Remove single-invoice filters so InvoicingTable re-renders the complete filtered list
+	r.Form.Del("invoice_id")
+	r.Form.Del("fatura_id")
+	r.Form.Del("id")
+
+	h.InvoicingTable(w, r)
+}
+
+// InvoicingReconcile handles POST /invoicing/reconciliar
+func (h *HandlerHtml) InvoicingReconcile(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid form data", http.StatusBadRequest)
+		return
+	}
+	idStr := r.URL.Query().Get("id")
+	if idStr == "" {
+		idStr = r.FormValue("id")
+	}
+	if idStr == "" {
+		idStr = r.FormValue("invoice_id")
+	}
+	id, _ := strconv.ParseInt(idStr, 10, 64)
+	if id <= 0 {
+		http.Error(w, "Invalid invoice ID", http.StatusBadRequest)
+		return
+	}
+
+	reconciler := h.getReconciler()
+	if reconciler != nil {
+		if err := reconciler.ReconcileInvoice(id); err != nil {
+			h.logger.IPrintf(1, "Erro ao conciliar fatura %d: %v", id, err)
+		}
+	} else {
+		h.logger.IPrintf(1, "ReconciliationService não disponível para fatura %d", id)
 	}
 
 	// Remove single-invoice filters so InvoicingTable re-renders the complete filtered list

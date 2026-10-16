@@ -23,16 +23,9 @@ No subprojeto planner:
 
 
 No subprojeto planner:
-- Fazer um serviço de conciliação das sessões criadas com as pré faturas, prevendo as seguintes regras:
-    - Deve-se encontrar ao item da pré-fatura correspondente a esta sessão, ou seja, do mesmo customer, do mesmo serviço, e que a data da sessão esteja dentro do período de competência da pré-fatura (data inicial e data final)
-    - Deve-se verificar que a sessão já não está associada a uma pré-fatura, ou seja, que não existe uma entry em invoice_item_session com o session_id e o invoice_item_id correspondentes
-    - Caso a pré-fatura seja do tipo agenda ou do tipo pacote ou tipo notebook, deve-se somar 1 na coluna de quantidade realizado do item da fatura e registrar a associação na tabale invoice_item_session
-    - No caso de pay-per-view, a associação já deve criar a pré-fatura, de novo, caso já não exista o plano e o registro na tabela de associação.
-    - A conciliação deve ser disparada a cada criação de sessão ou a cada criação de uma nova pré-fatura, ou seja, no caso da criação da sessão, deve-se buscar a pré-fatura e seus itens e no caso da criação da pré-fatura deve-se buscar as sessões de mesmo customer e serviço dentro do período de inicio e fim de cada item de pré-fatura
-    - Caso a sessão seja deletada, deve-se fazer o mesmo, porém subtrindo 1 na coluna de quantidade realizado do item da fatura e deletando o registro na tabela de associação.
-Utilizar a melhor arquitetura baseada no hexagonal e nos bons principios de DDD
-Apresentar a arquitetura a ser utilizada antes de aplica-la por favor
-
+- Foi desenvolvido o serviço reconciliation que faz a conciliação de uma sessão com uma pré-fatura (ReconcileSession) e a conciliação de uma fatura com as sessões (ReconcileInvoice).
+- Prever no handler_html e no htmx do planner as ações como botões para reconciliação tanto na tabela de sessões do htmx como na tabela de pré-faturas
+- O proprio botão da tabela de sessões pode ser usado para identificar se a sessão está reconciliada, por exemplo colocando o botão da cor verde quando conciliada e vermelho como reconciliado
      
 
 
