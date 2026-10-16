@@ -30,7 +30,8 @@ No subprojeto planner:
     - No caso de pay-per-view, a associação já deve criar a pré-fatura, de novo, caso já não exista o plano e o registro na tabela de associação.
     - A conciliação deve ser disparada a cada criação de sessão ou a cada criação de uma nova pré-fatura, ou seja, no caso da criação da sessão, deve-se buscar a pré-fatura e seus itens e no caso da criação da pré-fatura deve-se buscar as sessões de mesmo customer e serviço dentro do período de inicio e fim de cada item de pré-fatura
     - Caso a sessão seja deletada, deve-se fazer o mesmo, porém subtrindo 1 na coluna de quantidade realizado do item da fatura e deletando o registro na tabela de associação.
-    
+Utilizar a melhor arquitetura baseada no hexagonal e nos bons principios de DDD
+Apresentar a arquitetura a ser utilizada antes de aplica-la por favor
 
      
 

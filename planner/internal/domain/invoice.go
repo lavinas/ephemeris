@@ -81,6 +81,36 @@ func NewInvoiceItem(invoiceID, serviceID int64, price float64, description *stri
 	}
 }
 
+// AssociateSession links a session to this invoice item and increments RealizedQuantity.
+func (i *InvoiceItem) AssociateSession(sessionID int64) *InvoiceItemSession {
+	i.RealizedQuantity++
+	i.UpdatedAt = time.Now()
+	assoc := NewInvoiceItemSession(i.ID, sessionID)
+	i.ItemSessions = append(i.ItemSessions, *assoc)
+	return assoc
+}
+
+// DissociateSession unlinks a session from this invoice item and decrements RealizedQuantity.
+func (i *InvoiceItem) DissociateSession(sessionID int64) bool {
+	found := false
+	var remaining []InvoiceItemSession
+	for _, s := range i.ItemSessions {
+		if s.SessionID == sessionID {
+			found = true
+			continue
+		}
+		remaining = append(remaining, s)
+	}
+	if found {
+		i.ItemSessions = remaining
+		if i.RealizedQuantity > 0 {
+			i.RealizedQuantity--
+		}
+		i.UpdatedAt = time.Now()
+	}
+	return found
+}
+
 // InvoiceItemSession represents a link between an invoice item and a session.
 type InvoiceItemSession struct {
 	ID            int64        `gorm:"primaryKey;autoIncrement"`

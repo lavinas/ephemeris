@@ -10,16 +10,27 @@ import (
 
 // SessionDelete is a service that handles the deletion of sessions.
 type SessionDelete struct {
-	repo   port.Repository
-	logger port.Logger
+	repo       port.Repository
+	logger     port.Logger
+	reconciler port.ReconciliationService
 }
 
 // NewSessionDelete creates a new instance of SessionDelete with the provided repository.
 func NewSessionDelete(repo port.Repository, logger port.Logger) *SessionDelete {
-	return &SessionDelete{
-		repo:   repo,
-		logger: logger,
+	var reconciler port.ReconciliationService
+	if r, ok := repo.(port.ReconciliationRepository); ok {
+		reconciler = NewReconciliation(r, logger)
 	}
+	return &SessionDelete{
+		repo:       repo,
+		logger:     logger,
+		reconciler: reconciler,
+	}
+}
+
+// SetReconciler sets a custom reconciliation service.
+func (s *SessionDelete) SetReconciler(r port.ReconciliationService) {
+	s.reconciler = r
 }
 
 // DeleteSession deletes a session with the given session ID.
@@ -47,6 +58,14 @@ func (s *SessionDelete) Run(InDto port.InDTO) port.OutDTO {
 		s.logger.IPrintf(2, "Error saving session: %v", err)
 		return dto.NewSessionDeleteResponse(500, "Internal Server Error", err.Error())
 	}
+
+	// Trigger deconciliation
+	if s.reconciler != nil {
+		if err := s.reconciler.DeconcileSession(sessionID); err != nil {
+			s.logger.IPrintf(2, "Aviso: falha ao desconciliar sessão %d deletada: %v", sessionID, err)
+		}
+	}
+
 	s.logger.IPrintf(2, "Session with ID %d deleted successfully", sessionID)
 	return dto.NewSessionDeleteResponse(200, "OK", "session deleted successfully")
 }

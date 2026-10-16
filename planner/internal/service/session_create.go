@@ -10,13 +10,24 @@ import (
 // SessionCreate is  a service that handles the creation of sessions.
 type SessionCreate struct {
 	Base
+	reconciler port.ReconciliationService
 }
 
 // NewSessionCreate
 func NewSessionCreate(repo port.Repository, logger port.Logger) *SessionCreate {
-	return &SessionCreate{
-		Base: *NewBase(repo, logger),
+	var reconciler port.ReconciliationService
+	if r, ok := repo.(port.ReconciliationRepository); ok {
+		reconciler = NewReconciliation(r, logger)
 	}
+	return &SessionCreate{
+		Base:       *NewBase(repo, logger),
+		reconciler: reconciler,
+	}
+}
+
+// SetReconciler sets a custom reconciliation service.
+func (s *SessionCreate) SetReconciler(r port.ReconciliationService) {
+	s.reconciler = r
 }
 
 // Run executes the session creation process using the provided input DTO and returns an output DTO.
@@ -36,9 +47,18 @@ func (s *SessionCreate) Run(input port.InDTO) port.OutDTO {
 		return dto.NewSessionCreateResponse(500, "error", err.Error(), 0)
 	}
 
+	sessionID := sessionModel.(*domain.Session).ID
+
+	// Trigger reconciliation
+	if s.reconciler != nil {
+		if err := s.reconciler.ReconcileSession(sessionID); err != nil {
+			s.logger.IPrintf(2, "Aviso: falha na conciliação da sessão %d: %v", sessionID, err)
+		}
+	}
+
 	// Create and return the output DTO with the session ID
-	s.logger.IPrintf(2, "Successfully created session with ID: %d", sessionModel.(*domain.Session).ID)
-	return dto.NewSessionCreateResponse(200, "success", "session created", sessionModel.(*domain.Session).ID)
+	s.logger.IPrintf(2, "Successfully created session with ID: %d", sessionID)
+	return dto.NewSessionCreateResponse(200, "success", "session created", sessionID)
 }
 
 // createSessionModel creates a session model from the input DTO.

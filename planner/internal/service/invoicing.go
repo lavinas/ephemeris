@@ -17,17 +17,28 @@ type Invoicing struct {
 	packageStrat    *domainInvoicing.PackageStrategy
 	notebookStrat   *domainInvoicing.NotebookStrategy
 	payPerViewStrat *domainInvoicing.PayPerViewStrategy
+	reconciler      port.ReconciliationService
 }
 
 // NewInvoicing creates a new instance of Invoicing service.
 func NewInvoicing(repo port.Repository, logger port.Logger) *Invoicing {
+	var reconciler port.ReconciliationService
+	if r, ok := repo.(port.ReconciliationRepository); ok {
+		reconciler = NewReconciliation(r, logger)
+	}
 	return &Invoicing{
 		Base:            *NewBase(repo, logger),
 		agendaStrat:     domainInvoicing.NewAgendaStrategy(),
 		packageStrat:    domainInvoicing.NewPackageStrategy(),
 		notebookStrat:   domainInvoicing.NewNotebookStrategy(),
 		payPerViewStrat: domainInvoicing.NewPayPerViewStrategy(),
+		reconciler:      reconciler,
 	}
+}
+
+// SetReconciler sets a custom reconciliation service.
+func (s *Invoicing) SetReconciler(r port.ReconciliationService) {
+	s.reconciler = r
 }
 
 // Run executes the invoicing process using the provided input DTO.
@@ -140,6 +151,12 @@ func (s *Invoicing) processPackage(plan *domain.Plan, reprocess bool) error {
 		return fmt.Errorf("plano %d: erro ao salvar fatura pacote: %w", plan.ID, err)
 	}
 
+	if s.reconciler != nil {
+		if err := s.reconciler.ReconcileInvoice(invoice.ID); err != nil {
+			s.logger.IPrintf(2, "Aviso: falha ao conciliar fatura pacote %d: %v", invoice.ID, err)
+		}
+	}
+
 	s.logger.IPrintf(2, "Fatura gerada com sucesso para plano pacote %d (invoice id: %d, valor: %.2f)",
 		plan.ID, invoice.ID, invoice.Amount)
 	return nil
@@ -198,6 +215,12 @@ func (s *Invoicing) processAgenda(plan *domain.Plan, startDate, endDate time.Tim
 
 		if err := s.repo.SaveInvoice(invoice); err != nil {
 			return fmt.Errorf("plano %d: erro ao salvar fatura agenda para %s: %w", plan.ID, monthLabel, err)
+		}
+
+		if s.reconciler != nil {
+			if err := s.reconciler.ReconcileInvoice(invoice.ID); err != nil {
+				s.logger.IPrintf(2, "Aviso: falha ao conciliar fatura agenda %d: %v", invoice.ID, err)
+			}
 		}
 
 		s.logger.IPrintf(2, "Fatura gerada com sucesso para plano agenda %d no mês %s (invoice id: %d, valor: %.2f)",
@@ -274,6 +297,12 @@ func (s *Invoicing) processNotebook(plan *domain.Plan, startDate, endDate time.T
 
 		if err := s.repo.SaveInvoice(invoice); err != nil {
 			return fmt.Errorf("plano %d: erro ao salvar fatura caderneta para %s: %w", plan.ID, monthLabel, err)
+		}
+
+		if s.reconciler != nil {
+			if err := s.reconciler.ReconcileInvoice(invoice.ID); err != nil {
+				s.logger.IPrintf(2, "Aviso: falha ao conciliar fatura caderneta %d: %v", invoice.ID, err)
+			}
 		}
 
 		s.logger.IPrintf(2, "Fatura gerada com sucesso para plano caderneta %d no mês %s (invoice id: %d, valor: %.2f)",
