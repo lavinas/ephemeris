@@ -1583,12 +1583,101 @@ func (h *HandlerHtml) PlansGenerateInvoice(w http.ResponseWriter, r *http.Reques
 	resp := invoicingSvc.Run(invReq)
 	isSuccess := resp.GetStatusCode() == 200
 
+	stDate, enDate, errDates := invReq.GetParsedDates(time.Now())
+	displayStart := startDate
+	displayEnd := endDate
+	if errDates == nil {
+		displayStart = stDate.Format("2006-01-02")
+		displayEnd = enDate.Format("2006-01-02")
+	}
+
 	data := map[string]interface{}{
 		"Success":   isSuccess,
 		"Message":   resp.GetMessage(),
 		"PlanID":    id,
-		"StartDate": startDate,
-		"EndDate":   endDate,
+		"StartDate": displayStart,
+		"EndDate":   displayEnd,
+	}
+	h.tmplPlans.ExecuteTemplate(w, "modal_gerar_invoice_resultado", data)
+}
+
+// PlansGenerateInvoices handles POST /planos/gerar-invoices (batch invoicing by active filters)
+func (h *HandlerHtml) PlansGenerateInvoices(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid form data", http.StatusBadRequest)
+		return
+	}
+
+	invReq := &dto.InvoicingRequest{}
+
+	// 1. Nickname -> CustomerID
+	nickname := strings.TrimSpace(r.FormValue("nickname"))
+	if nickname != "" {
+		customers, err := h.repo.FindCustomers(0, 0, 1, nil, &nickname, nil, nil, nil, nil)
+		if err != nil {
+			h.logger.IPrintf(0, "Error finding customer by nickname '%s': %v", nickname, err)
+			data := map[string]interface{}{
+				"Success": false,
+				"Message": fmt.Sprintf("Erro ao buscar cliente: %v", err),
+			}
+			h.tmplPlans.ExecuteTemplate(w, "modal_gerar_invoice_resultado", data)
+			return
+		}
+		if len(customers) == 0 {
+			data := map[string]interface{}{
+				"Success": true,
+				"Message": fmt.Sprintf("Nenhum cliente encontrado com o nickname '%s'. Nenhum plano faturado.", nickname),
+			}
+			h.tmplPlans.ExecuteTemplate(w, "modal_gerar_invoice_resultado", data)
+			return
+		}
+		cID := customers[0].ID
+		invReq.CustomerID = &cID
+	}
+
+	// 2. Tipo de Plano
+	tipoFiltro, _ := strconv.Atoi(r.FormValue("tipo_filtro"))
+	if tipoFiltro > 0 {
+		invReq.PlanType = &tipoFiltro
+	}
+
+	// 3. Serviço
+	servicoFiltro, _ := strconv.ParseInt(r.FormValue("servico_filtro"), 10, 64)
+	if servicoFiltro > 0 {
+		invReq.ServiceID = &servicoFiltro
+	}
+
+	// 4. Datas
+	dataInicio := strings.TrimSpace(r.FormValue("data_inicio"))
+	if dataInicio != "" {
+		invReq.StartDate = &dataInicio
+	}
+	dataFim := strings.TrimSpace(r.FormValue("data_fim"))
+	if dataFim != "" {
+		invReq.EndDate = &dataFim
+	}
+
+	// 5. Reprocess
+	reprocess := r.FormValue("reprocess") == "true" || r.FormValue("reprocess") == "1" || r.FormValue("reprocess") == "on"
+	invReq.Reprocess = &reprocess
+
+	invoicingSvc := service.NewInvoicing(h.repo, h.logger)
+	resp := invoicingSvc.Run(invReq)
+	isSuccess := resp.GetStatusCode() == 200
+
+	stDate, enDate, errDates := invReq.GetParsedDates(time.Now())
+	displayStart := dataInicio
+	displayEnd := dataFim
+	if errDates == nil {
+		displayStart = stDate.Format("2006-01-02")
+		displayEnd = enDate.Format("2006-01-02")
+	}
+
+	data := map[string]interface{}{
+		"Success":   isSuccess,
+		"Message":   resp.GetMessage(),
+		"StartDate": displayStart,
+		"EndDate": displayEnd,
 	}
 	h.tmplPlans.ExecuteTemplate(w, "modal_gerar_invoice_resultado", data)
 }

@@ -491,15 +491,59 @@ func (m *mockInvoiceRouteRepo) FindPlans(page, pageSize int, conditions map[stri
 	}, 1, nil
 }
 
+func (m *mockInvoiceRouteRepo) GetPlanByID(id int64) (*domain.Plan, error) {
+	price := 100.0
+	return &domain.Plan{
+		ID:         id,
+		CustomerID: 10,
+		PlanStart:  time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		PlanType:   1,
+		Price:      &price,
+		Agenda: &domain.PlanAgenda{
+			ID:         id,
+			Recurrence: 1,
+			WeekDay:    1,
+			TermType:   1,
+			PaymentDay: 5,
+		},
+		Items: []domain.PlanItem{
+			{ID: 1, PlanID: id, ServiceID: 1, Price: &price, OrderIndex: 1},
+		},
+	}, nil
+}
+
+func (m *mockInvoiceRouteRepo) GetServiceByID(id int64) (*domain.Service, error) {
+	return &domain.Service{ID: id, Name: "Servico Teste"}, nil
+}
+
 func (m *mockInvoiceRouteRepo) FindActivePlansForInvoicing(planID *int64, vendorID *int64, customerID *int64, planType *int, serviceID *int64, startDate, endDate time.Time) ([]domain.Plan, error) {
+	price := 100.0
 	return []domain.Plan{
 		{
 			ID:         1,
 			CustomerID: 10,
-			PlanStart:  time.Now(),
+			PlanStart:  time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
 			PlanType:   1,
+			Price:      &price,
+			Agenda: &domain.PlanAgenda{
+				ID:         1,
+				Recurrence: 1,
+				WeekDay:    1,
+				TermType:   1,
+				PaymentDay: 5,
+			},
+			Items: []domain.PlanItem{
+				{ID: 1, PlanID: 1, ServiceID: 1, Price: &price, OrderIndex: 1},
+			},
 		},
 	}, nil
+}
+
+func (m *mockInvoiceRouteRepo) FindCustomers(page, pageSize int, vendorID int64, name, nickname, document *string, status *int, email, whatsapp *string) ([]domain.Customer, error) {
+	if nickname != nil && *nickname == "inexistente" {
+		return nil, nil
+	}
+	return []domain.Customer{{ID: 10, Nickname: "cliente_teste", VendorID: 1}}, nil
 }
 
 func TestPlanGenerateInvoiceModalAndAction(t *testing.T) {
@@ -538,6 +582,49 @@ func TestPlanGenerateInvoiceModalAndAction(t *testing.T) {
 	routes.ServeHTTP(recGen, reqGen)
 	if recGen.Code != http.StatusOK {
 		t.Errorf("expected 200 on /html/planos/gerar-invoice, got %d", recGen.Code)
+	}
+	if !strings.Contains(recGen.Body.String(), "Processamento Concluído") {
+		t.Errorf("expected modal to contain 'Processamento Concluído', got: %s", recGen.Body.String())
+	}
+	if !strings.Contains(recGen.Body.String(), "navegarParaPreFaturas") {
+		t.Errorf("expected modal to contain 'navegarParaPreFaturas', got: %s", recGen.Body.String())
+	}
+
+	// 3. POST /html/planos/gerar-invoices (batch by active filters)
+	batchForm := strings.NewReader("tipo_filtro=1&servico_filtro=1&data_inicio=2026-10-01&data_fim=2026-10-31&ativo=true")
+	reqBatch := httptest.NewRequest(http.MethodPost, "/html/planos/gerar-invoices", batchForm)
+	reqBatch.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	recBatch := httptest.NewRecorder()
+	routes.ServeHTTP(recBatch, reqBatch)
+	if recBatch.Code != http.StatusOK {
+		t.Errorf("expected 200 on /html/planos/gerar-invoices, got %d", recBatch.Code)
+	}
+	if !strings.Contains(recBatch.Body.String(), "Processamento Concluído") {
+		t.Errorf("expected batch response to contain 'Processamento Concluído', got: %s", recBatch.Body.String())
+	}
+
+	// 4. POST /html/planos/gerar-pre-faturas (alias) with nickname filter
+	aliasForm := strings.NewReader("nickname=cliente_teste&tipo_filtro=0&data_inicio=2026-10-01&data_fim=2026-10-31")
+	reqAlias := httptest.NewRequest(http.MethodPost, "/html/planos/gerar-pre-faturas", aliasForm)
+	reqAlias.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	recAlias := httptest.NewRecorder()
+	routes.ServeHTTP(recAlias, reqAlias)
+	if recAlias.Code != http.StatusOK {
+		t.Errorf("expected 200 on /html/planos/gerar-pre-faturas, got %d", recAlias.Code)
+	}
+	if !strings.Contains(recAlias.Body.String(), "Processamento Concluído") {
+		t.Errorf("expected alias response to contain 'Processamento Concluído', got: %s", recAlias.Body.String())
+	}
+
+	// 5. GET /html/planos should contain 'Gerar pré-faturas' button
+	reqPlans := httptest.NewRequest(http.MethodGet, "/html/planos", nil)
+	recPlans := httptest.NewRecorder()
+	routes.ServeHTTP(recPlans, reqPlans)
+	if recPlans.Code != http.StatusOK {
+		t.Errorf("expected 200 on /html/planos, got %d", recPlans.Code)
+	}
+	if !strings.Contains(recPlans.Body.String(), "Gerar pré-faturas") {
+		t.Errorf("expected /html/planos to contain 'Gerar pré-faturas' button, got: %s", recPlans.Body.String())
 	}
 }
 

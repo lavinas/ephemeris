@@ -23,9 +23,9 @@ No subprojeto planner:
 
 
 No subprojeto planner:
-- Foi desenvolvido o serviço reconciliation que faz a conciliação de uma sessão com uma pré-fatura (ReconcileSession) e a conciliação de uma fatura com as sessões (ReconcileInvoice).
-- Prever no handler_html e no htmx do planner as ações como botões para reconciliação tanto na tabela de sessões do htmx como na tabela de pré-faturas
-- O proprio botão da tabela de sessões pode ser usado para identificar se a sessão está reconciliada, por exemplo colocando o botão da cor verde quando conciliada e vermelho como reconciliado
+- No htmx de gestão de planos e no handler_htmx, colocar um botão 'Gerar pré-faturas' entre 'adicionar' e 'limpar filtros' que chama o serviço de 
+invoicing, de acordo com  os filtros ativos do momento.
+- Ainda no htmx de gestão de planos, no pop-up de confirmação de geração de pré-faturas individual (Processamento Concluído), o bostão "Ver Pré faturas" deveria direcionar para a tela de pré-faturas, porém apenas está fechando o pop-up
      
 
 

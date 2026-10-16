@@ -1,6 +1,34 @@
 	{{define "fragment"}}
 	<script src="https://cdn.tailwindcss.com"></script>
 	<script>
+		function navegarParaPreFaturas() {
+			var modal = document.getElementById('modal-container-planos');
+			if (modal) {
+				modal.innerHTML = '';
+			}
+			var menuLink = document.querySelector('a[hx-get="/html/invoicing"], a[href="/html/invoicing"]');
+			if (menuLink) {
+				menuLink.click();
+				return;
+			}
+			if (window.parent && window.parent !== window) {
+				try {
+					var parentMenuLink = window.parent.document.querySelector('a[hx-get="/html/invoicing"], a[href="/html/invoicing"]');
+					if (parentMenuLink) {
+						parentMenuLink.click();
+						return;
+					}
+				} catch (e) {}
+			}
+			var mainContainer = document.getElementById('conteudo-principal');
+			if (mainContainer && window.htmx) {
+				window.htmx.ajax('GET', '/html/invoicing', { target: '#conteudo-principal', pushUrl: '/html/invoicing' });
+				return;
+			}
+			window.location.href = '/html/invoicing';
+		}
+		window.navegarParaPreFaturas = navegarParaPreFaturas;
+
 		function alternarTipoPlano(selectElem) {
 			if (!selectElem) return;
 			var val = selectElem.value;
@@ -302,6 +330,16 @@
 			<div style="height: 40px; width: 100%;"></div>
 			<div class="flex justify-start gap-4" style="display: flex; gap: 1rem;">
 				<button hx-get="/html/planos/novo" hx-target="#formulario-cadastro-container-planos" hx-swap="innerHTML" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-2.5 rounded-lg border border-indigo-500 transition duration-150 shadow-md" style="background-color: #4f46e5; color: #fff; font-weight: 700; font-size: 0.875rem; padding: 0.625rem 1.5rem; border-radius: 0.5rem; border: 1px solid #6366f1; cursor: pointer;">＋ Adicionar</button>
+				<button hx-post="/html/planos/gerar-invoices"
+						hx-include="#filtro-form-planos"
+						hx-target="#modal-container-planos"
+						hx-swap="innerHTML"
+						hx-disabled-elt="this"
+						class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-6 py-2.5 rounded-lg border border-emerald-500 transition duration-150 shadow-md flex items-center gap-1.5"
+						style="background-color: #059669; color: #fff; font-weight: 700; font-size: 0.875rem; padding: 0.625rem 1.5rem; border-radius: 0.5rem; border: 1px solid #10b981; cursor: pointer;">
+					<span>⚡</span>
+					<span>Gerar pré-faturas</span>
+				</button>
 				<button hx-post="/html/planos/tabela/reset" hx-target="#tabela-container-planos" onclick="resetFiltrosPlanos()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-sm px-6 py-2.5 rounded-lg border border-gray-700 transition duration-150 shadow-md" style="background-color: #1f2937; color: #d1d5db; font-weight: 700; font-size: 0.875rem; padding: 0.625rem 1.5rem; border-radius: 0.5rem; border: 1px solid #374151; cursor: pointer;">🧹 Limpar Filtros</button>
 			</div>
 			<div id="formulario-cadastro-container-planos" class="mt-4"></div>
@@ -1106,10 +1144,7 @@
 							Fechar
 						</button>
 						<button type="button"
-								hx-get="/html/invoicing"
-								hx-target="#conteudo-principal"
-								hx-push-url="/html/invoicing"
-								onclick="document.getElementById('modal-container-planos').innerHTML = '';"
+								onclick="if(typeof navegarParaPreFaturas==='function'){navegarParaPreFaturas();}else{window.location.href='/html/invoicing';}"
 								class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg border border-indigo-500 shadow-md transition cursor-pointer flex items-center gap-1.5">
 							<span>📄</span>
 							<span>Ver Pré-Faturas</span>
@@ -1130,12 +1165,14 @@
 								class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-semibold rounded-lg border border-gray-700 transition cursor-pointer">
 							Fechar
 						</button>
+						{{if .PlanID}}
 						<button type="button"
 								hx-get="/html/planos/gerar-invoice-modal?id={{.PlanID}}"
 								hx-target="#modal-container-planos"
 								class="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg border border-rose-500 shadow-md transition cursor-pointer">
 							Tentar Novamente
 						</button>
+						{{end}}
 					</div>
 				{{end}}
 			</div>
