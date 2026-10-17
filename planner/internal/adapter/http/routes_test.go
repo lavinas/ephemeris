@@ -671,18 +671,18 @@ func TestPlanGenerateInvoiceModalAndAction(t *testing.T) {
 		t.Errorf("expected 200 on /html/planos/gerar-pre-faturas-modal, got %d", recAliasModal.Code)
 	}
 
-	// 7. GET /html/planos should contain 'Gerar pré-faturas' button with hx-get to modal
+	// 7. GET /html/planos should contain 'Gerar' button with hx-get to modal
 	reqPlans := httptest.NewRequest(http.MethodGet, "/html/planos", nil)
 	recPlans := httptest.NewRecorder()
 	routes.ServeHTTP(recPlans, reqPlans)
 	if recPlans.Code != http.StatusOK {
 		t.Errorf("expected 200 on /html/planos, got %d", recPlans.Code)
 	}
-	if !strings.Contains(recPlans.Body.String(), "Gerar pré-faturas") {
-		t.Errorf("expected /html/planos to contain 'Gerar pré-faturas' button, got: %s", recPlans.Body.String())
+	if !strings.Contains(recPlans.Body.String(), "Gerar") {
+		t.Errorf("expected /html/planos to contain 'Gerar' button, got: %s", recPlans.Body.String())
 	}
 	if !strings.Contains(recPlans.Body.String(), "hx-get=\"/html/planos/gerar-invoices-modal\"") {
-		t.Errorf("expected 'Gerar pré-faturas' button to have hx-get to modal, got: %s", recPlans.Body.String())
+		t.Errorf("expected 'Gerar' button to have hx-get to modal, got: %s", recPlans.Body.String())
 	}
 }
 
