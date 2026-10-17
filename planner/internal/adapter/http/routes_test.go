@@ -825,6 +825,9 @@ func TestInvoiceEditAndBatchDeleteRoutes(t *testing.T) {
 	if !strings.Contains(recBatchWarn.Body.String(), "Excluir Pré-Faturas em Lote") && !strings.Contains(recBatchWarn.Body.String(), "modal-deletar-lote") {
 		t.Errorf("expected modal to be rendered, got: %s", recBatchWarn.Body.String())
 	}
+	if !strings.Contains(recBatchWarn.Body.String(), `hx-post="/html/invoicing/deletar-lote"`) {
+		t.Errorf("expected modal to contain hx-post form for deletar-lote")
+	}
 
 	// 6. POST /html/invoicing/deletar-lote
 	reqBatchDel := httptest.NewRequest(http.MethodPost, "/html/invoicing/deletar-lote", strings.NewReader("nickname=cliente_teste"))
@@ -836,6 +839,9 @@ func TestInvoiceEditAndBatchDeleteRoutes(t *testing.T) {
 	}
 	if len(mockR.deletedBatchIDs) == 0 {
 		t.Errorf("expected mockR.deletedBatchIDs to be populated")
+	}
+	if !strings.Contains(recBatchDel.Body.String(), `id="modal-container-invoicing" hx-swap-oob="true"`) {
+		t.Errorf("expected response to include oob clear for modal-container-invoicing, got: %s", recBatchDel.Body.String())
 	}
 
 	// 7. DELETE /api/invoice/batch-delete (JSON API)

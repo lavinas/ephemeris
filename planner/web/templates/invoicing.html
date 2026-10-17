@@ -235,7 +235,7 @@
 						<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
 						</svg>
-						<span>Apagar Faturas Filtradas</span>
+						<span>Apagar listagem</span>
 					</button>
 				</div>
 				<div id="totais-container-invoicing">
@@ -294,6 +294,7 @@
 	<div id="totais-container-invoicing" hx-swap-oob="true">
 		{{template "totais_resumo" .}}
 	</div>
+	<div id="modal-container-invoicing" hx-swap-oob="true"></div>
 	<div class="w-full">
 		<div class="grade-tabela-invoicing topo-tabela-invoicing">
 			<div>DATA FATURA</div>
@@ -633,53 +634,62 @@
 						</button>
 					</div>
 				{{else}}
-					<div class="p-3.5 bg-rose-950/30 border border-rose-800/50 rounded-xl space-y-2 text-xs text-rose-200">
-						<div class="font-bold text-sm text-rose-300 flex items-center gap-2">
-							<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-rose-400 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
-								<path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-							</svg>
-							<span>Atenção: Ação Irreversível</span>
-						</div>
-						<p>
-							Deseja realmente excluir <strong>{{.TotalCount}}</strong> pré-fatura(s) correspondente(s) aos filtros atuais?
-						</p>
-						<div class="pt-1 text-sm font-bold text-rose-100">
-							Valor Total: <span class="font-mono text-rose-300">{{.TotalFormatado}}</span>
-						</div>
-					</div>
+					<form hx-post="/html/invoicing/deletar-lote"
+						  hx-target="#tabela-container-invoicing"
+						  hx-on::after-request="if(event.detail.successful) document.getElementById('modal-container-invoicing').innerHTML = '';"
+						  class="space-y-4">
+						<input type="hidden" name="nickname" value="{{.Nickname}}">
+						<input type="hidden" name="start_date" value="{{.StartDate}}">
+						<input type="hidden" name="end_date" value="{{.EndDate}}">
+						<input type="hidden" name="plan_type" value="{{.PlanType}}">
+						<input type="hidden" name="service_id" value="{{.ServiceID}}">
+						<input type="hidden" name="invoice_id" value="{{.InvoiceID}}">
+						<input type="hidden" name="plan_id" value="{{.PlanID}}">
 
-					<!-- Filtros Ativos -->
-					<div class="p-3 bg-gray-950/60 border border-gray-800 rounded-xl space-y-1.5 text-xs text-gray-300">
-						<div class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Filtros Ativos</div>
-						{{if .TemFiltros}}
-							<div class="flex flex-wrap gap-1.5">
-								{{range .Filtros}}
-									<span class="bg-gray-800 border border-gray-700 px-2 py-0.5 rounded text-[11px] text-gray-200">{{.}}</span>
-								{{end}}
+						<div class="p-3.5 bg-rose-950/30 border border-rose-800/50 rounded-xl space-y-2 text-xs text-rose-200">
+							<div class="font-bold text-sm text-rose-300 flex items-center gap-2">
+								<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-rose-400 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+									<path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+								</svg>
+								<span>Atenção: Ação Irreversível</span>
 							</div>
-						{{else}}
-							<div class="text-amber-400 font-semibold italic">Nenhum filtro aplicado. Esta ação excluirá TODAS as pré-faturas ativas!</div>
-						{{end}}
-					</div>
+							<p>
+								Deseja realmente excluir <strong>{{.TotalCount}}</strong> pré-fatura(s) correspondente(s) aos filtros atuais?
+							</p>
+							<div class="pt-1 text-sm font-bold text-rose-100">
+								Valor Total: <span class="font-mono text-rose-300">{{.TotalFormatado}}</span>
+							</div>
+						</div>
 
-					<!-- Footer Buttons -->
-					<div class="flex items-center justify-end gap-3 pt-3 border-t border-gray-800">
-						<button type="button" onclick="document.getElementById('modal-container-invoicing').innerHTML = '';"
-								class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm font-medium rounded-lg border border-gray-700 transition cursor-pointer">
-							Cancelar
-						</button>
-						<button type="button"
-								hx-post="/html/invoicing/deletar-lote"
-								hx-target="#tabela-container-invoicing"
-								hx-include="#filtro-form-invoicing"
-								onclick="document.getElementById('modal-container-invoicing').innerHTML = '';"
-								class="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold rounded-lg shadow-lg hover:shadow-rose-600/30 transition cursor-pointer flex items-center gap-2">
-							<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-							</svg>
-							<span>Sim, Excluir Faturas</span>
-						</button>
-					</div>
+						<!-- Filtros Ativos -->
+						<div class="p-3 bg-gray-950/60 border border-gray-800 rounded-xl space-y-1.5 text-xs text-gray-300">
+							<div class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Filtros Ativos</div>
+							{{if .TemFiltros}}
+								<div class="flex flex-wrap gap-1.5">
+									{{range .Filtros}}
+										<span class="bg-gray-800 border border-gray-700 px-2 py-0.5 rounded text-[11px] text-gray-200">{{.}}</span>
+									{{end}}
+								</div>
+							{{else}}
+								<div class="text-amber-400 font-semibold italic">Nenhum filtro aplicado. Esta ação excluirá TODAS as pré-faturas ativas!</div>
+							{{end}}
+						</div>
+
+						<!-- Footer Buttons -->
+						<div class="flex items-center justify-end gap-3 pt-3 border-t border-gray-800">
+							<button type="button" onclick="document.getElementById('modal-container-invoicing').innerHTML = '';"
+									class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm font-medium rounded-lg border border-gray-700 transition cursor-pointer">
+								Cancelar
+							</button>
+							<button type="submit"
+									class="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold rounded-lg shadow-lg hover:shadow-rose-600/30 transition cursor-pointer flex items-center gap-2">
+								<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+								</svg>
+								<span>Sim, Excluir Faturas</span>
+							</button>
+						</div>
+					</form>
 				{{end}}
 			</div>
 		</div>

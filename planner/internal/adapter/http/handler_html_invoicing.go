@@ -418,6 +418,7 @@ func (h *HandlerHtml) InvoicingDeleteBatch(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	r.Form.Set("page", "1")
 	h.InvoicingTable(w, r)
 }
 
