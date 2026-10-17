@@ -4,35 +4,38 @@ import "time"
 
 // Invoice represents a billing invoice with customer details and amount.
 type Invoice struct {
-	ID                  int64         `gorm:"primaryKey"`
-	CustomerID          int64         `gorm:"not null"`
-	Customer            Customer      `gorm:"foreignKey:CustomerID"`
-	Amount              float64       `gorm:"not null"`
-	InvoiceDate         time.Time     `gorm:"not null"`
-	DueDate             time.Time     `gorm:"not null"`
-	PaymentDate         *time.Time    `gorm:"null"`
-	EmailSentDate       *time.Time    `gorm:"null"`
-	WhatsappSentDate    *time.Time    `gorm:"null"`
-	EmailReceiptDate    *time.Time    `gorm:"null"`
-	WhatsappReceiptDate *time.Time    `gorm:"null"`
-	TaxDate             *time.Time    `gorm:"null"`
-	CancellationDate    *time.Time    `gorm:"null"`
-	Notes               *string       `gorm:"null"`
-	CreatedAt           time.Time     `gorm:"autoCreateTime"`
-	UpdatedAt           time.Time     `gorm:"autoUpdateTime"`
-	InvoiceItems        []InvoiceItem `gorm:"foreignKey:InvoiceID"`
+	ID               int64         `gorm:"primaryKey"`
+	VendorID         int64         `gorm:"not null"`
+	Vendor           Vendor        `gorm:"foreignKey:VendorID"`
+	CustomerID       int64         `gorm:"not null"`
+	Customer         Customer      `gorm:"foreignKey:CustomerID"`
+	Amount           float64       `gorm:"not null"`
+	InvoiceDate      time.Time     `gorm:"not null"`
+	DueDate          time.Time     `gorm:"not null"`
+	PaymentDate      *time.Time    `gorm:"null"`
+	SentDate         *time.Time    `gorm:"null;column:sent_date"`
+	ReceiptDate      *time.Time    `gorm:"null;column:receipt_date"`
+	TaxDate          *time.Time    `gorm:"null"`
+	CancellationDate *time.Time    `gorm:"null"`
+	Notes            *string       `gorm:"null"`
+	ExternalCode     *string       `gorm:"null;column:external_code"`
+	CreatedAt        time.Time     `gorm:"autoCreateTime"`
+	UpdatedAt        time.Time     `gorm:"autoUpdateTime"`
+	InvoiceItems     []InvoiceItem `gorm:"foreignKey:InvoiceID"`
 }
 
 // NewInvoice creates a new Invoice instance with the details and calculates the total amount.
-func NewInvoice(customerID int64, invoiceDate, dueDate time.Time, paymentDate, cancellationDate *time.Time,
-	notes *string, items []InvoiceItem) *Invoice {
+func NewInvoice(vendorID, customerID int64, invoiceDate, dueDate time.Time, paymentDate, cancellationDate *time.Time,
+	notes, externalCode *string, items []InvoiceItem) *Invoice {
 	invoice := &Invoice{
+		VendorID:         vendorID,
 		CustomerID:       customerID,
 		InvoiceDate:      invoiceDate,
 		DueDate:          dueDate,
 		PaymentDate:      paymentDate,
 		CancellationDate: cancellationDate,
 		Notes:            notes,
+		ExternalCode:     externalCode,
 		InvoiceItems:     items,
 		CreatedAt:        time.Now(),
 		UpdatedAt:        time.Now(),

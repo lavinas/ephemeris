@@ -40,10 +40,14 @@ func (s *InvoiceCreate) Run(inDTO port.InDTO) port.OutDTO {
 		return dto.NewInvoiceCreateResponse(500, "internal error", "contact support please")
 	}
 	// save domain entities
-	if err := s.repo.Save(domainInvoices); err != nil {
+	if err := s.repo.Save(&domainInvoices); err != nil {
 		s.logger.IPrintf(2, "Failed to save invoices: %v", err)
 		return dto.NewInvoiceCreateResponse(500, "internal error", "contact support please")
 	}
+	ids := make([]int64, len(domainInvoices))
+	for i, inv := range domainInvoices {
+		ids[i] = inv.ID
+	}
 	s.logger.IPrintf(2, "Input validation successful for request: %v", in)
-	return dto.NewInvoiceCreateResponse(200, "success", "Invoice created successfully")
+	return dto.NewInvoiceCreateResponse(200, "success", "Invoice created successfully", ids...)
 }

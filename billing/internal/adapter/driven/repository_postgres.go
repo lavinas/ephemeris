@@ -219,13 +219,13 @@ func (a *PostgresRepository) GetVendorByID(id int64) (*domain.Vendor, error) {
 	return &vendor, nil
 }
 
-// FindInvoicesPendingSend retrieves all invoices with DueDate <= dueBeforeOrEqual where EmailSentDate is null and CancellationDate is null
+// FindInvoicesPendingSend retrieves all invoices with DueDate <= dueBeforeOrEqual where SentDate is null and CancellationDate is null
 func (a *PostgresRepository) FindInvoicesPendingSend(dueBeforeOrEqual time.Time) ([]domain.Invoice, error) {
 	var invoices []domain.Invoice
 	err := a.getDB().Model(&domain.Invoice{}).
 		Preload("InvoiceItems").
 		Preload("Customer").
-		Where("due_date <= ? AND email_sent_date IS NULL AND cancellation_date IS NULL AND payment_date is NULL", dueBeforeOrEqual).
+		Where("due_date <= ? AND sent_date IS NULL AND cancellation_date IS NULL AND payment_date is NULL", dueBeforeOrEqual).
 		Order("due_date ASC, id ASC").
 		Find(&invoices).Error
 	return invoices, err
@@ -233,8 +233,8 @@ func (a *PostgresRepository) FindInvoicesPendingSend(dueBeforeOrEqual time.Time)
 
 // FindInvoices retrieves invoices based on the provided filters and pagination parameters
 func (a *PostgresRepository) FindInvoices(page, pageSize int, customer int64,
-	invoiceDate, dueDate, paymentDate, emailSentDate, whatsappSentDate, emailReceiptDate, whatsappReceiptDate,
-	taxDate, cancellationDate *string) ([]domain.Invoice, error) {
+	invoiceDate, dueDate, paymentDate, sentDate, receiptDate,
+	taxDate, cancellationDate, externalCode *string) ([]domain.Invoice, error) {
 	var invoices []domain.Invoice
 	db := a.getDB().Model(&domain.Invoice{}).Preload("InvoiceItems").
 		Preload("Customer")
@@ -256,40 +256,22 @@ func (a *PostgresRepository) FindInvoices(page, pageSize int, customer int64,
 			db = db.Where("payment_date::text ILIKE ?", "%"+*paymentDate+"%")
 		}
 	}
-	if emailSentDate != nil {
-		if strings.ToLower(*emailSentDate) == "null" {
-			db = db.Where("email_sent_date IS NULL")
-		} else if strings.ToLower(*emailSentDate) == "not null" {
-			db = db.Where("email_sent_date IS NOT NULL")
+	if sentDate != nil {
+		if strings.ToLower(*sentDate) == "null" {
+			db = db.Where("sent_date IS NULL")
+		} else if strings.ToLower(*sentDate) == "not null" {
+			db = db.Where("sent_date IS NOT NULL")
 		} else {
-			db = db.Where("email_sent_date::text ILIKE ?", "%"+*emailSentDate+"%")
+			db = db.Where("sent_date::text ILIKE ?", "%"+*sentDate+"%")
 		}
 	}
-	if whatsappSentDate != nil {
-		if strings.ToLower(*whatsappSentDate) == "null" {
-			db = db.Where("whatsapp_sent_date IS NULL")
-		} else if strings.ToLower(*whatsappSentDate) == "not null" {
-			db = db.Where("whatsapp_sent_date IS NOT NULL")
+	if receiptDate != nil {
+		if strings.ToLower(*receiptDate) == "null" {
+			db = db.Where("receipt_date IS NULL")
+		} else if strings.ToLower(*receiptDate) == "not null" {
+			db = db.Where("receipt_date IS NOT NULL")
 		} else {
-			db = db.Where("whatsapp_sent_date::text ILIKE ?", "%"+*whatsappSentDate+"%")
-		}
-	}
-	if emailReceiptDate != nil {
-		if strings.ToLower(*emailReceiptDate) == "null" {
-			db = db.Where("email_receipt_date IS NULL")
-		} else if strings.ToLower(*emailReceiptDate) == "not null" {
-			db = db.Where("email_receipt_date IS NOT NULL")
-		} else {
-			db = db.Where("email_receipt_date::text ILIKE ?", "%"+*emailReceiptDate+"%")
-		}
-	}
-	if whatsappReceiptDate != nil {
-		if strings.ToLower(*whatsappReceiptDate) == "null" {
-			db = db.Where("whatsapp_receipt_date IS NULL")
-		} else if strings.ToLower(*whatsappReceiptDate) == "not null" {
-			db = db.Where("whatsapp_receipt_date IS NOT NULL")
-		} else {
-			db = db.Where("whatsapp_receipt_date::text ILIKE ?", "%"+*whatsappReceiptDate+"%")
+			db = db.Where("receipt_date::text ILIKE ?", "%"+*receiptDate+"%")
 		}
 	}
 	if taxDate != nil {
@@ -310,12 +292,35 @@ func (a *PostgresRepository) FindInvoices(page, pageSize int, customer int64,
 			db = db.Where("cancellation_date::text ILIKE ?", "%"+*cancellationDate+"%")
 		}
 	}
+	if externalCode != nil {
+		if strings.ToLower(*externalCode) == "null" {
+			db = db.Where("external_code IS NULL")
+		} else if strings.ToLower(*externalCode) == "not null" {
+			db = db.Where("external_code IS NOT NULL")
+		} else {
+			db = db.Where("external_code ILIKE ?", "%"+*externalCode+"%")
+		}
+	}
 	db = db.Order("invoice_date DESC, id DESC")
 	if page > 0 && pageSize > 0 {
 		db = db.Offset((page - 1) * pageSize).Limit(pageSize)
 	}
 	err := db.Find(&invoices).Error
 	return invoices, err
+}
+
+// GetInvoiceByExternalCode retrieves a single invoice by vendorID and externalCode
+func (a *PostgresRepository) GetInvoiceByExternalCode(vendorID int64, externalCode string) (*domain.Invoice, error) {
+	var invoice domain.Invoice
+	err := a.getDB().Preload("InvoiceItems").Preload("Customer").
+		Where("vendor_id = ? AND external_code = ?", vendorID, externalCode).First(&invoice).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &invoice, nil
 }
 
 // GetInvoice retrieves a single invoice by ID

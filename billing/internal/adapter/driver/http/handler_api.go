@@ -149,21 +149,23 @@ func (h *HandlerApi) InvoiceList(w http.ResponseWriter, r *http.Request) {
 		p := r.URL.Query().Get("payment")
 		req.PaymentDate = &p
 	}
-	if req.EmailSentDate == nil && r.URL.Query().Get("email_sent") != "" {
-		es := r.URL.Query().Get("email_sent")
-		req.EmailSentDate = &es
+	if req.SentDate == nil {
+		if s := r.URL.Query().Get("sent"); s != "" {
+			req.SentDate = &s
+		} else if es := r.URL.Query().Get("email_sent"); es != "" {
+			req.SentDate = &es
+		}
 	}
-	if req.WhatsappSentDate == nil && r.URL.Query().Get("whatsapp_sent") != "" {
-		ws := r.URL.Query().Get("whatsapp_sent")
-		req.WhatsappSentDate = &ws
+	if req.ReceiptDate == nil {
+		if rc := r.URL.Query().Get("receipt"); rc != "" {
+			req.ReceiptDate = &rc
+		} else if er := r.URL.Query().Get("email_receipt"); er != "" {
+			req.ReceiptDate = &er
+		}
 	}
-	if req.EmailReceiptDate == nil && r.URL.Query().Get("email_receipt") != "" {
-		er := r.URL.Query().Get("email_receipt")
-		req.EmailReceiptDate = &er
-	}
-	if req.WhatsappReceiptDate == nil && r.URL.Query().Get("whatsapp_receipt") != "" {
-		wr := r.URL.Query().Get("whatsapp_receipt")
-		req.WhatsappReceiptDate = &wr
+	if req.ExternalCode == nil && r.URL.Query().Get("external_code") != "" {
+		ec := r.URL.Query().Get("external_code")
+		req.ExternalCode = &ec
 	}
 	if req.TaxDate == nil && r.URL.Query().Get("tax") != "" {
 		t := r.URL.Query().Get("tax")

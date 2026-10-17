@@ -96,10 +96,10 @@ func (r *BillRequest) validateInvoice(repo port.Repository) error {
 		return errors.New("cannot send receipt for a canceled invoice")
 	}
 	if r.Action == 0 {
-		if r.Doc == 0 && invoice.EmailSentDate != nil {
+		if r.Doc == 0 && invoice.SentDate != nil {
 			return errors.New("email has already been sent for this invoice")
 		}
-		if r.Doc == 1 && invoice.EmailReceiptDate != nil {
+		if r.Doc == 1 && invoice.ReceiptDate != nil {
 			return errors.New("email has already been sent for this receipt")
 		}
 	}

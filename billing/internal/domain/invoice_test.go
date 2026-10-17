@@ -26,10 +26,10 @@ func TestInvoice_IsOverdue(t *testing.T) {
 			wantOverdue: true,
 		},
 		{
-			name:        "due today (00:00), unpaid -> overdue",
+			name:        "due today (00:00), unpaid -> not overdue (until end of day)",
 			dueDate:     today,
 			paymentDate: nil,
-			wantOverdue: true,
+			wantOverdue: false,
 		},
 		{
 			name:        "due tomorrow, unpaid -> not overdue",
@@ -82,34 +82,6 @@ func TestInvoice_CanDelete(t *testing.T) {
 
 	t.Run("PaymentDate not nil -> cannot delete", func(t *testing.T) {
 		inv := &Invoice{PaymentDate: &now}
-		if inv.CanDelete() {
-			t.Errorf("expected CanDelete() = false, got true")
-		}
-	})
-
-	t.Run("EmailSentDate not nil -> cannot delete", func(t *testing.T) {
-		inv := &Invoice{EmailSentDate: &now}
-		if inv.CanDelete() {
-			t.Errorf("expected CanDelete() = false, got true")
-		}
-	})
-
-	t.Run("WhatsappSentDate not nil -> cannot delete", func(t *testing.T) {
-		inv := &Invoice{WhatsappSentDate: &now}
-		if inv.CanDelete() {
-			t.Errorf("expected CanDelete() = false, got true")
-		}
-	})
-
-	t.Run("EmailReceiptDate not nil -> cannot delete", func(t *testing.T) {
-		inv := &Invoice{EmailReceiptDate: &now}
-		if inv.CanDelete() {
-			t.Errorf("expected CanDelete() = false, got true")
-		}
-	})
-
-	t.Run("WhatsappReceiptDate not nil -> cannot delete", func(t *testing.T) {
-		inv := &Invoice{WhatsappReceiptDate: &now}
 		if inv.CanDelete() {
 			t.Errorf("expected CanDelete() = false, got true")
 		}

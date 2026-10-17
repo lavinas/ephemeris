@@ -189,9 +189,9 @@ func (s *Bill) registerSendReceiver(invoice *domain.Invoice, docType int) {
 	invoice.UpdatedAt = time.Now()
 	switch docType {
 	case 0: // Invoice
-		invoice.EmailSentDate = &invoice.UpdatedAt
+		invoice.SentDate = &invoice.UpdatedAt
 	case 1: // Receipt
-		invoice.EmailReceiptDate = &invoice.UpdatedAt
+		invoice.ReceiptDate = &invoice.UpdatedAt
 	}
 	if err := s.repo.Save(invoice); err != nil {
 		s.logger.IPrintf(2, "Error updating invoice after sending receipt: %v", err)

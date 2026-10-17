@@ -81,8 +81,8 @@ func (d *dummyRepo) GetVendorByID(id int64) (*domain.Vendor, error) {
 }
 
 func (d *dummyRepo) FindInvoices(page, pageSize int, customer int64,
-	invoiceDate, dueDate, paymentDate, emailSentDate, whatsappSentDate, emailReceiptDate, whatsappReceiptDate,
-	taxDate, cancellationDate *string) ([]domain.Invoice, error) {
+	invoiceDate, dueDate, paymentDate, sentDate, receiptDate,
+	taxDate, cancellationDate, externalCode *string) ([]domain.Invoice, error) {
 	now := time.Now()
 	return []domain.Invoice{
 		{
@@ -128,6 +128,10 @@ func (d *dummyRepo) GetInvoice(id int64) (*domain.Invoice, error) {
 	d.invoices[id] = newInv
 	copied := *newInv
 	return &copied, nil
+}
+
+func (d *dummyRepo) GetInvoiceByExternalCode(vendorID int64, externalCode string) (*domain.Invoice, error) {
+	return nil, nil
 }
 
 func (d *dummyRepo) GetEmissions(vendorID int64, invoiceStartDate, invoiceEndDate time.Time) ([]domain.Emission, error) {

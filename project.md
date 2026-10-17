@@ -39,7 +39,8 @@ No subprojeto planner:
     * As invoices que já tem uma chamada prévea, ou seja, com o ReferenceInvoiceID da aplicação prenchido, não deve ser enviado, retornando assim um bad request no serviço do planner.
     * Ainda no serviço de listagem da pré-fatura, criar na interface (dto) um status de faturamento (Invoiced bool), true no caso do campo ReferenceInvoiceID diferente de nulo e false no caso contrário
     * No htmx da pré-fatura, deve-se inserir nas ações da listagem de pré-faturas um botão para faturar a invoice, ou seja, chamar o serviço externo de faturamento.
-    * Ainda no htmx de pré-fatura deve-se 
+    * Ainda no htmx de pré-fatura deve-se ter um botão que de faturamento das invoices filtradas (ou seja em relação aos filtros selecionados e aplicados)...O botão deve ter o nome Faturar e deve vir antes do botão 'Apagar listagem' (alias trocar o nome do botão para Apagar)...a ordem dos botões devem ser 'Faturar', 'Apagar', 'Limpar Filtros'
+    * O aplicativo já está tratando a possível duplicidade de envios para o billing, porém pode haver erro de sincronismo, desta forma, posde-se enviar uma fatura e receber erro de duplicidade da api....neste caso, deve-se ignorar o erro, e continuar o processo, registrando o ReferenceInvoiceID 
         
 
      

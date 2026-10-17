@@ -30,6 +30,7 @@ type InvoiceCreate struct {
 	PaymentDate      *string              `json:"payment,omitempty"`
 	CancellationDate *string              `json:"cancellation,omitempty"`
 	Notes            *string              `json:"notes,omitempty"`
+	ExternalCode     *string              `json:"external_code,omitempty"`
 	InvoiceItems     []*InvoiceCreateItem `json:"items" validate:"required,dive,required"`
 }
 
@@ -43,13 +44,20 @@ type InvoiceCreateItem struct {
 // InvoiceCreateResponse represents the data transfer object for the response
 type InvoiceCreateResponse struct {
 	ResponseBase
+	ID  int64   `json:"id,omitempty"`
+	IDs []int64 `json:"ids,omitempty"`
 }
 
 // NewInvoiceCreateResponse creates a new instance of InvoiceCreateResponse
-func NewInvoiceCreateResponse(httpCode int, status, message string) InvoiceCreateResponse {
-	return InvoiceCreateResponse{
+func NewInvoiceCreateResponse(httpCode int, status, message string, ids ...int64) InvoiceCreateResponse {
+	resp := InvoiceCreateResponse{
 		ResponseBase: NewResponseBase(httpCode, status, message),
 	}
+	if len(ids) > 0 {
+		resp.ID = ids[0]
+		resp.IDs = ids
+	}
+	return resp
 }
 
 // Validate validates the InvoiceCreateRequest fields using the provided validator.
@@ -58,9 +66,17 @@ func (r *InvoiceCreateRequest) Validate(repo port.Repository) error {
 		return errors.New("no invoice data provided")
 	}
 	errs := make([]error, 0)
+	seen := make(map[string]bool)
 	for i, item := range r.Items {
 		if err := item.Validate(repo); err != nil {
 			errs = append(errs, fmt.Errorf("invoice %d: %w", i, err))
+		}
+		if item.ExternalCode != nil && *item.ExternalCode != "" {
+			key := fmt.Sprintf("%d:%s", item.vendorID, *item.ExternalCode)
+			if seen[key] {
+				errs = append(errs, fmt.Errorf("invoice %d: duplicate external_code '%s' in request", i, *item.ExternalCode))
+			}
+			seen[key] = true
 		}
 	}
 	if len(errs) != 0 {
@@ -82,6 +98,9 @@ func (r *InvoiceCreate) Validate(repo port.Repository) error {
 	if err := r.validateNotes(); err != nil {
 		errs = append(errs, err)
 	}
+	if err := r.validateExternalCode(repo); err != nil {
+		errs = append(errs, err)
+	}
 	if dateErrs := r.validateDates(); len(dateErrs) > 0 {
 		errs = append(errs, dateErrs...)
 	}
@@ -91,6 +110,32 @@ func (r *InvoiceCreate) Validate(repo port.Repository) error {
 	if len(errs) != 0 {
 		err := errors.Join(errs...)
 		return errors.New(strings.ReplaceAll(err.Error(), "\n", "; "))
+	}
+	return nil
+}
+
+// validateExternalCode validates external_code format and checks for duplicates for the vendor.
+func (r *InvoiceCreate) validateExternalCode(repo port.Repository) error {
+	if r.ExternalCode == nil {
+		return nil
+	}
+	trimmed := strings.TrimSpace(*r.ExternalCode)
+	if trimmed == "" {
+		r.ExternalCode = nil
+		return nil
+	}
+	r.ExternalCode = &trimmed
+	if len(trimmed) > 50 {
+		return fmt.Errorf("external_code cannot exceed 50 characters")
+	}
+	if r.vendorID != 0 {
+		existing, err := repo.GetInvoiceByExternalCode(r.vendorID, trimmed)
+		if err != nil {
+			return fmt.Errorf("error verifying external_code: %v", err)
+		}
+		if existing != nil {
+			return fmt.Errorf("duplicate external_code '%s' for vendor", trimmed)
+		}
 	}
 	return nil
 }
@@ -242,7 +287,7 @@ func (r *InvoiceCreate) GetDomain() *domain.Invoice {
 			cDate = &parsedDate
 		}
 	}
-	return domain.NewInvoice(r.customerID, iDate, dDate, pDate, cDate, r.Notes, invoiceItems)
+	return domain.NewInvoice(r.vendorID, r.customerID, iDate, dDate, pDate, cDate, r.Notes, r.ExternalCode, invoiceItems)
 }
 
 // GetDomain converts the InvoiceCreateItem to a domain.InvoiceItem entity.

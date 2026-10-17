@@ -114,9 +114,10 @@ func (h *HandlerHtml) InvoicesCreate(w http.ResponseWriter, r *http.Request) {
 	hoje := time.Now().Format("2006-01-02")
 	dueDate := time.Now().AddDate(0, 0, 15).Format("2006-01-02")
 	dadosPadrao := map[string]interface{}{
-		"InvoiceDate": hoje,
-		"DueDate":     dueDate,
-		"Nicknames":   h.getCustomersNicknames(),
+		"InvoiceDate":  hoje,
+		"DueDate":      dueDate,
+		"ExternalCode": "",
+		"Nicknames":    h.getCustomersNicknames(),
 		"Items": []map[string]interface{}{
 			{
 				"Description": "",
@@ -136,8 +137,18 @@ func (h *HandlerHtml) InvoicesSave(w http.ResponseWriter, r *http.Request) {
 	invoiceDate := strings.TrimSpace(r.FormValue("add_invoicing"))
 	dueDate := strings.TrimSpace(r.FormValue("add_due"))
 	paymentDate := strings.TrimSpace(r.FormValue("add_payment"))
-	emailSentDate := strings.TrimSpace(r.FormValue("add_email_sent"))
-	emailReceiptDate := strings.TrimSpace(r.FormValue("add_email_receipt"))
+	emailSentDate := strings.TrimSpace(r.FormValue("add_sent"))
+	if emailSentDate == "" {
+		emailSentDate = strings.TrimSpace(r.FormValue("add_email_sent"))
+	}
+	emailReceiptDate := strings.TrimSpace(r.FormValue("add_receipt"))
+	if emailReceiptDate == "" {
+		emailReceiptDate = strings.TrimSpace(r.FormValue("add_email_receipt"))
+	}
+	externalCode := strings.TrimSpace(r.FormValue("add_external_code"))
+	if externalCode == "" {
+		externalCode = strings.TrimSpace(r.FormValue("external_code"))
+	}
 	notes := strings.TrimSpace(r.FormValue("add_notes"))
 
 	// Extract multiple items
@@ -193,6 +204,10 @@ func (h *HandlerHtml) InvoicesSave(w http.ResponseWriter, r *http.Request) {
 	if notes != "" {
 		notesPtr = &notes
 	}
+	var extCodePtr *string
+	if externalCode != "" {
+		extCodePtr = &externalCode
+	}
 
 	vendorNick := h.getVendorNickname()
 	invoiceCreate := &dto.InvoiceCreate{
@@ -202,6 +217,7 @@ func (h *HandlerHtml) InvoicesSave(w http.ResponseWriter, r *http.Request) {
 		DueDate:      dueDate,
 		PaymentDate:  pDate,
 		Notes:        notesPtr,
+		ExternalCode: extCodePtr,
 		InvoiceItems: createItems,
 	}
 
@@ -243,8 +259,11 @@ func (h *HandlerHtml) InvoicesSave(w http.ResponseWriter, r *http.Request) {
 			"InvoiceDate":      invoiceDate,
 			"DueDate":          dueDate,
 			"PaymentDate":      paymentDate,
+			"SentDate":         emailSentDate,
 			"EmailSentDate":    emailSentDate,
+			"ReceiptDate":      emailReceiptDate,
 			"EmailReceiptDate": emailReceiptDate,
+			"ExternalCode":     externalCode,
 			"Notes":            notes,
 			"Nicknames":        h.getCustomersNicknames(),
 			"Items":            formItems,
@@ -334,17 +353,29 @@ func (h *HandlerHtml) InvoicesUpdate(w http.ResponseWriter, r *http.Request) {
 	if payment != "" {
 		req.PaymentDate = &payment
 	}
-	emailSent := strings.TrimSpace(r.FormValue("edit_email_sent"))
-	if emailSent != "" {
-		req.EmailSentDate = &emailSent
+	sent := strings.TrimSpace(r.FormValue("edit_sent"))
+	if sent == "" {
+		sent = strings.TrimSpace(r.FormValue("edit_email_sent"))
 	}
-	emailReceipt := strings.TrimSpace(r.FormValue("edit_email_receipt"))
-	if emailReceipt != "" {
-		req.EmailReceiptDate = &emailReceipt
+	if sent != "" {
+		req.SentDate = &sent
+		req.EmailSentDate = &sent
+	}
+	receipt := strings.TrimSpace(r.FormValue("edit_receipt"))
+	if receipt == "" {
+		receipt = strings.TrimSpace(r.FormValue("edit_email_receipt"))
+	}
+	if receipt != "" {
+		req.ReceiptDate = &receipt
+		req.EmailReceiptDate = &receipt
 	}
 	tax := strings.TrimSpace(r.FormValue("edit_tax"))
 	if tax != "" {
 		req.TaxDate = &tax
+	}
+	extCode := strings.TrimSpace(r.FormValue("edit_external_code"))
+	if extCode != "" {
+		req.ExternalCode = &extCode
 	}
 
 	svc := service.NewInvoiceUpdate(h.repo, h.logger)
@@ -639,7 +670,7 @@ func parseOverdueFilter(overdue string) *bool {
 }
 
 // loadPageData retrieves invoices filtered and calculates pagination metadata
-func (h *HandlerHtml) loadPageData(page int, customer, invoiceDate, dueDate, paymentDate, emailSentDate, emailReceiptDate, taxDate, itemDesc, overdue string) map[string]interface{} {
+func (h *HandlerHtml) loadPageData(page int, customer, invoiceDate, dueDate, paymentDate, emailSentDate, emailReceiptDate, taxDate, itemDesc, overdue string, externalCodeOpt ...string) map[string]interface{} {
 	if page <= 0 {
 		page = 1
 	}
@@ -671,6 +702,11 @@ func (h *HandlerHtml) loadPageData(page int, customer, invoiceDate, dueDate, pay
 	if taxDate != "" {
 		taxDatePtr = &taxDate
 	}
+	var extCodePtr *string
+	if len(externalCodeOpt) > 0 && externalCodeOpt[0] != "" {
+		c := externalCodeOpt[0]
+		extCodePtr = &c
+	}
 
 	// Resolve Customer ID if customer nickname is provided
 	var customerID int64
@@ -682,7 +718,7 @@ func (h *HandlerHtml) loadPageData(page int, customer, invoiceDate, dueDate, pay
 	}
 
 	// Fetch all matching un-paginated to compute total count accurately
-	allInvoices, err := h.repo.FindInvoices(0, 0, customerID, invoiceDatePtr, dueDatePtr, paymentDatePtr, emailSentDatePtr, nil, emailReceiptDatePtr, nil, taxDatePtr, &cancellationNull)
+	allInvoices, err := h.repo.FindInvoices(0, 0, customerID, invoiceDatePtr, dueDatePtr, paymentDatePtr, emailSentDatePtr, emailReceiptDatePtr, taxDatePtr, &cancellationNull, extCodePtr)
 	if err != nil {
 		h.logger.IPrintf(1, "Error searching invoices: %v", err)
 	}
@@ -785,13 +821,13 @@ func (h *HandlerHtml) mapSingleInvoiceData(inv domain.Invoice) map[string]interf
 	if inv.PaymentDate != nil {
 		paymentDateRaw = inv.PaymentDate.Format("2006-01-02")
 	}
-	emailSentDateRaw := ""
-	if inv.EmailSentDate != nil {
-		emailSentDateRaw = inv.EmailSentDate.Format("2006-01-02")
+	sentDateRaw := ""
+	if inv.SentDate != nil {
+		sentDateRaw = inv.SentDate.Format("2006-01-02")
 	}
-	emailReceiptDateRaw := ""
-	if inv.EmailReceiptDate != nil {
-		emailReceiptDateRaw = inv.EmailReceiptDate.Format("2006-01-02")
+	receiptDateRaw := ""
+	if inv.ReceiptDate != nil {
+		receiptDateRaw = inv.ReceiptDate.Format("2006-01-02")
 	}
 	taxDateRaw := ""
 	if inv.TaxDate != nil {
@@ -800,6 +836,10 @@ func (h *HandlerHtml) mapSingleInvoiceData(inv domain.Invoice) map[string]interf
 	notesStr := ""
 	if inv.Notes != nil {
 		notesStr = *inv.Notes
+	}
+	extCodeStr := ""
+	if inv.ExternalCode != nil {
+		extCodeStr = *inv.ExternalCode
 	}
 
 	return map[string]interface{}{
@@ -812,12 +852,17 @@ func (h *HandlerHtml) mapSingleInvoiceData(inv domain.Invoice) map[string]interf
 		"Overdue":                   inv.IsOverdue(),
 		"PaymentDateRaw":            paymentDateRaw,
 		"PaymentDateFormatada":      formatDate(paymentDateRaw),
-		"EmailSentDateRaw":          emailSentDateRaw,
-		"EmailSentDateFormatada":    formatDate(emailSentDateRaw),
-		"EmailReceiptDateRaw":       emailReceiptDateRaw,
-		"EmailReceiptDateFormatada": formatDate(emailReceiptDateRaw),
+		"SentDateRaw":               sentDateRaw,
+		"SentDateFormatada":         formatDate(sentDateRaw),
+		"EmailSentDateRaw":          sentDateRaw,
+		"EmailSentDateFormatada":    formatDate(sentDateRaw),
+		"ReceiptDateRaw":            receiptDateRaw,
+		"ReceiptDateFormatada":      formatDate(receiptDateRaw),
+		"EmailReceiptDateRaw":       receiptDateRaw,
+		"EmailReceiptDateFormatada": formatDate(receiptDateRaw),
 		"TaxDateRaw":                taxDateRaw,
 		"TaxDateFormatada":          formatDate(taxDateRaw),
+		"ExternalCode":              extCodeStr,
 		"CanDelete":                 inv.CanDelete(),
 		"CanPay":                    inv.CanPay(),
 		"ValorTotal":                inv.Amount,

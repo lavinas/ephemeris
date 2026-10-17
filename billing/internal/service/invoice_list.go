@@ -36,10 +36,19 @@ func (s *InvoiceList) Run(inDTO port.InDTO) port.OutDTO {
 			fmt.Sprintf("Validation failed: %v", err), nil, 0, 0)
 	}
 
+	sentDate := in.SentDate
+	if sentDate == nil && in.EmailSentDate != nil {
+		sentDate = in.EmailSentDate
+	}
+	receiptDate := in.ReceiptDate
+	if receiptDate == nil && in.EmailReceiptDate != nil {
+		receiptDate = in.EmailReceiptDate
+	}
+
 	// Fetch unpaginated invoices to calculate totals
 	allInvoices, err := s.repo.FindInvoices(0, 0, in.CustomerID, in.InvoiceDate,
-		in.DueDate, in.PaymentDate, in.EmailSentDate, in.WhatsappSentDate, in.EmailReceiptDate, in.WhatsappReceiptDate,
-		in.TaxDate, in.CancellationDate)
+		in.DueDate, in.PaymentDate, sentDate, receiptDate,
+		in.TaxDate, in.CancellationDate, in.ExternalCode)
 	if err != nil {
 		s.logger.IPrintf(2, "Failed to fetch total invoices: %v", err)
 		return dto.NewInvoiceListResponse(500, "internal error", "contact support please", nil, 0, 0)
@@ -91,9 +100,9 @@ func (s *InvoiceList) mountInvoices(invoices []domain.Invoice) []dto.InvoiceList
 			items[j] = dto.NewInvoiceListListItem(item.ID, item.Description, item.Quantity, item.Price)
 		}
 		responseInvoices[i] = dto.NewInvoiceList(invoice.ID, invoice.Customer.Nickname, invoice.Amount,
-			invoice.InvoiceDate, invoice.DueDate, invoice.IsOverdue(), invoice.PaymentDate, invoice.EmailSentDate, invoice.WhatsappSentDate,
-			invoice.EmailReceiptDate, invoice.WhatsappReceiptDate, invoice.TaxDate, invoice.CancellationDate,
-			invoice.Notes, items)
+			invoice.InvoiceDate, invoice.DueDate, invoice.IsOverdue(), invoice.PaymentDate, invoice.SentDate,
+			invoice.ReceiptDate, invoice.TaxDate, invoice.CancellationDate,
+			invoice.Notes, invoice.ExternalCode, items)
 	}
 	return responseInvoices
 }

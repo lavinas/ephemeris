@@ -24,11 +24,12 @@ type Repository interface {
 	GetVendor(nickname string) (*domain.Vendor, error)
 	GetVendorByID(id int64) (*domain.Vendor, error)
 	FindInvoices(page, pageSize int, customer int64,
-		invoiceDate, dueDate, paymentDate, emailSentDate, whatsappSentDate, emailReceiptDate, whatsappReceiptDate,
-		taxDate, cancellationDate *string) ([]domain.Invoice, error)
+		invoiceDate, dueDate, paymentDate, sentDate, receiptDate,
+		taxDate, cancellationDate, externalCode *string) ([]domain.Invoice, error)
 	FindInvoicesPendingSend(dueBeforeOrEqual time.Time) ([]domain.Invoice, error)
 	GetInvoicesByPeriod(vendorID int64, start, end time.Time) ([]domain.Invoice, error)
 	GetInvoice(id int64) (*domain.Invoice, error)
+	GetInvoiceByExternalCode(vendorID int64, externalCode string) (*domain.Invoice, error)
 	GetEmissions(vendorID int64, invoiceStartDate, invoiceEndDate time.Time) ([]domain.Emission, error)
 	GetEmissionLastRPS(vendorID int64) (int64, error)
 	GetEmission(id int64) (*domain.Emission, error)

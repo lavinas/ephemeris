@@ -103,8 +103,8 @@ func (m *paymentMockRepo) GetVendorByID(id int64) (*domain.Vendor, error) {
 }
 
 func (m *paymentMockRepo) FindInvoices(page, pageSize int, customer int64,
-	invoiceDate, dueDate, paymentDate, emailSentDate, whatsappSentDate, emailReceiptDate, whatsappReceiptDate,
-	taxDate, cancellationDate *string) ([]domain.Invoice, error) {
+	invoiceDate, dueDate, paymentDate, sentDate, receiptDate,
+	taxDate, cancellationDate, externalCode *string) ([]domain.Invoice, error) {
 	return nil, nil
 }
 
@@ -112,7 +112,7 @@ func (m *paymentMockRepo) FindInvoicesPendingSend(dueBeforeOrEqual time.Time) ([
 	var list []domain.Invoice
 	for _, inv := range m.invoices {
 		if (inv.DueDate.Before(dueBeforeOrEqual) || inv.DueDate.Equal(dueBeforeOrEqual)) &&
-			inv.EmailSentDate == nil && inv.CancellationDate == nil {
+			inv.SentDate == nil && inv.CancellationDate == nil {
 			list = append(list, *inv)
 		}
 	}
@@ -130,6 +130,10 @@ func (m *paymentMockRepo) GetInvoice(id int64) (*domain.Invoice, error) {
 	}
 	copied := *inv
 	return &copied, nil
+}
+
+func (m *paymentMockRepo) GetInvoiceByExternalCode(vendorID int64, externalCode string) (*domain.Invoice, error) {
+	return nil, nil
 }
 
 func (m *paymentMockRepo) GetEmissions(vendorID int64, invoiceStartDate, invoiceEndDate time.Time) ([]domain.Emission, error) {
@@ -231,8 +235,8 @@ func TestInvoicePayment_Success(t *testing.T) {
 	if updatedInv.PaymentDate == nil || updatedInv.PaymentDate.Format("2006-01-02") != "2026-09-29" {
 		t.Errorf("expected PaymentDate to be 2026-09-29, got %v", updatedInv.PaymentDate)
 	}
-	if updatedInv.EmailReceiptDate == nil {
-		t.Errorf("expected EmailReceiptDate to be updated")
+	if updatedInv.ReceiptDate == nil {
+		t.Errorf("expected ReceiptDate to be updated")
 	}
 }
 

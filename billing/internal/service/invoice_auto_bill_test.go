@@ -68,8 +68,8 @@ func (m *autoBillMockRepo) GetVendorByID(id int64) (*domain.Vendor, error) {
 }
 
 func (m *autoBillMockRepo) FindInvoices(page, pageSize int, customer int64,
-	invoiceDate, dueDate, paymentDate, emailSentDate, whatsappSentDate, emailReceiptDate, whatsappReceiptDate,
-	taxDate, cancellationDate *string) ([]domain.Invoice, error) {
+	invoiceDate, dueDate, paymentDate, sentDate, receiptDate,
+	taxDate, cancellationDate, externalCode *string) ([]domain.Invoice, error) {
 	return nil, nil
 }
 
@@ -77,7 +77,7 @@ func (m *autoBillMockRepo) FindInvoicesPendingSend(dueBeforeOrEqual time.Time) (
 	var list []domain.Invoice
 	for _, inv := range m.invoices {
 		if (inv.DueDate.Before(dueBeforeOrEqual) || inv.DueDate.Equal(dueBeforeOrEqual)) &&
-			inv.EmailSentDate == nil && inv.CancellationDate == nil {
+			inv.SentDate == nil && inv.CancellationDate == nil {
 			copied := *inv
 			list = append(list, copied)
 		}
@@ -94,6 +94,10 @@ func (m *autoBillMockRepo) GetInvoice(id int64) (*domain.Invoice, error) {
 		copied := *inv
 		return &copied, nil
 	}
+	return nil, nil
+}
+
+func (m *autoBillMockRepo) GetInvoiceByExternalCode(vendorID int64, externalCode string) (*domain.Invoice, error) {
 	return nil, nil
 }
 
@@ -193,7 +197,7 @@ func TestInvoiceAutoBill_Success(t *testing.T) {
 		Amount:        400.0,
 		InvoiceDate:   now.AddDate(0, 0, -10),
 		DueDate:       now.AddDate(0, 0, 1),
-		EmailSentDate: &sentDate,
+		SentDate:      &sentDate,
 		InvoiceItems: []domain.InvoiceItem{
 			{ID: 4, Description: "Item 4", Quantity: 1, Price: 400.0},
 		},
@@ -229,12 +233,12 @@ func TestInvoiceAutoBill_Success(t *testing.T) {
 		t.Errorf("expected issuer to send 2 emails, got %d", issuer.sentCount)
 	}
 
-	// Verify EmailSentDate was marked in repository
-	if repo.invoices[1].EmailSentDate == nil {
-		t.Errorf("expected invoice 1 EmailSentDate to be populated")
+	// Verify SentDate was marked in repository
+	if repo.invoices[1].SentDate == nil {
+		t.Errorf("expected invoice 1 SentDate to be populated")
 	}
-	if repo.invoices[2].EmailSentDate == nil {
-		t.Errorf("expected invoice 2 EmailSentDate to be populated")
+	if repo.invoices[2].SentDate == nil {
+		t.Errorf("expected invoice 2 SentDate to be populated")
 	}
 
 	// Subsequent execution should find 0 pending invoices

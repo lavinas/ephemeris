@@ -23,7 +23,7 @@ func (s *InvoiceUpdate) Run(inDTO port.InDTO) port.OutDTO {
 	request, ok := inDTO.(*dto.InvoiceUpdateRequest)
 	if !ok {
 		s.logger.IPrintf(2, "Invalid input type")
-		return dto.NewCustomerUpdateResponse(400, "error", "Invalid input type")
+		return dto.NewInvoiceUpdateResponse(400, "error", "Invalid input type")
 	}
 	s.logger.IPrintf(2, "Processing invoice customer request: %v", request)
 	// Validate input
@@ -43,5 +43,5 @@ func (s *InvoiceUpdate) Run(inDTO port.InDTO) port.OutDTO {
 	}
 	// Finalize response
 	s.logger.IPrintf(2, "Successfully updated invoice with ID: %v", domainInvoice)
-	return dto.NewCustomerUpdateResponse(200, "success", "Invoice updated successfully")
+	return dto.NewInvoiceUpdateResponse(200, "success", "Invoice updated successfully")
 }

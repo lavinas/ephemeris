@@ -76,8 +76,8 @@ func (m *cronMockRepo) GetVendorByID(id int64) (*domain.Vendor, error) {
 	return nil, nil
 }
 func (m *cronMockRepo) FindInvoices(page, pageSize int, customer int64,
-	invoiceDate, dueDate, paymentDate, emailSentDate, whatsappSentDate, emailReceiptDate, whatsappReceiptDate,
-	taxDate, cancellationDate *string) ([]domain.Invoice, error) {
+	invoiceDate, dueDate, paymentDate, sentDate, receiptDate,
+	taxDate, cancellationDate, externalCode *string) ([]domain.Invoice, error) {
 	return nil, nil
 }
 func (m *cronMockRepo) FindInvoicesPendingSend(dueBeforeOrEqual time.Time) ([]domain.Invoice, error) {
@@ -87,6 +87,9 @@ func (m *cronMockRepo) GetInvoicesByPeriod(vendorID int64, start, end time.Time)
 	return nil, nil
 }
 func (m *cronMockRepo) GetInvoice(id int64) (*domain.Invoice, error) {
+	return nil, nil
+}
+func (m *cronMockRepo) GetInvoiceByExternalCode(vendorID int64, externalCode string) (*domain.Invoice, error) {
 	return nil, nil
 }
 func (m *cronMockRepo) GetEmissions(vendorID int64, invoiceStartDate, invoiceEndDate time.Time) ([]domain.Emission, error) {
