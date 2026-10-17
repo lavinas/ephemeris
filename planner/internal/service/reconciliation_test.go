@@ -488,6 +488,8 @@ func (m *mockSessionRepo) FindInvoicesPaged(page, pageSize int, conditions map[s
 	return nil, 0, 0, nil
 }
 func (m *mockSessionRepo) DeleteInvoice(id int64) error { return nil }
+func (m *mockSessionRepo) UpdateInvoice(invoice *domain.Invoice) error { return nil }
+func (m *mockSessionRepo) DeleteInvoicesByIDs(ids []int64) error { return nil }
 func (m *mockSessionRepo) FindActivePlansForInvoicing(planID *int64, vendorID *int64, customerID *int64, planType *int, serviceID *int64, startDate, endDate time.Time) ([]domain.Plan, error) {
 	return nil, nil
 }

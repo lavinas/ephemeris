@@ -65,6 +65,8 @@ func (d *dummyRepo) GetInvoiceByID(id int64) (*domain.Invoice, error) { return n
 func (d *dummyRepo) FindInvoices(conditions map[string]interface{}, orderBy ...string) ([]domain.Invoice, error) { return nil, nil }
 func (d *dummyRepo) FindInvoicesPaged(page, pageSize int, conditions map[string]interface{}, orderBy ...string) ([]domain.Invoice, int64, float64, error) { return nil, 0, 0, nil }
 func (d *dummyRepo) DeleteInvoice(id int64) error { return nil }
+func (d *dummyRepo) UpdateInvoice(invoice *domain.Invoice) error { return nil }
+func (d *dummyRepo) DeleteInvoicesByIDs(ids []int64) error { return nil }
 func (d *dummyRepo) FindActivePlansForInvoicing(planID *int64, vendorID *int64, customerID *int64, planType *int, serviceID *int64, startDate, endDate time.Time) ([]domain.Plan, error) { return nil, nil }
 func (d *dummyRepo) FindBillableSessions(customerID int64, serviceID int64, startDate, endDate time.Time) ([]domain.Session, error) { return nil, nil }
 func (d *dummyRepo) GetInvoiceForSession(sessionID int64) (*domain.Invoice, error) { return nil, nil }
@@ -445,6 +447,8 @@ func TestPlansSaveAndMultipleItems(t *testing.T) {
 type mockInvoiceRouteRepo struct {
 	dummyRepo
 	deletedInvoiceID int64
+	updatedInvoice   *domain.Invoice
+	deletedBatchIDs  []int64
 }
 
 func (m *mockInvoiceRouteRepo) GetCustomerByID(id int64) (*domain.Customer, error) {
@@ -459,12 +463,41 @@ func (m *mockInvoiceRouteRepo) GetInvoiceByID(id int64) (*domain.Invoice, error)
 		InvoicingDate: time.Now(),
 		DueDate:       time.Now().AddDate(0, 0, 5),
 		Amount:        150.0,
+		Items: []domain.InvoiceItem{
+			{ID: 1, InvoiceID: id, ServiceID: 10, Price: 50.0, InvoicedQuantity: 3},
+		},
 	}, nil
 }
 
 func (m *mockInvoiceRouteRepo) DeleteInvoice(id int64) error {
 	m.deletedInvoiceID = id
 	return nil
+}
+
+func (m *mockInvoiceRouteRepo) UpdateInvoice(invoice *domain.Invoice) error {
+	m.updatedInvoice = invoice
+	return nil
+}
+
+func (m *mockInvoiceRouteRepo) DeleteInvoicesByIDs(ids []int64) error {
+	m.deletedBatchIDs = append(m.deletedBatchIDs, ids...)
+	return nil
+}
+
+func (m *mockInvoiceRouteRepo) FindInvoices(conditions map[string]interface{}, orderBy ...string) ([]domain.Invoice, error) {
+	return []domain.Invoice{
+		{
+			ID:            1,
+			PlanID:        1,
+			Plan:          &domain.Plan{CustomerID: 10},
+			InvoicingDate: time.Now(),
+			DueDate:       time.Now().AddDate(0, 0, 5),
+			Amount:        150.0,
+			Items: []domain.InvoiceItem{
+				{ID: 1, InvoiceID: 1, ServiceID: 10, Price: 50.0, InvoicedQuantity: 3},
+			},
+		},
+	}, nil
 }
 
 func (m *mockInvoiceRouteRepo) FindInvoicesPaged(page, pageSize int, conditions map[string]interface{}, orderBy ...string) ([]domain.Invoice, int64, float64, error) {
@@ -718,6 +751,99 @@ func TestInvoiceDeleteRoutes(t *testing.T) {
 	routes.ServeHTTP(recDelHTML, reqDelHTML)
 	if recDelHTML.Code != http.StatusOK {
 		t.Errorf("expected 200 on /html/invoicing/deletar, got %d", recDelHTML.Code)
+	}
+}
+
+func TestInvoiceEditAndBatchDeleteRoutes(t *testing.T) {
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("could not get working dir: %v", err)
+	}
+	defer os.Chdir(origDir)
+
+	if err := os.Chdir("../../.."); err != nil {
+		t.Fatalf("could not chdir to planner/backend: %v", err)
+	}
+
+	mockR := &mockInvoiceRouteRepo{}
+	routes, err := NewRoutes(mockR, &dummyLogger{}, nil)
+	if err != nil {
+		t.Fatalf("failed to create routes: %v", err)
+	}
+
+	// 1. GET /html/invoicing/editar?id=1
+	reqEdit := httptest.NewRequest(http.MethodGet, "/html/invoicing/editar?id=1", nil)
+	recEdit := httptest.NewRecorder()
+	routes.ServeHTTP(recEdit, reqEdit)
+	if recEdit.Code != http.StatusOK {
+		t.Errorf("expected 200 on /html/invoicing/editar, got %d: %s", recEdit.Code, recEdit.Body.String())
+	}
+	if !strings.Contains(recEdit.Body.String(), "Salvar") && !strings.Contains(recEdit.Body.String(), "due_date") {
+		t.Errorf("expected edit row to contain 'Salvar' or 'due_date', got: %s", recEdit.Body.String())
+	}
+
+	// 2. GET /html/invoicing/cancelar-edicao?id=1
+	reqCancelEdit := httptest.NewRequest(http.MethodGet, "/html/invoicing/cancelar-edicao?id=1", nil)
+	recCancelEdit := httptest.NewRecorder()
+	routes.ServeHTTP(recCancelEdit, reqCancelEdit)
+	if recCancelEdit.Code != http.StatusOK {
+		t.Errorf("expected 200 on /html/invoicing/cancelar-edicao, got %d", recCancelEdit.Code)
+	}
+
+	// 3. POST /html/invoicing/atualizar?id=1
+	updateForm := strings.NewReader("due_date=2026-11-20&item_qty_1=4")
+	reqUpdateHTML := httptest.NewRequest(http.MethodPost, "/html/invoicing/atualizar?id=1", updateForm)
+	reqUpdateHTML.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	recUpdateHTML := httptest.NewRecorder()
+	routes.ServeHTTP(recUpdateHTML, reqUpdateHTML)
+	if recUpdateHTML.Code != http.StatusOK {
+		t.Errorf("expected 200 on /html/invoicing/atualizar, got %d: %s", recUpdateHTML.Code, recUpdateHTML.Body.String())
+	}
+	if mockR.updatedInvoice == nil {
+		t.Errorf("expected repo to have updatedInvoice")
+	}
+
+	// 4. PUT /api/invoice/update (JSON API)
+	jsonUpdateBody := `{"id": 1, "due_date": "2026-11-25", "items": [{"id": 1, "invoiced_quantity": 5}]}`
+	reqUpdateAPI := httptest.NewRequest(http.MethodPut, "/api/invoice/update", strings.NewReader(jsonUpdateBody))
+	reqUpdateAPI.Header.Set("Content-Type", "application/json")
+	recUpdateAPI := httptest.NewRecorder()
+	routes.ServeHTTP(recUpdateAPI, reqUpdateAPI)
+	if recUpdateAPI.Code != http.StatusOK {
+		t.Errorf("expected 200 on /api/invoice/update, got %d: %s", recUpdateAPI.Code, recUpdateAPI.Body.String())
+	}
+
+	// 5. POST /html/invoicing/deletar-lote-aviso
+	filterForm := strings.NewReader("nickname=cliente_teste&plan_type=1")
+	reqBatchWarn := httptest.NewRequest(http.MethodPost, "/html/invoicing/deletar-lote-aviso", filterForm)
+	reqBatchWarn.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	recBatchWarn := httptest.NewRecorder()
+	routes.ServeHTTP(recBatchWarn, reqBatchWarn)
+	if recBatchWarn.Code != http.StatusOK {
+		t.Errorf("expected 200 on /html/invoicing/deletar-lote-aviso, got %d: %s", recBatchWarn.Code, recBatchWarn.Body.String())
+	}
+	if !strings.Contains(recBatchWarn.Body.String(), "Excluir Pré-Faturas em Lote") && !strings.Contains(recBatchWarn.Body.String(), "modal-deletar-lote") {
+		t.Errorf("expected modal to be rendered, got: %s", recBatchWarn.Body.String())
+	}
+
+	// 6. POST /html/invoicing/deletar-lote
+	reqBatchDel := httptest.NewRequest(http.MethodPost, "/html/invoicing/deletar-lote", strings.NewReader("nickname=cliente_teste"))
+	reqBatchDel.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	recBatchDel := httptest.NewRecorder()
+	routes.ServeHTTP(recBatchDel, reqBatchDel)
+	if recBatchDel.Code != http.StatusOK {
+		t.Errorf("expected 200 on /html/invoicing/deletar-lote, got %d: %s", recBatchDel.Code, recBatchDel.Body.String())
+	}
+	if len(mockR.deletedBatchIDs) == 0 {
+		t.Errorf("expected mockR.deletedBatchIDs to be populated")
+	}
+
+	// 7. DELETE /api/invoice/batch-delete (JSON API)
+	reqBatchDelAPI := httptest.NewRequest(http.MethodDelete, "/api/invoice/batch-delete?nickname=cliente_teste", nil)
+	recBatchDelAPI := httptest.NewRecorder()
+	routes.ServeHTTP(recBatchDelAPI, reqBatchDelAPI)
+	if recBatchDelAPI.Code != http.StatusOK {
+		t.Errorf("expected 200 on /api/invoice/batch-delete, got %d: %s", recBatchDelAPI.Code, recBatchDelAPI.Body.String())
 	}
 }
 

@@ -815,6 +815,85 @@ func (a *Repository) DeleteInvoice(id int64) error {
 	return tx.Commit().Error
 }
 
+// UpdateInvoice updates an invoice's due date, amount, and items' invoiced quantities in a transaction.
+func (a *Repository) UpdateInvoice(invoice *domain.Invoice) error {
+	db := a.DB
+	if a.Tx != nil {
+		db = a.Tx
+	}
+	now := time.Now()
+	invoice.UpdatedAt = now
+	tx := db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	if err := tx.Model(&domain.Invoice{}).Where("id = ? AND deleted_at IS NULL", invoice.ID).Updates(map[string]interface{}{
+		"due_date":   invoice.DueDate,
+		"amount":     invoice.Amount,
+		"updated_at": now,
+	}).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	for _, it := range invoice.Items {
+		if it.ID > 0 {
+			if err := tx.Model(&domain.InvoiceItem{}).Where("id = ? AND invoice_id = ? AND deleted_at IS NULL", it.ID, invoice.ID).Updates(map[string]interface{}{
+				"invoiced_quantity": it.InvoicedQuantity,
+				"updated_at":        now,
+			}).Error; err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+
+	return tx.Commit().Error
+}
+
+// DeleteInvoicesByIDs soft-deletes multiple invoices and their items in a single transaction.
+func (a *Repository) DeleteInvoicesByIDs(ids []int64) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	db := a.DB
+	if a.Tx != nil {
+		db = a.Tx
+	}
+	now := time.Now()
+	tx := db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	if err := tx.Model(&domain.Invoice{}).Where("id IN ?", ids).Updates(map[string]interface{}{
+		"deleted_at": now,
+		"updated_at": now,
+	}).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+	if err := tx.Model(&domain.InvoiceItem{}).Where("invoice_id IN ?", ids).Updates(map[string]interface{}{
+		"deleted_at": now,
+		"updated_at": now,
+	}).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit().Error
+}
+
 // FindActivePlansForInvoicing finds all non-deleted plans active in the given period matching filters.
 // For post-paid plans (agenda post-paid, notebook), sessions from the previous month are billed in the current month,
 // so plans active in the month prior to startDate are included.

@@ -336,6 +336,75 @@ func (h *HandlerApi) Invoices(w http.ResponseWriter, r *http.Request) {
 	h.InvoiceList(w, r)
 }
 
+// InvoiceUpdate handles updating an invoice (due date and invoiced quantities) via JSON API
+func (h *HandlerApi) InvoiceUpdate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut && r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	requestDTO := &dto.InvoiceUpdateRequest{}
+	if err := json.NewDecoder(r.Body).Decode(requestDTO); err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+	if idStr := r.URL.Query().Get("id"); idStr != "" && requestDTO.InvoiceID == 0 {
+		if id, err := strconv.ParseInt(idStr, 10, 64); err == nil {
+			requestDTO.InvoiceID = id
+		}
+	}
+	svc := service.NewInvoiceUpdate(h.repo, h.logger)
+	response := svc.Run(requestDTO)
+	h.writeResponse(w, response)
+}
+
+// InvoiceBatchDelete handles deleting invoices in batch via JSON API
+func (h *HandlerApi) InvoiceBatchDelete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete && r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	requestDTO := &dto.InvoiceBatchDeleteRequest{}
+	if r.ContentLength > 0 {
+		if err := json.NewDecoder(r.Body).Decode(requestDTO); err != nil {
+			http.Error(w, "Bad request", http.StatusBadRequest)
+			return
+		}
+	}
+	q := r.URL.Query()
+	if requestDTO.StartDate == "" && q.Get("start_date") != "" {
+		requestDTO.StartDate = q.Get("start_date")
+	}
+	if requestDTO.EndDate == "" && q.Get("end_date") != "" {
+		requestDTO.EndDate = q.Get("end_date")
+	}
+	if requestDTO.InvoiceID == 0 && q.Get("invoice_id") != "" {
+		if id, err := strconv.ParseInt(q.Get("invoice_id"), 10, 64); err == nil {
+			requestDTO.InvoiceID = id
+		}
+	}
+	if requestDTO.PlanID == 0 && q.Get("plan_id") != "" {
+		if id, err := strconv.ParseInt(q.Get("plan_id"), 10, 64); err == nil {
+			requestDTO.PlanID = id
+		}
+	}
+	if requestDTO.Nickname == "" && q.Get("nickname") != "" {
+		requestDTO.Nickname = q.Get("nickname")
+	}
+	if requestDTO.PlanType == 0 && q.Get("plan_type") != "" {
+		if pt, err := strconv.Atoi(q.Get("plan_type")); err == nil {
+			requestDTO.PlanType = pt
+		}
+	}
+	if requestDTO.ServiceID == 0 && q.Get("service_id") != "" {
+		if sid, err := strconv.ParseInt(q.Get("service_id"), 10, 64); err == nil {
+			requestDTO.ServiceID = sid
+		}
+	}
+	svc := service.NewInvoiceBatchDelete(h.repo, h.logger)
+	response := svc.Run(requestDTO)
+	h.writeResponse(w, response)
+}
+
 
 // writeResponse writes the given response to the http.ResponseWriter with the appropriate status
 func (h *HandlerApi) writeResponse(w http.ResponseWriter, response port.OutDTO) {

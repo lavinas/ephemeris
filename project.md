@@ -23,9 +23,10 @@ No subprojeto planner:
 
 
 No subprojeto planner:
-- No htmx de gestão de planos e no handler_htmx, colocar um botão 'Gerar pré-faturas' entre 'adicionar' e 'limpar filtros' que chama o serviço de 
-invoicing, de acordo com  os filtros ativos do momento.
-- Ainda no htmx de gestão de planos, no pop-up de confirmação de geração de pré-faturas individual (Processamento Concluído), o bostão "Ver Pré faturas" deveria direcionar para a tela de pré-faturas, porém apenas está fechando o pop-up
+- Na gestão de pré-faturas, permitir a edição apenas das quantidades faturadas dos itens e a data de vencimento da pré-fatura.
+- Criar o serviço de edição com seus devidos dtos
+- No htmx e handler, criar um botão de editar no action da listagem de pré-faturas
+- Além disto, criar um botão ao lado de Limpar Filtros para apagar todas as faturas de acordo com a configuração de filtros atuais da página (criar serviços, dtos, etc, corresnpodentes)
      
 
 

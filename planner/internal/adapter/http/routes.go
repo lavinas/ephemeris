@@ -50,6 +50,10 @@ func NewAPIRoutes(repo port.Repository, logger port.Logger) *http.ServeMux {
 	mux.HandleFunc("/invoicing/delete", handler.InvoiceDelete)
 	mux.HandleFunc("/plan/invoicing/delete", handler.InvoiceDelete)
 	mux.HandleFunc("/plano/invoicing/delete", handler.InvoiceDelete)
+	mux.HandleFunc("/invoice/update", handler.InvoiceUpdate)
+	mux.HandleFunc("/invoicing/update", handler.InvoiceUpdate)
+	mux.HandleFunc("/invoice/batch-delete", handler.InvoiceBatchDelete)
+	mux.HandleFunc("/invoicing/batch-delete", handler.InvoiceBatchDelete)
 	mux.HandleFunc("/ping2", handler.Ping)
 	return mux
 }
@@ -108,6 +112,12 @@ func NewHTMLRoutes(repo port.Repository, logger port.Logger, htmlTemplate []byte
 	mux.HandleFunc("/invoicing/cancelar-delete", handler.InvoicingCancelDelete)
 	mux.HandleFunc("/invoicing/deletar", handler.InvoicingDelete)
 	mux.HandleFunc("/invoicing/reconciliar", handler.InvoicingReconcile)
+	mux.HandleFunc("/invoicing/editar", handler.InvoicingEdit)
+	mux.HandleFunc("/invoicing/cancelar-edicao", handler.InvoicingCancelEdit)
+	mux.HandleFunc("/invoicing/atualizar", handler.InvoicingUpdate)
+	mux.HandleFunc("/invoicing/deletar-lote-aviso", handler.InvoicingDeleteBatchWarning)
+	mux.HandleFunc("/invoicing/deletar-lote", handler.InvoicingDeleteBatch)
+
 	mux.HandleFunc("/pre-faturas", handler.InvoicingHTML)
 	mux.HandleFunc("/pre-faturas/", handler.InvoicingHTML)
 	mux.HandleFunc("/pre-faturas/tabela", handler.InvoicingTable)
@@ -116,6 +126,11 @@ func NewHTMLRoutes(repo port.Repository, logger port.Logger, htmlTemplate []byte
 	mux.HandleFunc("/pre-faturas/cancelar-delete", handler.InvoicingCancelDelete)
 	mux.HandleFunc("/pre-faturas/deletar", handler.InvoicingDelete)
 	mux.HandleFunc("/pre-faturas/reconciliar", handler.InvoicingReconcile)
+	mux.HandleFunc("/pre-faturas/editar", handler.InvoicingEdit)
+	mux.HandleFunc("/pre-faturas/cancelar-edicao", handler.InvoicingCancelEdit)
+	mux.HandleFunc("/pre-faturas/atualizar", handler.InvoicingUpdate)
+	mux.HandleFunc("/pre-faturas/deletar-lote-aviso", handler.InvoicingDeleteBatchWarning)
+	mux.HandleFunc("/pre-faturas/deletar-lote", handler.InvoicingDeleteBatch)
 	return mux, handler, nil
 }
 

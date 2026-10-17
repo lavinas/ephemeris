@@ -158,6 +158,23 @@ func (m *mockInvoicingRepoForService) DeleteInvoice(id int64) error {
 	return nil
 }
 
+func (m *mockInvoicingRepoForService) UpdateInvoice(invoice *domain.Invoice) error {
+	return nil
+}
+
+func (m *mockInvoicingRepoForService) DeleteInvoicesByIDs(ids []int64) error {
+	m.deletedIDs = append(m.deletedIDs, ids...)
+	now := time.Now()
+	for _, id := range ids {
+		for i := range m.invoices {
+			if m.invoices[i].ID == id {
+				m.invoices[i].DeletedAt = &now
+			}
+		}
+	}
+	return nil
+}
+
 func (m *mockInvoicingRepoForService) FindActivePlansForInvoicing(planID *int64, vendorID *int64, customerID *int64, planType *int, serviceID *int64, startDate, endDate time.Time) ([]domain.Plan, error) {
 	var result []domain.Plan
 	firstOfStartMonth := time.Date(startDate.Year(), startDate.Month(), 1, 0, 0, 0, 0, time.UTC)

@@ -77,7 +77,7 @@ func NewHandlerHtml(repo port.Repository, logger port.Logger, tdata []byte, plan
 		} else if data, err := os.ReadFile("../../../web/templates/invoicing.html"); err == nil {
 			invData = data
 		} else {
-			invData = []byte(`{{define "index"}}<html><body>Invoicing</body></html>{{end}}{{define "fragment"}}<div>Invoicing</div>{{end}}{{define "tabela"}}<div>Tabela</div>{{end}}{{define "linha_invoice"}}<div>Linha</div>{{end}}{{define "linha_invoice_deletar_aviso"}}<div>Aviso</div>{{end}}`)
+			invData = []byte(`{{define "index"}}<html><body>Invoicing</body></html>{{end}}{{define "fragment"}}<div>Invoicing</div>{{end}}{{define "tabela"}}<div>Tabela</div>{{end}}{{define "linha_invoice"}}<div>Linha</div>{{end}}{{define "linha_invoice_deletar_aviso"}}<div>Aviso</div>{{end}}{{define "linha_invoice_edit"}}<div>Edit</div>{{end}}{{define "modal_deletar_invoices_lote"}}<div>Modal Lote</div>{{end}}`)
 		}
 	}
 

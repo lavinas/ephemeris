@@ -135,17 +135,57 @@ func TestInvoiceRepository_Integration(t *testing.T) {
 		t.Errorf("expected at least 1 invoice for plan %d", firstPlan.ID)
 	}
 
-	// 5. Test DeleteInvoice (soft delete)
-	if err := repo.DeleteInvoice(testInvoice.ID); err != nil {
-		t.Fatalf("DeleteInvoice failed: %v", err)
+	// 5. Test UpdateInvoice
+	newDueDate := time.Date(2026, 11, 20, 0, 0, 0, 0, time.UTC)
+	testInvoice.DueDate = newDueDate
+	if len(testInvoice.Items) > 0 {
+		testInvoice.Items[0].InvoicedQuantity = 7
+		testInvoice.Amount = testInvoice.Items[0].Price * 7
+	}
+	if err := repo.UpdateInvoice(testInvoice); err != nil {
+		t.Fatalf("UpdateInvoice failed: %v", err)
 	}
 
-	deletedInv, err := repo.GetInvoiceByID(testInvoice.ID)
+	updatedInv, err := repo.GetInvoiceByID(testInvoice.ID)
 	if err != nil {
-		t.Fatalf("GetInvoiceByID after delete failed: %v", err)
+		t.Fatalf("GetInvoiceByID after update failed: %v", err)
 	}
-	if deletedInv != nil {
-		t.Errorf("expected deleted invoice to not be returned, got %+v", deletedInv)
+	if updatedInv == nil {
+		t.Fatalf("expected updated invoice, got nil")
 	}
-	t.Logf("Successfully deleted test invoice with ID: %d", testInvoice.ID)
+	if !updatedInv.DueDate.Equal(newDueDate) {
+		t.Errorf("expected DueDate %v, got %v", newDueDate, updatedInv.DueDate)
+	}
+	if len(updatedInv.Items) > 0 && updatedInv.Items[0].InvoicedQuantity != 7 {
+		t.Errorf("expected InvoicedQuantity 7, got %d", updatedInv.Items[0].InvoicedQuantity)
+	}
+
+	// 6. Test DeleteInvoicesByIDs (soft delete in batch)
+	testInvoice2 := &domain.Invoice{
+		PlanID:        firstPlan.ID,
+		InvoicingDate: time.Date(2026, 10, 15, 0, 0, 0, 0, time.UTC),
+		DueDate:       time.Date(2026, 11, 15, 0, 0, 0, 0, time.UTC),
+		Amount:        90.0,
+		Items: []domain.InvoiceItem{
+			{ServiceID: firstPlan.Items[0].ServiceID, Price: 90.0, InvoicedQuantity: 1, RealizedQuantity: 0},
+		},
+	}
+	if err := repo.SaveInvoice(testInvoice2); err != nil {
+		t.Fatalf("SaveInvoice for testInvoice2 failed: %v", err)
+	}
+
+	if err := repo.DeleteInvoicesByIDs([]int64{testInvoice.ID, testInvoice2.ID}); err != nil {
+		t.Fatalf("DeleteInvoicesByIDs failed: %v", err)
+	}
+
+	for _, id := range []int64{testInvoice.ID, testInvoice2.ID} {
+		deletedInv, err := repo.GetInvoiceByID(id)
+		if err != nil {
+			t.Fatalf("GetInvoiceByID after DeleteInvoicesByIDs failed: %v", err)
+		}
+		if deletedInv != nil {
+			t.Errorf("expected invoice %d to be soft deleted, got %+v", id, deletedInv)
+		}
+	}
+	t.Logf("Successfully updated and batch-deleted test invoices: %d, %d", testInvoice.ID, testInvoice2.ID)
 }
