@@ -102,22 +102,25 @@ create table customer (
 drop Table if exists invoice cascade;
 create table invoice (
     id bigserial primary key,
+    vendor_id bigint not null references vendor(id) on delete cascade,
     customer_id bigint not null references customer(id) on delete cascade,
     amount numeric(15, 2) not null,
     invoice_date date not null,
     due_date date not null,
     payment_date date,
-    email_sent_date date,
-    whatsapp_sent_date date,
+    sent_date date,
+    receipt_date date,
     cancellation_date date,
-    email_receipt_date date,
-    whatsapp_receipt_date date,
     tax_date date,
     notes text null,
+    external_code varchar(50) null,
     status int not null default 1,
     created_at timestamp not null,
     updated_at timestamp not null
 );
+create index idx_invoice_customer_id on invoice(customer_id);
+create index idx_invoice_external_code on invoice(external_code);
+create unique constraint uc_invoice_external_code on invoice(vendor_id, external_code);
 
 drop Table if exists invoice_item cascade;
 create table invoice_item (
@@ -129,6 +132,7 @@ create table invoice_item (
     created_at timestamp not null,
     updated_at timestamp not null
 );
+create index idx_invoice_item_invoice_id on invoice_item(invoice_id);
 
 
 drop Table if exists emission cascade;
@@ -148,6 +152,9 @@ create table emission (
     created_at timestamp not null,
     updated_at timestamp not null
 );
+create index idx_emission_vendor_id on emission(vendor_id);
+create index idx_emission_date on emission(emission_date);
+
 
 drop Table if exists emission_item cascade;
 create table emission_item (
@@ -160,6 +167,7 @@ create table emission_item (
     nfe_verification varchar(100),
     nfe_amount numeric(15, 2)
 );
-
+create index idx_emission_item_emission_id on emission_item(emission_id);
+create index idx_emission_item_invoice_id on emission_item(invoice_id);
 
 

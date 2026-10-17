@@ -2,37 +2,50 @@
 
 ### 0. Manutenções
 * Revisar log billing e planner
+* erificar que no caso do plano pacote o número de items seja menor que a quantidade de aulas
 
 
-
-Invoices errors/Improvements
-- No invoicing, estratégia agenda, utilizar como data da invoice (invoice_date) o primeiro dia da data do mes que está se gerando ao inves do primeiro dia do mes da data atual.
-- Ao gerar a invoice no html, o botão ver pré-faturas não esta redirecionando para pré-fatura
+No subprojeto billing:
+- Na tabela invoice:
+    * foi adicionado o campo vendor_id
+    * foi adicionado o campo external_code
+    * foi retirada o campo whatsapp_sent_date
+    * foi retirado o campo whatsapp_receipt_date
+    * foi substituido o campo email_sent_date por sent_date
+    * foi substituido o campo email_receipt_date por receipt_date
+- Os campos whatsapp_sent_date e whatsapp_receipt_date não estavam sendo utilizados, então devem ser retirados do dominio
+- Os campos email_sent_date e email_receipt_date, mudar para sent_date e receipt_date respectivamente no dominio, serviços, dto, etc.
+- O campo external_code deve estar no dominio e também deve ser recebido pelo dto e tratado pelo serviços (create, list, update), etc para ser armazenado se recebido
+- O campo vendor_id estava também na tabela customer_id e pode estar duplicado na tabela invoice, porém por uma questão de performance vai se repetir...então nos serviço de criação da invoice, providenciar a inserção do campo vendor_id (que já vem no dto) também no dominio/tabela invoice
+- Deve-se fazer a validação do external_code para que não seja permitido duplicidade para a tupla (vendor_id, external_code), ou seja, o mesmo vendedor não pode ter o mesmo external_code....caso tenha, deve-se retornar um erro de duplicadade na api de criação ou alteração.
+- Na api de criação da invoice /invoice/api/create, no dto e serviço correspondente, retornar na chamada além dos dados base o id da invoice criada
+- Também tratar o external_code no htmx de gestão de invoices, adicionando na inserção, alteração e listagem do campo (na listagem colocar entre envio nota e itens & total, com o nome da campo na tabela 'Ext. Cod.')
 
 
 No subprojeto planner:
-- Na tabela invoice, criei os campos period_start date e period_end date para armazenar o periodo considerado no faturamento, ou seja, o periodo de calculo das sessoes consideradas em seus itens;
-- Da mesma forma que foram calculados as quantidades de itens;
-    - na estrategia agenda - recorrencia pre-paga - o periodo é o primeiro e ultimo mes em processamento corrente
-    - na estrategia agenda - recorrencia pos-paga - o periodo é o primeiro e ultimo mes anterior do mes em processamento corrente
-    - na estrategia notebook (caderneta) - o periodo é o primeiro e ultimo mes anterior do mes em processamento corrente
-    - na estrategia pay-per-view - o periodo é o dia da sessão no inicio e fim do período
-    - na estrategia pacote - o período é o período é o período do plan_package - ou seja, o período é do dia do início do plano até o dia do fim do plano
-- Adicionalmente no caso de cadastro de planos pacote (e somente do pacote), deixar obrigatório e fazer a validação de que a data inicio e data fim são obrigatórias
+- Fazer um serviço que irá faturar as pre faturas, isto é, irá enviar para o subsistema billing as invoices selecionadas para criação das faturas:
+    * Para isto, utilizar as apis que foram criadas no subprojeto billing /invoice/api/create enviando
+        - vendor: invoice.plan.customer.vendor.nickname
+        - customer: invoice.plan.customer.nickname
+        - invoicing: invoice.invoiceDate
+        - due: invoice.dueDate
+        - invoiceItems: invoice.items: [
+            - description: invoice.items.description
+            - price: invoice.items.price
+            - quantity: invoice.items.invoicedQuantity
+        ]
+    * O id recebido da chamada da api, armazenar no campo ReferenceInvoiceID de cada pre fatura.
+    * Para o processo de chamada da api do billing, como se tratando de um serviço externo, preparar um adapter que interagirá com este sistema externo, podendo assim substituir a chamada para um outro serviço sem alterar o core da aplicação, no melhor modelo hexagonal/ddd.
+    * As invoices que já tem uma chamada prévea, ou seja, com o ReferenceInvoiceID da aplicação prenchido, não deve ser enviado, retornando assim um bad request no serviço do planner.
+    * Ainda no serviço de listagem da pré-fatura, criar na interface (dto) um status de faturamento (Invoiced bool), true no caso do campo ReferenceInvoiceID diferente de nulo e false no caso contrário
+    * No htmx da pré-fatura, deve-se inserir nas ações da listagem de pré-faturas um botão para faturar a invoice, ou seja, chamar o serviço externo de faturamento.
+    * Ainda no htmx de pré-fatura deve-se 
+        
 
-
-
-No subprojeto planner:
-- Na gestão de pré-faturas, permitir a edição apenas das quantidades faturadas dos itens e a data de vencimento da pré-fatura.
-- Criar o serviço de edição com seus devidos dtos
-- No htmx e handler, criar um botão de editar no action da listagem de pré-faturas
-- Além disto, criar um botão ao lado de Limpar Filtros para apagar todas as faturas de acordo com a configuração de filtros atuais da página (criar serviços, dtos, etc, corresnpodentes)
      
 
 
-Outros:
-    * Verificar que no caso do plano pacote o número de items seja menor que a quantidade de aulas
-                    
+
                     
 
                     
