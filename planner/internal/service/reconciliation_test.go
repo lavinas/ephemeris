@@ -462,6 +462,9 @@ func (m *mockSessionRepo) FindVendors(page, pageSize int, legalName, nickname, d
 func (m *mockSessionRepo) GetVendor(nickname string) (*domain.Vendor, error) {
 	return nil, nil
 }
+func (m *mockSessionRepo) GetVendorByID(id int64) (*domain.Vendor, error) {
+	return nil, nil
+}
 func (m *mockSessionRepo) FindServices(vendorID int64) ([]domain.Service, error) {
 	return nil, nil
 }

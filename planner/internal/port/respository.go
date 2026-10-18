@@ -23,6 +23,7 @@ type Repository interface {
 	FindVendors(page, pageSize int, legalName, nickname, document *string,
 		accountBank, accountAgency, accountNumber *string) ([]domain.Vendor, error)
 	GetVendor(nickname string) (*domain.Vendor, error)
+	GetVendorByID(id int64) (*domain.Vendor, error)
 	FindServices(vendorID int64) ([]domain.Service, error)
 	GetServiceByID(id int64) (*domain.Service, error)
 	SavePlan(plan *domain.Plan) error

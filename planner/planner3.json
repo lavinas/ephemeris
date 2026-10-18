@@ -17,5 +17,8 @@
     },
     "web": {
         "addr": ":8085"
+    },
+    "billing": {
+        "url": "http://localhost:8081"
     }
 }

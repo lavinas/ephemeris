@@ -22,5 +22,8 @@
         "url": "nats://nats:4222",
         "queue_group": "planner-customer-sync",
         "enabled": true
+    },
+    "billing": {
+        "url": "http://billing_api:8081"
     }
 }

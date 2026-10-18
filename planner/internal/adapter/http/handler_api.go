@@ -3,8 +3,10 @@ package http
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 	"strconv"
 
+	"planner/internal/adapter/billing"
 	"planner/internal/dto"
 	"planner/internal/port"
 	"planner/internal/service"
@@ -12,15 +14,21 @@ import (
 
 // HandlerApi is an HTTP handler for the API
 type HandlerApi struct {
-	logger port.Logger
-	repo   port.Repository
+	logger        port.Logger
+	repo          port.Repository
+	billingClient port.BillingClient
 }
 
 // NewHandlerApi creates a new instance of HandlerApi
-func NewHandlerApi(repo port.Repository, logger port.Logger) *HandlerApi {
+func NewHandlerApi(repo port.Repository, logger port.Logger, billingClients ...port.BillingClient) *HandlerApi {
+	var client port.BillingClient
+	if len(billingClients) > 0 && billingClients[0] != nil {
+		client = billingClients[0]
+	}
 	return &HandlerApi{
-		repo:   repo,
-		logger: logger,
+		repo:          repo,
+		logger:        logger,
+		billingClient: client,
 	}
 }
 
@@ -401,6 +409,41 @@ func (h *HandlerApi) InvoiceBatchDelete(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 	svc := service.NewInvoiceBatchDelete(h.repo, h.logger)
+	response := svc.Run(requestDTO)
+	h.writeResponse(w, response)
+}
+
+// InvoiceBill handles /invoice/bill or /invoicing/bill endpoint
+func (h *HandlerApi) InvoiceBill(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	requestDTO := &dto.InvoiceBillRequest{}
+	if r.Body != nil && r.Body != http.NoBody {
+		if err := json.NewDecoder(r.Body).Decode(requestDTO); err != nil {
+			h.writeResponse(w, dto.NewInvoiceBillResponse(http.StatusBadRequest, "error", "Invalid JSON format: "+err.Error(), nil))
+			return
+		}
+	}
+	q := r.URL.Query()
+	if requestDTO.InvoiceID == 0 && q.Get("id") != "" {
+		if id, err := strconv.ParseInt(q.Get("id"), 10, 64); err == nil {
+			requestDTO.InvoiceID = id
+		}
+	}
+	if requestDTO.InvoiceID == 0 && q.Get("invoice_id") != "" {
+		if id, err := strconv.ParseInt(q.Get("invoice_id"), 10, 64); err == nil {
+			requestDTO.InvoiceID = id
+		}
+	}
+
+	client := h.billingClient
+	if client == nil {
+		client = billing.NewClient(os.Getenv("BILLING_URL"), h.logger)
+	}
+
+	svc := service.NewInvoiceBill(h.repo, h.logger, client)
 	response := svc.Run(requestDTO)
 	h.writeResponse(w, response)
 }

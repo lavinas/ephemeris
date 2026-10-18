@@ -422,6 +422,219 @@ func (h *HandlerHtml) InvoicingDeleteBatch(w http.ResponseWriter, r *http.Reques
 	h.InvoicingTable(w, r)
 }
 
+// InvoicingBill handles POST /invoicing/faturar for a single invoice
+func (h *HandlerHtml) InvoicingBill(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid form data", http.StatusBadRequest)
+		return
+	}
+	idStr := r.URL.Query().Get("id")
+	if idStr == "" {
+		idStr = r.FormValue("id")
+	}
+	if idStr == "" {
+		idStr = r.FormValue("invoice_id")
+	}
+	id, _ := strconv.ParseInt(idStr, 10, 64)
+	if id <= 0 {
+		http.Error(w, "ID de pré-fatura inválido", http.StatusBadRequest)
+		return
+	}
+
+	svc := service.NewInvoiceBill(h.repo, h.logger, h.getBillingClient())
+	req := &dto.InvoiceBillRequest{
+		InvoiceID: id,
+	}
+	resp := svc.Run(req)
+	if resp.GetStatusCode() != 200 {
+		http.Error(w, resp.GetMessage(), resp.GetStatusCode())
+		return
+	}
+
+	h.InvoicingTable(w, r)
+}
+
+// InvoicingBillBatchWarning handles POST /invoicing/faturar-lote-aviso and renders the confirmation modal
+func (h *HandlerHtml) InvoicingBillBatchWarning(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	tipoFiltro, _ := strconv.Atoi(r.FormValue("plan_type"))
+	if tipoFiltro <= 0 {
+		tipoFiltro, _ = strconv.Atoi(r.FormValue("tipo_filtro"))
+	}
+	servicoFiltro, _ := strconv.ParseInt(r.FormValue("service_id"), 10, 64)
+	if servicoFiltro <= 0 {
+		servicoFiltro, _ = strconv.ParseInt(r.FormValue("servico_filtro"), 10, 64)
+	}
+	faturaID, _ := strconv.ParseInt(r.FormValue("invoice_id"), 10, 64)
+	if faturaID <= 0 {
+		faturaID, _ = strconv.ParseInt(r.FormValue("fatura_id"), 10, 64)
+	}
+	planoID, _ := strconv.ParseInt(r.FormValue("plan_id"), 10, 64)
+	if planoID <= 0 {
+		planoID, _ = strconv.ParseInt(r.FormValue("plano_id"), 10, 64)
+	}
+
+	startDate := r.FormValue("start_date")
+	if startDate == "" {
+		startDate = r.FormValue("data_inicio")
+	}
+	endDate := r.FormValue("end_date")
+	if endDate == "" {
+		endDate = r.FormValue("data_fim")
+	}
+
+	// Fetch all matching invoices to check pending and already invoiced
+	svc := service.NewInvoiceList(h.repo, h.logger)
+	req := &dto.InvoiceListRequest{
+		Page:      1,
+		PageSize:  1000,
+		Nickname:  r.FormValue("nickname"),
+		PlanType:  tipoFiltro,
+		ServiceID: servicoFiltro,
+		InvoiceID: faturaID,
+		PlanID:    planoID,
+		StartDate: startDate,
+		EndDate:   endDate,
+	}
+	respdto := svc.Run(req)
+	response, ok := respdto.(*dto.InvoiceListResponse)
+	if !ok {
+		http.Error(w, "Failed to retrieve invoice count", http.StatusInternalServerError)
+		return
+	}
+
+	var pendingIDs []int64
+	var pendingAmount float64
+	alreadyInvoicedCount := 0
+
+	if response != nil {
+		for _, inv := range response.Invoices {
+			if inv.Invoiced {
+				alreadyInvoicedCount++
+			} else {
+				pendingIDs = append(pendingIDs, inv.ID)
+				pendingAmount += inv.Amount
+			}
+		}
+	}
+
+	var filtrosResumo []string
+	if nick := strings.TrimSpace(r.FormValue("nickname")); nick != "" {
+		filtrosResumo = append(filtrosResumo, fmt.Sprintf("Cliente: %s", nick))
+	}
+	if startDate != "" {
+		filtrosResumo = append(filtrosResumo, fmt.Sprintf("A partir de: %s", startDate))
+	}
+	if endDate != "" {
+		filtrosResumo = append(filtrosResumo, fmt.Sprintf("Até: %s", endDate))
+	}
+	if tipoFiltro > 0 {
+		filtrosResumo = append(filtrosResumo, fmt.Sprintf("Tipo de Plano: %s", domain.PlanType(tipoFiltro).String()))
+	}
+	if servicoFiltro > 0 {
+		for _, s := range h.getServices() {
+			if s.ID == servicoFiltro {
+				filtrosResumo = append(filtrosResumo, fmt.Sprintf("Serviço: %s", s.Name))
+				break
+			}
+		}
+	}
+
+	data := map[string]interface{}{
+		"TotalCount":           response.TotalCount,
+		"TotalAmount":          response.TotalAmount,
+		"TotalFormatado":       formatMoney(response.TotalAmount),
+		"PendingCount":         len(pendingIDs),
+		"PendingAmount":        pendingAmount,
+		"PendingFormatado":     formatMoney(pendingAmount),
+		"AlreadyInvoicedCount": alreadyInvoicedCount,
+		"Filtros":              filtrosResumo,
+		"TemFiltros":           len(filtrosResumo) > 0,
+		"Nickname":             r.FormValue("nickname"),
+		"StartDate":            startDate,
+		"EndDate":              endDate,
+		"PlanType":             tipoFiltro,
+		"ServiceID":            servicoFiltro,
+		"InvoiceID":            faturaID,
+		"PlanID":               planoID,
+	}
+
+	h.tmplInvoicing.ExecuteTemplate(w, "modal_faturar_invoices_lote", data)
+}
+
+// InvoicingBillBatch handles POST /invoicing/faturar-lote and bills all pending invoices matching current filters
+func (h *HandlerHtml) InvoicingBillBatch(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid form data", http.StatusBadRequest)
+		return
+	}
+	tipoFiltro, _ := strconv.Atoi(r.FormValue("plan_type"))
+	if tipoFiltro <= 0 {
+		tipoFiltro, _ = strconv.Atoi(r.FormValue("tipo_filtro"))
+	}
+	servicoFiltro, _ := strconv.ParseInt(r.FormValue("service_id"), 10, 64)
+	if servicoFiltro <= 0 {
+		servicoFiltro, _ = strconv.ParseInt(r.FormValue("servico_filtro"), 10, 64)
+	}
+	faturaID, _ := strconv.ParseInt(r.FormValue("invoice_id"), 10, 64)
+	if faturaID <= 0 {
+		faturaID, _ = strconv.ParseInt(r.FormValue("fatura_id"), 10, 64)
+	}
+	planoID, _ := strconv.ParseInt(r.FormValue("plan_id"), 10, 64)
+	if planoID <= 0 {
+		planoID, _ = strconv.ParseInt(r.FormValue("plano_id"), 10, 64)
+	}
+
+	startDate := r.FormValue("start_date")
+	if startDate == "" {
+		startDate = r.FormValue("data_inicio")
+	}
+	endDate := r.FormValue("end_date")
+	if endDate == "" {
+		endDate = r.FormValue("data_fim")
+	}
+
+	// First query invoices matching filters to bill only pending
+	var pendingIDs []int64
+	listSvc := service.NewInvoiceList(h.repo, h.logger)
+	listReq := &dto.InvoiceListRequest{
+		Page:      1,
+		PageSize:  1000,
+		Nickname:  r.FormValue("nickname"),
+		PlanType:  tipoFiltro,
+		ServiceID: servicoFiltro,
+		InvoiceID: faturaID,
+		PlanID:    planoID,
+		StartDate: startDate,
+		EndDate:   endDate,
+	}
+	listResp := listSvc.Run(listReq)
+	if invResp, ok := listResp.(*dto.InvoiceListResponse); ok && invResp != nil {
+		for _, inv := range invResp.Invoices {
+			if !inv.Invoiced {
+				pendingIDs = append(pendingIDs, inv.ID)
+			}
+		}
+	}
+
+	if len(pendingIDs) == 0 {
+		http.Error(w, "Nenhuma pré-fatura pendente de faturamento encontrada para os filtros selecionados", http.StatusBadRequest)
+		return
+	}
+
+	svc := service.NewInvoiceBill(h.repo, h.logger, h.getBillingClient())
+	req := &dto.InvoiceBillRequest{
+		InvoiceIDs: pendingIDs,
+	}
+	resp := svc.Run(req)
+	if resp.GetStatusCode() != 200 {
+		http.Error(w, resp.GetMessage(), resp.GetStatusCode())
+		return
+	}
+
+	h.InvoicingTable(w, r)
+}
+
 // InvoicingDelete handles POST /invoicing/deletar
 func (h *HandlerHtml) InvoicingDelete(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
@@ -551,6 +764,8 @@ func (h *HandlerHtml) getInvoiceData(response *dto.InvoiceListResponse) []map[st
 			"PeriodEndFormatada":   periodEndFormatada,
 			"Amount":               inv.Amount,
 			"ValorFormatado":       valorFormatado,
+			"ReferenceInvoiceID":   inv.ReferenceInvoiceID,
+			"Invoiced":             inv.Invoiced,
 			"Items":                itemsData,
 		})
 	}

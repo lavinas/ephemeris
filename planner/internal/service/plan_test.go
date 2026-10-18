@@ -78,6 +78,7 @@ func (m *mockPlanRepoForService) FindVendors(page, pageSize int, legalName, nick
 	return nil, nil
 }
 func (m *mockPlanRepoForService) GetVendor(nickname string) (*domain.Vendor, error) { return nil, nil }
+func (m *mockPlanRepoForService) GetVendorByID(id int64) (*domain.Vendor, error)   { return nil, nil }
 func (m *mockPlanRepoForService) FindServices(vendorID int64) ([]domain.Service, error) {
 	var list []domain.Service
 	for _, s := range m.services {

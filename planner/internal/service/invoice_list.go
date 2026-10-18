@@ -170,16 +170,18 @@ func (s *InvoiceList) mapInvoicesToDTO(invoices []domain.Invoice) []dto.InvoiceD
 		}
 
 		result[i] = dto.InvoiceDTO{
-			ID:           inv.ID,
-			InvoiceDate:  inv.InvoicingDate.Format("2006-01-02"),
-			Nickname:     nickname,
-			PlanType:     planType,
-			PlanTypeName: planTypeName,
-			DueDate:      inv.DueDate.Format("2006-01-02"),
-			PeriodStart:  periodStartStr,
-			PeriodEnd:    periodEndStr,
-			Amount:       inv.Amount,
-			Items:        items,
+			ID:                 inv.ID,
+			InvoiceDate:        inv.InvoicingDate.Format("2006-01-02"),
+			Nickname:           nickname,
+			PlanType:           planType,
+			PlanTypeName:       planTypeName,
+			DueDate:            inv.DueDate.Format("2006-01-02"),
+			PeriodStart:        periodStartStr,
+			PeriodEnd:          periodEndStr,
+			Amount:             inv.Amount,
+			ReferenceInvoiceID: inv.ReferenceInvoiceID,
+			Invoiced:           inv.ReferenceInvoiceID != nil,
+			Items:              items,
 		}
 	}
 	return result

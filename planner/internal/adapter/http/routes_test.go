@@ -45,6 +45,9 @@ func (d *dummyRepo) FindVendors(page, pageSize int, legalName, nickname, documen
 func (d *dummyRepo) GetVendor(nickname string) (*domain.Vendor, error) {
 	return nil, nil
 }
+func (d *dummyRepo) GetVendorByID(id int64) (*domain.Vendor, error) {
+	return nil, nil
+}
 func (d *dummyRepo) FindServices(vendorID int64) ([]domain.Service, error) {
 	return nil, nil
 }

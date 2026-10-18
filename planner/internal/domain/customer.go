@@ -7,6 +7,7 @@ import (
 type Customer struct {
 	ID        int64     `gorm:"primaryKey;autoIncrement"`
 	VendorID  int64     `gorm:"not null;index"`
+	Vendor    *Vendor   `gorm:"foreignKey:VendorID;references:ID"`
 	Name      string    `gorm:"not null"`
 	Nickname  string    `gorm:"not null;unique"`
 	Document  *string   `gorm:"unique"`

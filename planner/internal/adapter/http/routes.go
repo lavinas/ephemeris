@@ -7,14 +7,22 @@ import (
 
 // NewRoutes creates a new instance of Routes with the provided logger and repository.
 func NewRoutes(repo port.Repository, logger port.Logger, htmlTemplate []byte, plansTemplate ...[]byte) (*http.ServeMux, error) {
+	return NewRoutesWithBilling(repo, logger, nil, htmlTemplate, plansTemplate...)
+}
+
+// NewRoutesWithBilling creates a new instance of Routes with the provided billing client.
+func NewRoutesWithBilling(repo port.Repository, logger port.Logger, billingClient port.BillingClient, htmlTemplate []byte, plansTemplate ...[]byte) (*http.ServeMux, error) {
 	mux := http.NewServeMux()
 	fs := http.FileServer(http.Dir("web/static"))
 	mux.Handle("/static/", http.StripPrefix("/static/", fs))
-	apiRoutes := NewAPIRoutes(repo, logger)
+	apiRoutes := NewAPIRoutes(repo, logger, billingClient)
 	mux.Handle("/api/", http.StripPrefix("/api", apiRoutes))
 	htmlRoutes, htmlHandler, err := NewHTMLRoutes(repo, logger, htmlTemplate, plansTemplate...)
 	if err != nil {
 		return nil, err
+	}
+	if billingClient != nil {
+		htmlHandler.SetBillingClient(billingClient)
 	}
 	mux.Handle("/html/", http.StripPrefix("/html", htmlRoutes))
 	mux.HandleFunc("/", htmlHandler.Index)
@@ -22,9 +30,9 @@ func NewRoutes(repo port.Repository, logger port.Logger, htmlTemplate []byte, pl
 }
 
 // NewAPIRoutes creates a new instance of API routes with the provided logger and repository.
-func NewAPIRoutes(repo port.Repository, logger port.Logger) *http.ServeMux {
+func NewAPIRoutes(repo port.Repository, logger port.Logger, billingClients ...port.BillingClient) *http.ServeMux {
 	mux := http.NewServeMux()
-	handler := NewHandlerApi(repo, logger)
+	handler := NewHandlerApi(repo, logger, billingClients...)
 	mux.HandleFunc("/ping", handler.Ping)
 	mux.HandleFunc("/session/create", handler.SessionCreate)
 	mux.HandleFunc("/session/list", handler.SessionList)
@@ -54,6 +62,10 @@ func NewAPIRoutes(repo port.Repository, logger port.Logger) *http.ServeMux {
 	mux.HandleFunc("/invoicing/update", handler.InvoiceUpdate)
 	mux.HandleFunc("/invoice/batch-delete", handler.InvoiceBatchDelete)
 	mux.HandleFunc("/invoicing/batch-delete", handler.InvoiceBatchDelete)
+	mux.HandleFunc("/invoice/bill", handler.InvoiceBill)
+	mux.HandleFunc("/invoicing/bill", handler.InvoiceBill)
+	mux.HandleFunc("/invoice/faturar", handler.InvoiceBill)
+	mux.HandleFunc("/invoicing/faturar", handler.InvoiceBill)
 	mux.HandleFunc("/ping2", handler.Ping)
 	return mux
 }
@@ -117,6 +129,9 @@ func NewHTMLRoutes(repo port.Repository, logger port.Logger, htmlTemplate []byte
 	mux.HandleFunc("/invoicing/atualizar", handler.InvoicingUpdate)
 	mux.HandleFunc("/invoicing/deletar-lote-aviso", handler.InvoicingDeleteBatchWarning)
 	mux.HandleFunc("/invoicing/deletar-lote", handler.InvoicingDeleteBatch)
+	mux.HandleFunc("/invoicing/faturar", handler.InvoicingBill)
+	mux.HandleFunc("/invoicing/faturar-lote-aviso", handler.InvoicingBillBatchWarning)
+	mux.HandleFunc("/invoicing/faturar-lote", handler.InvoicingBillBatch)
 
 	mux.HandleFunc("/pre-faturas", handler.InvoicingHTML)
 	mux.HandleFunc("/pre-faturas/", handler.InvoicingHTML)
@@ -131,6 +146,9 @@ func NewHTMLRoutes(repo port.Repository, logger port.Logger, htmlTemplate []byte
 	mux.HandleFunc("/pre-faturas/atualizar", handler.InvoicingUpdate)
 	mux.HandleFunc("/pre-faturas/deletar-lote-aviso", handler.InvoicingDeleteBatchWarning)
 	mux.HandleFunc("/pre-faturas/deletar-lote", handler.InvoicingDeleteBatch)
+	mux.HandleFunc("/pre-faturas/faturar", handler.InvoicingBill)
+	mux.HandleFunc("/pre-faturas/faturar-lote-aviso", handler.InvoicingBillBatchWarning)
+	mux.HandleFunc("/pre-faturas/faturar-lote", handler.InvoicingBillBatch)
 	return mux, handler, nil
 }
 

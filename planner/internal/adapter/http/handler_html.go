@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"planner/internal/adapter/billing"
 	"planner/internal/domain"
 	"planner/internal/port"
 	"planner/internal/service"
@@ -23,6 +24,7 @@ type HandlerHtml struct {
 	tmpl          *template.Template
 	tmplPlans     *template.Template
 	tmplInvoicing *template.Template
+	billingClient port.BillingClient
 }
 
 // NewHandlerHtml creates a new instance of HandlerHtml
@@ -164,4 +166,16 @@ func (h *HandlerHtml) getServices() []domain.Service {
 		return nil
 	}
 	return services
+}
+
+// SetBillingClient sets the billing client for HandlerHtml
+func (h *HandlerHtml) SetBillingClient(client port.BillingClient) {
+	h.billingClient = client
+}
+
+func (h *HandlerHtml) getBillingClient() port.BillingClient {
+	if h.billingClient != nil {
+		return h.billingClient
+	}
+	return billing.NewClient(os.Getenv("BILLING_URL"), h.logger)
 }

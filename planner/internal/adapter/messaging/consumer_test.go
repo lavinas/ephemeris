@@ -125,6 +125,15 @@ func (m *mockRepo) GetVendor(nickname string) (*domain.Vendor, error) {
 	return nil, nil
 }
 
+func (m *mockRepo) GetVendorByID(id int64) (*domain.Vendor, error) {
+	for _, v := range m.vendors {
+		if v.ID == id {
+			return v, nil
+		}
+	}
+	return nil, nil
+}
+
 func (m *mockRepo) FindServices(vendorID int64) ([]domain.Service, error) {
 	return nil, nil
 }

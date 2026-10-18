@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"planner/internal/adapter/billing"
 	"planner/internal/adapter/config"
 	"planner/internal/adapter/http"
 	"planner/internal/adapter/logger"
@@ -84,5 +85,6 @@ func startAll() (*logger.Logger2, *repository.Repository, *http.Handler, *config
 	}
 	// Set the timezone environment variable
 	os.Setenv("TZ", timezone)
-	return logger, repo, http.NewHandler(repo, logger), cfg, nil
+	billingClient := billing.NewClient(cfg.GetBillingURL(), logger)
+	return logger, repo, http.NewHandler(repo, logger, billingClient), cfg, nil
 }

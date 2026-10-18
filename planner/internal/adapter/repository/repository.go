@@ -310,6 +310,23 @@ func (a *Repository) GetVendor(nickname string) (*domain.Vendor, error) {
 	return &vendor, nil
 }
 
+// GetVendorByID retrieves a single vendor by ID
+func (a *Repository) GetVendorByID(id int64) (*domain.Vendor, error) {
+	var vendor domain.Vendor
+	db := a.DB
+	if a.Tx != nil {
+		db = a.Tx
+	}
+	err := db.Where("id = ?", id).First(&vendor).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &vendor, nil
+}
+
 // FindServices retrieves all services for a given vendorID ordered by id
 func (a *Repository) FindServices(vendorID int64) ([]domain.Service, error) {
 	var services []domain.Service
@@ -686,6 +703,8 @@ func (a *Repository) GetInvoiceByID(id int64) (*domain.Invoice, error) {
 	}
 	var invoice domain.Invoice
 	err := db.Preload("Plan").
+		Preload("Plan.Customer").
+		Preload("Plan.Customer.Vendor").
 		Preload("Items", func(tx *gorm.DB) *gorm.DB {
 			return tx.Where("deleted_at IS NULL")
 		}).
@@ -728,6 +747,8 @@ func (a *Repository) FindInvoices(conditions map[string]interface{}, orderBy ...
 
 	var invoices []domain.Invoice
 	err := query.Preload("Plan").
+		Preload("Plan.Customer").
+		Preload("Plan.Customer.Vendor").
 		Preload("Items", func(tx *gorm.DB) *gorm.DB {
 			return tx.Where("deleted_at IS NULL")
 		}).
@@ -779,6 +800,7 @@ func (a *Repository) FindInvoicesPaged(page, pageSize int, conditions map[string
 	var invoices []domain.Invoice
 	err := query.Preload("Plan").
 		Preload("Plan.Customer").
+		Preload("Plan.Customer.Vendor").
 		Preload("Items", func(tx *gorm.DB) *gorm.DB {
 			return tx.Where("deleted_at IS NULL").Order("id asc")
 		}).
@@ -833,11 +855,15 @@ func (a *Repository) UpdateInvoice(invoice *domain.Invoice) error {
 		}
 	}()
 
-	if err := tx.Model(&domain.Invoice{}).Where("id = ? AND deleted_at IS NULL", invoice.ID).Updates(map[string]interface{}{
+	invoiceUpdates := map[string]interface{}{
 		"due_date":   invoice.DueDate,
 		"amount":     invoice.Amount,
 		"updated_at": now,
-	}).Error; err != nil {
+	}
+	if invoice.ReferenceInvoiceID != nil {
+		invoiceUpdates["reference_invoice_id"] = invoice.ReferenceInvoiceID
+	}
+	if err := tx.Model(&domain.Invoice{}).Where("id = ? AND deleted_at IS NULL", invoice.ID).Updates(invoiceUpdates).Error; err != nil {
 		tx.Rollback()
 		return err
 	}

@@ -26,15 +26,21 @@ const (
 
 // Handler is an HTTP handler for the API
 type Handler struct {
-	logger port.Logger
-	repo   port.Repository
+	logger        port.Logger
+	repo          port.Repository
+	billingClient port.BillingClient
 }
 
 // NewHandler creates a new instance of Handler
-func NewHandler(repo port.Repository, logger port.Logger) *Handler {
+func NewHandler(repo port.Repository, logger port.Logger, billingClients ...port.BillingClient) *Handler {
+	var client port.BillingClient
+	if len(billingClients) > 0 && billingClients[0] != nil {
+		client = billingClients[0]
+	}
 	return &Handler{
-		repo:   repo,
-		logger: logger,
+		repo:          repo,
+		logger:        logger,
+		billingClient: client,
 	}
 }
 
@@ -54,7 +60,7 @@ func (h *Handler) Run(addr string) error {
 		h.logger.IPrintf(1, "Warning reading invoicing template (%v), fallback will be used", err)
 	}
 	h.logger.IPrintf(0, "HTML templates loaded successfully")
-	mainMux, err := NewRoutes(h.repo, h.logger, sessionsTemplate, plansTemplate, invoicingTemplate)
+	mainMux, err := NewRoutesWithBilling(h.repo, h.logger, h.billingClient, sessionsTemplate, plansTemplate, invoicingTemplate)
 	if err != nil {
 		return fmt.Errorf("error creating routes: %v", err)
 	}

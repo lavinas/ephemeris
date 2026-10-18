@@ -106,6 +106,14 @@ select count(*) from invoice_item;
 select count(*) from emission;
 select count(*) from emission_item;
 
+-- Ajusta as sequences (serial) para o último ID inserido
+-- Por padrão is_called é true, então o próximo insert gerará automaticamente (MAX(id) + 1)
+select setval(pg_get_serial_sequence('invoice', 'id'), coalesce(max(id), 1), max(id) is not null) from invoice;
+select setval(pg_get_serial_sequence('invoice_item', 'id'), coalesce(max(id), 1), max(id) is not null) from invoice_item;
+select setval(pg_get_serial_sequence('emission', 'id'), coalesce(max(id), 1), max(id) is not null) from emission;
+select setval(pg_get_serial_sequence('emission_item', 'id'), coalesce(max(id), 1), max(id) is not null) from emission_item;
+
+
 drop table tmp_invoices;
 drop table tmp_invoice_item;
 drop table tmp_emission;

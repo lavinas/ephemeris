@@ -220,12 +220,14 @@
 			<div class="flex justify-between items-center w-full" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
 				<div class="flex justify-start items-center gap-3">
 					<button type="button"
-							hx-post="/html/invoicing/tabela/reset"
-							hx-target="#tabela-container-invoicing"
-							onclick="var f = document.getElementById('filtro-form-invoicing'); if(f) f.reset(); var p = document.getElementById('input-pagina-form-invoicing'); if(p) p.value='1';"
-							class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-sm px-5 py-2 rounded-lg border border-gray-700 transition duration-150 shadow-md cursor-pointer flex items-center gap-2">
-						<span>🧹</span>
-						<span>Limpar Filtros</span>
+							hx-post="/html/invoicing/faturar-lote-aviso"
+							hx-target="#modal-container-invoicing"
+							hx-include="#filtro-form-invoicing"
+							class="bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-300 hover:text-emerald-100 font-bold text-sm px-5 py-2 rounded-lg border border-emerald-800/60 hover:border-emerald-700 transition duration-150 shadow-md cursor-pointer flex items-center gap-2">
+						<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+						</svg>
+						<span>Faturar</span>
 					</button>
 					<button type="button"
 							hx-post="/html/invoicing/deletar-lote-aviso"
@@ -235,7 +237,15 @@
 						<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
 						</svg>
-						<span>Apagar listagem</span>
+						<span>Apagar</span>
+					</button>
+					<button type="button"
+							hx-post="/html/invoicing/tabela/reset"
+							hx-target="#tabela-container-invoicing"
+							onclick="var f = document.getElementById('filtro-form-invoicing'); if(f) f.reset(); var p = document.getElementById('input-pagina-form-invoicing'); if(p) p.value='1';"
+							class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-sm px-5 py-2 rounded-lg border border-gray-700 transition duration-150 shadow-md cursor-pointer flex items-center gap-2">
+						<span>🧹</span>
+						<span>Limpar Filtros</span>
 					</button>
 				</div>
 				<div id="totais-container-invoicing">
@@ -359,6 +369,15 @@
 		</div>
 		<div class="flex flex-col">
 			<span class="font-bold text-sm text-indigo-900">{{.Nickname}}</span>
+			{{if .Invoiced}}
+				<span class="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded w-fit mt-1" title="Faturada no subsistema Billing (#{{.ReferenceInvoiceID}})">
+					✓ Faturada #{{.ReferenceInvoiceID}}
+				</span>
+			{{else}}
+				<span class="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded w-fit mt-1">
+					Pendente
+				</span>
+			{{end}}
 		</div>
 		<div class="flex flex-col items-start gap-2" style="gap: 8px;">
 			<div>
@@ -428,6 +447,19 @@
 			</div>
 		</div>
 		<div class="flex items-center justify-end gap-1.5" style="display: flex; align-items: center; justify-content: flex-end; gap: 0.375rem;">
+			{{if not .Invoiced}}
+			<button type="button"
+					hx-post="/html/invoicing/faturar?id={{.ID}}"
+					hx-target="#tabela-container-invoicing"
+					hx-include="#filtro-form-invoicing"
+					class="p-1.5 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded transition cursor-pointer"
+					style="color: #2563eb;"
+					title="Faturar no subsistema Billing">
+				<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+				</svg>
+			</button>
+			{{end}}
 			<button type="button"
 					hx-get="/html/invoicing/editar?id={{.ID}}"
 					hx-target="#linha-invoice-{{.ID}}"
@@ -695,5 +727,114 @@
 		</div>
 	</div>
 	{{end}}
+
+	{{define "modal_faturar_invoices_lote"}}
+	<div id="modal-faturar-lote" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+		<div class="bg-gray-900 border border-gray-700 text-gray-100 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden">
+			<!-- Header -->
+			<div class="flex items-center justify-between px-6 py-4 border-b border-gray-800 bg-gray-900/80">
+				<div class="flex items-center gap-3">
+					<div class="p-2 bg-emerald-600/20 text-emerald-400 rounded-lg border border-emerald-500/30">
+						<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+						</svg>
+					</div>
+					<div>
+						<h3 class="text-sm font-bold text-gray-100 uppercase tracking-wide">Faturar Pré-Faturas em Lote</h3>
+						<p class="text-xs text-gray-400">Envio para o subsistema Billing com base nos filtros da página</p>
+					</div>
+				</div>
+				<button type="button" onclick="document.getElementById('modal-container-invoicing').innerHTML = '';"
+						class="text-gray-400 hover:text-gray-200 hover:bg-gray-800 p-1.5 rounded-lg transition cursor-pointer">
+					<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+						<path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+					</svg>
+				</button>
+			</div>
+
+			<!-- Content -->
+			<div class="p-6 space-y-4">
+				{{if eq .PendingCount 0}}
+					<div class="p-4 bg-gray-950/60 border border-gray-800 rounded-xl text-center text-sm text-gray-400">
+						{{if gt .AlreadyInvoicedCount 0}}
+							Todas as {{.AlreadyInvoicedCount}} pré-fatura(s) correspondente(s) aos filtros atuais já foram faturadas anteriormente.
+						{{else}}
+							Nenhuma pré-fatura pendente encontrada com os filtros atualmente aplicados.
+						{{end}}
+					</div>
+					<div class="flex justify-end pt-2">
+						<button type="button" onclick="document.getElementById('modal-container-invoicing').innerHTML = '';"
+								class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-200 text-sm font-semibold rounded-lg border border-gray-700 transition cursor-pointer">
+							Fechar
+						</button>
+					</div>
+				{{else}}
+					<form hx-post="/html/invoicing/faturar-lote"
+						  hx-target="#tabela-container-invoicing"
+						  hx-on::after-request="if(event.detail.successful) document.getElementById('modal-container-invoicing').innerHTML = '';"
+						  class="space-y-4">
+						<input type="hidden" name="nickname" value="{{.Nickname}}">
+						<input type="hidden" name="start_date" value="{{.StartDate}}">
+						<input type="hidden" name="end_date" value="{{.EndDate}}">
+						<input type="hidden" name="plan_type" value="{{.PlanType}}">
+						<input type="hidden" name="service_id" value="{{.ServiceID}}">
+						<input type="hidden" name="invoice_id" value="{{.InvoiceID}}">
+						<input type="hidden" name="plan_id" value="{{.PlanID}}">
+
+						<div class="p-3.5 bg-emerald-950/30 border border-emerald-800/50 rounded-xl space-y-2 text-xs text-emerald-200">
+							<div class="font-bold text-sm text-emerald-300 flex items-center gap-2">
+								<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-emerald-400 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+									<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+								</svg>
+								<span>Confirmação de Faturamento</span>
+							</div>
+							<p>
+								Deseja enviar <strong>{{.PendingCount}}</strong> pré-fatura(s) pendente(s) para o subsistema <strong>Billing</strong>?
+							</p>
+							<div class="pt-1 text-sm font-bold text-emerald-100">
+								Valor Total Pendente: <span class="font-mono text-emerald-300">{{.PendingFormatado}}</span>
+							</div>
+							{{if gt .AlreadyInvoicedCount 0}}
+								<div class="pt-1 text-[11px] text-amber-300">
+									⚠️ {{.AlreadyInvoicedCount}} pré-fatura(s) já faturada(s) anteriormente serão ignoradas neste lote.
+								</div>
+							{{end}}
+						</div>
+
+						<!-- Filtros Ativos -->
+						<div class="p-3 bg-gray-950/60 border border-gray-800 rounded-xl space-y-1.5 text-xs text-gray-300">
+							<div class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Filtros Ativos</div>
+							{{if .TemFiltros}}
+								<div class="flex flex-wrap gap-1.5">
+									{{range .Filtros}}
+										<span class="bg-gray-800 border border-gray-700 px-2 py-0.5 rounded text-[11px] text-gray-200">{{.}}</span>
+									{{end}}
+								</div>
+							{{else}}
+								<div class="text-amber-400 font-semibold italic">Nenhum filtro aplicado. Esta ação faturará TODAS as pré-faturas pendentes!</div>
+							{{end}}
+						</div>
+
+						<!-- Footer Buttons -->
+						<div class="flex items-center justify-end gap-3 pt-3 border-t border-gray-800">
+							<button type="button" onclick="document.getElementById('modal-container-invoicing').innerHTML = '';"
+									class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm font-medium rounded-lg border border-gray-700 transition cursor-pointer">
+								Cancelar
+							</button>
+							<button type="submit"
+									class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-lg shadow-lg hover:shadow-emerald-600/30 transition cursor-pointer flex items-center gap-2">
+								<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+								</svg>
+								<span>Sim, Faturar</span>
+							</button>
+						</div>
+					</form>
+				{{end}}
+			</div>
+		</div>
+	</div>
+	{{end}}
+
 
 

@@ -7,10 +7,11 @@ import (
 
 // Config represents the configuration structure for the application
 type Config struct {
-	DB   DBConfig   `json:"db"`
-	Log  LogConfig  `json:"log"`
-	Web  WebConfig  `json:"web"`
-	NATS NATSConfig `json:"nats"`
+	DB      DBConfig      `json:"db"`
+	Log     LogConfig     `json:"log"`
+	Web     WebConfig     `json:"web"`
+	NATS    NATSConfig    `json:"nats"`
+	Billing BillingConfig `json:"billing"`
 }
 
 // DBConfig represents the database configuration structure
@@ -42,6 +43,11 @@ type NATSConfig struct {
 	URL        string `json:"url"`
 	QueueGroup string `json:"queue_group"`
 	Enabled    bool   `json:"enabled"`
+}
+
+// BillingConfig represents the external billing service configuration structure
+type BillingConfig struct {
+	URL string `json:"url"`
 }
 
 // LoadConfig reads the configuration from a JSON file and unmarshals it into a Config
@@ -90,5 +96,16 @@ func (v *Config) GetWebAddr() string {
 // GetNATSData returns NATS configuration values
 func (v *Config) GetNATSData() (url string, queueGroup string, enabled bool) {
 	return v.NATS.URL, v.NATS.QueueGroup, v.NATS.Enabled
+}
+
+// GetBillingURL returns the billing API URL, checking environment variable BILLING_URL first
+func (v *Config) GetBillingURL() string {
+	if envURL := os.Getenv("BILLING_URL"); envURL != "" {
+		return envURL
+	}
+	if v.Billing.URL != "" {
+		return v.Billing.URL
+	}
+	return "http://localhost:8081"
 }
 

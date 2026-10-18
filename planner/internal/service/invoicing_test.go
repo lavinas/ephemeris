@@ -53,6 +53,9 @@ func (m *mockInvoicingRepoForService) FindVendors(page, pageSize int, legalName,
 func (m *mockInvoicingRepoForService) GetVendor(nickname string) (*domain.Vendor, error) {
 	return nil, nil
 }
+func (m *mockInvoicingRepoForService) GetVendorByID(id int64) (*domain.Vendor, error) {
+	return nil, nil
+}
 func (m *mockInvoicingRepoForService) FindServices(vendorID int64) ([]domain.Service, error) {
 	return nil, nil
 }
