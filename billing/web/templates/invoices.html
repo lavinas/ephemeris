@@ -10,8 +10,8 @@
 		}
 		.grade-tabela {
 			display: grid !important;
-			grid-template-columns: minmax(75px, 0.8fr) minmax(95px, 1.05fr) minmax(95px, 1.15fr) minmax(105px, 1.25fr) minmax(105px, 1.25fr) minmax(105px, 1.25fr) minmax(105px, 1.25fr) minmax(70px, 0.75fr) minmax(170px, 1.8fr) minmax(115px, 1.1fr) !important;
-			gap: 10px !important;
+			grid-template-columns: minmax(75px, 0.8fr) minmax(135px, 1.45fr) minmax(90px, 0.95fr) minmax(100px, 1.05fr) minmax(100px, 1.05fr) minmax(100px, 1.05fr) minmax(100px, 1.05fr) minmax(160px, 1.8fr) minmax(110px, 1.1fr) !important;
+			gap: 8px !important;
 			align-items: center !important;
 			width: 100% !important;
 			box-sizing: border-box !important;
@@ -260,8 +260,8 @@
 			}
 			.grade-tabela {
 				display: grid !important;
-				grid-template-columns: minmax(75px, 0.8fr) minmax(95px, 1.05fr) minmax(95px, 1.15fr) minmax(105px, 1.25fr) minmax(105px, 1.25fr) minmax(105px, 1.25fr) minmax(105px, 1.25fr) minmax(70px, 0.75fr) minmax(170px, 1.8fr) minmax(115px, 1.1fr) !important;
-				gap: 10px !important;
+				grid-template-columns: minmax(75px, 0.8fr) minmax(135px, 1.45fr) minmax(90px, 0.95fr) minmax(100px, 1.05fr) minmax(100px, 1.05fr) minmax(100px, 1.05fr) minmax(100px, 1.05fr) minmax(160px, 1.8fr) minmax(110px, 1.1fr) !important;
+				gap: 8px !important;
 				align-items: center !important;
 				width: 100% !important;
 				box-sizing: border-box !important;
@@ -701,7 +701,6 @@
 			<div>Pagamento</div>
 			<div>Envio Recibo</div>
 			<div>Envio Nota</div>
-			<div>Ext. Cod.</div>
 			<div>Itens & Total</div>
 			<div style="text-align: right !important; width: 100%;">Ações</div>
 		</div>
@@ -726,7 +725,12 @@
 
 	{{define "linha_invoice"}}
 	<div id="invoice-{{.ID}}" class="linha-box grade-tabela text-sm" style="align-items: start !important; padding-top: 16px; padding-bottom: 16px;">
-		<div class="text-gray-700 font-mono font-bold text-xs">{{.DataInvoiceFormatada}}</div>
+		<div class="flex flex-col items-center w-fit" style="width: fit-content; text-align: center;">
+			<span class="text-gray-700 font-mono font-bold text-xs">{{.DataInvoiceFormatada}}</span>
+			{{if .ExternalCode}}
+				<span class="text-[10px] font-mono text-gray-500 font-semibold tracking-tight mt-0.5 text-center" title="Código / ID: {{.ExternalCode}}">#{{.ExternalCode}}</span>
+			{{end}}
+		</div>
 		<div class="font-bold text-gray-900 texto-truncado" title="{{.Customer}}">{{.Customer}}</div>
 		<div>
 			{{if .Overdue}}
@@ -763,13 +767,6 @@
 				<span class="badge-tag bg-teal-100 text-teal-800 border border-teal-300 font-mono text-xs">✓ {{.TaxDateFormatada}}</span>
 			{{else}}
 				<span class="badge-tag bg-gray-200 text-gray-600 border border-gray-300 text-xs">Não enviado</span>
-			{{end}}
-		</div>
-		<div>
-			{{if .ExternalCode}}
-				<span class="badge-tag bg-slate-100 text-slate-800 border border-slate-300 font-mono text-xs font-semibold" title="{{.ExternalCode}}">{{.ExternalCode}}</span>
-			{{else}}
-				<span class="badge-tag bg-gray-100 text-gray-400 border border-gray-200 text-xs">-</span>
 			{{end}}
 		</div>
 		<div class="comentario-multilinha" style="min-width: 0;">
@@ -851,7 +848,8 @@
 	<form id="invoice-{{.ID}}" hx-post="/html/invoices/atualizar?id={{.ID}}" hx-target="#tabela-container" hx-include="#filtro-form" class="linha-box grade-tabela formulario-edit text-sm shadow-md" style="align-items: start !important; padding-top: 16px; padding-bottom: 16px;">
 		<div>
 			<label class="block text-2xs font-bold text-gray-500 uppercase">Data</label>
-			<input type="date" name="edit_invoicing" value="{{.DataInvoice}}" required class="input-inline-tabela">
+			<input type="date" name="edit_invoicing" value="{{.DataInvoice}}" required class="input-inline-tabela mb-1">
+			<input type="text" name="edit_external_code" value="{{.ExternalCode}}" placeholder="Cód. ext..." class="input-inline-tabela text-xs text-center" title="Código / ID Externo">
 		</div>
 		<div class="font-bold text-gray-900 texto-truncado" style="padding-top: 14px;">{{.Customer}}</div>
 		<div>
@@ -875,10 +873,6 @@
 			<input type="date" name="edit_tax" value="{{.TaxDateRaw}}" class="input-inline-tabela">
 		</div>
 		<div>
-			<label class="block text-2xs font-bold text-gray-500 uppercase">Ext. Cod.</label>
-			<input type="text" name="edit_external_code" value="{{.ExternalCode}}" placeholder="Cód. ext..." class="input-inline-tabela">
-		</div>
-		<div>
 			<div class="font-mono font-bold text-indigo-700 text-xs mb-1">{{.ValorFormatado}}</div>
 			<div class="text-xs text-gray-500 italic">Itens não editáveis após emissão</div>
 		</div>
@@ -891,7 +885,7 @@
 
 	{{define "linha_invoice_deletar_aviso"}}
 	<div id="invoice-{{.ID}}" class="linha-box grade-tabela aviso-deletar text-sm bg-rose-50/50 py-5" style="align-items: center !important;">
-		<div class="col-span-8 text-rose-700 font-bold flex items-center gap-2" style="grid-column: span 8 / span 8 !important;">
+		<div class="col-span-7 text-rose-700 font-bold flex items-center gap-2" style="grid-column: span 7 / span 7 !important;">
 			<span>⚠️</span>
 			<span>Deseja realmente cancelar/excluir permanentemente a invoice <strong>#{{.ID}}</strong> de <span class="underline">{{.Customer}}</span> no valor de <strong>{{.ValorFormatado}}</strong>?</span>
 		</div>
@@ -909,7 +903,7 @@
 			<span>Confirmar pagamento de <span class="underline">{{.Customer}}</span> ({{.ValorFormatado}})? Data:</span>
 			<input type="date" name="payment_date" value="{{.DataHoje}}" required class="input-inline-tabela" style="width: auto !important; display: inline-block !important;">
 		</div>
-		<div class="col-span-3 flex gap-2 justify-end w-full" style="grid-column: span 3 / span 3 !important; justify-content: flex-end !important;">
+		<div class="col-span-2 flex gap-2 justify-end w-full" style="grid-column: span 2 / span 2 !important; justify-content: flex-end !important;">
 			<button type="submit" class="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-xs px-3 py-2 rounded transition shadow-md cursor-pointer flex items-center gap-2" style="display: inline-flex; align-items: center; gap: 6px;">
 				<svg id="spinner-pay-{{.ID}}" class="htmx-indicator" style="width: 14px; height: 14px; animation: spin 1s linear infinite;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
 					<circle style="opacity: 0.25;" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
