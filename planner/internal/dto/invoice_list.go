@@ -22,6 +22,7 @@ type InvoiceListRequest struct {
 	PlanType    int     `json:"plan_type,omitempty"`
 	ServiceID   int64   `json:"service_id,omitempty"`
 	PlanID      int64   `json:"plan_id,omitempty"`
+	PendingOnly bool    `json:"pending_only,omitempty"`
 }
 
 // UnmarshalJSON custom unmarshaler supporting both English and Portuguese/alternative field names.
@@ -82,6 +83,25 @@ func (r *InvoiceListRequest) UnmarshalJSON(data []byte) error {
 		return ""
 	}
 
+	getBool := func(keys ...string) bool {
+		for _, k := range keys {
+			if v, ok := raw[k]; ok && v != nil {
+				switch val := v.(type) {
+				case bool:
+					return val
+				case string:
+					s := strings.ToLower(strings.TrimSpace(val))
+					return s == "true" || s == "1" || s == "on"
+				case float64:
+					return val != 0
+				case int:
+					return val != 0
+				}
+			}
+		}
+		return false
+	}
+
 	r.Page = getInt("page", "pagina")
 	r.PageSize = getInt("page_size", "pageSize", "itens_por_pagina", "itensPorPag")
 	r.StartDate = getString("start_date", "startDate", "data_inicio", "date_start", "inicio")
@@ -91,6 +111,7 @@ func (r *InvoiceListRequest) UnmarshalJSON(data []byte) error {
 	r.PlanType = getInt("plan_type", "planType", "tipo_plano", "tipo_filtro")
 	r.ServiceID = getInt64("service_id", "serviceId", "servico_id", "servico_filtro")
 	r.PlanID = getInt64("plan_id", "planId", "plano_id")
+	r.PendingOnly = getBool("pending_only", "pendingOnly", "pendente", "pending")
 
 	return nil
 }
@@ -269,4 +290,5 @@ func (r *InvoiceListRequest) Reset() {
 	r.PlanType = 0
 	r.ServiceID = 0
 	r.PlanID = 0
+	r.PendingOnly = false
 }

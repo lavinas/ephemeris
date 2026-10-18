@@ -20,8 +20,9 @@ func (h *HandlerHtml) InvoicingHTML(w http.ResponseWriter, r *http.Request) {
 	}
 	svc := service.NewInvoiceList(h.repo, h.logger)
 	req := &dto.InvoiceListRequest{
-		Page:     1,
-		PageSize: itensPorPag,
+		Page:        1,
+		PageSize:    itensPorPag,
+		PendingOnly: true,
 	}
 	respdto := svc.Run(req)
 	if respdto.GetStatusCode() != 200 {
@@ -84,17 +85,29 @@ func (h *HandlerHtml) InvoicingTable(w http.ResponseWriter, r *http.Request) {
 		endDate = r.FormValue("data_fim")
 	}
 
+	pendingOnly := true
+	if r.FormValue("form_filtro_enviado") == "1" {
+		pendingOnly = r.FormValue("pendente") == "true" || r.FormValue("pendente") == "on" || r.FormValue("pendente") == "1"
+	} else if r.URL.Query().Get("pendente") != "" || r.FormValue("pendente") != "" {
+		pVal := r.FormValue("pendente")
+		if pVal == "" {
+			pVal = r.URL.Query().Get("pendente")
+		}
+		pendingOnly = pVal == "true" || pVal == "on" || pVal == "1"
+	}
+
 	svc := service.NewInvoiceList(h.repo, h.logger)
 	req := &dto.InvoiceListRequest{
-		Page:      pagina,
-		PageSize:  itensPorPag,
-		Nickname:  r.FormValue("nickname"),
-		PlanType:  tipoFiltro,
-		ServiceID: servicoFiltro,
-		InvoiceID: faturaID,
-		PlanID:    planoID,
-		StartDate: startDate,
-		EndDate:   endDate,
+		Page:        pagina,
+		PageSize:    itensPorPag,
+		Nickname:    r.FormValue("nickname"),
+		PlanType:    tipoFiltro,
+		ServiceID:   servicoFiltro,
+		InvoiceID:   faturaID,
+		PlanID:      planoID,
+		StartDate:   startDate,
+		EndDate:     endDate,
+		PendingOnly: pendingOnly,
 	}
 	respdto := svc.Run(req)
 	if respdto.GetStatusCode() != 200 {
@@ -114,8 +127,9 @@ func (h *HandlerHtml) InvoicingTable(w http.ResponseWriter, r *http.Request) {
 func (h *HandlerHtml) InvoicingTableReset(w http.ResponseWriter, r *http.Request) {
 	svc := service.NewInvoiceList(h.repo, h.logger)
 	req := &dto.InvoiceListRequest{
-		Page:     1,
-		PageSize: itensPorPag,
+		Page:        1,
+		PageSize:    itensPorPag,
+		PendingOnly: true,
 	}
 	respdto := svc.Run(req)
 	if respdto.GetStatusCode() != 200 {
@@ -151,6 +165,10 @@ func (h *HandlerHtml) InvoicingDeleteWarning(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	invoiceSel := h.getInvoiceData(response)[0]
+	if invBool, ok := invoiceSel["Invoiced"].(bool); ok && invBool {
+		http.Error(w, "Pré-fatura já faturada não pode ser excluída", http.StatusBadRequest)
+		return
+	}
 	h.tmplInvoicing.ExecuteTemplate(w, "linha_invoice_deletar_aviso", invoiceSel)
 }
 
@@ -197,6 +215,10 @@ func (h *HandlerHtml) InvoicingEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	invoiceSel := h.getInvoiceData(response)[0]
+	if invBool, ok := invoiceSel["Invoiced"].(bool); ok && invBool {
+		http.Error(w, "Pré-fatura já faturada não pode ser editada", http.StatusBadRequest)
+		return
+	}
 	h.tmplInvoicing.ExecuteTemplate(w, "linha_invoice_edit", invoiceSel)
 }
 
@@ -320,8 +342,9 @@ func (h *HandlerHtml) InvoicingDeleteBatchWarning(w http.ResponseWriter, r *http
 		ServiceID: servicoFiltro,
 		InvoiceID: faturaID,
 		PlanID:    planoID,
-		StartDate: startDate,
-		EndDate:   endDate,
+		StartDate:   startDate,
+		EndDate:     endDate,
+		PendingOnly: true,
 	}
 	respdto := svc.Run(req)
 	response, ok := respdto.(*dto.InvoiceListResponse)

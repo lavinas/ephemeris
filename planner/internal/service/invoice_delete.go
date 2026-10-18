@@ -39,6 +39,10 @@ func (s *InvoiceDelete) Run(input port.InDTO) port.OutDTO {
 	if existing == nil {
 		return dto.NewInvoiceDeleteResponse(404, "Not Found", "fatura não encontrada")
 	}
+	if existing.ReferenceInvoiceID != nil {
+		s.logger.IPrintf(2, "Invoice with ID %d already invoiced (billing #%d), cannot delete", invoiceID, *existing.ReferenceInvoiceID)
+		return dto.NewInvoiceDeleteResponse(400, "Bad Request", "pré-fatura já faturada não pode ser excluída")
+	}
 
 	if err := s.repo.DeleteInvoice(invoiceID); err != nil {
 		s.logger.IPrintf(2, "Error deleting invoice %d: %v", invoiceID, err)

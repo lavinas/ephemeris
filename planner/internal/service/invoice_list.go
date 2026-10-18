@@ -75,6 +75,9 @@ func (s *InvoiceList) Run(input port.InDTO) port.OutDTO {
 	if req.ServiceID != 0 {
 		conditions["planner.invoice.id IN (SELECT invoice_id FROM planner.invoice_item WHERE service_id = ? AND deleted_at IS NULL)"] = req.ServiceID
 	}
+	if req.PendingOnly {
+		conditions["planner.invoice.reference_invoice_id IS NULL"] = nil
+	}
 
 	page := req.Page
 	if page <= 0 {

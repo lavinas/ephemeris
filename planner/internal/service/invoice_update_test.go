@@ -140,3 +140,31 @@ func TestInvoiceUpdate_NotFound(t *testing.T) {
 		t.Errorf("expected 400 when invoice not found in validation, got %d", res.GetStatusCode())
 	}
 }
+
+func TestInvoiceUpdate_AlreadyInvoiced(t *testing.T) {
+	repo := newMockInvoiceUpdateRepoForService()
+	logger := &mockLogger{}
+
+	billingID := int64(789)
+	repo.invoices[1] = &domain.Invoice{
+		ID:                 1,
+		DueDate:            time.Date(2026, 10, 20, 0, 0, 0, 0, time.UTC),
+		InvoicingDate:      time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC),
+		Amount:             250.0,
+		ReferenceInvoiceID: &billingID,
+	}
+
+	svc := NewInvoiceUpdate(repo, logger)
+	req := &dto.InvoiceUpdateRequest{
+		InvoiceID: 1,
+		DueDate:   "2026-11-05",
+	}
+
+	res := svc.Run(req)
+	if res.GetStatusCode() != 400 {
+		t.Errorf("expected 400 when invoice already invoiced, got %d with message %s", res.GetStatusCode(), res.GetMessage())
+	}
+	if repo.updatedInvoice != nil {
+		t.Errorf("expected invoice not to be updated, but was updated")
+	}
+}

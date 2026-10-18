@@ -449,9 +449,10 @@ func TestPlansSaveAndMultipleItems(t *testing.T) {
 
 type mockInvoiceRouteRepo struct {
 	dummyRepo
-	deletedInvoiceID int64
-	updatedInvoice   *domain.Invoice
-	deletedBatchIDs  []int64
+	deletedInvoiceID  int64
+	updatedInvoice    *domain.Invoice
+	deletedBatchIDs   []int64
+	invoicedInvoiceID int64
 }
 
 func (m *mockInvoiceRouteRepo) GetCustomerByID(id int64) (*domain.Customer, error) {
@@ -459,13 +460,19 @@ func (m *mockInvoiceRouteRepo) GetCustomerByID(id int64) (*domain.Customer, erro
 }
 
 func (m *mockInvoiceRouteRepo) GetInvoiceByID(id int64) (*domain.Invoice, error) {
+	var refID *int64
+	if m.invoicedInvoiceID != 0 && id == m.invoicedInvoiceID {
+		rid := int64(8888)
+		refID = &rid
+	}
 	return &domain.Invoice{
-		ID:            id,
-		PlanID:        1,
-		Plan:          &domain.Plan{CustomerID: 10},
-		InvoicingDate: time.Now(),
-		DueDate:       time.Now().AddDate(0, 0, 5),
-		Amount:        150.0,
+		ID:                 id,
+		PlanID:             1,
+		Plan:               &domain.Plan{CustomerID: 10},
+		InvoicingDate:      time.Now(),
+		DueDate:            time.Now().AddDate(0, 0, 5),
+		Amount:             150.0,
+		ReferenceInvoiceID: refID,
 		Items: []domain.InvoiceItem{
 			{ID: 1, InvoiceID: id, ServiceID: 10, Price: 50.0, InvoicedQuantity: 3},
 		},
@@ -504,14 +511,20 @@ func (m *mockInvoiceRouteRepo) FindInvoices(conditions map[string]interface{}, o
 }
 
 func (m *mockInvoiceRouteRepo) FindInvoicesPaged(page, pageSize int, conditions map[string]interface{}, orderBy ...string) ([]domain.Invoice, int64, float64, error) {
+	var refID *int64
+	if m.invoicedInvoiceID != 0 {
+		rid := int64(8888)
+		refID = &rid
+	}
 	return []domain.Invoice{
 		{
-			ID:            1,
-			PlanID:        1,
-			Plan:          &domain.Plan{CustomerID: 10},
-			InvoicingDate: time.Now(),
-			DueDate:       time.Now().AddDate(0, 0, 5),
-			Amount:        150.0,
+			ID:                 1,
+			PlanID:             1,
+			Plan:               &domain.Plan{CustomerID: 10},
+			InvoicingDate:      time.Now(),
+			DueDate:            time.Now().AddDate(0, 0, 5),
+			Amount:             150.0,
+			ReferenceInvoiceID: refID,
 		},
 	}, 1, 150.0, nil
 }
@@ -856,6 +869,102 @@ func TestInvoiceEditAndBatchDeleteRoutes(t *testing.T) {
 	}
 }
 
+func TestInvoicing_AlreadyInvoicedBlockedAndPendingFilter(t *testing.T) {
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("could not get working dir: %v", err)
+	}
+	defer os.Chdir(origDir)
+
+	if err := os.Chdir("../../.."); err != nil {
+		t.Fatalf("could not chdir to planner/backend: %v", err)
+	}
+
+	mockR := &mockInvoiceRouteRepo{invoicedInvoiceID: 1}
+	routes, err := NewRoutes(mockR, &dummyLogger{}, nil)
+	if err != nil {
+		t.Fatalf("failed to create routes: %v", err)
+	}
+
+	// 1. GET /html/invoicing/editar?id=1 must be rejected with 400 for invoiced invoice
+	reqEdit := httptest.NewRequest(http.MethodGet, "/html/invoicing/editar?id=1", nil)
+	recEdit := httptest.NewRecorder()
+	routes.ServeHTTP(recEdit, reqEdit)
+	if recEdit.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 on /html/invoicing/editar for invoiced pre-invoice, got %d", recEdit.Code)
+	}
+
+	// 2. GET /html/invoicing/deletar-aviso?id=1 must be rejected with 400 for invoiced invoice
+	reqDelWarn := httptest.NewRequest(http.MethodGet, "/html/invoicing/deletar-aviso?id=1", nil)
+	recDelWarn := httptest.NewRecorder()
+	routes.ServeHTTP(recDelWarn, reqDelWarn)
+	if recDelWarn.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 on /html/invoicing/deletar-aviso for invoiced pre-invoice, got %d", recDelWarn.Code)
+	}
+
+	// 3. POST /html/invoicing/deletar?id=1 must be rejected with 400 for invoiced invoice
+	reqDel := httptest.NewRequest(http.MethodPost, "/html/invoicing/deletar?id=1", nil)
+	recDel := httptest.NewRecorder()
+	routes.ServeHTTP(recDel, reqDel)
+	if recDel.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 on /html/invoicing/deletar for invoiced pre-invoice, got %d", recDel.Code)
+	}
+
+	// 4. POST /html/invoicing/atualizar?id=1 must be rejected with 400 for invoiced invoice
+	updateForm := strings.NewReader("due_date=2026-11-20")
+	reqUpd := httptest.NewRequest(http.MethodPost, "/html/invoicing/atualizar?id=1", updateForm)
+	reqUpd.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	recUpd := httptest.NewRecorder()
+	routes.ServeHTTP(recUpd, reqUpd)
+	if recUpd.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 on /html/invoicing/atualizar for invoiced pre-invoice, got %d", recUpd.Code)
+	}
+
+	// 5. InvoicingTable when invoiced: should show "✓ Faturada #8888" and should NOT show edit/delete buttons
+	reqTable := httptest.NewRequest(http.MethodPost, "/html/invoicing/tabela", nil)
+	recTable := httptest.NewRecorder()
+	routes.ServeHTTP(recTable, reqTable)
+	if recTable.Code != http.StatusOK {
+		t.Errorf("expected 200 on /html/invoicing/tabela, got %d", recTable.Code)
+	}
+	bodyTable := recTable.Body.String()
+	if !strings.Contains(bodyTable, "Faturada #8888") {
+		t.Errorf("expected invoiced row to show 'Faturada #8888', got: %s", bodyTable)
+	}
+	if strings.Contains(bodyTable, `/html/invoicing/editar?id=1`) {
+		t.Errorf("expected invoiced row to NOT have edit button")
+	}
+	if strings.Contains(bodyTable, `/html/invoicing/deletar-aviso?id=1`) {
+		t.Errorf("expected invoiced row to NOT have delete button")
+	}
+
+	// 6. Test when NOT invoiced: should show "⏳ Pendente", edit button, delete button, and pendente toggle switch
+	mockR2 := &mockInvoiceRouteRepo{invoicedInvoiceID: 0}
+	routes2, err := NewRoutes(mockR2, &dummyLogger{}, nil)
+	if err != nil {
+		t.Fatalf("failed to create routes2: %v", err)
+	}
+	reqHTML := httptest.NewRequest(http.MethodGet, "/html/invoicing", nil)
+	recHTML := httptest.NewRecorder()
+	routes2.ServeHTTP(recHTML, reqHTML)
+	if recHTML.Code != http.StatusOK {
+		t.Errorf("expected 200 on /html/invoicing, got %d", recHTML.Code)
+	}
+	bodyHTML := recHTML.Body.String()
+	if !strings.Contains(bodyHTML, "filtro-pendente") {
+		t.Errorf("expected /html/invoicing to contain 'filtro-pendente'")
+	}
+	if !strings.Contains(bodyHTML, "Pendente") {
+		t.Errorf("expected /html/invoicing to contain 'Pendente'")
+	}
+	if !strings.Contains(bodyHTML, `/html/invoicing/editar?id=1`) {
+		t.Errorf("expected pending row to have edit button")
+	}
+	if !strings.Contains(bodyHTML, `/html/invoicing/deletar-aviso?id=1`) {
+		t.Errorf("expected pending row to have delete button")
+	}
+}
+
 type mockReconcileRouteRepo struct {
 	dummyRepo
 	reconciledSessions map[int64]bool
@@ -1089,17 +1198,17 @@ func TestHTMLSessionReconciliationButtonStates(t *testing.T) {
 
 	body := rec.Body.String()
 
-	// Verify Session 1 (Reconciled): green button with emerald style and title "Sessão conciliada com pré-fatura"
-	if !strings.Contains(body, "bg-emerald-600") {
-		t.Errorf("expected session table to contain green button (bg-emerald-600)")
+	// Verify Session 1 (Reconciled): green discreet button with emerald style and title "Sessão conciliada com pré-fatura"
+	if !strings.Contains(body, "text-emerald-600") {
+		t.Errorf("expected session table to contain green button (text-emerald-600)")
 	}
 	if !strings.Contains(body, "Sessão conciliada com pré-fatura") {
 		t.Errorf("expected session table to have reconciled tooltip 'Sessão conciliada com pré-fatura'")
 	}
 
-	// Verify Session 2 (Unreconciled): red button with rose style and title "Sessão não conciliada - Clique para conciliar"
-	if !strings.Contains(body, "bg-rose-600") {
-		t.Errorf("expected session table to contain red button (bg-rose-600)")
+	// Verify Session 2 (Unreconciled): discreet button with rose style and title "Sessão não conciliada - Clique para conciliar"
+	if !strings.Contains(body, "text-rose-600") {
+		t.Errorf("expected session table to contain rose button (text-rose-600)")
 	}
 	if !strings.Contains(body, "Sessão não conciliada - Clique para conciliar") {
 		t.Errorf("expected session table to have unreconciled tooltip 'Sessão não conciliada - Clique para conciliar'")

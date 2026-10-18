@@ -47,6 +47,10 @@ func (s *InvoiceUpdate) Run(input port.InDTO) port.OutDTO {
 	if invoice == nil || invoice.DeletedAt != nil {
 		return dto.NewInvoiceUpdateResponse(404, "error", "pré-fatura não encontrada", nil)
 	}
+	if invoice.ReferenceInvoiceID != nil {
+		s.logger.IPrintf(2, "Invoice #%d already invoiced (billing #%d), cannot update", invoice.ID, *invoice.ReferenceInvoiceID)
+		return dto.NewInvoiceUpdateResponse(400, "error", "pré-fatura já faturada não pode ser editada", nil)
+	}
 
 	// Update DueDate
 	parsedDueDate, err := time.Parse("2006-01-02", req.DueDate)

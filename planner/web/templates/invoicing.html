@@ -3,7 +3,7 @@
 	<style>
 		.grade-filtros-invoicing {
 			display: grid !important;
-			grid-template-columns: 2fr 1.2fr 1.2fr 1.4fr 1.8fr !important;
+			grid-template-columns: 1.8fr 1.1fr 1.1fr 1.2fr 1.6fr 0.9fr !important;
 			gap: 14px !important;
 			width: 100% !important;
 			box-sizing: border-box !important;
@@ -174,6 +174,7 @@
 			<!-- Formulário de Filtros -->
 			<form id="filtro-form-invoicing" hx-post="/html/invoicing/tabela" hx-target="#tabela-container-invoicing" hx-trigger="input delay:250ms, change" class="w-full">
 				<input type="hidden" id="input-pagina-form-invoicing" name="page" value="1">
+				<input type="hidden" name="form_filtro_enviado" value="1">
 				<div class="grade-filtros-invoicing">
 					<div class="campo-box">
 						<label>Cliente</label>
@@ -210,6 +211,15 @@
 								<option value="{{.ID}}">{{.Name}}</option>
 							{{end}}
 						</select>
+					</div>
+					<div class="campo-box" style="justify-content: center; align-items: center;">
+						<label style="margin-bottom: 6px; text-align: center;">Pendente</label>
+						<div class="flex items-center justify-center" style="display: flex; align-items: center; justify-content: center; height: 100%;">
+							<label class="relative inline-flex items-center cursor-pointer select-none" title="Filtrar apenas pré-faturas pendentes (liga/desliga)">
+								<input type="checkbox" id="filtro-pendente" name="pendente" value="true" checked class="sr-only peer">
+								<div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+							</label>
+						</div>
 					</div>
 				</div>
 			</form>
@@ -374,8 +384,8 @@
 					✓ Faturada #{{.ReferenceInvoiceID}}
 				</span>
 			{{else}}
-				<span class="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded w-fit mt-1">
-					Pendente
+				<span class="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded w-fit mt-1" title="Pré-fatura pendente de envio para o billing">
+					⏳ Pendente
 				</span>
 			{{end}}
 		</div>
@@ -459,7 +469,6 @@
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
 				</svg>
 			</button>
-			{{end}}
 			<button type="button"
 					hx-get="/html/invoicing/editar?id={{.ID}}"
 					hx-target="#linha-invoice-{{.ID}}"
@@ -471,6 +480,7 @@
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
 				</svg>
 			</button>
+			{{end}}
 			<button type="button"
 					hx-post="/html/invoicing/reconciliar?id={{.ID}}"
 					hx-target="#tabela-container-invoicing"
@@ -482,6 +492,7 @@
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
 				</svg>
 			</button>
+			{{if not .Invoiced}}
 			<button type="button"
 					hx-get="/html/invoicing/deletar-aviso?id={{.ID}}"
 					hx-target="#linha-invoice-{{.ID}}"
@@ -492,6 +503,7 @@
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
 				</svg>
 			</button>
+			{{end}}
 		</div>
 	</div>
 	{{end}}
@@ -503,6 +515,9 @@
 		</div>
 		<div class="flex flex-col">
 			<span class="font-bold text-sm text-indigo-900">{{.Nickname}}</span>
+			<span class="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded w-fit mt-1" title="Pré-fatura pendente de envio para o billing">
+				⏳ Pendente
+			</span>
 		</div>
 		<div class="flex flex-col items-start gap-2" style="gap: 8px;">
 			<div>

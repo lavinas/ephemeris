@@ -168,4 +168,24 @@ func TestInvoiceList_FiltersApplied(t *testing.T) {
 	if repo.lastConds["planner.invoice.id IN (SELECT invoice_id FROM planner.invoice_item WHERE service_id = ? AND deleted_at IS NULL)"] != int64(10) {
 		t.Errorf("expected service_id condition")
 	}
+
+	// Test PendingOnly true
+	req.PendingOnly = true
+	res = svc.Run(req)
+	if res.GetStatusCode() != 200 {
+		t.Fatalf("expected 200, got %d", res.GetStatusCode())
+	}
+	if _, ok := repo.lastConds["planner.invoice.reference_invoice_id IS NULL"]; !ok {
+		t.Errorf("expected reference_invoice_id IS NULL condition when PendingOnly is true")
+	}
+
+	// Test PendingOnly false
+	req.PendingOnly = false
+	res = svc.Run(req)
+	if res.GetStatusCode() != 200 {
+		t.Fatalf("expected 200, got %d", res.GetStatusCode())
+	}
+	if _, ok := repo.lastConds["planner.invoice.reference_invoice_id IS NULL"]; ok {
+		t.Errorf("expected no reference_invoice_id condition when PendingOnly is false")
+	}
 }

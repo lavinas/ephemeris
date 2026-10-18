@@ -163,3 +163,34 @@ func TestInvoiceListResponse_TotalAmount(t *testing.T) {
 		t.Errorf("expected total_amount 400.50 in JSON, got %v", raw["total_amount"])
 	}
 }
+
+func TestInvoiceListRequest_PendingOnly(t *testing.T) {
+	testCases := []struct {
+		json     string
+		expected bool
+	}{
+		{`{"pending_only": true}`, true},
+		{`{"pendente": "true"}`, true},
+		{`{"pending": "1"}`, true},
+		{`{"pending_only": false}`, false},
+		{`{"pendente": "false"}`, false},
+		{`{"pendente": "0"}`, false},
+		{`{}`, false},
+	}
+
+	for _, tc := range testCases {
+		var req InvoiceListRequest
+		if err := json.Unmarshal([]byte(tc.json), &req); err != nil {
+			t.Fatalf("failed to unmarshal %s: %v", tc.json, err)
+		}
+		if req.PendingOnly != tc.expected {
+			t.Errorf("for %s expected PendingOnly=%v, got %v", tc.json, tc.expected, req.PendingOnly)
+		}
+	}
+
+	req := InvoiceListRequest{PendingOnly: true}
+	req.Reset()
+	if req.PendingOnly != false {
+		t.Errorf("expected Reset() to set PendingOnly=false, got %v", req.PendingOnly)
+	}
+}

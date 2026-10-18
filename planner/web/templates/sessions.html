@@ -457,8 +457,8 @@
 					hx-post="/html/sessoes/reconciliar?id={{.ID}}"
 					hx-target="#tabela-container"
 					hx-include="#filtro-form"
-					class="p-1.5 text-white bg-emerald-600 hover:bg-emerald-700 rounded transition cursor-pointer shadow-sm flex items-center justify-center"
-					style="background-color: #059669; color: #ffffff; border: none; border-radius: 6px; padding: 6px; cursor: pointer;"
+					class="p-1.5 text-emerald-600 hover:text-emerald-900 hover:bg-emerald-50 rounded transition cursor-pointer"
+					style="color: #059669;"
 					title="Sessão conciliada com pré-fatura (Clique para conciliar novamente)">
 				<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -467,8 +467,8 @@
 			{{else if not .Elegivel}}
 			<button type="button"
 					disabled
-					class="p-1.5 text-gray-400 bg-gray-200 border border-gray-300 rounded opacity-60 cursor-not-allowed flex items-center justify-center"
-					style="background-color: #e5e7eb; color: #9ca3af; border: 1px solid #d1d5db; border-radius: 6px; padding: 6px; opacity: 0.6; cursor: not-allowed;"
+					class="p-1.5 text-gray-400 opacity-50 rounded cursor-not-allowed"
+					style="color: #9ca3af; cursor: not-allowed;"
 					title="Sessão cancelada sem cobrança (não elegível para conciliação)">
 				<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
@@ -479,8 +479,8 @@
 					hx-post="/html/sessoes/reconciliar?id={{.ID}}"
 					hx-target="#tabela-container"
 					hx-include="#filtro-form"
-					class="p-1.5 text-white bg-rose-600 hover:bg-rose-700 rounded transition cursor-pointer shadow-sm flex items-center justify-center"
-					style="background-color: #e11d48; color: #ffffff; border: none; border-radius: 6px; padding: 6px; cursor: pointer;"
+					class="p-1.5 text-rose-600 hover:text-rose-900 hover:bg-rose-50 rounded transition cursor-pointer"
+					style="color: #e11d48;"
 					title="Sessão não conciliada - Clique para conciliar com pré-fatura">
 				<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />

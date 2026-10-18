@@ -124,3 +124,26 @@ func TestInvoiceDelete_RepoErrors(t *testing.T) {
 		}
 	})
 }
+
+func TestInvoiceDelete_AlreadyInvoiced(t *testing.T) {
+	repo := newMockInvoiceDeleteRepo()
+	logger := &mockLogger{}
+	billingID := int64(456)
+	repo.invoices[100] = &domain.Invoice{
+		ID:                 100,
+		PlanID:             1,
+		Amount:             250.0,
+		ReferenceInvoiceID: &billingID,
+	}
+
+	svc := NewInvoiceDelete(repo, logger)
+	req := &dto.InvoiceDeleteRequest{InvoiceID: 100}
+
+	res := svc.Run(req)
+	if res.GetStatusCode() != 400 {
+		t.Fatalf("expected status 400 for already invoiced, got %d with message %s", res.GetStatusCode(), res.GetMessage())
+	}
+	if len(repo.deletedIDs) != 0 {
+		t.Errorf("expected no invoice to be deleted, got %v", repo.deletedIDs)
+	}
+}

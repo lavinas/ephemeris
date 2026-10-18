@@ -10,8 +10,8 @@
 		}
 		.grade-tabela {
 			display: grid !important;
-			grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.9fr) minmax(0, 2.35fr) minmax(0, 2.6fr) !important;
-			gap: 12px !important;
+			grid-template-columns: minmax(75px, 0.8fr) minmax(95px, 1.05fr) minmax(95px, 1.15fr) minmax(105px, 1.25fr) minmax(105px, 1.25fr) minmax(105px, 1.25fr) minmax(105px, 1.25fr) minmax(70px, 0.75fr) minmax(170px, 1.8fr) minmax(115px, 1.1fr) !important;
+			gap: 10px !important;
 			align-items: center !important;
 			width: 100% !important;
 			box-sizing: border-box !important;
@@ -99,10 +99,11 @@
 			border-radius: 6px;
 			font-size: 11px;
 			font-weight: 600;
+			white-space: nowrap !important;
 		}
 	</style>
 	<div class="bg-gray-950 text-gray-100 font-sans antialiased min-h-screen py-10 px-4" style="background-color: #030712; color: #f3f4f6; font-family: ui-sans-serif, system-ui, sans-serif; min-height: 100vh; padding: 2.5rem 1rem;">
-		<div class="max-w-7xl mx-auto bg-gray-900 shadow-2xl rounded-2xl overflow-hidden border border-gray-800 p-8" style="max-width: 86rem; margin: 0 auto; background-color: #111827; border-radius: 1rem; border: 1px solid #1f2937; padding: 2rem;">
+		<div class="max-w-[94rem] mx-auto bg-gray-900 shadow-2xl rounded-2xl overflow-hidden border border-gray-800 p-8" style="max-width: 94rem; margin: 0 auto; background-color: #111827; border-radius: 1rem; border: 1px solid #1f2937; padding: 2rem;">
 			<form id="filtro-form" hx-post="/html/invoices/tabela" hx-target="#tabela-container" hx-trigger="input delay:200ms, change" class="w-full">
 				<input type="hidden" id="input-pagina-form" name="page" value="1">
 				<div class="grade-filtros">
@@ -259,8 +260,8 @@
 			}
 			.grade-tabela {
 				display: grid !important;
-				grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.9fr) minmax(0, 2.35fr) minmax(0, 2.6fr) !important;
-				gap: 12px !important;
+				grid-template-columns: minmax(75px, 0.8fr) minmax(95px, 1.05fr) minmax(95px, 1.15fr) minmax(105px, 1.25fr) minmax(105px, 1.25fr) minmax(105px, 1.25fr) minmax(105px, 1.25fr) minmax(70px, 0.75fr) minmax(170px, 1.8fr) minmax(115px, 1.1fr) !important;
+				gap: 10px !important;
 				align-items: center !important;
 				width: 100% !important;
 				box-sizing: border-box !important;
@@ -348,6 +349,7 @@
 				border-radius: 6px;
 				font-size: 11px;
 				font-weight: 600;
+				white-space: nowrap !important;
 			}
 			.htmx-indicator {
 				display: none;
@@ -368,7 +370,7 @@
 		</style>
 	</head>
 	<body class="bg-gray-950 text-gray-100 font-sans antialiased min-h-screen py-10 px-4">
-		<div class="max-w-7xl mx-auto bg-gray-900 shadow-2xl rounded-2xl overflow-hidden border border-gray-800 p-8" style="max-width: 86rem;">
+		<div class="max-w-[94rem] mx-auto bg-gray-900 shadow-2xl rounded-2xl overflow-hidden border border-gray-800 p-8" style="max-width: 94rem;">
 			<form id="filtro-form" hx-post="/html/invoices/tabela" hx-target="#tabela-container" hx-trigger="input delay:200ms, change" class="w-full">
 				<input type="hidden" id="input-pagina-form" name="page" value="1">
 				<div class="grade-filtros">
@@ -857,12 +859,12 @@
 			<input type="date" name="edit_due" value="{{.DueDate}}" required class="input-inline-tabela">
 		</div>
 		<div>
-			<label class="block text-2xs font-bold text-gray-500 uppercase">Pagamento</label>
-			<input type="date" name="edit_payment" value="{{.PaymentDateRaw}}" class="input-inline-tabela">
-		</div>
-		<div>
 			<label class="block text-2xs font-bold text-gray-500 uppercase">Envio Fatura</label>
 			<input type="date" name="edit_email_sent" value="{{.EmailSentDateRaw}}" class="input-inline-tabela">
+		</div>
+		<div>
+			<label class="block text-2xs font-bold text-gray-500 uppercase">Pagamento</label>
+			<input type="date" name="edit_payment" value="{{.PaymentDateRaw}}" class="input-inline-tabela">
 		</div>
 		<div>
 			<label class="block text-2xs font-bold text-gray-500 uppercase">Envio Recibo</label>
