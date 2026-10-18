@@ -66,6 +66,8 @@ create table service (
     updated_at timestamp not null default now()
 );
 
+
+
 # insert default services for vendor_id 1
 
 select * from service;
@@ -94,4 +96,13 @@ create table session (
     deleted_at timestamp,
     constraint fk_customer_id foreign key (customer_id) references customer(id) on delete cascade
 );
+
+create index idx_session_customer_id on session(customer_id);
+create index idx_session_service_id on session(service_id);
+create index idx_session_session_date on session(session_date);
+create index idx_session_session_status on session(session_status);
+create index idx_session_updated_at on session(updated_at);
+create index idx_session_updated_at on session(deleted_at);
+create index idx_sesson_session_date on session(session_date);
+
 
