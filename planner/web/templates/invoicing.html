@@ -469,6 +469,7 @@
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
 				</svg>
 			</button>
+			{{end}}
 			<button type="button"
 					hx-get="/html/invoicing/editar?id={{.ID}}"
 					hx-target="#linha-invoice-{{.ID}}"
@@ -480,7 +481,6 @@
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
 				</svg>
 			</button>
-			{{end}}
 			<button type="button"
 					hx-post="/html/invoicing/reconciliar?id={{.ID}}"
 					hx-target="#tabela-container-invoicing"
@@ -492,7 +492,6 @@
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
 				</svg>
 			</button>
-			{{if not .Invoiced}}
 			<button type="button"
 					hx-get="/html/invoicing/deletar-aviso?id={{.ID}}"
 					hx-target="#linha-invoice-{{.ID}}"
@@ -503,7 +502,6 @@
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
 				</svg>
 			</button>
-			{{end}}
 		</div>
 	</div>
 	{{end}}
@@ -515,9 +513,15 @@
 		</div>
 		<div class="flex flex-col">
 			<span class="font-bold text-sm text-indigo-900">{{.Nickname}}</span>
-			<span class="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded w-fit mt-1" title="Pré-fatura pendente de envio para o billing">
-				⏳ Pendente
-			</span>
+			{{if .Invoiced}}
+				<span class="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded w-fit mt-1" title="Faturada no subsistema Billing (#{{.ReferenceInvoiceID}})">
+					✓ Faturada #{{.ReferenceInvoiceID}}
+				</span>
+			{{else}}
+				<span class="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded w-fit mt-1" title="Pré-fatura pendente de envio para o billing">
+					⏳ Pendente
+				</span>
+			{{end}}
 		</div>
 		<div class="flex flex-col items-start gap-2" style="gap: 8px;">
 			<div>
@@ -622,7 +626,7 @@
 			<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
 				<path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
 			</svg>
-			<span>Atenção: Deseja realmente excluir a pré-fatura #{{.ID}} do cliente <strong>{{.Nickname}}</strong> (R$ {{.ValorFormatado}})?</span>
+			<span>Atenção: Deseja realmente excluir a pré-fatura #{{.ID}} do cliente <strong>{{.Nickname}}</strong> (R$ {{.ValorFormatado}})?{{if .Invoiced}} <span class="text-xs text-rose-800 font-normal">(A fatura correspondente no billing #{{.ReferenceInvoiceID}} será cancelada com a data atual)</span>{{end}}</span>
 		</div>
 		<div class="col-span-1 flex items-center justify-end gap-2">
 			<button type="button"

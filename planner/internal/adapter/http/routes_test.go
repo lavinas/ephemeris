@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"planner/internal/domain"
+	"planner/internal/port"
 )
 
 type dummyLogger struct{}
@@ -447,6 +449,25 @@ func TestPlansSaveAndMultipleItems(t *testing.T) {
 	}
 }
 
+type mockBillingClientForRoutes struct {
+	cancelledInvoices []port.BillingCancelInput
+	createdInvoices   []port.BillingInvoiceInput
+}
+
+func (m *mockBillingClientForRoutes) CreateInvoice(ctx context.Context, input port.BillingInvoiceInput) (int64, error) {
+	m.createdInvoices = append(m.createdInvoices, input)
+	return 9999, nil
+}
+
+func (m *mockBillingClientForRoutes) GetInvoiceByExternalCode(ctx context.Context, vendor, externalCode string) (*int64, error) {
+	return nil, nil
+}
+
+func (m *mockBillingClientForRoutes) CancelInvoice(ctx context.Context, input port.BillingCancelInput) error {
+	m.cancelledInvoices = append(m.cancelledInvoices, input)
+	return nil
+}
+
 type mockInvoiceRouteRepo struct {
 	dummyRepo
 	deletedInvoiceID  int64
@@ -455,8 +476,12 @@ type mockInvoiceRouteRepo struct {
 	invoicedInvoiceID int64
 }
 
+func (m *mockInvoiceRouteRepo) GetVendorByID(id int64) (*domain.Vendor, error) {
+	return &domain.Vendor{ID: id, Nickname: "vendedor_teste"}, nil
+}
+
 func (m *mockInvoiceRouteRepo) GetCustomerByID(id int64) (*domain.Customer, error) {
-	return &domain.Customer{ID: id, Nickname: "cliente_teste"}, nil
+	return &domain.Customer{ID: id, Nickname: "cliente_teste", VendorID: 1}, nil
 }
 
 func (m *mockInvoiceRouteRepo) GetInvoiceByID(id int64) (*domain.Invoice, error) {
@@ -881,46 +906,56 @@ func TestInvoicing_AlreadyInvoicedBlockedAndPendingFilter(t *testing.T) {
 	}
 
 	mockR := &mockInvoiceRouteRepo{invoicedInvoiceID: 1}
-	routes, err := NewRoutes(mockR, &dummyLogger{}, nil)
+	billingClient := &mockBillingClientForRoutes{}
+	routes, err := NewRoutesWithBilling(mockR, &dummyLogger{}, billingClient, nil)
 	if err != nil {
 		t.Fatalf("failed to create routes: %v", err)
 	}
 
-	// 1. GET /html/invoicing/editar?id=1 must be rejected with 400 for invoiced invoice
+	// 1. GET /html/invoicing/editar?id=1 must return 200 for invoiced invoice
 	reqEdit := httptest.NewRequest(http.MethodGet, "/html/invoicing/editar?id=1", nil)
 	recEdit := httptest.NewRecorder()
 	routes.ServeHTTP(recEdit, reqEdit)
-	if recEdit.Code != http.StatusBadRequest {
-		t.Errorf("expected 400 on /html/invoicing/editar for invoiced pre-invoice, got %d", recEdit.Code)
+	if recEdit.Code != http.StatusOK {
+		t.Errorf("expected 200 on /html/invoicing/editar for invoiced pre-invoice, got %d", recEdit.Code)
 	}
 
-	// 2. GET /html/invoicing/deletar-aviso?id=1 must be rejected with 400 for invoiced invoice
+	// 2. GET /html/invoicing/deletar-aviso?id=1 must return 200 for invoiced invoice
 	reqDelWarn := httptest.NewRequest(http.MethodGet, "/html/invoicing/deletar-aviso?id=1", nil)
 	recDelWarn := httptest.NewRecorder()
 	routes.ServeHTTP(recDelWarn, reqDelWarn)
-	if recDelWarn.Code != http.StatusBadRequest {
-		t.Errorf("expected 400 on /html/invoicing/deletar-aviso for invoiced pre-invoice, got %d", recDelWarn.Code)
+	if recDelWarn.Code != http.StatusOK {
+		t.Errorf("expected 200 on /html/invoicing/deletar-aviso for invoiced pre-invoice, got %d", recDelWarn.Code)
 	}
 
-	// 3. POST /html/invoicing/deletar?id=1 must be rejected with 400 for invoiced invoice
+	// 3. POST /html/invoicing/deletar?id=1 must succeed with 200 and cancel in billing
 	reqDel := httptest.NewRequest(http.MethodPost, "/html/invoicing/deletar?id=1", nil)
 	recDel := httptest.NewRecorder()
 	routes.ServeHTTP(recDel, reqDel)
-	if recDel.Code != http.StatusBadRequest {
-		t.Errorf("expected 400 on /html/invoicing/deletar for invoiced pre-invoice, got %d", recDel.Code)
+	if recDel.Code != http.StatusOK {
+		t.Errorf("expected 200 on /html/invoicing/deletar for invoiced pre-invoice, got %d", recDel.Code)
+	}
+	if len(billingClient.cancelledInvoices) != 1 {
+		t.Errorf("expected 1 cancelled invoice in billing, got %d", len(billingClient.cancelledInvoices))
 	}
 
-	// 4. POST /html/invoicing/atualizar?id=1 must be rejected with 400 for invoiced invoice
+	// 4. POST /html/invoicing/atualizar?id=1 must succeed with 200, cancel old invoice and create replacement
 	updateForm := strings.NewReader("due_date=2026-11-20")
 	reqUpd := httptest.NewRequest(http.MethodPost, "/html/invoicing/atualizar?id=1", updateForm)
 	reqUpd.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	recUpd := httptest.NewRecorder()
 	routes.ServeHTTP(recUpd, reqUpd)
-	if recUpd.Code != http.StatusBadRequest {
-		t.Errorf("expected 400 on /html/invoicing/atualizar for invoiced pre-invoice, got %d", recUpd.Code)
+	if recUpd.Code != http.StatusOK {
+		t.Errorf("expected 200 on /html/invoicing/atualizar for invoiced pre-invoice, got %d", recUpd.Code)
+	}
+	if len(billingClient.cancelledInvoices) != 2 {
+		t.Errorf("expected 2 cancelled invoices in billing, got %d", len(billingClient.cancelledInvoices))
+	}
+	if len(billingClient.createdInvoices) != 1 {
+		t.Errorf("expected 1 created replacement invoice in billing, got %d", len(billingClient.createdInvoices))
 	}
 
-	// 5. InvoicingTable when invoiced: should show "✓ Faturada #8888" and should NOT show edit/delete buttons
+	// 5. InvoicingTable when invoiced: should show "✓ Faturada #8888" and should show edit/delete buttons, but NOT faturar button
 	reqTable := httptest.NewRequest(http.MethodPost, "/html/invoicing/tabela", nil)
 	recTable := httptest.NewRecorder()
 	routes.ServeHTTP(recTable, reqTable)
@@ -931,11 +966,14 @@ func TestInvoicing_AlreadyInvoicedBlockedAndPendingFilter(t *testing.T) {
 	if !strings.Contains(bodyTable, "Faturada #8888") {
 		t.Errorf("expected invoiced row to show 'Faturada #8888', got: %s", bodyTable)
 	}
-	if strings.Contains(bodyTable, `/html/invoicing/editar?id=1`) {
-		t.Errorf("expected invoiced row to NOT have edit button")
+	if !strings.Contains(bodyTable, `/html/invoicing/editar?id=1`) {
+		t.Errorf("expected invoiced row to have edit button")
 	}
-	if strings.Contains(bodyTable, `/html/invoicing/deletar-aviso?id=1`) {
-		t.Errorf("expected invoiced row to NOT have delete button")
+	if !strings.Contains(bodyTable, `/html/invoicing/deletar-aviso?id=1`) {
+		t.Errorf("expected invoiced row to have delete button")
+	}
+	if strings.Contains(bodyTable, `/html/invoicing/faturar?id=1`) {
+		t.Errorf("expected invoiced row to NOT have faturar button")
 	}
 
 	// 6. Test when NOT invoiced: should show "⏳ Pendente", edit button, delete button, and pendente toggle switch

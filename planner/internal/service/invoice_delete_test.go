@@ -47,6 +47,15 @@ func (m *mockInvoiceDeleteRepo) DeleteInvoice(id int64) error {
 	return nil
 }
 
+func (m *mockInvoiceDeleteRepo) GetVendorByID(id int64) (*domain.Vendor, error) {
+	return &domain.Vendor{ID: id, Nickname: "vendedor_teste"}, nil
+}
+
+func (m *mockInvoiceDeleteRepo) GetCustomerByID(id int64) (*domain.Customer, error) {
+	return &domain.Customer{ID: id, VendorID: 1, Nickname: "cliente_teste"}, nil
+}
+
+
 func TestInvoiceDelete_Success(t *testing.T) {
 	repo := newMockInvoiceDeleteRepo()
 	logger := &mockLogger{}
@@ -126,24 +135,80 @@ func TestInvoiceDelete_RepoErrors(t *testing.T) {
 }
 
 func TestInvoiceDelete_AlreadyInvoiced(t *testing.T) {
-	repo := newMockInvoiceDeleteRepo()
-	logger := &mockLogger{}
-	billingID := int64(456)
-	repo.invoices[100] = &domain.Invoice{
-		ID:                 100,
-		PlanID:             1,
-		Amount:             250.0,
-		ReferenceInvoiceID: &billingID,
-	}
+	t.Run("successfully cancels in billing and deletes in planner", func(t *testing.T) {
+		repo := newMockInvoiceDeleteRepo()
+		logger := &mockLogger{}
+		billingClient := &mockBillingClient{}
+		billingID := int64(456)
 
-	svc := NewInvoiceDelete(repo, logger)
-	req := &dto.InvoiceDeleteRequest{InvoiceID: 100}
+		vendor := &domain.Vendor{ID: 1, Nickname: "vendedor_teste"}
+		customer := &domain.Customer{ID: 10, VendorID: 1, Nickname: "cliente_teste", Vendor: vendor}
+		plan := &domain.Plan{ID: 1, CustomerID: 10, Customer: customer}
 
-	res := svc.Run(req)
-	if res.GetStatusCode() != 400 {
-		t.Fatalf("expected status 400 for already invoiced, got %d with message %s", res.GetStatusCode(), res.GetMessage())
-	}
-	if len(repo.deletedIDs) != 0 {
-		t.Errorf("expected no invoice to be deleted, got %v", repo.deletedIDs)
-	}
+		repo.invoices[100] = &domain.Invoice{
+			ID:                 100,
+			PlanID:             1,
+			Plan:               plan,
+			Amount:             250.0,
+			ReferenceInvoiceID: &billingID,
+		}
+
+		svc := NewInvoiceDelete(repo, logger, billingClient)
+		req := &dto.InvoiceDeleteRequest{InvoiceID: 100}
+
+		res := svc.Run(req)
+		if res.GetStatusCode() != 200 {
+			t.Fatalf("expected status 200, got %d with message %s", res.GetStatusCode(), res.GetMessage())
+		}
+		if len(billingClient.cancelledInvoices) != 1 {
+			t.Fatalf("expected 1 cancelled invoice in billing, got %d", len(billingClient.cancelledInvoices))
+		}
+		cancelled := billingClient.cancelledInvoices[0]
+		if cancelled.ID != 456 {
+			t.Errorf("expected cancelled billing ID 456, got %d", cancelled.ID)
+		}
+		if cancelled.Vendor != "vendedor_teste" {
+			t.Errorf("expected vendor 'vendedor_teste', got '%s'", cancelled.Vendor)
+		}
+		todayStr := time.Now().Format("2006-01-02")
+		if cancelled.CancellationDate == nil || *cancelled.CancellationDate != todayStr {
+			t.Errorf("expected cancellation date %s, got %v", todayStr, cancelled.CancellationDate)
+		}
+		if len(repo.deletedIDs) != 1 || repo.deletedIDs[0] != 100 {
+			t.Errorf("expected invoice 100 to be deleted in repo, got %v", repo.deletedIDs)
+		}
+	})
+
+	t.Run("fails when billing cancellation returns error", func(t *testing.T) {
+		repo := newMockInvoiceDeleteRepo()
+		logger := &mockLogger{}
+		billingClient := &mockBillingClient{
+			mockCancelErr: errors.New("billing service unavailable"),
+		}
+		billingID := int64(456)
+
+		vendor := &domain.Vendor{ID: 1, Nickname: "vendedor_teste"}
+		customer := &domain.Customer{ID: 10, VendorID: 1, Nickname: "cliente_teste", Vendor: vendor}
+		plan := &domain.Plan{ID: 1, CustomerID: 10, Customer: customer}
+
+		repo.invoices[100] = &domain.Invoice{
+			ID:                 100,
+			PlanID:             1,
+			Plan:               plan,
+			Amount:             250.0,
+			ReferenceInvoiceID: &billingID,
+		}
+
+		svc := NewInvoiceDelete(repo, logger, billingClient)
+		req := &dto.InvoiceDeleteRequest{InvoiceID: 100}
+
+		res := svc.Run(req)
+		if res.GetStatusCode() != 500 {
+			t.Fatalf("expected status 500, got %d with message %s", res.GetStatusCode(), res.GetMessage())
+		}
+		if len(repo.deletedIDs) != 0 {
+			t.Errorf("expected no invoice to be deleted in repo upon billing cancel failure, got %v", repo.deletedIDs)
+		}
+	})
 }
+

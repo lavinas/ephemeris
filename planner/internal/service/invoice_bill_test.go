@@ -17,6 +17,8 @@ type mockBillingClient struct {
 	mockCreateErr     error
 	mockExternalInvs  map[string]int64
 	failCreateOnCode  string
+	cancelledInvoices []port.BillingCancelInput
+	mockCancelErr     error
 }
 
 func (m *mockBillingClient) CreateInvoice(ctx context.Context, input port.BillingInvoiceInput) (int64, error) {
@@ -40,6 +42,11 @@ func (m *mockBillingClient) GetInvoiceByExternalCode(ctx context.Context, vendor
 		}
 	}
 	return nil, nil
+}
+
+func (m *mockBillingClient) CancelInvoice(ctx context.Context, input port.BillingCancelInput) error {
+	m.cancelledInvoices = append(m.cancelledInvoices, input)
+	return m.mockCancelErr
 }
 
 type mockInvoiceBillRepo struct {

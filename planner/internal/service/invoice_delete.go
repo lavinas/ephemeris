@@ -1,6 +1,10 @@
 package service
 
 import (
+	"context"
+	"fmt"
+	"time"
+
 	"planner/internal/dto"
 	"planner/internal/port"
 )
@@ -8,12 +12,18 @@ import (
 // InvoiceDelete is a service that handles the soft-deletion of invoices.
 type InvoiceDelete struct {
 	Base
+	billingClient port.BillingClient
 }
 
 // NewInvoiceDelete creates a new instance of InvoiceDelete.
-func NewInvoiceDelete(repo port.Repository, logger port.Logger) *InvoiceDelete {
+func NewInvoiceDelete(repo port.Repository, logger port.Logger, billingClients ...port.BillingClient) *InvoiceDelete {
+	var client port.BillingClient
+	if len(billingClients) > 0 && billingClients[0] != nil {
+		client = billingClients[0]
+	}
 	return &InvoiceDelete{
-		Base: *NewBase(repo, logger),
+		Base:          *NewBase(repo, logger),
+		billingClient: client,
 	}
 }
 
@@ -39,9 +49,35 @@ func (s *InvoiceDelete) Run(input port.InDTO) port.OutDTO {
 	if existing == nil {
 		return dto.NewInvoiceDeleteResponse(404, "Not Found", "fatura não encontrada")
 	}
+
 	if existing.ReferenceInvoiceID != nil {
-		s.logger.IPrintf(2, "Invoice with ID %d already invoiced (billing #%d), cannot delete", invoiceID, *existing.ReferenceInvoiceID)
-		return dto.NewInvoiceDeleteResponse(400, "Bad Request", "pré-fatura já faturada não pode ser excluída")
+		if s.billingClient != nil {
+			vendorNickname, _, err := resolveInvoiceVendorAndCustomer(s.repo, existing)
+			if err != nil {
+				s.logger.IPrintf(2, "Failed to resolve vendor for invoice %d cancellation: %v", invoiceID, err)
+				return dto.NewInvoiceDeleteResponse(500, "Internal Server Error", fmt.Sprintf("erro ao resolver vendedor para cancelamento no billing: %v", err))
+			}
+
+			todayStr := time.Now().Format("2006-01-02")
+			extCode := fmt.Sprintf("%d", existing.ID)
+			cancelInput := port.BillingCancelInput{
+				Vendor:           vendorNickname,
+				ID:               *existing.ReferenceInvoiceID,
+				ExternalCode:     &extCode,
+				CancellationDate: &todayStr,
+			}
+
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+
+			if err := s.billingClient.CancelInvoice(ctx, cancelInput); err != nil {
+				s.logger.IPrintf(2, "Failed to cancel invoice %d in billing (ref #%d): %v", invoiceID, *existing.ReferenceInvoiceID, err)
+				return dto.NewInvoiceDeleteResponse(500, "Internal Server Error", fmt.Sprintf("erro ao cancelar fatura no billing: %v", err))
+			}
+			s.logger.IPrintf(2, "Billing invoice #%d cancelled successfully for pre-invoice %d", *existing.ReferenceInvoiceID, invoiceID)
+		} else {
+			s.logger.IPrintf(1, "Warning: Invoice %d has ReferenceInvoiceID #%d, but billingClient is not configured", invoiceID, *existing.ReferenceInvoiceID)
+		}
 	}
 
 	if err := s.repo.DeleteInvoice(invoiceID); err != nil {
@@ -52,3 +88,4 @@ func (s *InvoiceDelete) Run(input port.InDTO) port.OutDTO {
 	s.logger.IPrintf(2, "Invoice with ID %d deleted (soft-delete) successfully", invoiceID)
 	return dto.NewInvoiceDeleteResponse(200, "OK", "fatura excluída com sucesso")
 }
+

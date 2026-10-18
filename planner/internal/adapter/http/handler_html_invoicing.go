@@ -165,10 +165,6 @@ func (h *HandlerHtml) InvoicingDeleteWarning(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	invoiceSel := h.getInvoiceData(response)[0]
-	if invBool, ok := invoiceSel["Invoiced"].(bool); ok && invBool {
-		http.Error(w, "Pré-fatura já faturada não pode ser excluída", http.StatusBadRequest)
-		return
-	}
 	h.tmplInvoicing.ExecuteTemplate(w, "linha_invoice_deletar_aviso", invoiceSel)
 }
 
@@ -215,10 +211,6 @@ func (h *HandlerHtml) InvoicingEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	invoiceSel := h.getInvoiceData(response)[0]
-	if invBool, ok := invoiceSel["Invoiced"].(bool); ok && invBool {
-		http.Error(w, "Pré-fatura já faturada não pode ser editada", http.StatusBadRequest)
-		return
-	}
 	h.tmplInvoicing.ExecuteTemplate(w, "linha_invoice_edit", invoiceSel)
 }
 
@@ -284,7 +276,7 @@ func (h *HandlerHtml) InvoicingUpdate(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	svc := service.NewInvoiceUpdate(h.repo, h.logger)
+	svc := service.NewInvoiceUpdate(h.repo, h.logger, h.getBillingClient())
 	req := &dto.InvoiceUpdateRequest{
 		InvoiceID: id,
 		DueDate:   dueDate,
@@ -677,7 +669,7 @@ func (h *HandlerHtml) InvoicingDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	svc := service.NewInvoiceDelete(h.repo, h.logger)
+	svc := service.NewInvoiceDelete(h.repo, h.logger, h.getBillingClient())
 	req := &dto.InvoiceDeleteRequest{
 		InvoiceID: id,
 	}

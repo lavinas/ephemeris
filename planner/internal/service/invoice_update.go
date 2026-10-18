@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -12,21 +13,27 @@ import (
 // InvoiceUpdate handles updating an invoice's due date and its items' invoiced quantities.
 type InvoiceUpdate struct {
 	Base
+	billingClient port.BillingClient
 }
 
 // InvoicingUpdate is an alias for InvoiceUpdate to support both nomenclatures.
 type InvoicingUpdate = InvoiceUpdate
 
 // NewInvoiceUpdate creates a new instance of InvoiceUpdate service.
-func NewInvoiceUpdate(repo port.Repository, logger port.Logger) *InvoiceUpdate {
+func NewInvoiceUpdate(repo port.Repository, logger port.Logger, billingClients ...port.BillingClient) *InvoiceUpdate {
+	var client port.BillingClient
+	if len(billingClients) > 0 && billingClients[0] != nil {
+		client = billingClients[0]
+	}
 	return &InvoiceUpdate{
-		Base: *NewBase(repo, logger),
+		Base:          *NewBase(repo, logger),
+		billingClient: client,
 	}
 }
 
 // NewInvoicingUpdate creates a new instance of InvoiceUpdate service using Invoicing nomenclature.
-func NewInvoicingUpdate(repo port.Repository, logger port.Logger) *InvoiceUpdate {
-	return NewInvoiceUpdate(repo, logger)
+func NewInvoicingUpdate(repo port.Repository, logger port.Logger, billingClients ...port.BillingClient) *InvoiceUpdate {
+	return NewInvoiceUpdate(repo, logger, billingClients...)
 }
 
 // Run executes the invoice update process using the provided input DTO.
@@ -46,10 +53,6 @@ func (s *InvoiceUpdate) Run(input port.InDTO) port.OutDTO {
 	}
 	if invoice == nil || invoice.DeletedAt != nil {
 		return dto.NewInvoiceUpdateResponse(404, "error", "pré-fatura não encontrada", nil)
-	}
-	if invoice.ReferenceInvoiceID != nil {
-		s.logger.IPrintf(2, "Invoice #%d already invoiced (billing #%d), cannot update", invoice.ID, *invoice.ReferenceInvoiceID)
-		return dto.NewInvoiceUpdateResponse(400, "error", "pré-fatura já faturada não pode ser editada", nil)
 	}
 
 	// Update DueDate
@@ -82,6 +85,87 @@ func (s *InvoiceUpdate) Run(input port.InDTO) port.OutDTO {
 	}
 	invoice.Amount = totalAmount
 
+	// If the invoice was already billed in billing, cancel previous billing invoice and create replacement
+	if invoice.ReferenceInvoiceID != nil {
+		if s.billingClient != nil {
+			vendorNickname, customerNickname, err := resolveInvoiceVendorAndCustomer(s.repo, invoice)
+			if err != nil {
+				s.logger.IPrintf(2, "Failed to resolve vendor/customer for invoice #%d billing update: %v", invoice.ID, err)
+				return dto.NewInvoiceUpdateResponse(500, "error", fmt.Sprintf("erro ao resolver cliente/vendedor para faturamento: %v", err), nil)
+			}
+
+			oldRefID := *invoice.ReferenceInvoiceID
+			todayStr := time.Now().Format("2006-01-02")
+			extCode := fmt.Sprintf("%d", invoice.ID)
+			cancelInput := port.BillingCancelInput{
+				Vendor:           vendorNickname,
+				ID:               oldRefID,
+				ExternalCode:     &extCode,
+				CancellationDate: &todayStr,
+			}
+
+			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+			defer cancel()
+
+			if err := s.billingClient.CancelInvoice(ctx, cancelInput); err != nil {
+				s.logger.IPrintf(2, "Failed to cancel previous invoice %d in billing (ref #%d): %v", invoice.ID, oldRefID, err)
+				return dto.NewInvoiceUpdateResponse(500, "error", fmt.Sprintf("erro ao cancelar fatura anterior no billing: %v", err), nil)
+			}
+			s.logger.IPrintf(2, "Previous billing invoice #%d cancelled successfully for pre-invoice %d", oldRefID, invoice.ID)
+
+			items := make([]port.BillingItemInput, 0, len(invoice.Items))
+			for _, it := range invoice.Items {
+				if it.DeletedAt != nil {
+					continue
+				}
+				desc := ""
+				if it.Description != nil && *it.Description != "" {
+					desc = *it.Description
+				} else if it.Service != nil && it.Service.Name != "" {
+					desc = it.Service.Name
+				} else if it.ServiceID != 0 && s.repo != nil {
+					svc, err := s.repo.GetServiceByID(it.ServiceID)
+					if err == nil && svc != nil {
+						desc = svc.Name
+					}
+				}
+				if desc == "" {
+					desc = fmt.Sprintf("Serviço #%d", it.ServiceID)
+				}
+
+				qty := it.InvoicedQuantity
+				if qty <= 0 {
+					qty = 1
+				}
+
+				items = append(items, port.BillingItemInput{
+					Description: desc,
+					Price:       it.Price,
+					Quantity:    qty,
+				})
+			}
+
+			billingInput := port.BillingInvoiceInput{
+				Vendor:       vendorNickname,
+				Customer:     customerNickname,
+				Invoicing:    invoice.InvoicingDate.Format("2006-01-02"),
+				Due:          invoice.DueDate.Format("2006-01-02"),
+				ExternalCode: &extCode,
+				Items:        items,
+			}
+
+			newRefID, err := s.billingClient.CreateInvoice(ctx, billingInput)
+			if err != nil {
+				s.logger.IPrintf(2, "Failed to create replacement invoice in billing for pre-invoice %d: %v", invoice.ID, err)
+				return dto.NewInvoiceUpdateResponse(500, "error", fmt.Sprintf("fatura anterior cancelada no billing, mas erro ao criar nova fatura: %v", err), nil)
+			}
+			s.logger.IPrintf(2, "Replacement billing invoice #%d created successfully for pre-invoice %d", newRefID, invoice.ID)
+			invoice.ReferenceInvoiceID = &newRefID
+		} else {
+			s.logger.IPrintf(1, "Warning: Invoice %d has ReferenceInvoiceID #%d, but billingClient is not configured", invoice.ID, *invoice.ReferenceInvoiceID)
+		}
+	}
+
 	if err := s.repo.UpdateInvoice(invoice); err != nil {
 		s.logger.IPrintf(2, "Failed to update invoice in database: %v", err)
 		return dto.NewInvoiceUpdateResponse(500, "error", fmt.Sprintf("erro ao salvar alterações da fatura: %v", err), nil)
@@ -92,6 +176,7 @@ func (s *InvoiceUpdate) Run(input port.InDTO) port.OutDTO {
 	invoiceDTO := s.mapInvoiceToDTO(invoice)
 	return dto.NewInvoiceUpdateResponse(200, "success", "Pré-fatura atualizada com sucesso", invoiceDTO)
 }
+
 
 func (s *InvoiceUpdate) mapInvoiceToDTO(inv *domain.Invoice) *dto.InvoiceDTO {
 	if inv == nil {

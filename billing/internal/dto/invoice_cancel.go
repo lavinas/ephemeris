@@ -154,6 +154,13 @@ func (r *InvoiceCancelRequest) GetDomain() *domain.Invoice {
 		return nil
 	}
 	r.invoice.CancellationDate = &r.parsedDate
+	if r.invoice.ExternalCode != nil && *r.invoice.ExternalCode != "" {
+		newCode := fmt.Sprintf("%s-CAN-%d", *r.invoice.ExternalCode, time.Now().Unix())
+		if len(newCode) > 50 {
+			newCode = newCode[:50]
+		}
+		r.invoice.ExternalCode = &newCode
+	}
 	return r.invoice
 }
 

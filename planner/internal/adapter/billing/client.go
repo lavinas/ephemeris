@@ -210,3 +210,55 @@ func (c *Client) GetInvoiceByExternalCode(ctx context.Context, vendor, externalC
 
 	return nil, nil
 }
+
+// CancelInvoice sends an invoice cancellation request to billing POST /invoice/api/cancel.
+func (c *Client) CancelInvoice(ctx context.Context, input port.BillingCancelInput) error {
+	if c.logger != nil {
+		c.logger.IPrintf(2, "Sending invoice cancellation to billing for invoice ID %d, external code %v, vendor %s", input.ID, input.ExternalCode, input.Vendor)
+	}
+
+	jsonData, err := json.Marshal(input)
+	if err != nil {
+		return fmt.Errorf("error serializing billing cancellation request: %w", err)
+	}
+
+	apiURL := fmt.Sprintf("%s/invoice/api/cancel", c.baseURL)
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return fmt.Errorf("error creating billing http cancel request: %w", err)
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("error executing billing cancel request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("error reading billing cancel response: %w", err)
+	}
+
+	var respPayload billingResponseBase
+	_ = json.Unmarshal(bodyBytes, &respPayload)
+
+	if resp.StatusCode == http.StatusOK || (respPayload.HttpCode == http.StatusOK && respPayload.Status == "success") {
+		return nil
+	}
+
+	errMsg := respPayload.Message
+	if errMsg == "" {
+		errMsg = string(bodyBytes)
+	}
+
+	// If already cancelled, treat as idempotent success
+	if strings.Contains(strings.ToLower(errMsg), "already cancelled") || strings.Contains(strings.ToLower(errMsg), "já cancelada") {
+		if c.logger != nil {
+			c.logger.IPrintf(1, "Invoice already cancelled in billing: %s", errMsg)
+		}
+		return nil
+	}
+
+	return fmt.Errorf("billing cancel error (%d): %s", resp.StatusCode, errMsg)
+}

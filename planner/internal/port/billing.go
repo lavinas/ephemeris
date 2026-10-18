@@ -19,8 +19,18 @@ type BillingInvoiceInput struct {
 	Items        []BillingItemInput `json:"items"`
 }
 
+// BillingCancelInput represents the payload sent to the external billing subsystem to cancel an invoice.
+type BillingCancelInput struct {
+	Vendor           string  `json:"vendor"`
+	ID               int64   `json:"id,omitempty"`
+	ExternalCode     *string `json:"external_code,omitempty"`
+	CancellationDate *string `json:"cancellation,omitempty"`
+}
+
 // BillingClient defines the port interface for communicating with external billing subsystems.
 type BillingClient interface {
 	CreateInvoice(ctx context.Context, input BillingInvoiceInput) (int64, error)
 	GetInvoiceByExternalCode(ctx context.Context, vendor, externalCode string) (*int64, error)
+	CancelInvoice(ctx context.Context, input BillingCancelInput) error
 }
+

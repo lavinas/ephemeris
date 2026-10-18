@@ -42,6 +42,15 @@ func (m *mockInvoiceUpdateRepoForService) UpdateInvoice(invoice *domain.Invoice)
 	return nil
 }
 
+func (m *mockInvoiceUpdateRepoForService) GetVendorByID(id int64) (*domain.Vendor, error) {
+	return &domain.Vendor{ID: id, Nickname: "vendedor_teste"}, nil
+}
+
+func (m *mockInvoiceUpdateRepoForService) GetCustomerByID(id int64) (*domain.Customer, error) {
+	return &domain.Customer{ID: id, VendorID: 1, Nickname: "cliente_teste"}, nil
+}
+
+
 func TestInvoiceUpdate_Success(t *testing.T) {
 	repo := newMockInvoiceUpdateRepoForService()
 	logger := &mockLogger{}
@@ -142,29 +151,127 @@ func TestInvoiceUpdate_NotFound(t *testing.T) {
 }
 
 func TestInvoiceUpdate_AlreadyInvoiced(t *testing.T) {
-	repo := newMockInvoiceUpdateRepoForService()
-	logger := &mockLogger{}
+	t.Run("successfully cancels previous invoice and creates replacement in billing", func(t *testing.T) {
+		repo := newMockInvoiceUpdateRepoForService()
+		logger := &mockLogger{}
+		billingClient := &mockBillingClient{
+			mockCreateID: 9999,
+		}
 
-	billingID := int64(789)
-	repo.invoices[1] = &domain.Invoice{
-		ID:                 1,
-		DueDate:            time.Date(2026, 10, 20, 0, 0, 0, 0, time.UTC),
-		InvoicingDate:      time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC),
-		Amount:             250.0,
-		ReferenceInvoiceID: &billingID,
-	}
+		billingID := int64(789)
+		vendor := &domain.Vendor{ID: 1, Nickname: "vendedor_teste"}
+		customer := &domain.Customer{ID: 10, VendorID: 1, Nickname: "cliente_teste", Vendor: vendor}
+		plan := &domain.Plan{ID: 1, CustomerID: 10, Customer: customer}
 
-	svc := NewInvoiceUpdate(repo, logger)
-	req := &dto.InvoiceUpdateRequest{
-		InvoiceID: 1,
-		DueDate:   "2026-11-05",
-	}
+		desc1 := "Consulta"
+		repo.invoices[1] = &domain.Invoice{
+			ID:                 1,
+			DueDate:            time.Date(2026, 10, 20, 0, 0, 0, 0, time.UTC),
+			InvoicingDate:      time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC),
+			Amount:             250.0,
+			ReferenceInvoiceID: &billingID,
+			PlanID:             1,
+			Plan:               plan,
+			Items: []domain.InvoiceItem{
+				{ID: 10, InvoiceID: 1, ServiceID: 100, Description: &desc1, Price: 100.0, InvoicedQuantity: 1, RealizedQuantity: 1},
+			},
+		}
 
-	res := svc.Run(req)
-	if res.GetStatusCode() != 400 {
-		t.Errorf("expected 400 when invoice already invoiced, got %d with message %s", res.GetStatusCode(), res.GetMessage())
-	}
-	if repo.updatedInvoice != nil {
-		t.Errorf("expected invoice not to be updated, but was updated")
-	}
+		svc := NewInvoiceUpdate(repo, logger, billingClient)
+		req := &dto.InvoiceUpdateRequest{
+			InvoiceID: 1,
+			DueDate:   "2026-11-05",
+			Items: []dto.InvoiceItemUpdateRequest{
+				{ID: 10, InvoicedQuantity: 2},
+			},
+		}
+
+		res := svc.Run(req)
+		if res.GetStatusCode() != 200 {
+			t.Fatalf("expected 200, got %d: %s", res.GetStatusCode(), res.GetMessage())
+		}
+
+		// 1. Check old invoice cancelled in billing
+		if len(billingClient.cancelledInvoices) != 1 {
+			t.Fatalf("expected 1 cancelled invoice in billing, got %d", len(billingClient.cancelledInvoices))
+		}
+		cancelled := billingClient.cancelledInvoices[0]
+		if cancelled.ID != 789 {
+			t.Errorf("expected cancelled ID 789, got %d", cancelled.ID)
+		}
+		if cancelled.Vendor != "vendedor_teste" {
+			t.Errorf("expected cancelled vendor 'vendedor_teste', got '%s'", cancelled.Vendor)
+		}
+		todayStr := time.Now().Format("2006-01-02")
+		if cancelled.CancellationDate == nil || *cancelled.CancellationDate != todayStr {
+			t.Errorf("expected cancellation date %s, got %v", todayStr, cancelled.CancellationDate)
+		}
+
+		// 2. Check replacement invoice created in billing
+		if len(billingClient.createdInvoices) != 1 {
+			t.Fatalf("expected 1 created invoice in billing, got %d", len(billingClient.createdInvoices))
+		}
+		created := billingClient.createdInvoices[0]
+		if created.Vendor != "vendedor_teste" {
+			t.Errorf("expected created vendor 'vendedor_teste', got '%s'", created.Vendor)
+		}
+		if created.Customer != "cliente_teste" {
+			t.Errorf("expected created customer 'cliente_teste', got '%s'", created.Customer)
+		}
+		if created.Due != "2026-11-05" {
+			t.Errorf("expected due date '2026-11-05', got '%s'", created.Due)
+		}
+		if len(created.Items) != 1 || created.Items[0].Quantity != 2 {
+			t.Errorf("expected 1 item with quantity 2, got %v", created.Items)
+		}
+
+		// 3. Check pre-invoice ReferenceInvoiceID updated to new ID in repo
+		if repo.updatedInvoice == nil {
+			t.Fatalf("expected repo updated invoice not to be nil")
+		}
+		if repo.updatedInvoice.ReferenceInvoiceID == nil || *repo.updatedInvoice.ReferenceInvoiceID != 9999 {
+			t.Errorf("expected ReferenceInvoiceID updated to 9999, got %v", repo.updatedInvoice.ReferenceInvoiceID)
+		}
+		if repo.updatedInvoice.Amount != 200.0 {
+			t.Errorf("expected recalculated amount 200.0, got %.2f", repo.updatedInvoice.Amount)
+		}
+	})
+
+	t.Run("fails when billing cancellation returns error", func(t *testing.T) {
+		repo := newMockInvoiceUpdateRepoForService()
+		logger := &mockLogger{}
+		billingClient := &mockBillingClient{
+			mockCancelErr: errors.New("cannot cancel paid invoice"),
+		}
+
+		billingID := int64(789)
+		vendor := &domain.Vendor{ID: 1, Nickname: "vendedor_teste"}
+		customer := &domain.Customer{ID: 10, VendorID: 1, Nickname: "cliente_teste", Vendor: vendor}
+		plan := &domain.Plan{ID: 1, CustomerID: 10, Customer: customer}
+
+		repo.invoices[1] = &domain.Invoice{
+			ID:                 1,
+			DueDate:            time.Date(2026, 10, 20, 0, 0, 0, 0, time.UTC),
+			InvoicingDate:      time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC),
+			Amount:             250.0,
+			ReferenceInvoiceID: &billingID,
+			PlanID:             1,
+			Plan:               plan,
+		}
+
+		svc := NewInvoiceUpdate(repo, logger, billingClient)
+		req := &dto.InvoiceUpdateRequest{
+			InvoiceID: 1,
+			DueDate:   "2026-11-05",
+		}
+
+		res := svc.Run(req)
+		if res.GetStatusCode() != 500 {
+			t.Fatalf("expected 500 when billing cancellation fails, got %d with message %s", res.GetStatusCode(), res.GetMessage())
+		}
+		if len(billingClient.createdInvoices) != 0 {
+			t.Errorf("expected no invoice created when cancellation fails")
+		}
+	})
 }
+

@@ -32,6 +32,13 @@ func NewHandlerApi(repo port.Repository, logger port.Logger, billingClients ...p
 	}
 }
 
+func (h *HandlerApi) getBillingClient() port.BillingClient {
+	if h.billingClient != nil {
+		return h.billingClient
+	}
+	return billing.NewClient(os.Getenv("BILLING_URL"), h.logger)
+}
+
 // Ping handler for the /ping endpoint
 func (h *HandlerApi) Ping(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -270,7 +277,7 @@ func (h *HandlerApi) InvoiceDelete(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	svc := service.NewInvoiceDelete(h.repo, h.logger)
+	svc := service.NewInvoiceDelete(h.repo, h.logger, h.getBillingClient())
 	response := svc.Run(requestDTO)
 	h.writeResponse(w, response)
 }
@@ -360,7 +367,7 @@ func (h *HandlerApi) InvoiceUpdate(w http.ResponseWriter, r *http.Request) {
 			requestDTO.InvoiceID = id
 		}
 	}
-	svc := service.NewInvoiceUpdate(h.repo, h.logger)
+	svc := service.NewInvoiceUpdate(h.repo, h.logger, h.getBillingClient())
 	response := svc.Run(requestDTO)
 	h.writeResponse(w, response)
 }
@@ -438,12 +445,7 @@ func (h *HandlerApi) InvoiceBill(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	client := h.billingClient
-	if client == nil {
-		client = billing.NewClient(os.Getenv("BILLING_URL"), h.logger)
-	}
-
-	svc := service.NewInvoiceBill(h.repo, h.logger, client)
+	svc := service.NewInvoiceBill(h.repo, h.logger, h.getBillingClient())
 	response := svc.Run(requestDTO)
 	h.writeResponse(w, response)
 }
