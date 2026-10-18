@@ -25,10 +25,12 @@ type dummyRepo struct {
 func newDummyRepo() *dummyRepo {
 	now := time.Now()
 	email := "test@example.com"
+	extCode := "EXT-99"
 	return &dummyRepo{
 		invoices: map[int64]*domain.Invoice{
 			1: {
 				ID:          1,
+				VendorID:    1,
 				CustomerID:  1,
 				Customer:    domain.Customer{ID: 1, VendorID: 1, Nickname: "cliente_teste", Email: &email},
 				Amount:      250.0,
@@ -36,6 +38,19 @@ func newDummyRepo() *dummyRepo {
 				DueDate:     now.AddDate(0, 0, 15),
 				InvoiceItems: []domain.InvoiceItem{
 					{ID: 1, Description: "Aula de Canto", Quantity: 2, Price: 125.0},
+				},
+			},
+			5: {
+				ID:           5,
+				VendorID:     1,
+				CustomerID:   1,
+				Customer:     domain.Customer{ID: 1, VendorID: 1, Nickname: "cliente_teste", Email: &email},
+				Amount:       300.0,
+				InvoiceDate:  now,
+				DueDate:      now.AddDate(0, 0, 15),
+				ExternalCode: &extCode,
+				InvoiceItems: []domain.InvoiceItem{
+					{ID: 2, Description: "Aula de Piano", Quantity: 1, Price: 300.0},
 				},
 			},
 		},
@@ -131,6 +146,12 @@ func (d *dummyRepo) GetInvoice(id int64) (*domain.Invoice, error) {
 }
 
 func (d *dummyRepo) GetInvoiceByExternalCode(vendorID int64, externalCode string) (*domain.Invoice, error) {
+	for _, inv := range d.invoices {
+		if inv.ExternalCode != nil && *inv.ExternalCode == externalCode {
+			copied := *inv
+			return &copied, nil
+		}
+	}
 	return nil, nil
 }
 
@@ -218,14 +239,23 @@ func TestBillingRoutes(t *testing.T) {
 		{name: "POST /html/invoices/tabela/reset", method: http.MethodPost, url: "/html/invoices/tabela/reset", wantStatus: http.StatusOK},
 		{name: "GET /html/invoices/bloco/limpar", method: http.MethodGet, url: "/html/invoices/bloco/limpar", wantStatus: http.StatusOK},
 		{name: "GET /html/invoices/editar", method: http.MethodGet, url: "/html/invoices/editar?id=1", wantStatus: http.StatusOK},
+		{name: "GET /html/invoices/editar external forbidden", method: http.MethodGet, url: "/html/invoices/editar?id=5", wantStatus: http.StatusForbidden},
 		{name: "POST /html/invoices/atualizar", method: http.MethodPost, url: "/html/invoices/atualizar?id=1", body: url.Values{"edit_invoicing": {"2026-09-01"}, "edit_due": {"2026-09-15"}}, wantStatus: http.StatusOK},
+		{name: "POST /html/invoices/atualizar external blocked", method: http.MethodPost, url: "/html/invoices/atualizar?id=5", body: url.Values{"edit_invoicing": {"2026-09-01"}}, wantStatus: http.StatusOK},
 		{name: "GET /html/invoices/cancelar-edicao", method: http.MethodGet, url: "/html/invoices/cancelar-edicao?id=1", wantStatus: http.StatusOK},
 		{name: "GET /html/invoices/deletar-aviso", method: http.MethodGet, url: "/html/invoices/deletar-aviso?id=1", wantStatus: http.StatusOK},
+		{name: "GET /html/invoices/deletar-aviso external forbidden", method: http.MethodGet, url: "/html/invoices/deletar-aviso?id=5", wantStatus: http.StatusForbidden},
 		{name: "POST /html/invoices/deletar", method: http.MethodPost, url: "/html/invoices/deletar?id=1", wantStatus: http.StatusOK},
+		{name: "POST /html/invoices/cancelar", method: http.MethodPost, url: "/html/invoices/cancelar?id=1", wantStatus: http.StatusOK},
+		{name: "POST /html/invoices/deletar external blocked", method: http.MethodPost, url: "/html/invoices/deletar?id=5", wantStatus: http.StatusOK},
+		{name: "POST /html/invoices/cancelar external blocked", method: http.MethodPost, url: "/html/invoices/cancelar?id=5", wantStatus: http.StatusOK},
 		{name: "GET /html/invoices/pagamento-aviso", method: http.MethodGet, url: "/html/invoices/pagamento-aviso?id=2", wantStatus: http.StatusOK},
 		{name: "POST /html/invoices/pagar", method: http.MethodPost, url: "/html/invoices/pagar?id=2", body: url.Values{"payment_date": {"2026-09-28"}}, wantStatus: http.StatusOK},
 		{name: "POST /api/invoice/payment", method: http.MethodPost, url: "/api/invoice/payment", jsonBody: `{"vendor":"estudio_amelia","id":3,"payment_date":"2026-09-28"}`, wantStatus: http.StatusOK},
 		{name: "POST /invoice/api/payment", method: http.MethodPost, url: "/invoice/api/payment", jsonBody: `{"vendor":"estudio_amelia","id":4,"payment_date":"2026-09-28"}`, wantStatus: http.StatusOK},
+		{name: "POST /api/invoice/cancel", method: http.MethodPost, url: "/api/invoice/cancel", jsonBody: `{"vendor":"estudio_amelia","id":21}`, wantStatus: http.StatusOK},
+		{name: "POST /invoice/api/cancel by external_code", method: http.MethodPost, url: "/invoice/api/cancel", jsonBody: `{"vendor":"estudio_amelia","external_code":"EXT-99"}`, wantStatus: http.StatusOK},
+		{name: "POST /invoice/cancel", method: http.MethodPost, url: "/invoice/cancel", jsonBody: `{"vendor":"estudio_amelia","id":22}`, wantStatus: http.StatusOK},
 		{name: "POST /html/invoices/salvar", method: http.MethodPost, url: "/html/invoices/salvar", body: url.Values{
 			"add_customer":      {"cliente_teste"},
 			"add_invoicing":     {"2026-09-28"},

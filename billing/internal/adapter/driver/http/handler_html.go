@@ -326,6 +326,11 @@ func (h *HandlerHtml) InvoicesEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if invoice.ExternalCode != nil && strings.TrimSpace(*invoice.ExternalCode) != "" {
+		http.Error(w, "Invoices criadas via API externa não podem ser editadas pelo billing", http.StatusForbidden)
+		return
+	}
+
 	data := h.mapSingleInvoiceData(*invoice)
 	h.tmpl.ExecuteTemplate(w, "linha_invoice_edit", data)
 }
@@ -334,6 +339,35 @@ func (h *HandlerHtml) InvoicesEdit(w http.ResponseWriter, r *http.Request) {
 func (h *HandlerHtml) InvoicesUpdate(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	id, _ := strconv.ParseInt(r.URL.Query().Get("id"), 10, 64)
+
+	invoice, err := h.repo.GetInvoice(id)
+	if err != nil || invoice == nil {
+		http.Error(w, "Invoice not found", http.StatusNotFound)
+		return
+	}
+
+	pagina, _ := strconv.Atoi(r.FormValue("page"))
+	if pagina <= 0 {
+		pagina = 1
+	}
+	pageData := h.loadPageData(
+		pagina,
+		r.FormValue("customer"),
+		r.FormValue("invoicing"),
+		r.FormValue("due"),
+		r.FormValue("payment"),
+		r.FormValue("email_sent"),
+		r.FormValue("email_receipt"),
+		r.FormValue("tax"),
+		r.FormValue("item_desc"),
+		r.FormValue("overdue"),
+	)
+
+	if invoice.ExternalCode != nil && strings.TrimSpace(*invoice.ExternalCode) != "" {
+		pageData["ErrorMessage"] = "Invoices criadas via API externa não podem ser editadas pelo billing"
+		h.tmpl.ExecuteTemplate(w, "tabela", pageData)
+		return
+	}
 
 	vendorNick := h.getVendorNickname()
 	req := &dto.InvoiceUpdateRequest{
@@ -381,23 +415,6 @@ func (h *HandlerHtml) InvoicesUpdate(w http.ResponseWriter, r *http.Request) {
 	svc := service.NewInvoiceUpdate(h.repo, h.logger)
 	respOut := svc.Run(req)
 
-	pagina, _ := strconv.Atoi(r.FormValue("page"))
-	if pagina <= 0 {
-		pagina = 1
-	}
-	pageData := h.loadPageData(
-		pagina,
-		r.FormValue("customer"),
-		r.FormValue("invoicing"),
-		r.FormValue("due"),
-		r.FormValue("payment"),
-		r.FormValue("email_sent"),
-		r.FormValue("email_receipt"),
-		r.FormValue("tax"),
-		r.FormValue("item_desc"),
-		r.FormValue("overdue"),
-	)
-
 	if respOut.GetStatusCode() != 200 {
 		errMsg := "Falha ao atualizar invoice"
 		if respBase, ok := respOut.(dto.InvoiceUpdateResponse); ok && respBase.Message != "" {
@@ -431,24 +448,24 @@ func (h *HandlerHtml) InvoicesDeleteWarning(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	if invoice.ExternalCode != nil && strings.TrimSpace(*invoice.ExternalCode) != "" {
+		http.Error(w, "Invoices criadas via API externa não podem ser excluídas pelo billing", http.StatusForbidden)
+		return
+	}
+
 	data := h.mapSingleInvoiceData(*invoice)
 	h.tmpl.ExecuteTemplate(w, "linha_invoice_deletar_aviso", data)
 }
 
-// InvoicesDelete executes invoice cancellation by setting CancellationDate
+// InvoicesDelete executes invoice cancellation by setting CancellationDate using InvoiceCancel service
 func (h *HandlerHtml) InvoicesDelete(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.ParseInt(r.URL.Query().Get("id"), 10, 64)
-	vendorNick := h.getVendorNickname()
-	nowStr := time.Now().Format("2006-01-02")
 
-	req := &dto.InvoiceUpdateRequest{
-		Vendor:           vendorNick,
-		ID:               id,
-		CancellationDate: &nowStr,
+	invoice, err := h.repo.GetInvoice(id)
+	if err != nil || invoice == nil {
+		http.Error(w, "Invoice not found", http.StatusNotFound)
+		return
 	}
-
-	svc := service.NewInvoiceUpdate(h.repo, h.logger)
-	respOut := svc.Run(req)
 
 	pagina, _ := strconv.Atoi(r.FormValue("page"))
 	if pagina <= 0 {
@@ -467,9 +484,27 @@ func (h *HandlerHtml) InvoicesDelete(w http.ResponseWriter, r *http.Request) {
 		r.FormValue("overdue"),
 	)
 
+	if invoice.ExternalCode != nil && strings.TrimSpace(*invoice.ExternalCode) != "" {
+		pageData["ErrorMessage"] = "Invoices criadas via API externa não podem ser canceladas pelo billing"
+		h.tmpl.ExecuteTemplate(w, "tabela", pageData)
+		return
+	}
+
+	vendorNick := h.getVendorNickname()
+	nowStr := time.Now().Format("2006-01-02")
+
+	req := &dto.InvoiceCancelRequest{
+		Vendor:           vendorNick,
+		ID:               id,
+		CancellationDate: &nowStr,
+	}
+
+	svc := service.NewInvoiceCancel(h.repo, h.logger)
+	respOut := svc.Run(req)
+
 	if respOut.GetStatusCode() != 200 {
 		errMsg := "Falha ao cancelar/deletar invoice"
-		if respBase, ok := respOut.(dto.InvoiceUpdateResponse); ok && respBase.Message != "" {
+		if respBase, ok := respOut.(dto.InvoiceCancelResponse); ok && respBase.Message != "" {
 			errMsg = respBase.Message
 		}
 		pageData["ErrorMessage"] = errMsg
@@ -842,6 +877,10 @@ func (h *HandlerHtml) mapSingleInvoiceData(inv domain.Invoice) map[string]interf
 		extCodeStr = *inv.ExternalCode
 	}
 
+	isExternal := inv.ExternalCode != nil && strings.TrimSpace(*inv.ExternalCode) != ""
+	canDelete := inv.CanDelete() && !isExternal
+	canEdit := inv.CanEdit() && !isExternal
+
 	return map[string]interface{}{
 		"ID":                        inv.ID,
 		"Customer":                  inv.Customer.Nickname,
@@ -863,8 +902,10 @@ func (h *HandlerHtml) mapSingleInvoiceData(inv domain.Invoice) map[string]interf
 		"TaxDateRaw":                taxDateRaw,
 		"TaxDateFormatada":          formatDate(taxDateRaw),
 		"ExternalCode":              extCodeStr,
-		"CanDelete":                 inv.CanDelete(),
+		"CanDelete":                 canDelete,
+		"CanEdit":                   canEdit,
 		"CanPay":                    inv.CanPay(),
+		"IsExternal":                isExternal,
 		"ValorTotal":                inv.Amount,
 		"ValorFormatado":            formatMoney(inv.Amount),
 		"Notes":                     notesStr,

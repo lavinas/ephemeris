@@ -93,6 +93,31 @@ func TestInvoice_CanDelete(t *testing.T) {
 			t.Errorf("expected CanDelete() = false, got true")
 		}
 	})
+
+	t.Run("CancellationDate not nil -> cannot delete", func(t *testing.T) {
+		inv := &Invoice{CancellationDate: &now}
+		if inv.CanDelete() {
+			t.Errorf("expected CanDelete() = false, got true")
+		}
+	})
+}
+
+func TestInvoice_CanEdit(t *testing.T) {
+	now := time.Now()
+
+	t.Run("CancellationDate nil -> can edit", func(t *testing.T) {
+		inv := &Invoice{}
+		if !inv.CanEdit() {
+			t.Errorf("expected CanEdit() = true, got false")
+		}
+	})
+
+	t.Run("CancellationDate not nil -> cannot edit", func(t *testing.T) {
+		inv := &Invoice{CancellationDate: &now}
+		if inv.CanEdit() {
+			t.Errorf("expected CanEdit() = false, got true")
+		}
+	})
 }
 
 func TestInvoice_CanPay(t *testing.T) {

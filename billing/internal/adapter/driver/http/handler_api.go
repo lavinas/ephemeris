@@ -200,6 +200,45 @@ func (h *HandlerApi) InvoiceUpdate(w http.ResponseWriter, r *http.Request) {
 	h.writeResponse(w, resp)
 }
 
+// InvoiceCancel handles /invoice/cancel or /invoice/api/cancel
+func (h *HandlerApi) InvoiceCancel(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost && r.Method != http.MethodPatch && r.Method != http.MethodDelete {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	req := &dto.InvoiceCancelRequest{}
+	if r.Body != nil && r.Body != http.NoBody {
+		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+			h.writeResponse(w, dto.NewResponseBase(http.StatusBadRequest, "error", "Invalid JSON format: "+err.Error()))
+			return
+		}
+	}
+	if req.Vendor == "" && r.URL.Query().Get("vendor") != "" {
+		req.Vendor = r.URL.Query().Get("vendor")
+	}
+	if req.ID == 0 && r.URL.Query().Get("id") != "" {
+		if id, err := strconv.ParseInt(r.URL.Query().Get("id"), 10, 64); err == nil {
+			req.ID = id
+		}
+	}
+	if req.ExternalCode == nil && r.URL.Query().Get("external_code") != "" {
+		ec := r.URL.Query().Get("external_code")
+		req.ExternalCode = &ec
+	}
+	if req.CancellationDate == nil && r.URL.Query().Get("cancellation") != "" {
+		c := r.URL.Query().Get("cancellation")
+		req.CancellationDate = &c
+	}
+	if req.CancellationDate == nil && r.URL.Query().Get("cancellation_date") != "" {
+		c := r.URL.Query().Get("cancellation_date")
+		req.CancellationDate = &c
+	}
+
+	svc := service.NewInvoiceCancel(h.repo, h.logger)
+	resp := svc.Run(req)
+	h.writeResponse(w, resp)
+}
+
 // InvoicePayment handles /invoice/payment or /invoice/api/payment
 func (h *HandlerApi) InvoicePayment(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {

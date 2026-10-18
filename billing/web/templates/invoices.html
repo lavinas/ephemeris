@@ -803,6 +803,7 @@
 					</svg>
 				</button>
 			{{end}}
+			{{if .CanEdit}}
 			<button type="button"
 					hx-get="/html/invoices/editar?id={{.ID}}"
 					hx-target="#invoice-{{.ID}}"
@@ -814,6 +815,7 @@
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
 				</svg>
 			</button>
+			{{end}}
 			{{if .CanPay}}
 				<button type="button"
 						hx-get="/html/invoices/pagamento-aviso?id={{.ID}}"
@@ -890,7 +892,7 @@
 			<span>Deseja realmente cancelar/excluir permanentemente a invoice <strong>#{{.ID}}</strong> de <span class="underline">{{.Customer}}</span> no valor de <strong>{{.ValorFormatado}}</strong>?</span>
 		</div>
 		<div class="col-span-2 flex gap-2 justify-end w-full" style="grid-column: span 2 / span 2 !important; justify-content: flex-end !important;">
-			<button hx-post="/html/invoices/deletar?id={{.ID}}" hx-target="#tabela-container" hx-include="#filtro-form" hx-disabled-elt="this" class="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-3 py-2 rounded transition shadow-md cursor-pointer">Sim, deletar</button>
+			<button hx-post="/html/invoices/cancelar?id={{.ID}}" hx-target="#tabela-container" hx-include="#filtro-form" hx-disabled-elt="this" class="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-3 py-2 rounded transition shadow-md cursor-pointer">Sim, cancelar</button>
 			<button hx-get="/html/invoices/cancelar-edicao?id={{.ID}}" hx-target="#invoice-{{.ID}}" hx-swap="outerHTML" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs px-3 py-2 rounded border border-gray-300 transition shadow-sm cursor-pointer">Não</button>
 		</div>
 	</div>

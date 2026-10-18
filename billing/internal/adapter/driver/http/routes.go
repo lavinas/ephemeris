@@ -21,6 +21,7 @@ func NewRoutes(repo port.Repository, logger port.Logger, taxer port.Taxer, pixer
 	// Direct endpoint mappings for API backward compatibility
 	mux.Handle("/customer/api/", apiRoutes)
 	mux.Handle("/invoice/api/", apiRoutes)
+	mux.Handle("/invoice/cancel", apiRoutes)
 	mux.Handle("/tax/api/", apiRoutes)
 	mux.HandleFunc("/ping", NewHandlerApi(repo, logger, taxer, pixer, issuer).Ping)
 
@@ -56,6 +57,8 @@ func NewAPIRoutes(repo port.Repository, logger port.Logger, taxer port.Taxer, pi
 	mux.HandleFunc("/invoice/api/list", handler.InvoiceList)
 	mux.HandleFunc("/invoice/update", handler.InvoiceUpdate)
 	mux.HandleFunc("/invoice/api/update", handler.InvoiceUpdate)
+	mux.HandleFunc("/invoice/cancel", handler.InvoiceCancel)
+	mux.HandleFunc("/invoice/api/cancel", handler.InvoiceCancel)
 	mux.HandleFunc("/invoice/payment", handler.InvoicePayment)
 	mux.HandleFunc("/invoice/api/payment", handler.InvoicePayment)
 	mux.HandleFunc("/invoice/bill", handler.InvoiceBill)
@@ -93,6 +96,7 @@ func NewHTMLRoutes(repo port.Repository, logger port.Logger, taxer port.Taxer, p
 	mux.HandleFunc("/invoices/cancelar-edicao", handler.InvoicesCancelEdit)
 	mux.HandleFunc("/invoices/deletar-aviso", handler.InvoicesDeleteWarning)
 	mux.HandleFunc("/invoices/deletar", handler.InvoicesDelete)
+	mux.HandleFunc("/invoices/cancelar", handler.InvoicesDelete)
 	mux.HandleFunc("/invoices/pagamento-aviso", handler.InvoicesPaymentWarning)
 	mux.HandleFunc("/invoices/pagar", handler.InvoicesPay)
 	mux.HandleFunc("/invoices/enviar-invoice", handler.InvoicesSendInvoice)
