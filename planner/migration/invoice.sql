@@ -31,9 +31,9 @@ create table invoice_item (
     service_id bigint not null references service(id) on delete cascade,
     price numeric(15, 2) not null,
     description varchar(255) null,
-    quantity int not null,
-    -- invoiced_quantity int not null,
-    -- realized_quantity int not null,
+    quantity int not null, -- new
+    -- invoiced_quantity int not null, -- old
+    -- realized_quantity int not null, -- old
     created_at timestamp not null,
     updated_at timestamp not null,
     deleted_at timestamp
