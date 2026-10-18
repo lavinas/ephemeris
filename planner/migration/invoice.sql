@@ -31,13 +31,16 @@ create table invoice_item (
     service_id bigint not null references service(id) on delete cascade,
     price numeric(15, 2) not null,
     description varchar(255) null,
-    invoiced_quantity int not null,
-    realized_quantity int not null,
+    quantity int not null,
+    -- invoiced_quantity int not null,
+    -- realized_quantity int not null,
     created_at timestamp not null,
     updated_at timestamp not null,
     deleted_at timestamp
 );
 
+
+/*
 drop table invoice_item_session;
 
 create table invoice_item_session (
@@ -46,3 +49,5 @@ create table invoice_item_session (
     session_id bigint not null references session(id) on delete cascade,
     created_at timestamp not null
 );
+
+*/
