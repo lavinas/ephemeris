@@ -165,15 +165,3 @@ func (r *InvoiceBatchDeleteRequest) Validate(repo port.Repository) error {
 	}
 	return nil
 }
-
-// Reset clears the fields of InvoiceBatchDeleteRequest.
-func (r *InvoiceBatchDeleteRequest) Reset() {
-	r.StartDate = ""
-	r.EndDate = ""
-	r.InvoiceID = 0
-	r.Nickname = ""
-	r.CustomerIDs = nil
-	r.PlanType = 0
-	r.ServiceID = 0
-	r.PlanID = 0
-}

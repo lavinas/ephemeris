@@ -211,17 +211,3 @@ func (r *PlanListRequest) validateServiceID() error {
 	}
 	return nil
 }
-
-// Reset clears the fields of PlanListRequest
-func (r *PlanListRequest) Reset() {
-	r.Page = 1
-	r.PageSize = 10
-	r.PlanID = 0
-	r.Nickname = ""
-	r.CustomerIDs = nil
-	r.PlanType = 0
-	r.DateStart = ""
-	r.DateEnd = ""
-	r.ServiceID = 0
-	r.Active = nil
-}

@@ -40,15 +40,11 @@ func TestInvoiceDeleteRequest_UnmarshalJSON(t *testing.T) {
 	})
 }
 
-func TestInvoiceDeleteRequest_ValidateAndReset(t *testing.T) {
+func TestInvoiceDeleteRequest_Validate(t *testing.T) {
 	t.Run("Valid id", func(t *testing.T) {
 		req := InvoiceDeleteRequest{InvoiceID: 10}
 		if err := req.Validate(nil); err != nil {
 			t.Errorf("expected valid, got: %v", err)
-		}
-		req.Reset()
-		if req.InvoiceID != 0 {
-			t.Errorf("expected reset to 0, got %d", req.InvoiceID)
 		}
 	})
 

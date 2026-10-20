@@ -277,18 +277,3 @@ func (r *InvoiceListRequest) validateNickname(repo port.Repository) error {
 	}
 	return nil
 }
-
-// Reset clears the fields of InvoiceListRequest.
-func (r *InvoiceListRequest) Reset() {
-	r.Page = 1
-	r.PageSize = 10
-	r.StartDate = ""
-	r.EndDate = ""
-	r.InvoiceID = 0
-	r.Nickname = ""
-	r.CustomerIDs = nil
-	r.PlanType = 0
-	r.ServiceID = 0
-	r.PlanID = 0
-	r.PendingOnly = false
-}

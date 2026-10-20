@@ -95,11 +95,6 @@ func TestInvoicingRequest_UnmarshalJSON(t *testing.T) {
 		if req.NMonths == nil || *req.NMonths != 3 {
 			t.Errorf("expected NMonths 3, got %v", req.NMonths)
 		}
-
-		req.Reset()
-		if req.PlanID != nil || req.VendorID != nil {
-			t.Errorf("expected fields to be reset, got: %+v", req)
-		}
 	})
 }
 

@@ -321,18 +321,3 @@ func (r *PlanCreateRequest) validateServicePeriodOverlap(repo port.Repository) e
 	}
 	return nil
 }
-
-// Reset clears the fields of the PlanCreateRequest
-func (r *PlanCreateRequest) Reset() {
-	r.CustomerID = 0
-	r.Nickname = ""
-	r.PlanStart = ""
-	r.PlanEnd = nil
-	r.PlanType = 0
-	r.Price = nil
-	r.Items = nil
-	r.Agenda = nil
-	r.Package = nil
-	r.Notebook = nil
-	r.PayPerView = nil
-}

@@ -189,19 +189,6 @@ func (r *InvoiceBillRequest) Validate(repo port.Repository) error {
 	return nil
 }
 
-// Reset clears all fields of InvoiceBillRequest.
-func (r *InvoiceBillRequest) Reset() {
-	r.InvoiceIDs = nil
-	r.InvoiceID = 0
-	r.Nickname = ""
-	r.CustomerIDs = nil
-	r.PlanType = 0
-	r.ServiceID = 0
-	r.PlanID = 0
-	r.StartDate = ""
-	r.EndDate = ""
-}
-
 // InvoiceBillResultItem represents the billing result of an individual invoice.
 type InvoiceBillResultItem struct {
 	InvoiceID          int64  `json:"invoice_id"`

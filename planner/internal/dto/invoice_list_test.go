@@ -187,10 +187,4 @@ func TestInvoiceListRequest_PendingOnly(t *testing.T) {
 			t.Errorf("for %s expected PendingOnly=%v, got %v", tc.json, tc.expected, req.PendingOnly)
 		}
 	}
-
-	req := InvoiceListRequest{PendingOnly: true}
-	req.Reset()
-	if req.PendingOnly != false {
-		t.Errorf("expected Reset() to set PendingOnly=false, got %v", req.PendingOnly)
-	}
 }

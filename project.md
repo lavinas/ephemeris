@@ -4,7 +4,6 @@
 * Revisar log billing e planner
 * Verificar que no caso do plano pacote o número de items seja menor que a quantidade de aulas
 
-
 No subprojeto planner:
 - Irei trocar o conceito de conciliação (reconciliate) para o conceito de banco de horas (comptime);
 - Na base de dados atual de invoiced do planner (vide /planner/migration/invoiced.sql):
@@ -54,12 +53,7 @@ No subprojeto planner:
 - Deve-se eliminar o serviço anterior reconciliation.go e criar o novo serviço como comptime.go;
 - Deve-se criar um htmx e hadler_html (bem como serviços, dtos e apis correspondentes) para gestão do comptime:
     * todo
-    
-    
-    
-    
-
-    
+     
     
 
 

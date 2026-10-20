@@ -161,19 +161,6 @@ func (r *InvoicingRequest) Validate(repo port.Repository) error {
 	return nil
 }
 
-// Reset resets all fields in InvoicingRequest.
-func (r *InvoicingRequest) Reset() {
-	r.PlanID = nil
-	r.VendorID = nil
-	r.StartDate = nil
-	r.EndDate = nil
-	r.PlanType = nil
-	r.ServiceID = nil
-	r.CustomerID = nil
-	r.Reprocess = nil
-	r.NMonths = nil
-}
-
 // GetParsedDates resolves start and end dates with business defaults:
 // - StartDate default: N months before the start of the current month (default N = 1)
 // - EndDate default: end of current month

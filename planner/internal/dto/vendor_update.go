@@ -229,27 +229,3 @@ func (r *VendorUpdateRequest) GetDomain() interface{} {
 	r.vendor.UpdatedAt = time.Now()
 	return r.vendor
 }
-
-// Reset resets the fields of VendorUpdateRequest.
-func (r *VendorUpdateRequest) Reset() {
-	r.Nickname = ""
-	r.LegalName = nil
-	r.TradingName = nil
-	r.Document = nil
-	r.TaxDocument = nil
-	r.AccountBank = nil
-	r.AccountAgency = nil
-	r.AccountNumber = nil
-	r.PixToken = nil
-	r.PixName = nil
-	r.PixCity = nil
-	r.LogoName = nil
-	r.Email = nil
-	r.Whatsapp = nil
-	r.LastRps = nil
-	r.SmtpHost = nil
-	r.SmtpPort = nil
-	r.SmtpUser = nil
-	r.SmtpPassword = nil
-	r.vendor = nil
-}

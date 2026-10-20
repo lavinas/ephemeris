@@ -238,16 +238,3 @@ func (r *CustomerUpdateRequest) GetDomain() interface{} {
 	r.customer.UpdatedAt = time.Now()
 	return r.customer
 }
-
-// Reset resets the fields of the CustomerUpdateRequest to their zero values.
-func (r *CustomerUpdateRequest) Reset() {
-	r.Vendor = ""
-	r.vendorID = 0
-	r.Nickname = ""
-	r.Name = nil
-	r.Document = nil
-	r.Email = nil
-	r.Whatsapp = nil
-	r.Status = nil
-	r.customer = nil
-}

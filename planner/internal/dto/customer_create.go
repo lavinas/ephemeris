@@ -239,10 +239,3 @@ func (r *CustomerCreateRequestItem) validateWhatsapp() error {
 	}
 	return fmt.Errorf("invalid WhatsApp number format")
 }
-
-// Reset resets the fields of the CustomerCreateRequest to their zero values.
-func (r *CustomerCreateRequest) Reset() {
-	r.Vendor = ""
-	r.VendorID = 0
-	r.Items = nil
-}

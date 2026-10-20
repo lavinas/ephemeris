@@ -75,15 +75,3 @@ func TestInvoiceBatchDeleteRequest_Validation(t *testing.T) {
 		}
 	})
 }
-
-func TestInvoiceBatchDeleteRequest_Reset(t *testing.T) {
-	req := &InvoiceBatchDeleteRequest{
-		StartDate: "2026-10-01",
-		Nickname:  "test",
-		PlanType:  2,
-	}
-	req.Reset()
-	if req.StartDate != "" || req.Nickname != "" || req.PlanType != 0 {
-		t.Errorf("expected reset to clear fields, got: %+v", req)
-	}
-}

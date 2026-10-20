@@ -189,15 +189,3 @@ func (r *SessionListRequest) validateStatus() error {
 	}
 	return nil
 }
-
-// Reset clears the fields of the SessionListRequest, resetting it to its default state.
-func (r *SessionListRequest) Reset() {
-	r.Nickname = ""
-	r.CustomerIDs = nil
-	r.DateStart = ""
-	r.DateEnd = ""
-	r.Minutes = 0
-	r.ServiceID = 0
-	r.Status = ""
-	r.Comments = ""
-}

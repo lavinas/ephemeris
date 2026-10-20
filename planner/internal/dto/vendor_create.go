@@ -298,26 +298,3 @@ func (r *VendorCreateRequest) GetDomain() interface{} {
 		UpdatedAt:     time.Now(),
 	}
 }
-
-// Reset resets the fields of VendorCreateRequest.
-func (r *VendorCreateRequest) Reset() {
-	r.Nickname = ""
-	r.LegalName = ""
-	r.TradingName = ""
-	r.Document = ""
-	r.TaxDocument = ""
-	r.AccountBank = ""
-	r.AccountAgency = ""
-	r.AccountNumber = ""
-	r.PixToken = ""
-	r.PixName = ""
-	r.PixCity = ""
-	r.LogoName = ""
-	r.Email = ""
-	r.Whatsapp = ""
-	r.LastRps = 0
-	r.SmtpHost = ""
-	r.SmtpPort = 0
-	r.SmtpUser = ""
-	r.SmtpPassword = ""
-}

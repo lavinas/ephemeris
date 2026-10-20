@@ -367,21 +367,3 @@ func (r *PlanUpdateRequest) validatePrices() error {
 
 	return domain.ValidatePlanPrices(targetPrice, itemPrices)
 }
-
-// Reset clears the fields
-func (r *PlanUpdateRequest) Reset() {
-	r.ID = 0
-	r.CustomerID = 0
-	r.Nickname = ""
-	r.PlanStart = ""
-	r.PlanEnd = nil
-	r.ClearPlanEnd = false
-	r.PlanType = 0
-	r.Price = nil
-	r.ClearPrice = false
-	r.Items = nil
-	r.Agenda = nil
-	r.Package = nil
-	r.Notebook = nil
-	r.PayPerView = nil
-}

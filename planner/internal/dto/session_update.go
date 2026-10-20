@@ -186,15 +186,3 @@ func (r *SessionUpdateRequest) validateAlmostOneField() error {
 	}
 	return nil
 }
-
-// Reset resets the SessionUpdateRequest fields to their zero values.
-func (r *SessionUpdateRequest) Reset() {
-	r.ID = 0
-	r.CustomerID = 0
-	r.Nickname = ""
-	r.Date = ""
-	r.Minutes = 0
-	r.ServiceID = 0
-	r.Status = ""
-	r.Comments = ""
-}

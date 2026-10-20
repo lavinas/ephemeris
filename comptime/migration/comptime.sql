@@ -1,5 +1,9 @@
 
-set search_path to planner;
+create database comptime;
+
+create schema comptime;
+
+set search_path to comptime;
 
 drop table if exists comptime cascade;
 create table comptime (

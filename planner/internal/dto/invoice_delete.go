@@ -61,8 +61,3 @@ func (r *InvoiceDeleteRequest) Validate(repo port.Repository) error {
 	}
 	return nil
 }
-
-// Reset resets the InvoiceDeleteRequest fields.
-func (r *InvoiceDeleteRequest) Reset() {
-	r.InvoiceID = 0
-}

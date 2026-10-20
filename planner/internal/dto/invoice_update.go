@@ -165,10 +165,3 @@ func (r *InvoiceUpdateRequest) Validate(repo port.Repository) error {
 
 	return nil
 }
-
-// Reset resets the InvoiceUpdateRequest fields.
-func (r *InvoiceUpdateRequest) Reset() {
-	r.InvoiceID = 0
-	r.DueDate = ""
-	r.Items = nil
-}

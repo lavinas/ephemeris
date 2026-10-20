@@ -33,8 +33,3 @@ func (r *PlanDeleteRequest) Validate(repo port.Repository) error {
 	}
 	return nil
 }
-
-// Reset resets the PlanDeleteRequest fields
-func (r *PlanDeleteRequest) Reset() {
-	r.PlanID = 0
-}

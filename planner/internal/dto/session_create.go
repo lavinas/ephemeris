@@ -141,14 +141,3 @@ func (r *SessionCreateRequest) validateMinutes() error {
 	}
 	return nil
 }
-
-// Reset clears the fields of the SessionCreateRequest, setting them to their zero values.
-func (r *SessionCreateRequest) Reset() {
-	r.CustomerID = 0
-	r.Nickname = ""
-	r.Date = ""
-	r.Minutes = 0
-	r.ServiceID = 0
-	r.Status = ""
-	r.Comments = ""
-}

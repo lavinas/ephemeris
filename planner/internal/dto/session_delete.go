@@ -33,8 +33,3 @@ func (r *SessionDeleteRequest) Validate(repo port.Repository) error {
 	}
 	return nil
 }
-
-// Reset resets the SessionDeleteRequest fields to their zero values.
-func (r *SessionDeleteRequest) Reset() {
-	r.SessionID = 0
-}

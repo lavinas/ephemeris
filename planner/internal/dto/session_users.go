@@ -57,8 +57,3 @@ func (r *SessionUsersRequest) Validate(repo port.Repository) error {
 	}
 	return nil
 }
-
-// Reset resets the SessionUsersRequest fields to their zero values.
-func (r *SessionUsersRequest) Reset() {
-	// No fields to reset in SessionUsersRequest
-}

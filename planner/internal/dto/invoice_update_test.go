@@ -131,15 +131,3 @@ func TestInvoiceUpdateRequest_Validation(t *testing.T) {
 		}
 	})
 }
-
-func TestInvoiceUpdateRequest_Reset(t *testing.T) {
-	req := &InvoiceUpdateRequest{
-		InvoiceID: 10,
-		DueDate:   "2026-11-20",
-		Items:     []InvoiceItemUpdateRequest{{ID: 1, InvoicedQuantity: 2}},
-	}
-	req.Reset()
-	if req.InvoiceID != 0 || req.DueDate != "" || req.Items != nil {
-		t.Errorf("expected reset to clear fields, got: %+v", req)
-	}
-}
