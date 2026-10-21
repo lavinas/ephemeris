@@ -23,6 +23,7 @@ type comptimeRecordItem struct {
 	MonthFormatado     string
 	InvoicedMinutes    int
 	ConsumedMinutes    int
+	MonthBalance       int
 	Balance            int
 	UpdatedAt          time.Time
 	UpdatedAtFormatado string
@@ -281,7 +282,16 @@ func (h *HandlerHtml) buildComptimePageData(r *http.Request) map[string]interfac
 
 	var records []port.ComptimeView
 	var totalRegistros int64
-	if cr, ok := h.repo.(port.ComptimeRepository); ok {
+	comptimeSvc := h.getComptimeService()
+	if comptimeSvc != nil {
+		views, total, err := comptimeSvc.ListComptime(r.Context(), filter)
+		if err == nil {
+			records = views
+			totalRegistros = total
+		} else {
+			h.logger.IPrintf(1, "Erro ao listar banco de horas via serviço: %v", err)
+		}
+	} else if cr, ok := h.repo.(port.ComptimeRepository); ok {
 		views, total, err := cr.ListComptime(r.Context(), filter)
 		if err == nil {
 			records = views
@@ -294,9 +304,14 @@ func (h *HandlerHtml) buildComptimePageData(r *http.Request) map[string]interfac
 	items := make([]comptimeRecordItem, len(records))
 	totalFaturados := 0
 	totalConsumidos := 0
+	totalSaldoMes := 0
 	totalSaldo := 0
 
 	for i, rec := range records {
+		monthBalance := rec.MonthBalance
+		if monthBalance == 0 && (rec.InvoicedMinutes != 0 || rec.ConsumedMinutes != 0) {
+			monthBalance = rec.InvoicedMinutes - rec.ConsumedMinutes
+		}
 		items[i] = comptimeRecordItem{
 			ID:                 rec.ID,
 			VendorID:           rec.VendorID,
@@ -309,12 +324,14 @@ func (h *HandlerHtml) buildComptimePageData(r *http.Request) map[string]interfac
 			MonthFormatado:     rec.Month.Format("2006-01"),
 			InvoicedMinutes:    rec.InvoicedMinutes,
 			ConsumedMinutes:    rec.ConsumedMinutes,
+			MonthBalance:       monthBalance,
 			Balance:            rec.Balance,
 			UpdatedAt:          rec.UpdatedAt,
 			UpdatedAtFormatado: rec.UpdatedAt.Format("02/01/2006 15:04"),
 		}
 		totalFaturados += rec.InvoicedMinutes
 		totalConsumidos += rec.ConsumedMinutes
+		totalSaldoMes += monthBalance
 		totalSaldo += rec.Balance
 	}
 
@@ -356,6 +373,7 @@ func (h *HandlerHtml) buildComptimePageData(r *http.Request) map[string]interfac
 		"TotalRegistros":   totalRegistros,
 		"TotalFaturados":   totalFaturados,
 		"TotalConsumidos":  totalConsumidos,
+		"TotalSaldoMes":    totalSaldoMes,
 		"TotalSaldo":       totalSaldo,
 		"FiltroMesInicio":  mesInicioStr,
 		"FiltroMesFim":     mesFimStr,
@@ -413,6 +431,7 @@ func (h *HandlerHtml) ComptimeDeleteWarning(w http.ResponseWriter, r *http.Reque
 		MonthFormatado:     comptime.Month.Format("2006-01"),
 		InvoicedMinutes:    comptime.InvoicedMinutes,
 		ConsumedMinutes:    comptime.ConsumedMinutes,
+		MonthBalance:       comptime.MonthBalance(),
 		Balance:            comptime.Balance,
 		UpdatedAt:          comptime.UpdatedAt,
 		UpdatedAtFormatado: comptime.UpdatedAt.Format("02/01/2006 15:04"),
@@ -466,6 +485,7 @@ func (h *HandlerHtml) ComptimeCancelDelete(w http.ResponseWriter, r *http.Reques
 		MonthFormatado:     comptime.Month.Format("2006-01"),
 		InvoicedMinutes:    comptime.InvoicedMinutes,
 		ConsumedMinutes:    comptime.ConsumedMinutes,
+		MonthBalance:       comptime.MonthBalance(),
 		Balance:            comptime.Balance,
 		UpdatedAt:          comptime.UpdatedAt,
 		UpdatedAtFormatado: comptime.UpdatedAt.Format("02/01/2006 15:04"),

@@ -31,6 +31,7 @@ type ComptimeView struct {
 	Month            time.Time `json:"month"`
 	InvoicedMinutes  int       `json:"invoiced_minutes"`
 	ConsumedMinutes  int       `json:"consumed_minutes"`
+	MonthBalance     int       `json:"month_balance"`
 	Balance          int       `json:"balance"`
 	UpdatedAt        time.Time `json:"updated_at"`
 }
@@ -89,6 +90,9 @@ type ComptimeService interface {
 	ProcessComptimeExtraUpdated(ctx context.Context, extra *domain.ComptimeExtra) error
 	ProcessComptimeExtraDeleted(ctx context.Context, extraID int64) error
 
+	GetComptime(ctx context.Context, id int64) (*domain.Comptime, error)
+	GetComptimeByCustomerServiceMonth(ctx context.Context, customerID, serviceID int64, month time.Time) (*domain.Comptime, error)
+	ListComptime(ctx context.Context, filter ComptimeFilter) ([]ComptimeView, int64, error)
 	DeleteComptime(ctx context.Context, id int64) error
 	Resync(ctx context.Context, vendorID int64, startDate, endDate time.Time, dataType string, customerID, serviceID *int64) (*ResyncResult, error)
 }

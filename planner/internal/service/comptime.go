@@ -533,3 +533,18 @@ func (s *ComptimeService) DeleteComptime(ctx context.Context, id int64) error {
 	}
 	return nil
 }
+
+// GetComptime retrieves a comptime record by ID.
+func (s *ComptimeService) GetComptime(ctx context.Context, id int64) (*domain.Comptime, error) {
+	return s.repo.GetComptime(ctx, id)
+}
+
+// GetComptimeByCustomerServiceMonth retrieves a comptime record for a customer, service and month.
+func (s *ComptimeService) GetComptimeByCustomerServiceMonth(ctx context.Context, customerID, serviceID int64, month time.Time) (*domain.Comptime, error) {
+	return s.repo.GetComptimeByCustomerServiceMonth(ctx, customerID, serviceID, month)
+}
+
+// ListComptime lists enriched comptime views according to the filter.
+func (s *ComptimeService) ListComptime(ctx context.Context, filter port.ComptimeFilter) ([]port.ComptimeView, int64, error) {
+	return s.repo.ListComptime(ctx, filter)
+}

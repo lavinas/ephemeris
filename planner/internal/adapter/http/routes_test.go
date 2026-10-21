@@ -1352,6 +1352,11 @@ func (m *mockComptimeRouteRepo) SaveComptime(ctx context.Context, comptime *doma
 	return nil
 }
 func (m *mockComptimeRouteRepo) ListComptime(ctx context.Context, filter port.ComptimeFilter) ([]port.ComptimeView, int64, error) {
+	for i := range m.records {
+		if m.records[i].MonthBalance == 0 && (m.records[i].InvoicedMinutes != 0 || m.records[i].ConsumedMinutes != 0) {
+			m.records[i].MonthBalance = m.records[i].InvoicedMinutes - m.records[i].ConsumedMinutes
+		}
+	}
 	return m.records, int64(len(m.records)), nil
 }
 func (m *mockComptimeRouteRepo) FindComptimeSessionBySessionID(ctx context.Context, sessionID int64) (*domain.ComptimeSession, error) {
@@ -1425,17 +1430,19 @@ func TestHTMLComptimeRoutes(t *testing.T) {
 	mockRepo := &mockComptimeRouteRepo{
 		records: []port.ComptimeView{
 			{
-				ID:              1,
-				VendorID:        1,
-				CustomerID:      10,
-				CustomerName:    "Cliente Teste",
-				ServiceID:       20,
-				ServiceName:     "Psicoterapia",
-				Month:           time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC),
-				InvoicedMinutes: 240,
-				ConsumedMinutes: 180,
-				Balance:         60,
-				UpdatedAt:       time.Now(),
+				ID:               1,
+				VendorID:         1,
+				CustomerID:       10,
+				CustomerNickname: "cteste",
+				CustomerName:     "Cliente Teste",
+				ServiceID:        20,
+				ServiceName:      "Psicoterapia",
+				Month:            time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC),
+				InvoicedMinutes:  240,
+				ConsumedMinutes:  180,
+				MonthBalance:     60,
+				Balance:          60,
+				UpdatedAt:        time.Now(),
 			},
 		},
 	}
@@ -1456,8 +1463,17 @@ func TestHTMLComptimeRoutes(t *testing.T) {
 	if !strings.Contains(bodyPage, "Banco de Horas") {
 		t.Errorf("expected body to contain 'Banco de Horas'")
 	}
+	if !strings.Contains(bodyPage, "cteste") {
+		t.Errorf("expected body to contain nickname 'cteste'")
+	}
 	if !strings.Contains(bodyPage, "Cliente Teste") {
 		t.Errorf("expected body to contain 'Cliente Teste'")
+	}
+	if !strings.Contains(bodyPage, "SALDO MÊS") {
+		t.Errorf("expected body to contain 'SALDO MÊS'")
+	}
+	if !strings.Contains(bodyPage, "SALDO TOTAL") {
+		t.Errorf("expected body to contain 'SALDO TOTAL'")
 	}
 	if !strings.Contains(bodyPage, "240 min") {
 		t.Errorf("expected body to contain '240 min'")

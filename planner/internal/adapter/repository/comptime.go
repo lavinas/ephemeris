@@ -214,6 +214,7 @@ func (a *Repository) ListComptime(ctx context.Context, filter port.ComptimeFilte
 			planner.comptime.month,
 			planner.comptime.invoiced_minutes,
 			planner.comptime.consumed_minutes,
+			(planner.comptime.invoiced_minutes - planner.comptime.consumed_minutes) as month_balance,
 			planner.comptime.balance,
 			planner.comptime.updated_at
 		`).

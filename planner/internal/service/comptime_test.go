@@ -141,6 +141,7 @@ func (m *mockComptimeRepo) ListComptime(ctx context.Context, filter port.Comptim
 			Month:           c.Month,
 			InvoicedMinutes: c.InvoicedMinutes,
 			ConsumedMinutes: c.ConsumedMinutes,
+			MonthBalance:    c.MonthBalance(),
 			Balance:         c.Balance,
 		})
 	}
@@ -582,6 +583,51 @@ func TestComptimeService_DeleteComptime(t *testing.T) {
 	// 2. Delete non-existent comptime returns error
 	if err := svc.DeleteComptime(ctx, 9999); err == nil {
 		t.Errorf("expected error deleting non-existent comptime")
+	}
+}
+
+func TestComptimeService_MonthBalanceAndQueries(t *testing.T) {
+	repo := newMockComptimeRepo()
+	svc := NewComptime(repo, nil)
+	ctx := context.Background()
+
+	m := time.Date(2026, time.February, 1, 0, 0, 0, 0, time.UTC)
+	comp := &domain.Comptime{
+		ID:              1,
+		VendorID:        1,
+		CustomerID:      10,
+		ServiceID:       20,
+		Month:           m,
+		InvoicedMinutes: 200,
+		ConsumedMinutes: 150,
+		Balance:         50,
+	}
+	repo.comptimes[1] = comp
+
+	// Check domain MonthBalance method
+	if comp.MonthBalance() != 50 {
+		t.Errorf("expected MonthBalance 50, got %d", comp.MonthBalance())
+	}
+
+	// Service GetComptime
+	got, err := svc.GetComptime(ctx, 1)
+	if err != nil || got == nil || got.ID != 1 {
+		t.Fatalf("expected GetComptime(1) to return record, got %v, err %v", got, err)
+	}
+	if got.MonthBalance() != 50 {
+		t.Errorf("expected got.MonthBalance 50, got %d", got.MonthBalance())
+	}
+
+	// Service ListComptime
+	views, total, err := svc.ListComptime(ctx, port.ComptimeFilter{})
+	if err != nil || total != 1 || len(views) != 1 {
+		t.Fatalf("expected ListComptime to return 1 view, got %d / total %d", len(views), total)
+	}
+	if views[0].MonthBalance != 50 {
+		t.Errorf("expected views[0].MonthBalance = 50, got %d", views[0].MonthBalance)
+	}
+	if views[0].Balance != 50 {
+		t.Errorf("expected views[0].Balance = 50, got %d", views[0].Balance)
 	}
 }
 

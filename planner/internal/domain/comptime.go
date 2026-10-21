@@ -68,6 +68,11 @@ func (c *Comptime) RecalculateBalance(previousBalance int) {
 	c.UpdatedAt = time.Now()
 }
 
+// MonthBalance returns the net minutes balance for the month (invoiced - consumed).
+func (c *Comptime) MonthBalance() int {
+	return c.InvoicedMinutes - c.ConsumedMinutes
+}
+
 // ComptimeSession tracks an individual session's debit against comptime.
 type ComptimeSession struct {
 	ID              int64      `gorm:"primaryKey;autoIncrement" json:"id"`
