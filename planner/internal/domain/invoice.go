@@ -2,6 +2,8 @@ package domain
 
 import (
 	"time"
+
+	"gorm.io/gorm"
 )
 
 // Invoice represents a billing invoice generated from a plan.
@@ -52,17 +54,24 @@ type InvoiceItem struct {
 	Service          *Service             `gorm:"foreignKey:ServiceID;references:ID"`
 	Price            float64              `gorm:"type:numeric(15,2);column:price;not null"`
 	Description      *string              `gorm:"type:varchar(255);column:description"`
-	InvoicedQuantity int                  `gorm:"column:invoiced_quantity;not null"`
-	RealizedQuantity int                  `gorm:"column:realized_quantity;not null"`
+	Quantity         int                  `gorm:"column:quantity;not null"`
+	InvoicedQuantity int                  `gorm:"-"`
+	RealizedQuantity int                  `gorm:"-"`
 	CreatedAt        time.Time            `gorm:"column:created_at;not null"`
 	UpdatedAt        time.Time            `gorm:"column:updated_at;not null"`
 	DeletedAt        *time.Time           `gorm:"column:deleted_at;index"`
-	ItemSessions     []InvoiceItemSession `gorm:"foreignKey:InvoiceItemID;references:ID"`
+	ItemSessions     []InvoiceItemSession `gorm:"-"`
 }
 
 // TableName specifies table name for InvoiceItem.
 func (InvoiceItem) TableName() string {
 	return "invoice_item"
+}
+
+// AfterFind synchronizes InvoicedQuantity from Quantity for backward compatibility.
+func (i *InvoiceItem) AfterFind(tx *gorm.DB) (err error) {
+	i.InvoicedQuantity = i.Quantity
+	return nil
 }
 
 // NewInvoiceItem creates a new InvoiceItem instance.
@@ -73,6 +82,7 @@ func NewInvoiceItem(invoiceID, serviceID int64, price float64, description *stri
 		ServiceID:        serviceID,
 		Price:            price,
 		Description:      description,
+		Quantity:         invoicedQty,
 		InvoicedQuantity: invoicedQty,
 		RealizedQuantity: realizedQty,
 		CreatedAt:        now,

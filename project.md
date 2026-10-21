@@ -61,14 +61,22 @@ No subprojeto planner:
 - Vale a mesma regra do comptime extra em deleção e update
 - Ainda para as as atualizações acima:
     - Deve-se atualizar o balance de todos os registros da tabela comptime de meses subsequentes do mesmo customer_id e service_id com balance do registro atual + invoiced_minutes subsequente - consumed_minutes subsequente (isto para que o saldo seja propagado corretamente e não se precise fazer somas de registros quando se consultar o saldo de um cliente e um serviço em um determinado mês)
+- Dado que a atualização da banco de horas envolve mais de uma linha e com atualização mais complexa por conta da atualização de saldo e a concorrência pode gerar problemas no calculo do saldo, seria interessante que esta atualização fosse feita através de um processo único e a entrada dos dados fosse feita através de uma fila ou alhgo assim e o envio dados ao se criar/deletar/atualizar sessões e invoices(invoice_item) seja feita de forma assincrona atraves de uma fila. Prever o melhar arquitetura para esta sincronização de dados com a garantia do processamento.
+- Deve-se fazer um serviço e em forma de job que passa-se o vendor_id, data inicial e data final, com possibilidade de se passar o tipo de dados (session, invoice, todos) e o serviço ressincronisa sessões e invoices com o comptime;
+- Deve-se fazer um documento descrevendo esta arquitetura em planner/docs/arquitetura_banco_horas.md
 - Deve-se criar o domínio, dtos, eliminando o que antes era reconciliation.go e criar o comptime.go
 - Deve-se eliminar o serviço anterior reconciliation.go e criar o novo serviço como comptime.go;
 - No htmx de sessoes, retirar as ações referentes a concilição
 - No htmx de invoices retirar as ações referentes a conciliação e ajustar para haja apenas o valor quantity
-- Fazer htmx no modelo dos demais dominios para apresentar o banco de horas baseado no htmx de sessoes e pre-fatiras com os seguintes requisitos:
-    - Na tela principal, apresentar filtros e a listagem de clientes e serviços e o saldo de cada um (balance)
-    - Permitir filtrar também o mês que se deseja consultar (como default o mês anterior a data atual)
-    - 
+- Fazer htmx no modelo dos demais dominios para apresentar o banco de horas baseado no htmx de sessoes e pre-faturas com os seguintes requisitos:
+    - Prever a listagem de banco de horas com os seguintes dados: mês, cliente, serviço, minutos faturados, minutos consumidos e saldo
+    - Prever o seguintes filtros: mes inicial, mes final, cliente, serviço
+    - Ordenar pelo mes (decrescente) e pelo cliente (crescente)
+    - Prever o vendor default = 1
+    - Prever um botão (modal, etc) para resoncronizar os dados chamando o serviço descrito acima com parâmetros data inicial e data final (vendor_id = 1)
+- Fazer testes automatizados para validar as regras de negócio acima
+
+    
 
      
     

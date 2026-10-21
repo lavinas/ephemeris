@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -17,14 +18,14 @@ type Invoicing struct {
 	packageStrat    *domainInvoicing.PackageStrategy
 	notebookStrat   *domainInvoicing.NotebookStrategy
 	payPerViewStrat *domainInvoicing.PayPerViewStrategy
-	reconciler      port.ReconciliationService
+	comptime        port.ComptimeService
 }
 
 // NewInvoicing creates a new instance of Invoicing service.
 func NewInvoicing(repo port.Repository, logger port.Logger) *Invoicing {
-	var reconciler port.ReconciliationService
-	if r, ok := repo.(port.ReconciliationRepository); ok {
-		reconciler = NewReconciliation(r, logger)
+	var comptime port.ComptimeService
+	if cr, ok := repo.(port.ComptimeRepository); ok {
+		comptime = NewComptime(cr, logger)
 	}
 	return &Invoicing{
 		Base:            *NewBase(repo, logger),
@@ -32,14 +33,15 @@ func NewInvoicing(repo port.Repository, logger port.Logger) *Invoicing {
 		packageStrat:    domainInvoicing.NewPackageStrategy(),
 		notebookStrat:   domainInvoicing.NewNotebookStrategy(),
 		payPerViewStrat: domainInvoicing.NewPayPerViewStrategy(),
-		reconciler:      reconciler,
+		comptime:        comptime,
 	}
 }
 
-// SetReconciler sets a custom reconciliation service.
-func (s *Invoicing) SetReconciler(r port.ReconciliationService) {
-	s.reconciler = r
+// SetComptimeService sets the comptime service.
+func (s *Invoicing) SetComptimeService(cs port.ComptimeService) {
+	s.comptime = cs
 }
+
 
 // Run executes the invoicing process using the provided input DTO.
 func (s *Invoicing) Run(input port.InDTO) port.OutDTO {
@@ -138,6 +140,9 @@ func (s *Invoicing) processPackage(plan *domain.Plan, reprocess bool) error {
 			if err := s.repo.DeleteInvoice(inv.ID); err != nil {
 				return fmt.Errorf("plano %d: erro ao excluir fatura anterior %d: %w", plan.ID, inv.ID, err)
 			}
+			if s.comptime != nil {
+				_ = s.comptime.ProcessInvoiceDeleted(context.Background(), inv.ID)
+			}
 		}
 	}
 
@@ -151,11 +156,7 @@ func (s *Invoicing) processPackage(plan *domain.Plan, reprocess bool) error {
 		return fmt.Errorf("plano %d: erro ao salvar fatura pacote: %w", plan.ID, err)
 	}
 
-	if s.reconciler != nil {
-		if err := s.reconciler.ReconcileInvoice(invoice.ID); err != nil {
-			s.logger.IPrintf(2, "Aviso: falha ao conciliar fatura pacote %d: %v", invoice.ID, err)
-		}
-	}
+	s.syncComptimeForInvoice(invoice)
 
 	s.logger.IPrintf(2, "Fatura gerada com sucesso para plano pacote %d (invoice id: %d, valor: %.2f)",
 		plan.ID, invoice.ID, invoice.Amount)
@@ -201,6 +202,9 @@ func (s *Invoicing) processAgenda(plan *domain.Plan, startDate, endDate time.Tim
 				if err := s.repo.DeleteInvoice(inv.ID); err != nil {
 					return fmt.Errorf("plano %d: erro ao excluir fatura anterior %d: %w", plan.ID, inv.ID, err)
 				}
+				if s.comptime != nil {
+					_ = s.comptime.ProcessInvoiceDeleted(context.Background(), inv.ID)
+				}
 			}
 		}
 
@@ -217,11 +221,7 @@ func (s *Invoicing) processAgenda(plan *domain.Plan, startDate, endDate time.Tim
 			return fmt.Errorf("plano %d: erro ao salvar fatura agenda para %s: %w", plan.ID, monthLabel, err)
 		}
 
-		if s.reconciler != nil {
-			if err := s.reconciler.ReconcileInvoice(invoice.ID); err != nil {
-				s.logger.IPrintf(2, "Aviso: falha ao conciliar fatura agenda %d: %v", invoice.ID, err)
-			}
-		}
+		s.syncComptimeForInvoice(invoice)
 
 		s.logger.IPrintf(2, "Fatura gerada com sucesso para plano agenda %d no mês %s (invoice id: %d, valor: %.2f)",
 			plan.ID, monthLabel, invoice.ID, invoice.Amount)
@@ -271,6 +271,9 @@ func (s *Invoicing) processNotebook(plan *domain.Plan, startDate, endDate time.T
 				if err := s.repo.DeleteInvoice(inv.ID); err != nil {
 					return fmt.Errorf("plano %d: erro ao excluir fatura anterior %d: %w", plan.ID, inv.ID, err)
 				}
+				if s.comptime != nil {
+					_ = s.comptime.ProcessInvoiceDeleted(context.Background(), inv.ID)
+				}
 			}
 		}
 
@@ -299,11 +302,7 @@ func (s *Invoicing) processNotebook(plan *domain.Plan, startDate, endDate time.T
 			return fmt.Errorf("plano %d: erro ao salvar fatura caderneta para %s: %w", plan.ID, monthLabel, err)
 		}
 
-		if s.reconciler != nil {
-			if err := s.reconciler.ReconcileInvoice(invoice.ID); err != nil {
-				s.logger.IPrintf(2, "Aviso: falha ao conciliar fatura caderneta %d: %v", invoice.ID, err)
-			}
-		}
+		s.syncComptimeForInvoice(invoice)
 
 		s.logger.IPrintf(2, "Fatura gerada com sucesso para plano caderneta %d no mês %s (invoice id: %d, valor: %.2f)",
 			plan.ID, monthLabel, invoice.ID, invoice.Amount)
@@ -341,6 +340,9 @@ func (s *Invoicing) processPayPerView(plan *domain.Plan, startDate, endDate time
 					return fmt.Errorf("plano %d: erro ao excluir fatura anterior %d da sessão %d: %w",
 						plan.ID, existingInvoice.ID, session.ID, err)
 				}
+				if s.comptime != nil {
+					_ = s.comptime.ProcessInvoiceDeleted(context.Background(), existingInvoice.ID)
+				}
 			}
 
 			invoice, err := s.payPerViewStrat.CalculateSession(plan, item, session, now)
@@ -354,10 +356,24 @@ func (s *Invoicing) processPayPerView(plan *domain.Plan, startDate, endDate time
 					plan.ID, session.ID, err)
 			}
 
+			s.syncComptimeForInvoice(invoice)
+
 			s.logger.IPrintf(2, "Fatura gerada com sucesso para plano pay-per-view %d, sessão %d (invoice id: %d, valor: %.2f)",
 				plan.ID, session.ID, invoice.ID, invoice.Amount)
 		}
 	}
 
 	return nil
+}
+
+func (s *Invoicing) syncComptimeForInvoice(invoice *domain.Invoice) {
+	if s.comptime == nil || invoice == nil {
+		return
+	}
+	ctx := context.Background()
+	for _, item := range invoice.Items {
+		if itErr := s.comptime.ProcessInvoiceItemCreated(ctx, item.ID); itErr != nil {
+			s.logger.IPrintf(2, "Aviso: falha na sincronização do banco de horas do item %d: %v", item.ID, itErr)
+		}
+	}
 }

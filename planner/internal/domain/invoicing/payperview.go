@@ -54,6 +54,7 @@ func (s *PayPerViewStrategy) CalculateSession(
 		ServiceID:        item.ServiceID,
 		Price:            price,
 		Description:      desc,
+		Quantity:         1,
 		InvoicedQuantity: 1,
 		RealizedQuantity: 1,
 		CreatedAt:        refDate,

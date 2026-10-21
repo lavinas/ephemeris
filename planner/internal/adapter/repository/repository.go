@@ -677,18 +677,12 @@ func (a *Repository) SaveInvoice(invoice *domain.Invoice) error {
 		invoice.Items[i].InvoiceID = invoice.ID
 		invoice.Items[i].CreatedAt = now
 		invoice.Items[i].UpdatedAt = now
-		if err := tx.Omit("ItemSessions", "Service", "Invoice").Create(&invoice.Items[i]).Error; err != nil {
+		if invoice.Items[i].Quantity == 0 && invoice.Items[i].InvoicedQuantity > 0 {
+			invoice.Items[i].Quantity = invoice.Items[i].InvoicedQuantity
+		}
+		if err := tx.Omit("Service", "Invoice").Create(&invoice.Items[i]).Error; err != nil {
 			tx.Rollback()
 			return err
-		}
-
-		for j := range invoice.Items[i].ItemSessions {
-			invoice.Items[i].ItemSessions[j].InvoiceItemID = invoice.Items[i].ID
-			invoice.Items[i].ItemSessions[j].CreatedAt = now
-			if err := tx.Omit("InvoiceItem", "Session").Create(&invoice.Items[i].ItemSessions[j]).Error; err != nil {
-				tx.Rollback()
-				return err
-			}
 		}
 	}
 
@@ -709,7 +703,6 @@ func (a *Repository) GetInvoiceByID(id int64) (*domain.Invoice, error) {
 			return tx.Where("deleted_at IS NULL")
 		}).
 		Preload("Items.Service").
-		Preload("Items.ItemSessions").
 		Where("id = ? AND deleted_at IS NULL", id).
 		First(&invoice).Error
 	if err == gorm.ErrRecordNotFound {
@@ -753,7 +746,6 @@ func (a *Repository) FindInvoices(conditions map[string]interface{}, orderBy ...
 			return tx.Where("deleted_at IS NULL")
 		}).
 		Preload("Items.Service").
-		Preload("Items.ItemSessions").
 		Find(&invoices).Error
 	return invoices, err
 }
@@ -870,9 +862,13 @@ func (a *Repository) UpdateInvoice(invoice *domain.Invoice) error {
 
 	for _, it := range invoice.Items {
 		if it.ID > 0 {
+			qty := it.Quantity
+			if it.InvoicedQuantity > 0 && (it.Quantity == 0 || it.InvoicedQuantity != it.Quantity) {
+				qty = it.InvoicedQuantity
+			}
 			if err := tx.Model(&domain.InvoiceItem{}).Where("id = ? AND invoice_id = ? AND deleted_at IS NULL", it.ID, invoice.ID).Updates(map[string]interface{}{
-				"invoiced_quantity": it.InvoicedQuantity,
-				"updated_at":        now,
+				"quantity":   qty,
+				"updated_at": now,
 			}).Error; err != nil {
 				tx.Rollback()
 				return err

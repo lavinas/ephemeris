@@ -98,6 +98,7 @@ func (s *NotebookStrategy) CalculateMonth(
 			ServiceID:        item.ServiceID,
 			Price:            price,
 			Description:      desc,
+			Quantity:         invoicedQty,
 			InvoicedQuantity: invoicedQty,
 			RealizedQuantity: invoicedQty,
 			CreatedAt:        refDate,

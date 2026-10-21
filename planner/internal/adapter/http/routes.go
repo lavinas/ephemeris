@@ -149,6 +149,22 @@ func NewHTMLRoutes(repo port.Repository, logger port.Logger, htmlTemplate []byte
 	mux.HandleFunc("/pre-faturas/faturar", handler.InvoicingBill)
 	mux.HandleFunc("/pre-faturas/faturar-lote-aviso", handler.InvoicingBillBatchWarning)
 	mux.HandleFunc("/pre-faturas/faturar-lote", handler.InvoicingBillBatch)
+
+	// Comptime (Banco de Horas) routes
+	mux.HandleFunc("/comptime", handler.ComptimeHTML)
+	mux.HandleFunc("/comptime/", handler.ComptimeHTML)
+	mux.HandleFunc("/comptime/tabela", handler.ComptimeTable)
+	mux.HandleFunc("/comptime/tabela/reset", handler.ComptimeTableReset)
+	mux.HandleFunc("/comptime/resync-modal", handler.ComptimeResyncModal)
+	mux.HandleFunc("/comptime/resync", handler.ComptimeResync)
+
+	mux.HandleFunc("/banco-de-horas", handler.ComptimeHTML)
+	mux.HandleFunc("/banco-de-horas/", handler.ComptimeHTML)
+	mux.HandleFunc("/banco-de-horas/tabela", handler.ComptimeTable)
+	mux.HandleFunc("/banco-de-horas/tabela/reset", handler.ComptimeTableReset)
+	mux.HandleFunc("/banco-de-horas/resync-modal", handler.ComptimeResyncModal)
+	mux.HandleFunc("/banco-de-horas/resync", handler.ComptimeResync)
+
 	return mux, handler, nil
 }
 

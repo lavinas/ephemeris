@@ -1,0 +1,465 @@
+{{define "fragment"}}
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+	.grade-filtros-comptime {
+		display: grid !important;
+		grid-template-columns: 1.2fr 1.2fr 2fr 2fr !important;
+		gap: 12px !important;
+		width: 100% !important;
+		box-sizing: border-box !important;
+	}
+	@media (max-width: 1024px) {
+		.grade-filtros-comptime {
+			grid-template-columns: 1fr 1fr !important;
+		}
+	}
+	@media (max-width: 640px) {
+		.grade-filtros-comptime {
+			grid-template-columns: 1fr !important;
+		}
+	}
+	.grade-tabela-comptime {
+		display: grid !important;
+		grid-template-columns: 1.2fr 2.5fr 2.5fr 1.4fr 1.4fr 1.6fr 1.4fr !important;
+		gap: 16px !important;
+		align-items: center !important;
+		width: 100% !important;
+		box-sizing: border-box !important;
+		padding: 16px 24px !important;
+	}
+	@media (max-width: 900px) {
+		.grade-tabela-comptime {
+			grid-template-columns: 1fr 1.5fr 1.5fr 1fr 1fr 1.2fr !important;
+		}
+		.col-atualizacao {
+			display: none !important;
+		}
+	}
+	.topo-tabela-comptime {
+		color: #9ca3af !important;
+		font-size: 11px !important;
+		font-weight: 700 !important;
+		text-transform: uppercase !important;
+		letter-spacing: 0.05em !important;
+		border-bottom: 1px solid #374151 !important;
+		padding-bottom: 12px !important;
+		margin-bottom: 12px !important;
+	}
+	.linha-box-comptime {
+		background-color: #111827 !important;
+		border: 1px solid #1f2937 !important;
+		border-radius: 8px !important;
+		margin-bottom: 8px !important;
+		color: #f3f4f6 !important;
+		transition: all 0.15s ease !important;
+		box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important;
+	}
+	.linha-box-comptime:hover {
+		background-color: #1f2937 !important;
+		border-color: #374151 !important;
+		transform: translateY(-1px);
+	}
+	.campo-box-comptime {
+		background-color: #111827 !important;
+		border: 1px solid #374151 !important;
+		padding: 10px 14px !important;
+		border-radius: 8px !important;
+		display: flex !important;
+		flex-direction: column !important;
+	}
+	.campo-box-comptime label {
+		display: block !important;
+		font-size: 11px !important;
+		font-weight: 600 !important;
+		color: #9ca3af !important;
+		text-transform: uppercase !important;
+		margin-bottom: 6px !important;
+		letter-spacing: 0.05em !important;
+	}
+	.campo-box-comptime input, .campo-box-comptime select {
+		width: 100% !important;
+		padding: 8px 10px !important;
+		background-color: #1f2937 !important;
+		border: 1px solid #4b5563 !important;
+		border-radius: 6px !important;
+		color: #f9fafb !important;
+		font-size: 13px !important;
+		outline: none !important;
+		box-sizing: border-box !important;
+	}
+	.campo-box-comptime input:focus, .campo-box-comptime select:focus {
+		border-color: #6366f1 !important;
+		box-shadow: 0 0 0 1px #6366f1 !important;
+	}
+	.saldo-positivo {
+		background-color: rgba(16, 185, 129, 0.15) !important;
+		color: #34d399 !important;
+		border: 1px solid rgba(16, 185, 129, 0.3) !important;
+	}
+	.saldo-negativo {
+		background-color: rgba(244, 63, 94, 0.15) !important;
+		color: #fb7185 !important;
+		border: 1px solid rgba(244, 63, 94, 0.3) !important;
+	}
+	.saldo-neutro {
+		background-color: rgba(156, 163, 175, 0.15) !important;
+		color: #d1d5db !important;
+		border: 1px solid rgba(156, 163, 175, 0.3) !important;
+	}
+</style>
+
+<div class="w-full min-h-screen bg-gray-950 text-gray-100 py-8 px-6">
+	<div class="max-w-7xl mx-auto bg-gray-900 shadow-2xl rounded-2xl overflow-hidden border border-gray-800 p-8">
+		<!-- Cabeçalho -->
+		<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-gray-800 mb-6">
+			<div>
+				<h1 class="text-2xl font-black text-white tracking-tight flex items-center gap-2">
+					<svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+					</svg>
+					Banco de Horas
+				</h1>
+				<p class="text-xs text-gray-400 mt-1">
+					Saldo e histórico mensal de minutos faturados versus consumidos por cliente e serviço
+				</p>
+			</div>
+			<div class="flex items-center gap-3">
+				<button type="button"
+						hx-get="/html/comptime/resync-modal"
+						hx-target="#modal-container-comptime"
+						class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-wider px-5 py-2.5 rounded-lg border border-indigo-400 transition duration-150 shadow-lg flex items-center gap-2 cursor-pointer">
+					<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+					</svg>
+					<span>Ressincronizar</span>
+				</button>
+			</div>
+		</div>
+
+		<!-- Formulário de Filtros -->
+		<form id="filtro-form-comptime"
+			  hx-post="/html/comptime/tabela"
+			  hx-target="#tabela-container-comptime"
+			  hx-trigger="input delay:200ms, change"
+			  class="w-full">
+			<input type="hidden" id="input-pagina-form-comptime" name="page" value="1">
+			<input type="hidden" name="vendor_id" value="1">
+
+			<div class="grade-filtros-comptime">
+				<div class="campo-box-comptime">
+					<label>Mês Inicial</label>
+					<input type="month" name="mes_inicio" value="{{.FiltroMesInicio}}">
+				</div>
+				<div class="campo-box-comptime">
+					<label>Mês Final</label>
+					<input type="month" name="mes_fim" value="{{.FiltroMesFim}}">
+				</div>
+				<div class="campo-box-comptime">
+					<label>Cliente</label>
+					<select name="customer_id">
+						<option value="0">Todos os Clientes</option>
+						{{range .Customers}}
+							<option value="{{.ID}}" {{if eq $.FiltroCustomerID .ID}}selected{{end}}>{{.Nickname}} - {{.Name}}</option>
+						{{end}}
+					</select>
+				</div>
+				<div class="campo-box-comptime">
+					<label>Serviço</label>
+					<select name="service_id">
+						<option value="0">Todos os Serviços</option>
+						{{range .Services}}
+							<option value="{{.ID}}" {{if eq $.FiltroServiceID .ID}}selected{{end}}>{{.Name}}</option>
+						{{end}}
+					</select>
+				</div>
+			</div>
+		</form>
+
+		<div class="flex items-center justify-between gap-4 mt-6">
+			<div class="flex items-center gap-3">
+				<button type="button"
+						hx-post="/html/comptime/tabela/reset"
+						hx-target="#tabela-container-comptime"
+						onclick="var f=document.getElementById('filtro-form-comptime'); if(f) f.reset(); var p=document.getElementById('input-pagina-form-comptime'); if(p) p.value='1';"
+						class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold text-xs px-4 py-2 rounded-lg border border-gray-700 transition duration-150 shadow-md cursor-pointer flex items-center gap-2">
+					<span>🧹</span>
+					<span>Limpar Filtros</span>
+				</button>
+			</div>
+			<div id="totais-container-comptime">
+				{{template "totais_resumo_comptime" .}}
+			</div>
+		</div>
+
+		<div style="height: 28px; width: 100%;"></div>
+
+		<!-- Container de Modal -->
+		<div id="modal-container-comptime"></div>
+
+		<!-- Container da Tabela -->
+		<div id="tabela-container-comptime" class="w-full">
+			{{template "tabela" .}}
+		</div>
+	</div>
+</div>
+{{end}}
+
+{{define "totais_resumo_comptime"}}
+<div class="flex items-center gap-4 bg-gray-950 border border-gray-800 px-4 py-2 rounded-lg shadow-sm" style="display: flex; align-items: center; gap: 1.25rem;">
+	<div class="text-xs text-gray-400 font-semibold uppercase tracking-wider">
+		Registros: <span class="text-gray-100 font-bold font-mono text-sm ml-1">{{.TotalRegistros}}</span>
+	</div>
+	<div style="height: 16px; width: 1px; background-color: #374151;"></div>
+	<div class="text-xs text-gray-400 font-semibold uppercase tracking-wider">
+		Faturados: <span class="text-indigo-400 font-bold font-mono text-sm ml-1">{{.TotalFaturados}} min</span>
+	</div>
+	<div style="height: 16px; width: 1px; background-color: #374151;"></div>
+	<div class="text-xs text-gray-400 font-semibold uppercase tracking-wider">
+		Consumidos: <span class="text-amber-400 font-bold font-mono text-sm ml-1">{{.TotalConsumidos}} min</span>
+	</div>
+	<div style="height: 16px; width: 1px; background-color: #374151;"></div>
+	<div class="text-xs text-gray-400 font-semibold uppercase tracking-wider">
+		Saldo: <span class="{{if ge .TotalSaldo 0}}text-emerald-400{{else}}text-rose-400{{end}} font-bold font-mono text-sm ml-1">{{if gt .TotalSaldo 0}}+{{end}}{{.TotalSaldo}} min</span>
+	</div>
+</div>
+{{end}}
+
+{{define "index"}}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+	<meta charset="UTF-8">
+	<title>Banco de Horas - Ephemeris</title>
+	<script src="https://cdn.tailwindcss.com"></script>
+	<script src="/static/htmx.min.js"></script>
+	<style>
+		html, body {
+			background-color: #030712 !important;
+			margin: 0;
+			padding: 0;
+		}
+	</style>
+</head>
+<body class="bg-gray-950 text-gray-100 font-sans antialiased">
+	{{template "fragment" .}}
+</body>
+</html>
+{{end}}
+
+{{define "tabela"}}
+<div id="totais-container-comptime" hx-swap-oob="true">
+	{{template "totais_resumo_comptime" .}}
+</div>
+<div id="modal-container-comptime" hx-swap-oob="true"></div>
+
+<div class="w-full">
+	<div class="grade-tabela-comptime topo-tabela-comptime">
+		<div>MÊS</div>
+		<div>CLIENTE</div>
+		<div>SERVIÇO</div>
+		<div class="text-right">FATURADOS</div>
+		<div class="text-right">CONSUMIDOS</div>
+		<div class="text-right">SALDO</div>
+		<div class="col-atualizacao text-right">ATUALIZADO</div>
+	</div>
+
+	{{if .Registros}}
+		{{range .Registros}}
+			<div class="linha-box-comptime grade-tabela-comptime text-sm">
+				<div class="font-mono font-bold text-gray-200">
+					{{.MonthFormatado}}
+				</div>
+				<div class="font-semibold text-gray-100 truncate" title="{{.CustomerName}}">
+					{{.CustomerName}}
+				</div>
+				<div class="text-gray-300 truncate" title="{{.ServiceName}}">
+					{{.ServiceName}}
+				</div>
+				<div class="text-right font-mono font-bold text-indigo-400">
+					{{.InvoicedMinutes}} min
+				</div>
+				<div class="text-right font-mono font-bold text-amber-400">
+					{{.ConsumedMinutes}} min
+				</div>
+				<div class="text-right font-mono font-bold">
+					<span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-mono font-bold {{if gt .Balance 0}}saldo-positivo{{else if lt .Balance 0}}saldo-negativo{{else}}saldo-neutro{{end}}">
+						{{if gt .Balance 0}}+{{end}}{{.Balance}} min
+					</span>
+				</div>
+				<div class="col-atualizacao text-right font-mono text-xs text-gray-400">
+					{{.UpdatedAtFormatado}}
+				</div>
+			</div>
+		{{end}}
+
+		<!-- Paginação -->
+		<div class="flex items-center justify-between border-t border-gray-800 pt-4 mt-6 text-sm text-gray-400">
+			<div>
+				Página <span class="font-bold text-gray-200">{{.Pagina}}</span> de <span class="font-bold text-gray-200">{{.TotalPaginas}}</span>
+				(Total: {{.TotalRegistros}} registros)
+			</div>
+			<div class="flex gap-2">
+				{{if gt .Pagina 1}}
+					<button type="button"
+							hx-post="/html/comptime/tabela?page={{subtrair .Pagina 1}}"
+							hx-target="#tabela-container-comptime"
+							hx-include="#filtro-form-comptime"
+							class="px-3 py-1 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded border border-gray-700 transition cursor-pointer">
+						&larr; Anterior
+					</button>
+				{{else}}
+					<button disabled class="px-3 py-1 bg-gray-900 text-gray-600 rounded border border-gray-800 cursor-not-allowed">
+						&larr; Anterior
+					</button>
+				{{end}}
+
+				{{if lt .Pagina .TotalPaginas}}
+					<button type="button"
+							hx-post="/html/comptime/tabela?page={{adicionar .Pagina 1}}"
+							hx-target="#tabela-container-comptime"
+							hx-include="#filtro-form-comptime"
+							class="px-3 py-1 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded border border-gray-700 transition cursor-pointer">
+						Próxima &rarr;
+					</button>
+				{{else}}
+					<button disabled class="px-3 py-1 bg-gray-900 text-gray-600 rounded border border-gray-800 cursor-not-allowed">
+						Próxima &rarr;
+					</button>
+				{{end}}
+			</div>
+		</div>
+	{{else}}
+		<div class="py-12 text-center text-gray-400 italic bg-gray-950 rounded-xl border border-dashed border-gray-800 mt-2">
+			Nenhum registro de banco de horas encontrado para os filtros selecionados.
+		</div>
+	{{end}}
+</div>
+{{end}}
+
+{{define "modal_resync"}}
+<div id="modal-resync" class="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
+	<div class="bg-gray-900 border border-gray-700 rounded-2xl max-w-md w-full shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+		<div class="p-6 border-b border-gray-800 flex items-center justify-between">
+			<div class="flex items-center gap-3">
+				<div class="p-2 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-indigo-400">
+					<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+					</svg>
+				</div>
+				<h3 class="text-lg font-bold text-white">Ressincronizar Banco de Horas</h3>
+			</div>
+			<button type="button"
+					onclick="document.getElementById('modal-resync').remove()"
+					class="text-gray-400 hover:text-white transition text-xl cursor-pointer">
+				&times;
+			</button>
+		</div>
+
+		<form hx-post="/html/comptime/resync"
+			  hx-target="#modal-container-comptime"
+			  hx-indicator="#resync-loading"
+			  class="p-6 space-y-4">
+			<input type="hidden" name="vendor_id" value="1">
+
+			<div>
+				<label class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">Data Inicial</label>
+				<input type="date" name="start_date" value="{{.DefaultStartDate}}" required
+					   class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none">
+			</div>
+
+			<div>
+				<label class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">Data Final</label>
+				<input type="date" name="end_date" value="{{.DefaultEndDate}}" required
+					   class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none">
+			</div>
+
+			<div>
+				<label class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">Tipo de Dados</label>
+				<select name="data_type" class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none">
+					<option value="todos" selected>Todos (Sessões e Faturas)</option>
+					<option value="session">Apenas Sessões</option>
+					<option value="invoice">Apenas Faturas</option>
+				</select>
+			</div>
+
+			<p class="text-xs text-gray-400 leading-relaxed bg-gray-950 p-3 rounded-lg border border-gray-800">
+				ℹ️ Este job recalcula os minutos faturados e consumidos dentro do período selecionado e propaga o saldo acumulado para todos os meses subsequentes.
+			</p>
+
+			<div id="resync-loading" class="htmx-indicator flex items-center justify-center gap-2 py-2 text-indigo-400 text-sm font-semibold">
+				<svg class="animate-spin h-5 w-5 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+					<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+					<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+				</svg>
+				<span>Processando sincronização...</span>
+			</div>
+
+			<div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-800">
+				<button type="button"
+						onclick="document.getElementById('modal-resync').remove()"
+						class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-semibold rounded-lg border border-gray-700 transition cursor-pointer">
+					Cancelar
+				</button>
+				<button type="submit"
+						class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold uppercase tracking-wider rounded-lg border border-indigo-400 transition shadow-lg cursor-pointer flex items-center gap-2">
+					<span>Executar Sincronização</span>
+				</button>
+			</div>
+		</form>
+	</div>
+</div>
+{{end}}
+
+{{define "modal_resync_resultado"}}
+<div id="modal-resync-resultado" class="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
+	<div class="bg-gray-900 border border-gray-700 rounded-2xl max-w-md w-full shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+		<div class="p-6 border-b border-gray-800 flex items-center justify-between">
+			<div class="flex items-center gap-3">
+				<div class="p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-emerald-400">
+					<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+					</svg>
+				</div>
+				<h3 class="text-lg font-bold text-white">Sincronização Concluída</h3>
+			</div>
+			<button type="button"
+					onclick="document.getElementById('modal-resync-resultado').remove()"
+					class="text-gray-400 hover:text-white transition text-xl cursor-pointer">
+				&times;
+			</button>
+		</div>
+
+		<div class="p-6 space-y-4">
+			<div class="bg-gray-950 border border-gray-800 rounded-xl p-4 space-y-3">
+				<div class="flex items-center justify-between text-sm">
+					<span class="text-gray-400">Sessões sincronizadas:</span>
+					<span class="font-mono font-bold text-gray-200">{{.SessionsSynced}}</span>
+				</div>
+				<div class="flex items-center justify-between text-sm">
+					<span class="text-gray-400">Faturas sincronizadas:</span>
+					<span class="font-mono font-bold text-gray-200">{{.InvoicesSynced}}</span>
+				</div>
+				<div class="flex items-center justify-between text-sm">
+					<span class="text-gray-400">Comptime atualizados:</span>
+					<span class="font-mono font-bold text-indigo-400">{{.ComptimeUpdated}}</span>
+				</div>
+				<div class="flex items-center justify-between text-sm border-t border-gray-800 pt-2">
+					<span class="text-gray-400">Tempo de execução:</span>
+					<span class="font-mono text-xs text-gray-300">{{.Duration}}</span>
+				</div>
+			</div>
+
+			<div class="flex justify-end pt-4 border-t border-gray-800">
+				<button type="button"
+						hx-post="/html/comptime/tabela"
+						hx-target="#tabela-container-comptime"
+						hx-include="#filtro-form-comptime"
+						onclick="document.getElementById('modal-resync-resultado').remove()"
+						class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold uppercase tracking-wider rounded-lg border border-emerald-400 transition shadow-lg cursor-pointer">
+					Fechar e Atualizar Tabela
+				</button>
+			</div>
+		</div>
+	</div>
+</div>
+{{end}}

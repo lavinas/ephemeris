@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"time"
 
 	"planner/internal/domain"
@@ -10,17 +11,29 @@ import (
 
 // SessionUpdate is a service that handles the updating of sessions.
 type SessionUpdate struct {
-	repo   port.Repository
-	logger port.Logger
+	repo     port.Repository
+	logger   port.Logger
+	comptime port.ComptimeService
 }
 
 // NewSessionUpdate creates a new instance of SessionUpdate with the provided repository.
 func NewSessionUpdate(repo port.Repository, logger port.Logger) *SessionUpdate {
+	var comptime port.ComptimeService
+	if cr, ok := repo.(port.ComptimeRepository); ok {
+		comptime = NewComptime(cr, logger)
+	}
 	return &SessionUpdate{
-		repo:   repo,
-		logger: logger,
+		repo:     repo,
+		logger:   logger,
+		comptime: comptime,
 	}
 }
+
+// SetComptimeService sets the comptime service.
+func (s *SessionUpdate) SetComptimeService(cs port.ComptimeService) {
+	s.comptime = cs
+}
+
 
 // UpdateSession updates an existing session with the provided data.
 func (s *SessionUpdate) Run(InDto port.InDTO) port.OutDTO {
@@ -45,6 +58,14 @@ func (s *SessionUpdate) Run(InDto port.InDTO) port.OutDTO {
 		s.logger.IPrintf(2, "Failed to save session: %v", err)
 		return dto.NewSessionUpdateResponse(500, "error", err.Error())
 	}
+
+	// Trigger comptime sync
+	if s.comptime != nil {
+		if err := s.comptime.ProcessSessionUpdated(context.Background(), sessionModel.ID); err != nil {
+			s.logger.IPrintf(2, "Aviso: falha na sincronização do banco de horas da sessão %d: %v", sessionModel.ID, err)
+		}
+	}
+
 	// Create and return the output DTO with the session ID
 	s.logger.IPrintf(2, "Successfully updated session with ID: %d", sessionModel.ID)
 	return dto.NewSessionUpdateResponse(200, "success", "session updated")

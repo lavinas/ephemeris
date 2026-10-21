@@ -13,6 +13,7 @@ import (
 type InvoiceDelete struct {
 	Base
 	billingClient port.BillingClient
+	comptime      port.ComptimeService
 }
 
 // NewInvoiceDelete creates a new instance of InvoiceDelete.
@@ -21,10 +22,20 @@ func NewInvoiceDelete(repo port.Repository, logger port.Logger, billingClients .
 	if len(billingClients) > 0 && billingClients[0] != nil {
 		client = billingClients[0]
 	}
+	var comptime port.ComptimeService
+	if cr, ok := repo.(port.ComptimeRepository); ok {
+		comptime = NewComptime(cr, logger)
+	}
 	return &InvoiceDelete{
 		Base:          *NewBase(repo, logger),
 		billingClient: client,
+		comptime:      comptime,
 	}
+}
+
+// SetComptimeService sets the comptime service.
+func (s *InvoiceDelete) SetComptimeService(cs port.ComptimeService) {
+	s.comptime = cs
 }
 
 // Run executes the invoice soft-delete process.
@@ -83,6 +94,12 @@ func (s *InvoiceDelete) Run(input port.InDTO) port.OutDTO {
 	if err := s.repo.DeleteInvoice(invoiceID); err != nil {
 		s.logger.IPrintf(2, "Error deleting invoice %d: %v", invoiceID, err)
 		return dto.NewInvoiceDeleteResponse(500, "Internal Server Error", err.Error())
+	}
+
+	if s.comptime != nil {
+		if err := s.comptime.ProcessInvoiceDeleted(context.Background(), invoiceID); err != nil {
+			s.logger.IPrintf(2, "Aviso: falha ao estornar fatura %d no banco de horas: %v", invoiceID, err)
+		}
 	}
 
 	s.logger.IPrintf(2, "Invoice with ID %d deleted (soft-delete) successfully", invoiceID)

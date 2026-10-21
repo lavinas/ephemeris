@@ -706,13 +706,12 @@ func (h *HandlerHtml) InvoicingReconcile(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	reconciler := h.getReconciler()
-	if reconciler != nil {
-		if err := reconciler.ReconcileInvoice(id); err != nil {
-			h.logger.IPrintf(1, "Erro ao conciliar fatura %d: %v", id, err)
+	if cs := h.getComptimeService(); cs != nil {
+		if inv, err := h.repo.GetInvoiceByID(id); err == nil && inv != nil {
+			for _, it := range inv.Items {
+				_ = cs.ProcessInvoiceItemUpdated(r.Context(), it.ID)
+			}
 		}
-	} else {
-		h.logger.IPrintf(1, "ReconciliationService não disponível para fatura %d", id)
 	}
 
 	// Remove single-invoice filters so InvoicingTable re-renders the complete filtered list

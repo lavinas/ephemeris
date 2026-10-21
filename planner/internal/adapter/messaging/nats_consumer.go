@@ -70,14 +70,15 @@ type VendorEventData struct {
 	SmtpPassword  string `json:"smtp_password"`
 }
 
-// NATSConsumer is a driver adapter that consumes customer and vendor events from NATS and delegates to planner services.
+// NATSConsumer is a driver adapter that consumes customer, vendor and comptime events from NATS.
 type NATSConsumer struct {
-	url        string
-	queueGroup string
-	repo       port.Repository
-	logger     port.Logger
-	nc         *nats.Conn
-	subs       []*nats.Subscription
+	url         string
+	queueGroup  string
+	repo        port.Repository
+	logger      port.Logger
+	nc          *nats.Conn
+	subs        []*nats.Subscription
+	comptimeSvc port.ComptimeService
 }
 
 // NewNATSConsumer creates a new instance of NATSConsumer.
@@ -91,6 +92,16 @@ func NewNATSConsumer(url, queueGroup string, repo port.Repository, logger port.L
 		repo:       repo,
 		logger:     logger,
 	}
+}
+
+// SetComptimeService configures the comptime service for processing async sync events.
+func (c *NATSConsumer) SetComptimeService(svc port.ComptimeService) {
+	c.comptimeSvc = svc
+}
+
+// GetConnection returns the active NATS connection.
+func (c *NATSConsumer) GetConnection() *nats.Conn {
+	return c.nc
 }
 
 // Start connects to NATS and subscribes to customer and vendor events.
@@ -161,12 +172,85 @@ func (c *NATSConsumer) Start(ctx context.Context) error {
 	}
 	c.subs = append(c.subs, subVendorUpdated)
 
+	// Queue subscribe to comptime session sync
+	subComptimeSession, err := nc.QueueSubscribe(SubjectComptimeSessionSync, QueueGroupComptimeSync, func(msg *nats.Msg) {
+		c.handleComptimeSessionSync(msg)
+	})
+	if err == nil {
+		c.subs = append(c.subs, subComptimeSession)
+	}
+
+	// Queue subscribe to comptime invoice sync
+	subComptimeInvoice, err := nc.QueueSubscribe(SubjectComptimeInvoiceSync, QueueGroupComptimeSync, func(msg *nats.Msg) {
+		c.handleComptimeInvoiceSync(msg)
+	})
+	if err == nil {
+		c.subs = append(c.subs, subComptimeInvoice)
+	}
+
 	if c.logger != nil {
-		c.logger.IPrintf(0, "NATS consumer listening on [%s, %s, %s, %s] with queue group '%s'",
-			SubjectCustomerCreated, SubjectCustomerUpdated, SubjectVendorCreated, SubjectVendorUpdated, c.queueGroup)
+		c.logger.IPrintf(0, "NATS consumer listening on [%s, %s, %s, %s, %s, %s] with queue group '%s'",
+			SubjectCustomerCreated, SubjectCustomerUpdated, SubjectVendorCreated, SubjectVendorUpdated,
+			SubjectComptimeSessionSync, SubjectComptimeInvoiceSync, c.queueGroup)
 	}
 
 	return nil
+}
+
+// handleComptimeSessionSync processes async comptime session events.
+func (c *NATSConsumer) handleComptimeSessionSync(msg *nats.Msg) {
+	if c.comptimeSvc == nil {
+		return
+	}
+	var event ComptimeSessionEvent
+	if err := json.Unmarshal(msg.Data, &event); err != nil {
+		if c.logger != nil {
+			c.logger.IPrintf(1, "Error unmarshalling comptime session event: %v", err)
+		}
+		return
+	}
+	ctx := context.Background()
+	var err error
+	switch event.Action {
+	case "create":
+		err = c.comptimeSvc.ProcessSessionCreated(ctx, event.SessionID)
+	case "update":
+		err = c.comptimeSvc.ProcessSessionUpdated(ctx, event.SessionID)
+	case "delete":
+		err = c.comptimeSvc.ProcessSessionDeleted(ctx, event.SessionID)
+	}
+	if err != nil && c.logger != nil {
+		c.logger.IPrintf(1, "Error processing comptime session event (%s, %d): %v", event.Action, event.SessionID, err)
+	}
+}
+
+// handleComptimeInvoiceSync processes async comptime invoice events.
+func (c *NATSConsumer) handleComptimeInvoiceSync(msg *nats.Msg) {
+	if c.comptimeSvc == nil {
+		return
+	}
+	var event ComptimeInvoiceEvent
+	if err := json.Unmarshal(msg.Data, &event); err != nil {
+		if c.logger != nil {
+			c.logger.IPrintf(1, "Error unmarshalling comptime invoice event: %v", err)
+		}
+		return
+	}
+	ctx := context.Background()
+	var err error
+	switch event.Action {
+	case "create_item":
+		err = c.comptimeSvc.ProcessInvoiceItemCreated(ctx, event.InvoiceItemID)
+	case "update_item":
+		err = c.comptimeSvc.ProcessInvoiceItemUpdated(ctx, event.InvoiceItemID)
+	case "delete_item":
+		err = c.comptimeSvc.ProcessInvoiceItemDeleted(ctx, event.InvoiceItemID)
+	case "delete_invoice":
+		err = c.comptimeSvc.ProcessInvoiceDeleted(ctx, event.InvoiceID)
+	}
+	if err != nil && c.logger != nil {
+		c.logger.IPrintf(1, "Error processing comptime invoice event (%s): %v", event.Action, err)
+	}
 }
 
 // handleCustomerCreated processes customer.created messages.

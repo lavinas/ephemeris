@@ -12,6 +12,7 @@ import (
 	"planner/internal/adapter/messaging"
 	"planner/internal/adapter/repository"
 	"planner/internal/port"
+	"planner/internal/service"
 )
 
 const (
@@ -40,6 +41,8 @@ func main() {
 	natsURL, queueGroup, natsEnabled := cfg.GetNATSData()
 	if natsEnabled && natsURL != "" {
 		natsConsumer := messaging.NewNATSConsumer(natsURL, queueGroup, repo, log)
+		comptimeSvc := service.NewComptime(repo, log)
+		natsConsumer.SetComptimeService(comptimeSvc)
 		if err := natsConsumer.Start(context.Background()); err != nil {
 			log.IPrintf(1, "Warning: failed to start NATS consumer (%v). Using NoopConsumer.", err)
 			consumer = messaging.NewNoopConsumer()

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"time"
 
 	"planner/internal/domain"
@@ -10,28 +11,29 @@ import (
 
 // SessionDelete is a service that handles the deletion of sessions.
 type SessionDelete struct {
-	repo       port.Repository
-	logger     port.Logger
-	reconciler port.ReconciliationService
+	repo     port.Repository
+	logger   port.Logger
+	comptime port.ComptimeService
 }
 
 // NewSessionDelete creates a new instance of SessionDelete with the provided repository.
 func NewSessionDelete(repo port.Repository, logger port.Logger) *SessionDelete {
-	var reconciler port.ReconciliationService
-	if r, ok := repo.(port.ReconciliationRepository); ok {
-		reconciler = NewReconciliation(r, logger)
+	var comptime port.ComptimeService
+	if cr, ok := repo.(port.ComptimeRepository); ok {
+		comptime = NewComptime(cr, logger)
 	}
 	return &SessionDelete{
-		repo:       repo,
-		logger:     logger,
-		reconciler: reconciler,
+		repo:     repo,
+		logger:   logger,
+		comptime: comptime,
 	}
 }
 
-// SetReconciler sets a custom reconciliation service.
-func (s *SessionDelete) SetReconciler(r port.ReconciliationService) {
-	s.reconciler = r
+// SetComptimeService sets the comptime service.
+func (s *SessionDelete) SetComptimeService(cs port.ComptimeService) {
+	s.comptime = cs
 }
+
 
 // DeleteSession deletes a session with the given session ID.
 func (s *SessionDelete) Run(InDto port.InDTO) port.OutDTO {
@@ -59,10 +61,10 @@ func (s *SessionDelete) Run(InDto port.InDTO) port.OutDTO {
 		return dto.NewSessionDeleteResponse(500, "Internal Server Error", err.Error())
 	}
 
-	// Trigger deconciliation
-	if s.reconciler != nil {
-		if err := s.reconciler.DeconcileSession(sessionID); err != nil {
-			s.logger.IPrintf(2, "Aviso: falha ao desconciliar sessão %d deletada: %v", sessionID, err)
+	// Trigger comptime debit removal
+	if s.comptime != nil {
+		if err := s.comptime.ProcessSessionDeleted(context.Background(), sessionID); err != nil {
+			s.logger.IPrintf(2, "Aviso: falha ao remover sessão %d do banco de horas: %v", sessionID, err)
 		}
 	}
 

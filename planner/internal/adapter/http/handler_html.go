@@ -20,10 +20,11 @@ var (
 type HandlerHtml struct {
 	logger        port.Logger
 	repo          port.Repository
-	reconciler    port.ReconciliationService
+	comptime      port.ComptimeService
 	tmpl          *template.Template
 	tmplPlans     *template.Template
 	tmplInvoicing *template.Template
+	tmplComptime  *template.Template
 	billingClient port.BillingClient
 }
 
@@ -88,32 +89,53 @@ func NewHandlerHtml(repo port.Repository, logger port.Logger, tdata []byte, plan
 		return nil, err
 	}
 
-	var reconciler port.ReconciliationService
-	if r, ok := repo.(port.ReconciliationRepository); ok {
-		reconciler = service.NewReconciliation(r, logger)
+	var compData []byte
+	if len(plansData) > 2 && len(plansData[2]) > 0 {
+		compData = plansData[2]
+	} else {
+		if data, err := os.ReadFile("/app/web/templates/comptime.html"); err == nil {
+			compData = data
+		} else if data, err := os.ReadFile("web/templates/comptime.html"); err == nil {
+			compData = data
+		} else if data, err := os.ReadFile("../../../web/templates/comptime.html"); err == nil {
+			compData = data
+		} else {
+			compData = []byte(`{{define "index"}}<html><body>Comptime</body></html>{{end}}{{define "fragment"}}<div>Comptime</div>{{end}}{{define "tabela"}}<div>Tabela</div>{{end}}{{define "modal_resync"}}<div>Resync</div>{{end}}{{define "modal_resync_resultado"}}<div>Resultado</div>{{end}}`)
+		}
+	}
+
+	tmplComptime, err := template.New("index").Funcs(funcMap).Parse(string(compData))
+	if err != nil {
+		return nil, err
+	}
+
+	var comptime port.ComptimeService
+	if cr, ok := repo.(port.ComptimeRepository); ok {
+		comptime = service.NewComptime(cr, logger)
 	}
 
 	return &HandlerHtml{
 		repo:          repo,
 		logger:        logger,
-		reconciler:    reconciler,
+		comptime:      comptime,
 		tmpl:          tmpl,
 		tmplPlans:     tmplPlans,
 		tmplInvoicing: tmplInvoicing,
+		tmplComptime:  tmplComptime,
 	}, nil
 }
 
-// SetReconciler allows injecting a custom ReconciliationService (e.g. for testing)
-func (h *HandlerHtml) SetReconciler(r port.ReconciliationService) {
-	h.reconciler = r
+// SetComptimeService allows injecting a custom ComptimeService
+func (h *HandlerHtml) SetComptimeService(cs port.ComptimeService) {
+	h.comptime = cs
 }
 
-func (h *HandlerHtml) getReconciler() port.ReconciliationService {
-	if h.reconciler != nil {
-		return h.reconciler
+func (h *HandlerHtml) getComptimeService() port.ComptimeService {
+	if h.comptime != nil {
+		return h.comptime
 	}
-	if r, ok := h.repo.(port.ReconciliationRepository); ok {
-		return service.NewReconciliation(r, h.logger)
+	if cr, ok := h.repo.(port.ComptimeRepository); ok {
+		return service.NewComptime(cr, h.logger)
 	}
 	return nil
 }

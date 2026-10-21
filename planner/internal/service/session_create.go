@@ -1,34 +1,37 @@
 package service
 
 import (
+	"context"
+	"time"
+
 	"planner/internal/domain"
 	"planner/internal/dto"
 	"planner/internal/port"
-	"time"
 )
 
 // SessionCreate is  a service that handles the creation of sessions.
 type SessionCreate struct {
 	Base
-	reconciler port.ReconciliationService
+	comptime port.ComptimeService
 }
 
 // NewSessionCreate
 func NewSessionCreate(repo port.Repository, logger port.Logger) *SessionCreate {
-	var reconciler port.ReconciliationService
-	if r, ok := repo.(port.ReconciliationRepository); ok {
-		reconciler = NewReconciliation(r, logger)
+	var comptime port.ComptimeService
+	if cr, ok := repo.(port.ComptimeRepository); ok {
+		comptime = NewComptime(cr, logger)
 	}
 	return &SessionCreate{
-		Base:       *NewBase(repo, logger),
-		reconciler: reconciler,
+		Base:     *NewBase(repo, logger),
+		comptime: comptime,
 	}
 }
 
-// SetReconciler sets a custom reconciliation service.
-func (s *SessionCreate) SetReconciler(r port.ReconciliationService) {
-	s.reconciler = r
+// SetComptimeService sets the comptime service.
+func (s *SessionCreate) SetComptimeService(cs port.ComptimeService) {
+	s.comptime = cs
 }
+
 
 // Run executes the session creation process using the provided input DTO and returns an output DTO.
 func (s *SessionCreate) Run(input port.InDTO) port.OutDTO {
@@ -49,10 +52,10 @@ func (s *SessionCreate) Run(input port.InDTO) port.OutDTO {
 
 	sessionID := sessionModel.(*domain.Session).ID
 
-	// Trigger reconciliation
-	if s.reconciler != nil {
-		if err := s.reconciler.ReconcileSession(sessionID); err != nil {
-			s.logger.IPrintf(2, "Aviso: falha na conciliação da sessão %d: %v", sessionID, err)
+	// Trigger comptime sync
+	if s.comptime != nil {
+		if err := s.comptime.ProcessSessionCreated(context.Background(), sessionID); err != nil {
+			s.logger.IPrintf(2, "Aviso: falha na sincronização do banco de horas da sessão %d: %v", sessionID, err)
 		}
 	}
 

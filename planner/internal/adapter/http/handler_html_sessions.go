@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"planner/internal/dto"
-	"planner/internal/port"
 	"planner/internal/service"
 )
 
@@ -405,13 +404,8 @@ func (h *HandlerHtml) SessionsReconcile(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	reconciler := h.getReconciler()
-	if reconciler != nil {
-		if err := reconciler.ReconcileSession(id); err != nil {
-			h.logger.IPrintf(1, "Erro ao conciliar sessão %d: %v", id, err)
-		}
-	} else {
-		h.logger.IPrintf(1, "ReconciliationService não disponível para sessão %d", id)
+	if cs := h.getComptimeService(); cs != nil {
+		_ = cs.ProcessSessionUpdated(r.Context(), id)
 	}
 
 	// Remove single-session filters so SessionsTable re-renders the complete filtered list
@@ -432,21 +426,7 @@ func (h *HandlerHtml) getSessionData(response *dto.SessionListResponse) []map[st
 		formatedDate, _ := time.Parse("2006-01-02", session.Date)
 		status := strings.ToLower(strings.TrimSpace(session.Status))
 		elegivel := status != "cancelada_nao_cobrar" && status != "cancelada/não cobrar"
-
 		reconciled := false
-		if recRepo, ok := h.repo.(port.ReconciliationRepository); ok {
-			r, err := recRepo.IsSessionReconciled(session.SessionID)
-			if err == nil {
-				reconciled = r
-			}
-		} else if isRec, ok := h.repo.(interface{ IsSessionReconciled(int64) (bool, error) }); ok {
-			r, err := isRec.IsSessionReconciled(session.SessionID)
-			if err == nil {
-				reconciled = r
-			}
-		} else if inv, err := h.repo.GetInvoiceForSession(session.SessionID); err == nil && inv != nil {
-			reconciled = true
-		}
 
 		ss := map[string]interface{}{
 			"ID":            session.SessionID,

@@ -1124,13 +1124,10 @@ func TestHTMLReconciliationRoutes(t *testing.T) {
 	mockRepo := &mockReconcileRouteRepo{
 		reconciledSessions: make(map[int64]bool),
 	}
-	mux, htmlHandler, err := NewHTMLRoutes(mockRepo, &dummyLogger{}, sessionsTmpl, plansTmpl, invTmpl)
+	mux, _, err := NewHTMLRoutes(mockRepo, &dummyLogger{}, sessionsTmpl, plansTmpl, invTmpl)
 	if err != nil {
 		t.Fatalf("failed creating HTML routes: %v", err)
 	}
-
-	tracker := &mockReconciliationTracker{}
-	htmlHandler.SetReconciler(tracker)
 
 	// 1. Test POST /sessoes/reconciliar?id=42
 	reqSess := httptest.NewRequest(http.MethodPost, "/sessoes/reconciliar?id=42", nil)
@@ -1138,9 +1135,6 @@ func TestHTMLReconciliationRoutes(t *testing.T) {
 	mux.ServeHTTP(recSess, reqSess)
 	if recSess.Code != http.StatusOK {
 		t.Errorf("expected 200 on /sessoes/reconciliar, got %d", recSess.Code)
-	}
-	if tracker.sessionReconciledID != 42 {
-		t.Errorf("expected session 42 to be reconciled, got %d", tracker.sessionReconciledID)
 	}
 
 	// 2. Test POST /invoicing/reconciliar?id=99
@@ -1150,9 +1144,6 @@ func TestHTMLReconciliationRoutes(t *testing.T) {
 	if recInv.Code != http.StatusOK {
 		t.Errorf("expected 200 on /invoicing/reconciliar, got %d", recInv.Code)
 	}
-	if tracker.invoiceReconciledID != 99 {
-		t.Errorf("expected invoice 99 to be reconciled, got %d", tracker.invoiceReconciledID)
-	}
 
 	// 3. Test POST /pre-faturas/reconciliar?id=101
 	reqPre := httptest.NewRequest(http.MethodPost, "/pre-faturas/reconciliar?id=101", nil)
@@ -1160,9 +1151,6 @@ func TestHTMLReconciliationRoutes(t *testing.T) {
 	mux.ServeHTTP(recPre, reqPre)
 	if recPre.Code != http.StatusOK {
 		t.Errorf("expected 200 on /pre-faturas/reconciliar, got %d", recPre.Code)
-	}
-	if tracker.invoiceReconciledID != 101 {
-		t.Errorf("expected invoice 101 to be reconciled, got %d", tracker.invoiceReconciledID)
 	}
 }
 
@@ -1236,33 +1224,15 @@ func TestHTMLSessionReconciliationButtonStates(t *testing.T) {
 
 	body := rec.Body.String()
 
-	// Verify Session 1 (Reconciled): green discreet button with emerald style and title "Sessão conciliada com pré-fatura"
-	if !strings.Contains(body, "text-emerald-600") {
-		t.Errorf("expected session table to contain green button (text-emerald-600)")
+	// Verify reconciliation buttons are removed from session rows
+	if strings.Contains(body, "Sessão conciliada com pré-fatura") {
+		t.Errorf("expected session table NOT to have reconciled tooltip")
 	}
-	if !strings.Contains(body, "Sessão conciliada com pré-fatura") {
-		t.Errorf("expected session table to have reconciled tooltip 'Sessão conciliada com pré-fatura'")
+	if strings.Contains(body, "Sessão não conciliada - Clique para conciliar") {
+		t.Errorf("expected session table NOT to have unreconciled tooltip")
 	}
-
-	// Verify Session 2 (Unreconciled): discreet button with rose style and title "Sessão não conciliada - Clique para conciliar"
-	if !strings.Contains(body, "text-rose-600") {
-		t.Errorf("expected session table to contain rose button (text-rose-600)")
-	}
-	if !strings.Contains(body, "Sessão não conciliada - Clique para conciliar") {
-		t.Errorf("expected session table to have unreconciled tooltip 'Sessão não conciliada - Clique para conciliar'")
-	}
-
-	// Verify Session 3 (Not eligible): disabled gray button
-	if !strings.Contains(body, "Sessão cancelada sem cobrança (não elegível para conciliação)") {
-		t.Errorf("expected session table to contain disabled button for non-chargeable session")
-	}
-
-	// Verify reconciliation action attribute
-	if !strings.Contains(body, `hx-post="/html/sessoes/reconciliar?id=1"`) {
-		t.Errorf("expected session row to contain hx-post to /html/sessoes/reconciliar?id=1")
-	}
-	if !strings.Contains(body, `hx-post="/html/sessoes/reconciliar?id=2"`) {
-		t.Errorf("expected session row to contain hx-post to /html/sessoes/reconciliar?id=2")
+	if strings.Contains(body, `hx-post="/html/sessoes/reconciliar`) {
+		t.Errorf("expected session row NOT to contain hx-post to /html/sessoes/reconciliar")
 	}
 }
 
@@ -1327,12 +1297,181 @@ func TestHTMLInvoicingReconciliationButton(t *testing.T) {
 
 	body := rec.Body.String()
 
-	// Verify that the reconcile button is present on the invoice row
-	if !strings.Contains(body, `hx-post="/html/invoicing/reconciliar?id=5"`) {
-		t.Errorf("expected invoicing table to contain hx-post to /html/invoicing/reconciliar?id=5, got: %s", body)
+	// Verify that the reconcile button is NOT present on the invoice row
+	if strings.Contains(body, `hx-post="/html/invoicing/reconciliar`) {
+		t.Errorf("expected invoicing table NOT to contain hx-post to /html/invoicing/reconciliar, got: %s", body)
 	}
-	if !strings.Contains(body, "Conciliar pré-fatura com sessões pendentes") {
-		t.Errorf("expected invoicing table to contain tooltip 'Conciliar pré-fatura com sessões pendentes'")
+	if strings.Contains(body, "Conciliar pré-fatura com sessões pendentes") {
+		t.Errorf("expected invoicing table NOT to contain reconciliation tooltip")
+	}
+	if strings.Contains(body, "Qtd Real.") {
+		t.Errorf("expected invoicing table NOT to contain Qtd Real. column")
+	}
+}
+
+type mockComptimeRouteRepo struct {
+	dummyRepo
+	records []port.ComptimeView
+}
+
+func (m *mockComptimeRouteRepo) LockCustomerService(ctx context.Context, customerID, serviceID int64) error {
+	return nil
+}
+func (m *mockComptimeRouteRepo) FindOrCreateComptime(ctx context.Context, vendorID, customerID, serviceID int64, month time.Time) (*domain.Comptime, error) {
+	return nil, nil
+}
+func (m *mockComptimeRouteRepo) GetComptime(ctx context.Context, id int64) (*domain.Comptime, error) {
+	return nil, nil
+}
+func (m *mockComptimeRouteRepo) GetComptimeByCustomerServiceMonth(ctx context.Context, customerID, serviceID int64, month time.Time) (*domain.Comptime, error) {
+	return nil, nil
+}
+func (m *mockComptimeRouteRepo) GetPreviousComptime(ctx context.Context, customerID, serviceID int64, month time.Time) (*domain.Comptime, error) {
+	return nil, nil
+}
+func (m *mockComptimeRouteRepo) GetSubsequentComptimes(ctx context.Context, customerID, serviceID int64, month time.Time) ([]domain.Comptime, error) {
+	return nil, nil
+}
+func (m *mockComptimeRouteRepo) SaveComptime(ctx context.Context, comptime *domain.Comptime) error {
+	return nil
+}
+func (m *mockComptimeRouteRepo) ListComptime(ctx context.Context, filter port.ComptimeFilter) ([]port.ComptimeView, int64, error) {
+	return m.records, int64(len(m.records)), nil
+}
+func (m *mockComptimeRouteRepo) FindComptimeSessionBySessionID(ctx context.Context, sessionID int64) (*domain.ComptimeSession, error) {
+	return nil, nil
+}
+func (m *mockComptimeRouteRepo) SaveComptimeSession(ctx context.Context, cs *domain.ComptimeSession) error {
+	return nil
+}
+func (m *mockComptimeRouteRepo) DeleteComptimeSession(ctx context.Context, sessionID int64) error {
+	return nil
+}
+func (m *mockComptimeRouteRepo) FindComptimeInvoiceItemByInvoiceItemID(ctx context.Context, invoiceItemID int64) (*domain.ComptimeInvoiceItem, error) {
+	return nil, nil
+}
+func (m *mockComptimeRouteRepo) FindComptimeInvoiceItemsByInvoiceID(ctx context.Context, invoiceID int64) ([]domain.ComptimeInvoiceItem, error) {
+	return nil, nil
+}
+func (m *mockComptimeRouteRepo) SaveComptimeInvoiceItem(ctx context.Context, cii *domain.ComptimeInvoiceItem) error {
+	return nil
+}
+func (m *mockComptimeRouteRepo) DeleteComptimeInvoiceItem(ctx context.Context, invoiceItemID int64) error {
+	return nil
+}
+func (m *mockComptimeRouteRepo) SaveComptimeExtra(ctx context.Context, ce *domain.ComptimeExtra) error {
+	return nil
+}
+func (m *mockComptimeRouteRepo) DeleteComptimeExtra(ctx context.Context, id int64) error {
+	return nil
+}
+func (m *mockComptimeRouteRepo) FindActiveSessionsForComptime(ctx context.Context, vendorID int64, startDate, endDate time.Time) ([]domain.Session, error) {
+	return nil, nil
+}
+func (m *mockComptimeRouteRepo) FindActiveInvoiceItemsForComptime(ctx context.Context, vendorID int64, startDate, endDate time.Time) ([]domain.InvoiceItem, error) {
+	return nil, nil
+}
+func (m *mockComptimeRouteRepo) GetSessionByID(id int64) (*domain.Session, error) {
+	return nil, nil
+}
+func (m *mockComptimeRouteRepo) GetServiceByID(id int64) (*domain.Service, error) {
+	return nil, nil
+}
+func (m *mockComptimeRouteRepo) GetInvoiceItemByID(ctx context.Context, id int64) (*domain.InvoiceItem, error) {
+	return nil, nil
+}
+
+func TestHTMLComptimeRoutes(t *testing.T) {
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("could not get working dir: %v", err)
+	}
+	defer os.Chdir(origDir)
+
+	if err := os.Chdir("../../.."); err != nil {
+		t.Fatalf("could not chdir to planner/backend: %v", err)
+	}
+
+	sessionsTmpl, err := os.ReadFile("web/templates/sessions.html")
+	if err != nil {
+		t.Fatalf("failed reading sessions template: %v", err)
+	}
+	plansTmpl, _ := os.ReadFile("web/templates/plans.html")
+	invTmpl, _ := os.ReadFile("web/templates/invoicing.html")
+	compTmpl, err := os.ReadFile("web/templates/comptime.html")
+	if err != nil {
+		t.Fatalf("failed reading comptime template: %v", err)
+	}
+
+	mockRepo := &mockComptimeRouteRepo{
+		records: []port.ComptimeView{
+			{
+				ID:              1,
+				VendorID:        1,
+				CustomerID:      10,
+				CustomerName:    "Cliente Teste",
+				ServiceID:       20,
+				ServiceName:     "Psicoterapia",
+				Month:           time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC),
+				InvoicedMinutes: 240,
+				ConsumedMinutes: 180,
+				Balance:         60,
+				UpdatedAt:       time.Now(),
+			},
+		},
+	}
+
+	mux, _, err := NewHTMLRoutes(mockRepo, &dummyLogger{}, sessionsTmpl, plansTmpl, invTmpl, compTmpl)
+	if err != nil {
+		t.Fatalf("failed creating HTML routes: %v", err)
+	}
+
+	// 1. Test GET /comptime
+	reqPage := httptest.NewRequest(http.MethodGet, "/comptime", nil)
+	recPage := httptest.NewRecorder()
+	mux.ServeHTTP(recPage, reqPage)
+	if recPage.Code != http.StatusOK {
+		t.Fatalf("expected 200 on /comptime, got %d", recPage.Code)
+	}
+	bodyPage := recPage.Body.String()
+	if !strings.Contains(bodyPage, "Banco de Horas") {
+		t.Errorf("expected body to contain 'Banco de Horas'")
+	}
+	if !strings.Contains(bodyPage, "Cliente Teste") {
+		t.Errorf("expected body to contain 'Cliente Teste'")
+	}
+	if !strings.Contains(bodyPage, "240 min") {
+		t.Errorf("expected body to contain '240 min'")
+	}
+
+	// 2. Test POST /comptime/tabela
+	reqTable := httptest.NewRequest(http.MethodPost, "/comptime/tabela", nil)
+	recTable := httptest.NewRecorder()
+	mux.ServeHTTP(recTable, reqTable)
+	if recTable.Code != http.StatusOK {
+		t.Fatalf("expected 200 on /comptime/tabela, got %d", recTable.Code)
+	}
+	bodyTable := recTable.Body.String()
+	if !strings.Contains(bodyTable, "Psicoterapia") {
+		t.Errorf("expected table to contain 'Psicoterapia'")
+	}
+	if !strings.Contains(bodyTable, "+60 min") {
+		t.Errorf("expected table to contain '+60 min'")
+	}
+
+	// 3. Test GET /comptime/resync-modal
+	reqModal := httptest.NewRequest(http.MethodGet, "/comptime/resync-modal", nil)
+	recModal := httptest.NewRecorder()
+	mux.ServeHTTP(recModal, reqModal)
+	if recModal.Code != http.StatusOK {
+		t.Fatalf("expected 200 on /comptime/resync-modal, got %d", recModal.Code)
+	}
+	bodyModal := recModal.Body.String()
+	if !strings.Contains(bodyModal, "Ressincronizar Banco de Horas") {
+		t.Errorf("expected modal to contain 'Ressincronizar Banco de Horas'")
+	}
+	if !strings.Contains(bodyModal, "Executar Sincronização") {
+		t.Errorf("expected modal to contain 'Executar Sincronização'")
 	}
 }
 

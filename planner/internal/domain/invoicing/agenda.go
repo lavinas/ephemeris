@@ -126,6 +126,7 @@ func (s *AgendaStrategy) CalculateMonth(plan *domain.Plan, monthStart, refDate t
 			ServiceID:        item.ServiceID,
 			Price:            price,
 			Description:      desc,
+			Quantity:         invoicedQty,
 			InvoicedQuantity: invoicedQty,
 			RealizedQuantity: 0,
 			CreatedAt:        refDate,

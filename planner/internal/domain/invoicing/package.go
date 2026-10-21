@@ -92,6 +92,7 @@ func (s *PackageStrategy) Calculate(plan *domain.Plan, refDate time.Time) (*doma
 			ServiceID:        item.ServiceID,
 			Price:            price,
 			Description:      desc,
+			Quantity:         invoicedQty,
 			InvoicedQuantity: invoicedQty,
 			RealizedQuantity: 0,
 			CreatedAt:        refDate,

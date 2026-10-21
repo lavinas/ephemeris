@@ -14,6 +14,7 @@ import (
 type InvoiceUpdate struct {
 	Base
 	billingClient port.BillingClient
+	comptime      port.ComptimeService
 }
 
 // InvoicingUpdate is an alias for InvoiceUpdate to support both nomenclatures.
@@ -25,10 +26,20 @@ func NewInvoiceUpdate(repo port.Repository, logger port.Logger, billingClients .
 	if len(billingClients) > 0 && billingClients[0] != nil {
 		client = billingClients[0]
 	}
+	var comptime port.ComptimeService
+	if cr, ok := repo.(port.ComptimeRepository); ok {
+		comptime = NewComptime(cr, logger)
+	}
 	return &InvoiceUpdate{
 		Base:          *NewBase(repo, logger),
 		billingClient: client,
+		comptime:      comptime,
 	}
+}
+
+// SetComptimeService sets the comptime service.
+func (s *InvoiceUpdate) SetComptimeService(cs port.ComptimeService) {
+	s.comptime = cs
 }
 
 // NewInvoicingUpdate creates a new instance of InvoiceUpdate service using Invoicing nomenclature.
@@ -72,6 +83,7 @@ func (s *InvoiceUpdate) Run(input port.InDTO) port.OutDTO {
 		for i := range invoice.Items {
 			if newQty, exists := itemQtyMap[invoice.Items[i].ID]; exists {
 				invoice.Items[i].InvoicedQuantity = newQty
+				invoice.Items[i].Quantity = newQty
 			}
 		}
 	}
@@ -169,6 +181,14 @@ func (s *InvoiceUpdate) Run(input port.InDTO) port.OutDTO {
 	if err := s.repo.UpdateInvoice(invoice); err != nil {
 		s.logger.IPrintf(2, "Failed to update invoice in database: %v", err)
 		return dto.NewInvoiceUpdateResponse(500, "error", fmt.Sprintf("erro ao salvar alterações da fatura: %v", err), nil)
+	}
+
+	if s.comptime != nil {
+		for _, it := range invoice.Items {
+			if err := s.comptime.ProcessInvoiceItemUpdated(context.Background(), it.ID); err != nil {
+				s.logger.IPrintf(2, "Aviso: falha ao atualizar item de fatura %d no banco de horas: %v", it.ID, err)
+			}
+		}
 	}
 
 	s.logger.IPrintf(2, "Invoice #%d updated successfully. New amount: %.2f", invoice.ID, invoice.Amount)

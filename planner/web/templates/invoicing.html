@@ -99,7 +99,7 @@
 		}
 		.grade-itens-invoice {
 			display: grid !important;
-			grid-template-columns: 5.2fr 1.1fr 0.8fr 0.8fr 1.2fr !important;
+			grid-template-columns: 5.5fr 1.2fr 1.0fr 1.3fr !important;
 			gap: 10px !important;
 			align-items: center !important;
 			box-sizing: border-box !important;
@@ -423,8 +423,7 @@
 					<div class="grade-itens-invoice font-bold text-[10px] text-gray-500 uppercase tracking-wider border-b border-gray-200 pb-1 mb-1">
 						<div class="text-left">Serviço / Descrição</div>
 						<div class="text-right">Preço</div>
-						<div class="text-center" title="Quantidade Faturada">Qtd Fat.</div>
-						<div class="text-center" title="Quantidade Realizada">Qtd Real.</div>
+						<div class="text-center" title="Quantidade">Quantidade</div>
 						<div class="text-right">Subtotal</div>
 					</div>
 					{{range .Items}}
@@ -442,9 +441,6 @@
 							</div>
 							<div class="text-center font-mono font-bold text-indigo-700">
 								<span class="bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded text-[11px]">{{.InvoicedQuantity}}</span>
-							</div>
-							<div class="text-center font-mono font-bold text-emerald-700">
-								<span class="bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded text-[11px]">{{.RealizedQuantity}}</span>
 							</div>
 							<div class="text-right font-mono font-semibold text-gray-800">
 								R$ {{.SubtotalFormatado}}
@@ -479,17 +475,6 @@
 					title="Editar Pré-Fatura">
 				<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-				</svg>
-			</button>
-			<button type="button"
-					hx-post="/html/invoicing/reconciliar?id={{.ID}}"
-					hx-target="#tabela-container-invoicing"
-					hx-include="#filtro-form-invoicing"
-					class="p-1.5 text-emerald-600 hover:text-emerald-900 hover:bg-emerald-50 rounded transition cursor-pointer"
-					style="color: #059669;"
-					title="Conciliar pré-fatura com sessões pendentes">
-				<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
 				</svg>
 			</button>
 			<button type="button"
@@ -561,8 +546,7 @@
 					<div class="grade-itens-invoice font-bold text-[10px] text-gray-500 uppercase tracking-wider border-b border-gray-200 pb-1 mb-1">
 						<div class="text-left">Serviço / Descrição</div>
 						<div class="text-right">Preço</div>
-						<div class="text-center" title="Quantidade Faturada (Editável)">Qtd Fat. ✏️</div>
-						<div class="text-center" title="Quantidade Realizada">Qtd Real.</div>
+						<div class="text-center" title="Quantidade (Editável)">Quantidade ✏️</div>
 						<div class="text-right">Subtotal</div>
 					</div>
 					{{range .Items}}
@@ -581,9 +565,6 @@
 							<div class="text-center font-mono">
 								<input type="number" name="item_qty_{{.ID}}" value="{{.InvoicedQuantity}}" min="0" required
 									   class="w-16 bg-white text-gray-900 border border-indigo-400 rounded px-1.5 py-0.5 text-center text-xs font-mono font-bold focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm">
-							</div>
-							<div class="text-center font-mono font-bold text-emerald-700">
-								<span class="bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded text-[11px]">{{.RealizedQuantity}}</span>
 							</div>
 							<div class="text-right font-mono font-semibold text-gray-800">
 								R$ {{.SubtotalFormatado}}

@@ -22,6 +22,8 @@ const (
 	localPlansTemplatePath     = "./web/templates/plans.html"
 	invoicingTemplatePath      = "/app/web/templates/invoicing.html"
 	localInvoicingTemplatePath = "./web/templates/invoicing.html"
+	comptimeTemplatePath       = "/app/web/templates/comptime.html"
+	localComptimeTemplatePath  = "./web/templates/comptime.html"
 )
 
 // Handler is an HTTP handler for the API
@@ -59,8 +61,12 @@ func (h *Handler) Run(addr string) error {
 	if err != nil {
 		h.logger.IPrintf(1, "Warning reading invoicing template (%v), fallback will be used", err)
 	}
+	comptimeTemplate, err := h.getComptimeTemplate()
+	if err != nil {
+		h.logger.IPrintf(1, "Warning reading comptime template (%v), fallback will be used", err)
+	}
 	h.logger.IPrintf(0, "HTML templates loaded successfully")
-	mainMux, err := NewRoutesWithBilling(h.repo, h.logger, h.billingClient, sessionsTemplate, plansTemplate, invoicingTemplate)
+	mainMux, err := NewRoutesWithBilling(h.repo, h.logger, h.billingClient, sessionsTemplate, plansTemplate, invoicingTemplate, comptimeTemplate)
 	if err != nil {
 		return fmt.Errorf("error creating routes: %v", err)
 	}
@@ -97,6 +103,15 @@ func (h *Handler) getInvoicingTemplate() ([]byte, error) {
 		return template, nil
 	}
 	return os.ReadFile(localInvoicingTemplatePath)
+}
+
+// getComptimeTemplate returns the HTML comptime template
+func (h *Handler) getComptimeTemplate() ([]byte, error) {
+	template, err := os.ReadFile(comptimeTemplatePath)
+	if err == nil {
+		return template, nil
+	}
+	return os.ReadFile(localComptimeTemplatePath)
 }
 
 // exec executes the server and handles graceful shutdown
