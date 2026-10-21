@@ -34,7 +34,7 @@ create table comptime_session (
     deleted_at timestamp
 );
 
-create unique index idx_comptime_session_session_id on comptime_session(session_id);
+create index idx_comptime_session_session_id on comptime_session(session_id);
 create index idx_comptime_session_comptime_id on comptime_session(comptime_id);
 create index idx_comptime_session_month on comptime_session(month);
 
@@ -51,7 +51,7 @@ create table comptime_invoice_item (
     deleted_at timestamp
 );
 
-create unique index idx_comptime_invoice_item_invoice_item_id on comptime_invoice_item(invoice_item_id);
+create index idx_comptime_invoice_item_invoice_item_id on comptime_invoice_item(invoice_item_id);
 create index idx_comptime_invoice_item_comptime_id on comptime_invoice_item(comptime_id);
 create index idx_comptime_invoice_item_month on comptime_invoice_item(month);
 

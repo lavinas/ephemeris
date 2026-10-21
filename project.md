@@ -1,9 +1,5 @@
 ## Planejamento 
 
-### 0. Manutenções
-* Revisar log billing e planner
-* Verificar que no caso do plano pacote o número de items seja menor que a quantidade de aulas
-
 No subprojeto planner:
 - Irei trocar o conceito de conciliação (reconciliate) para o conceito de banco de horas (comptime);
 - Na base de dados atual de invoiced do planner (vide /planner/migration/invoiced.sql):
@@ -15,44 +11,65 @@ No subprojeto planner:
     * A tabela comptime_session será responsável por controlar as sessões que foram utilizadas para somar ou abater o banco de horas.
     * A tabela comptime_session_invoice será responsável por controlar as faturas que foram utilizadas para somar ou abater o banco de horas.
 - Para cada sessão criada para o mesmo customer + service, deverá ser computada a sessão no banco de horas:
-    * Deve-se verificar se o comptime foi criado para aquele customer e para aquele service (se não deve-se criar com balance 0)
+    * Deve-se verificar se o comptime foi criado para aquele customer e para aquele service (se não deve-se criar com valores invoiced_quantity, consumed_minutes, balance = 0)
+    * Também deve-se vericar se já não existe o id da sessão na comptime_session com deleted_at = nil (para evitar duplicidade)
     * comptime.customer_id e comptime.service_id deverão ser iguais ao customer e ao service da sessão
-    * comptime.balance deverá ser decrementado de acordo com a conversão do numero de minutos da sessão (session.session_minutes) para duration
-    * Deve-se criar uma linha na tabela comptime_session para aquele comptime e para aquela sessão com balance_changed o valor decrementado no balance (o valor aqui pode ser sempre positivo porem decrementando comptime.balance), o ref_date é a data da sessão e o ref_month é o primeiro dia do mês da sessão
+    * comptime.consumed_minutes deve ser incrementado em session.session_minutes
+    * Deve-se calcular e ajustar o novo valor de comptime.balance = invoiced_minutes - consumed_minutes 
+    * Deve-se criar uma linha na tabela comptime_session para aquele comptime e para aquela sessão com:
+        - comptime_id = comptime.id
+        - session_id = session.id
+        - month = ano-mes-1 do session_date
+        - consumed_minutes = session.session_minutes
     * Todas as sessões devem ser contabilizadas, porém aquelas com o status cancelada_nao_cobrar deve deve ser contabilizada com valor 0 em balance_changed (e assim com efeito zero na comptime.balance)
-    * Fazer as alterações na base de dados de forma atômica (com transação)
 - Para cada sessão deletada para o mesmo customer + service, deverá ser computada a sessão no banco de horas:
     * Deve-se localizar comptime_session correspondente a aquela sessão
-    * Deve-se somar do balance da comptime o valor de balance_changed
-    * Deve-se apagar a linha na tabela comptime_session
-    * Fazer as alterações na base de dados de forma atômica (com transação)
+    * Deve-se subtrair o comptime.consumed_minutes pelo comptime_session.consumed_minutes
+    * Deve-se calcular e ajustar o novo valor de comptime.balance = invoiced_minutes - consumed_minutes 
+    * Deve-se apagar a linha na tabela comptime_session (soft delete - deleted_at)
 - Para cada sessão atualizada para o mesmo customer + service, deverá ser computada a sessão no banco de horas:
     * Deve-se localizar comptime_session correspondente a aquela sessão
-    * Deve-se somar do balance da comptime o valor de balance_changed
-    * Deve-se atualizar o valor do session_minutes na coluna balance_changed
-    * Deve-se subtrair do balance o novo valor de balance_changed
-    * Todas as sessões devem ser contabilizadas, porém aquelas com o status cancelada_nao_cobrar deve deve ser contabilizada com valor 0 em balance_changed (e assim com efeito zero na comptime.balance)
-    * Fazer as alterações na base de dados de forma atômica (com transação)
+    * Deve-se calcular o valor a ser atualizada no comptime.consumed_minutes = session.session_minutes - comptime_session.consumed_minutes (se session.status == "cancelada_nao_cobrar" deve-se considerar session.session_minutes = 0)
+    * Deve-se calcular e ajustar o novo valor de comptime.balance = invoiced_minutes - consumed_minutes 
+    * Deve-se atualizar o valor do session_minutes na colune comptime_session.consumed_minutes (se session.status == "cancelada_nao_cobrar" deve-se considerar session.session_minutes = 0)
+    * Não esquecer de atualizar o updated_at de todas as tabelas
 - Para cada invoice_item criada para um determinado customer + service, deverá ser computada a fatura no banco de horas:
-    * Deve-se verificar se o comptime foi criado para aquele customer e para aquele service (se não deve-se criar com balance 0)
+    * Deve-se verificar se o comptime foi criado para aquele customer e para aquele service (se não deve-se criar com valores invoiced_quantity, consumed_minutes, balance = 0)
+    * Também deve-se verificar se a invoice_item_id já não está na tabela comptime_invoice_item e com deleted_at = nil (para se evitar duplicidade)
     * comptime.customer_id e comptime.service_id deverão ser iguais ao customer_id da invoice pai e service_id da invoice_item
-    * comptime.balance deverá ser somado de acordo com a conversão do numero de minutos da sessão (invoice_item.quantity * service.session_minutes) para duration
-    * Deve-se criar uma linha na tabela comptime_invoice_item para aquele comptime e para aquela sessão com balance_changed o valor incrementado no balance (também sempre positivo) e o ref_date é invoice.period_start e o ref_month é o primeiro dia 
+    * comptime.invoiced_minutes deverá ser somado de invoice_item.quantity * service.session_minutes
+    * Deve-se calcular e ajustar o novo valor de comptime.balance = invoiced_minutes - consumed_minutes 
+    * Deve-se criar uma linha na tabela comptime_invoice_item para aquele comptime e para aquela sessão com:
+        - comptime_id = comptime.id
+        - invoice_item_id = invoice_item.id
+        - month = ano-mes-1 do invoice.period_start
+        - invoiced_minutes = invoice_item.quantity * service.session_minutes
  - Para cada invoice_item ou invoice pai deletadas para o mesmo customer + service, deverá ser computada a fatura no banco de horas:
     * Deve-se localizar comptime_invoice_item correspondente a aquela invoice_item ou invoice pai
-    * Deve-se subtrair do balance da comptime o valor de balance_changed
-    * Deve-se apagar a linha na tabela comptime_invoice_item
-    * Fazer as alterações na base de dados de forma atômica (com transação)
+    * Deve-se subtrair o comptime.invoiced_minutes pelo comptime_invoice_item.invoiced_minutes
+    * Deve-se calcular e ajustar o novo valor de comptime.balance = invoiced_minutes - consumed_minutes 
+    * Deve-se apagar a linha na tabela comptime_invoice_item (soft delete - deleted_at)
  - Para cada invoice_item ou invoice pai atualizada para o mesmo customer + service, deverá ser computada a fatura no banco de horas:
-    * Deve-se localizar comptime_invoice_item correspondente a aquela invoice_item ou invoice pai
-    * Deve-se subtrair do balance da comptime o valor de balance_changed
-    * Deve-se atualizar o valor do session_minutes na coluna balance_changed
-    * Deve-se somar do balance o novo valor (invoice_item.quantity * service.session_minutes) de balance_changed
-    * Fazer as alterações na base de dados de forma atômica (com transação)
-- Deve-se criar e alterar adequadamente os domain correspondentes;
+    * Deve-se localizar comptime_invoice_item correspondente a aquela invoice_item
+    * Deve-se calcular o valor a ser atualizada no comptime.invoiced_minutes = invoice_item.quantity * service.session_minutes - comptime_invoice_item.invoiced_minutes 
+    * Deve-se calcular e ajustar o novo valor de comptime.balance = invoiced_minutes - consumed_minutes 
+    * Deve-se atualizar o valor da coluna comptime_invoice_item.invoiced_minutes com o valor de invoice_item.quantity * service.session_minutes
+    * Não esquecer de atualizar o updated_at de todas as tabelas
+- Para cada comptime extra criada:
+    - Deve-se somar o valor de comptime_extra.invoiced_minutes ao comptime.invoiced_minutes na tabela comptime
+    - Deve-se calcular e ajustar o novo valor de comptime.balance = invoiced_minutes - consumed_minutes 
+- Vale a mesma regra do comptime extra em deleção e update
+- Ainda para as as atualizações acima:
+    - Deve-se atualizar o balance de todos os registros da tabela comptime de meses subsequentes do mesmo customer_id e service_id com balance do registro atual + invoiced_minutes subsequente - consumed_minutes subsequente (isto para que o saldo seja propagado corretamente e não se precise fazer somas de registros quando se consultar o saldo de um cliente e um serviço em um determinado mês)
+- Deve-se criar o domínio, dtos, eliminando o que antes era reconciliation.go e criar o comptime.go
 - Deve-se eliminar o serviço anterior reconciliation.go e criar o novo serviço como comptime.go;
-- Deve-se criar um htmx e hadler_html (bem como serviços, dtos e apis correspondentes) para gestão do comptime:
-    * todo
+- No htmx de sessoes, retirar as ações referentes a concilição
+- No htmx de invoices retirar as ações referentes a conciliação e ajustar para haja apenas o valor quantity
+- Fazer htmx no modelo dos demais dominios para apresentar o banco de horas baseado no htmx de sessoes e pre-fatiras com os seguintes requisitos:
+    - Na tela principal, apresentar filtros e a listagem de clientes e serviços e o saldo de cada um (balance)
+    - Permitir filtrar também o mês que se deseja consultar (como default o mês anterior a data atual)
+    - 
+
      
     
 
