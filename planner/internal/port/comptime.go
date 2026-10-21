@@ -9,28 +9,30 @@ import (
 
 // ComptimeFilter defines query criteria for listing comptime records.
 type ComptimeFilter struct {
-	VendorID   int64
-	CustomerID *int64
-	ServiceID  *int64
-	StartMonth *time.Time
-	EndMonth   *time.Time
-	Page       int
-	PageSize   int
+	VendorID         int64
+	CustomerID       *int64
+	CustomerNickname string
+	ServiceID        *int64
+	StartMonth       *time.Time
+	EndMonth         *time.Time
+	Page             int
+	PageSize         int
 }
 
 // ComptimeView represents an enriched monthly comptime record for display.
 type ComptimeView struct {
-	ID              int64     `json:"id"`
-	VendorID        int64     `json:"vendor_id"`
-	CustomerID      int64     `json:"customer_id"`
-	CustomerName    string    `json:"customer_name"`
-	ServiceID       int64     `json:"service_id"`
-	ServiceName     string    `json:"service_name"`
-	Month           time.Time `json:"month"`
-	InvoicedMinutes int       `json:"invoiced_minutes"`
-	ConsumedMinutes int       `json:"consumed_minutes"`
-	Balance         int       `json:"balance"`
-	UpdatedAt       time.Time `json:"updated_at"`
+	ID               int64     `json:"id"`
+	VendorID         int64     `json:"vendor_id"`
+	CustomerID       int64     `json:"customer_id"`
+	CustomerNickname string    `json:"customer_nickname"`
+	CustomerName     string    `json:"customer_name"`
+	ServiceID        int64     `json:"service_id"`
+	ServiceName      string    `json:"service_name"`
+	Month            time.Time `json:"month"`
+	InvoicedMinutes  int       `json:"invoiced_minutes"`
+	ConsumedMinutes  int       `json:"consumed_minutes"`
+	Balance          int       `json:"balance"`
+	UpdatedAt        time.Time `json:"updated_at"`
 }
 
 // ComptimeRepository defines data access methods for banco de horas (comptime).
@@ -45,6 +47,7 @@ type ComptimeRepository interface {
 	GetPreviousComptime(ctx context.Context, customerID, serviceID int64, month time.Time) (*domain.Comptime, error)
 	GetSubsequentComptimes(ctx context.Context, customerID, serviceID int64, month time.Time) ([]domain.Comptime, error)
 	SaveComptime(ctx context.Context, comptime *domain.Comptime) error
+	DeleteComptime(ctx context.Context, id int64) error
 	ListComptime(ctx context.Context, filter ComptimeFilter) ([]ComptimeView, int64, error)
 
 	// ComptimeSession
@@ -63,8 +66,8 @@ type ComptimeRepository interface {
 	DeleteComptimeExtra(ctx context.Context, id int64) error
 
 	// Queries for resynchronization job
-	FindActiveSessionsForComptime(ctx context.Context, vendorID int64, startDate, endDate time.Time) ([]domain.Session, error)
-	FindActiveInvoiceItemsForComptime(ctx context.Context, vendorID int64, startDate, endDate time.Time) ([]domain.InvoiceItem, error)
+	FindActiveSessionsForComptime(ctx context.Context, vendorID int64, startDate, endDate time.Time, customerID, serviceID *int64) ([]domain.Session, error)
+	FindActiveInvoiceItemsForComptime(ctx context.Context, vendorID int64, startDate, endDate time.Time, customerID, serviceID *int64) ([]domain.InvoiceItem, error)
 	GetSessionByID(id int64) (*domain.Session, error)
 	GetServiceByID(id int64) (*domain.Service, error)
 	GetInvoiceByID(id int64) (*domain.Invoice, error)
@@ -86,12 +89,15 @@ type ComptimeService interface {
 	ProcessComptimeExtraUpdated(ctx context.Context, extra *domain.ComptimeExtra) error
 	ProcessComptimeExtraDeleted(ctx context.Context, extraID int64) error
 
-	Resync(ctx context.Context, vendorID int64, startDate, endDate time.Time, dataType string) (*ResyncResult, error)
+	DeleteComptime(ctx context.Context, id int64) error
+	Resync(ctx context.Context, vendorID int64, startDate, endDate time.Time, dataType string, customerID, serviceID *int64) (*ResyncResult, error)
 }
 
 // ResyncResult contains summary metrics of the resynchronization process.
 type ResyncResult struct {
 	VendorID        int64         `json:"vendor_id"`
+	CustomerID      *int64        `json:"customer_id,omitempty"`
+	ServiceID       *int64        `json:"service_id,omitempty"`
 	StartDate       time.Time     `json:"start_date"`
 	EndDate         time.Time     `json:"end_date"`
 	DataType        string        `json:"data_type"`

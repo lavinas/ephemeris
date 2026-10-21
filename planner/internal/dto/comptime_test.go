@@ -52,6 +52,38 @@ func TestComptimeResyncRequest_Validation(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "valid request with customer and service and todos datatype",
+			req: func() ComptimeResyncRequest {
+				c := int64(10)
+				s := int64(20)
+				return ComptimeResyncRequest{
+					VendorID:   1,
+					StartDate:  "2026-01-01",
+					EndDate:    "2026-03-31",
+					DataType:   "todos",
+					CustomerID: &c,
+					ServiceID:  &s,
+				}
+			}(),
+			wantErr: false,
+		},
+		{
+			name: "normalize negative customer and service to nil",
+			req: func() ComptimeResyncRequest {
+				c := int64(-1)
+				s := int64(0)
+				return ComptimeResyncRequest{
+					VendorID:   1,
+					StartDate:  "2026-01-01",
+					EndDate:    "2026-03-31",
+					DataType:   "",
+					CustomerID: &c,
+					ServiceID:  &s,
+				}
+			}(),
+			wantErr: false,
+		},
+		{
 			name: "missing start date",
 			req: ComptimeResyncRequest{
 				VendorID: 1,
@@ -87,5 +119,22 @@ func TestComptimeResyncRequest_Validation(t *testing.T) {
 				t.Errorf("Validate() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
+	}
+}
+
+func TestComptimeDeleteRequest_Validation(t *testing.T) {
+	reqValid := ComptimeDeleteRequest{ID: 10}
+	if err := reqValid.Validate(); err != nil {
+		t.Errorf("expected valid for ID 10, got err: %v", err)
+	}
+
+	reqInvalid := ComptimeDeleteRequest{ID: 0}
+	if err := reqInvalid.Validate(); err == nil {
+		t.Errorf("expected error for ID 0")
+	}
+
+	reqNegative := ComptimeDeleteRequest{ID: -5}
+	if err := reqNegative.Validate(); err == nil {
+		t.Errorf("expected error for ID -5")
 	}
 }

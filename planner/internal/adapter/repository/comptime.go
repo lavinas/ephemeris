@@ -166,6 +166,34 @@ func (a *Repository) SaveComptime(ctx context.Context, comptime *domain.Comptime
 	return db.WithContext(ctx).Save(comptime).Error
 }
 
+// DeleteComptime soft-deletes a comptime record and its associated child records.
+func (a *Repository) DeleteComptime(ctx context.Context, id int64) error {
+	db := a.DB
+	if a.Tx != nil {
+		db = a.Tx
+	}
+	now := time.Now()
+	if err := db.WithContext(ctx).
+		Model(&domain.Comptime{}).
+		Where("id = ? AND deleted_at IS NULL", id).
+		Update("deleted_at", now).Error; err != nil {
+		return err
+	}
+	_ = db.WithContext(ctx).
+		Table("planner.comptime_session").
+		Where("comptime_id = ? AND deleted_at IS NULL", id).
+		Update("deleted_at", now).Error
+	_ = db.WithContext(ctx).
+		Table("planner.comptime_invoice_item").
+		Where("comptime_id = ? AND deleted_at IS NULL", id).
+		Update("deleted_at", now).Error
+	_ = db.WithContext(ctx).
+		Table("planner.comptime_extra").
+		Where("comptime_id = ? AND deleted_at IS NULL", id).
+		Update("deleted_at", now).Error
+	return nil
+}
+
 // ListComptime returns paginated comptime records joined with customer and service details.
 func (a *Repository) ListComptime(ctx context.Context, filter port.ComptimeFilter) ([]port.ComptimeView, int64, error) {
 	db := a.DB
@@ -179,6 +207,7 @@ func (a *Repository) ListComptime(ctx context.Context, filter port.ComptimeFilte
 			planner.comptime.id,
 			planner.comptime.vendor_id,
 			planner.comptime.customer_id,
+			planner.customer.nickname as customer_nickname,
 			planner.customer.name as customer_name,
 			planner.comptime.service_id,
 			COALESCE(planner.service.description, planner.service.name) as service_name,
@@ -197,6 +226,9 @@ func (a *Repository) ListComptime(ctx context.Context, filter port.ComptimeFilte
 	}
 	if filter.CustomerID != nil && *filter.CustomerID > 0 {
 		query = query.Where("planner.comptime.customer_id = ?", *filter.CustomerID)
+	}
+	if filter.CustomerNickname != "" {
+		query = query.Where("planner.customer.nickname ILIKE ?", "%"+filter.CustomerNickname+"%")
 	}
 	if filter.ServiceID != nil && *filter.ServiceID > 0 {
 		query = query.Where("planner.comptime.service_id = ?", *filter.ServiceID)
@@ -361,8 +393,9 @@ func (a *Repository) DeleteComptimeExtra(ctx context.Context, id int64) error {
 		Update("deleted_at", now).Error
 }
 
-// FindActiveSessionsForComptime returns all active sessions for a vendor within the specified date range.
-func (a *Repository) FindActiveSessionsForComptime(ctx context.Context, vendorID int64, startDate, endDate time.Time) ([]domain.Session, error) {
+// FindActiveSessionsForComptime returns all active sessions for a vendor within the specified date range,
+// optionally filtered by customer and service. If not specified (nil or <= 0), returns all.
+func (a *Repository) FindActiveSessionsForComptime(ctx context.Context, vendorID int64, startDate, endDate time.Time, customerID, serviceID *int64) ([]domain.Session, error) {
 	db := a.DB
 	if a.Tx != nil {
 		db = a.Tx
@@ -371,19 +404,28 @@ func (a *Repository) FindActiveSessionsForComptime(ctx context.Context, vendorID
 	endStr := endDate.Format("2006-01-02")
 
 	var sessions []domain.Session
-	err := db.WithContext(ctx).
+	query := db.WithContext(ctx).
 		Model(&domain.Session{}).
 		Joins("JOIN planner.customer ON planner.customer.id = planner.session.customer_id").
 		Where("planner.customer.vendor_id = ?", vendorID).
 		Where("planner.session.session_date >= ? AND planner.session.session_date <= ?", startStr, endStr).
-		Where("planner.session.deleted_at IS NULL").
-		Order("planner.session.session_date asc, planner.session.id asc").
+		Where("planner.session.deleted_at IS NULL")
+
+	if customerID != nil && *customerID > 0 {
+		query = query.Where("planner.session.customer_id = ?", *customerID)
+	}
+	if serviceID != nil && *serviceID > 0 {
+		query = query.Where("planner.session.service_id = ?", *serviceID)
+	}
+
+	err := query.Order("planner.session.session_date asc, planner.session.id asc").
 		Find(&sessions).Error
 	return sessions, err
 }
 
-// FindActiveInvoiceItemsForComptime returns all active invoice items for a vendor within the specified period.
-func (a *Repository) FindActiveInvoiceItemsForComptime(ctx context.Context, vendorID int64, startDate, endDate time.Time) ([]domain.InvoiceItem, error) {
+// FindActiveInvoiceItemsForComptime returns all active invoice items for a vendor within the specified period,
+// optionally filtered by customer and service. If not specified (nil or <= 0), returns all.
+func (a *Repository) FindActiveInvoiceItemsForComptime(ctx context.Context, vendorID int64, startDate, endDate time.Time, customerID, serviceID *int64) ([]domain.InvoiceItem, error) {
 	db := a.DB
 	if a.Tx != nil {
 		db = a.Tx
@@ -392,16 +434,25 @@ func (a *Repository) FindActiveInvoiceItemsForComptime(ctx context.Context, vend
 	endStr := endDate.Format("2006-01-02")
 
 	var items []domain.InvoiceItem
-	err := db.WithContext(ctx).
+	query := db.WithContext(ctx).
 		Model(&domain.InvoiceItem{}).
 		Joins("JOIN planner.invoice ON planner.invoice.id = planner.invoice_item.invoice_id").
 		Joins("JOIN planner.plan ON planner.plan.id = planner.invoice.plan_id").
 		Joins("JOIN planner.customer ON planner.customer.id = planner.plan.customer_id").
 		Where("planner.customer.vendor_id = ?", vendorID).
 		Where("planner.invoice.period_start >= ? AND planner.invoice.period_start <= ?", startStr, endStr).
-		Where("planner.invoice_item.deleted_at IS NULL AND planner.invoice.deleted_at IS NULL AND planner.plan.deleted_at IS NULL").
-		Preload("Invoice").
+		Where("planner.invoice_item.deleted_at IS NULL AND planner.invoice.deleted_at IS NULL AND planner.plan.deleted_at IS NULL")
+
+	if customerID != nil && *customerID > 0 {
+		query = query.Where("planner.customer.id = ?", *customerID)
+	}
+	if serviceID != nil && *serviceID > 0 {
+		query = query.Where("planner.invoice_item.service_id = ?", *serviceID)
+	}
+
+	err := query.Preload("Invoice").
 		Preload("Invoice.Plan").
+		Preload("Invoice.Plan.Customer").
 		Preload("Service").
 		Order("planner.invoice.period_start asc, planner.invoice_item.id asc").
 		Find(&items).Error

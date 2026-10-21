@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -1321,6 +1322,21 @@ func (m *mockComptimeRouteRepo) FindOrCreateComptime(ctx context.Context, vendor
 	return nil, nil
 }
 func (m *mockComptimeRouteRepo) GetComptime(ctx context.Context, id int64) (*domain.Comptime, error) {
+	for _, r := range m.records {
+		if r.ID == id {
+			return &domain.Comptime{
+				ID:              r.ID,
+				VendorID:        r.VendorID,
+				CustomerID:      r.CustomerID,
+				ServiceID:       r.ServiceID,
+				Month:           r.Month,
+				InvoicedMinutes: r.InvoicedMinutes,
+				ConsumedMinutes: r.ConsumedMinutes,
+				Balance:         r.Balance,
+				UpdatedAt:       r.UpdatedAt,
+			}, nil
+		}
+	}
 	return nil, nil
 }
 func (m *mockComptimeRouteRepo) GetComptimeByCustomerServiceMonth(ctx context.Context, customerID, serviceID int64, month time.Time) (*domain.Comptime, error) {
@@ -1365,10 +1381,10 @@ func (m *mockComptimeRouteRepo) SaveComptimeExtra(ctx context.Context, ce *domai
 func (m *mockComptimeRouteRepo) DeleteComptimeExtra(ctx context.Context, id int64) error {
 	return nil
 }
-func (m *mockComptimeRouteRepo) FindActiveSessionsForComptime(ctx context.Context, vendorID int64, startDate, endDate time.Time) ([]domain.Session, error) {
+func (m *mockComptimeRouteRepo) FindActiveSessionsForComptime(ctx context.Context, vendorID int64, startDate, endDate time.Time, customerID, serviceID *int64) ([]domain.Session, error) {
 	return nil, nil
 }
-func (m *mockComptimeRouteRepo) FindActiveInvoiceItemsForComptime(ctx context.Context, vendorID int64, startDate, endDate time.Time) ([]domain.InvoiceItem, error) {
+func (m *mockComptimeRouteRepo) FindActiveInvoiceItemsForComptime(ctx context.Context, vendorID int64, startDate, endDate time.Time, customerID, serviceID *int64) ([]domain.InvoiceItem, error) {
 	return nil, nil
 }
 func (m *mockComptimeRouteRepo) GetSessionByID(id int64) (*domain.Session, error) {
@@ -1379,6 +1395,9 @@ func (m *mockComptimeRouteRepo) GetServiceByID(id int64) (*domain.Service, error
 }
 func (m *mockComptimeRouteRepo) GetInvoiceItemByID(ctx context.Context, id int64) (*domain.InvoiceItem, error) {
 	return nil, nil
+}
+func (m *mockComptimeRouteRepo) DeleteComptime(ctx context.Context, id int64) error {
+	return nil
 }
 
 func TestHTMLComptimeRoutes(t *testing.T) {
@@ -1472,6 +1491,94 @@ func TestHTMLComptimeRoutes(t *testing.T) {
 	}
 	if !strings.Contains(bodyModal, "Executar Sincronização") {
 		t.Errorf("expected modal to contain 'Executar Sincronização'")
+	}
+
+	// 4. Test POST /comptime/resync
+	formData := url.Values{
+		"start_date":  {"2026-01-01"},
+		"end_date":    {"2026-06-30"},
+		"data_type":   {"todos"},
+		"customer_id": {"1"},
+		"service_id":  {"2"},
+	}
+	reqResync := httptest.NewRequest(http.MethodPost, "/comptime/resync", strings.NewReader(formData.Encode()))
+	reqResync.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	recResync := httptest.NewRecorder()
+	mux.ServeHTTP(recResync, reqResync)
+	if recResync.Code != http.StatusOK {
+		t.Fatalf("expected 200 on /comptime/resync, got %d", recResync.Code)
+	}
+	bodyResync := recResync.Body.String()
+	if !strings.Contains(bodyResync, "Sincronização Concluída") {
+		t.Errorf("expected resync response to contain 'Sincronização Concluída'")
+	}
+
+	// 5. Test GET /comptime/deletar-aviso?id=1
+	reqDelAviso := httptest.NewRequest(http.MethodGet, "/comptime/deletar-aviso?id=1", nil)
+	recDelAviso := httptest.NewRecorder()
+	mux.ServeHTTP(recDelAviso, reqDelAviso)
+	if recDelAviso.Code != http.StatusOK {
+		t.Fatalf("expected 200 on /comptime/deletar-aviso, got %d", recDelAviso.Code)
+	}
+	bodyDelAviso := recDelAviso.Body.String()
+	if !strings.Contains(bodyDelAviso, "Deseja realmente apagar o banco de horas") {
+		t.Errorf("expected delete warning banner in response, got: %s", bodyDelAviso)
+	}
+
+	// 6. Test GET /comptime/cancelar-delete?id=1
+	reqCancelDel := httptest.NewRequest(http.MethodGet, "/comptime/cancelar-delete?id=1", nil)
+	recCancelDel := httptest.NewRecorder()
+	mux.ServeHTTP(recCancelDel, reqCancelDel)
+	if recCancelDel.Code != http.StatusOK {
+		t.Fatalf("expected 200 on /comptime/cancelar-delete, got %d", recCancelDel.Code)
+	}
+	bodyCancelDel := recCancelDel.Body.String()
+	if !strings.Contains(bodyCancelDel, "linha-comptime-1") {
+		t.Errorf("expected restored row in response, got: %s", bodyCancelDel)
+	}
+
+	// 7. Test POST /comptime/deletar?id=1
+	reqDoDel := httptest.NewRequest(http.MethodPost, "/comptime/deletar?id=1", nil)
+	recDoDel := httptest.NewRecorder()
+	mux.ServeHTTP(recDoDel, reqDoDel)
+	if recDoDel.Code != http.StatusOK {
+		t.Fatalf("expected 200 on /comptime/deletar, got %d", recDoDel.Code)
+	}
+}
+
+func TestAPIComptimeRoutes(t *testing.T) {
+	mockRepo := &mockComptimeRouteRepo{
+		records: []port.ComptimeView{
+			{
+				ID:       1,
+				VendorID: 1,
+			},
+		},
+	}
+	mux := NewAPIRoutes(mockRepo, &dummyLogger{})
+
+	// 1. DELETE /comptime/delete?id=1
+	reqDel := httptest.NewRequest(http.MethodDelete, "/comptime/delete?id=1", nil)
+	recDel := httptest.NewRecorder()
+	mux.ServeHTTP(recDel, reqDel)
+	if recDel.Code != http.StatusOK {
+		t.Fatalf("expected 200 on /comptime/delete, got %d: %s", recDel.Code, recDel.Body.String())
+	}
+
+	// 2. POST /comptime/delete with JSON body
+	reqDelJSON := httptest.NewRequest(http.MethodPost, "/comptime/delete", strings.NewReader(`{"id": 1}`))
+	recDelJSON := httptest.NewRecorder()
+	mux.ServeHTTP(recDelJSON, reqDelJSON)
+	if recDelJSON.Code != http.StatusOK {
+		t.Fatalf("expected 200 on /comptime/delete (JSON), got %d: %s", recDelJSON.Code, recDelJSON.Body.String())
+	}
+
+	// 3. Validation error on id <= 0
+	reqDelInvalid := httptest.NewRequest(http.MethodDelete, "/comptime/delete?id=0", nil)
+	recDelInvalid := httptest.NewRecorder()
+	mux.ServeHTTP(recDelInvalid, reqDelInvalid)
+	if recDelInvalid.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 on /comptime/delete with invalid id, got %d", recDelInvalid.Code)
 	}
 }
 

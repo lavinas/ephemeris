@@ -66,6 +66,8 @@ func NewAPIRoutes(repo port.Repository, logger port.Logger, billingClients ...po
 	mux.HandleFunc("/invoicing/bill", handler.InvoiceBill)
 	mux.HandleFunc("/invoice/faturar", handler.InvoiceBill)
 	mux.HandleFunc("/invoicing/faturar", handler.InvoiceBill)
+	mux.HandleFunc("/comptime/delete", handler.ComptimeDelete)
+	mux.HandleFunc("/banco-de-horas/delete", handler.ComptimeDelete)
 	mux.HandleFunc("/ping2", handler.Ping)
 	return mux
 }
@@ -157,6 +159,9 @@ func NewHTMLRoutes(repo port.Repository, logger port.Logger, htmlTemplate []byte
 	mux.HandleFunc("/comptime/tabela/reset", handler.ComptimeTableReset)
 	mux.HandleFunc("/comptime/resync-modal", handler.ComptimeResyncModal)
 	mux.HandleFunc("/comptime/resync", handler.ComptimeResync)
+	mux.HandleFunc("/comptime/deletar-aviso", handler.ComptimeDeleteWarning)
+	mux.HandleFunc("/comptime/cancelar-delete", handler.ComptimeCancelDelete)
+	mux.HandleFunc("/comptime/deletar", handler.ComptimeDelete)
 
 	mux.HandleFunc("/banco-de-horas", handler.ComptimeHTML)
 	mux.HandleFunc("/banco-de-horas/", handler.ComptimeHTML)
@@ -164,6 +169,9 @@ func NewHTMLRoutes(repo port.Repository, logger port.Logger, htmlTemplate []byte
 	mux.HandleFunc("/banco-de-horas/tabela/reset", handler.ComptimeTableReset)
 	mux.HandleFunc("/banco-de-horas/resync-modal", handler.ComptimeResyncModal)
 	mux.HandleFunc("/banco-de-horas/resync", handler.ComptimeResync)
+	mux.HandleFunc("/banco-de-horas/deletar-aviso", handler.ComptimeDeleteWarning)
+	mux.HandleFunc("/banco-de-horas/cancelar-delete", handler.ComptimeCancelDelete)
+	mux.HandleFunc("/banco-de-horas/deletar", handler.ComptimeDelete)
 
 	return mux, handler, nil
 }

@@ -107,6 +107,29 @@ func (m *mockComptimeRepo) SaveComptime(ctx context.Context, comptime *domain.Co
 	return nil
 }
 
+func (m *mockComptimeRepo) DeleteComptime(ctx context.Context, id int64) error {
+	if c, ok := m.comptimes[id]; ok {
+		now := time.Now()
+		c.DeletedAt = &now
+		for _, cs := range m.comptimeSessions {
+			if cs.ComptimeID == id {
+				cs.DeletedAt = &now
+			}
+		}
+		for _, cii := range m.comptimeItems {
+			if cii.ComptimeID == id {
+				cii.DeletedAt = &now
+			}
+		}
+		for _, ce := range m.comptimeExtras {
+			if ce.ComptimeID == id {
+				ce.DeletedAt = &now
+			}
+		}
+	}
+	return nil
+}
+
 func (m *mockComptimeRepo) ListComptime(ctx context.Context, filter port.ComptimeFilter) ([]port.ComptimeView, int64, error) {
 	var views []port.ComptimeView
 	for _, c := range m.comptimes {
@@ -207,20 +230,34 @@ func (m *mockComptimeRepo) DeleteComptimeExtra(ctx context.Context, id int64) er
 	return nil
 }
 
-func (m *mockComptimeRepo) FindActiveSessionsForComptime(ctx context.Context, vendorID int64, startDate, endDate time.Time) ([]domain.Session, error) {
+func (m *mockComptimeRepo) FindActiveSessionsForComptime(ctx context.Context, vendorID int64, startDate, endDate time.Time, customerID, serviceID *int64) ([]domain.Session, error) {
 	var list []domain.Session
 	for _, s := range m.sessions {
 		if s.DeletedAt == nil {
+			if customerID != nil && *customerID > 0 && s.CustomerID != *customerID {
+				continue
+			}
+			if serviceID != nil && *serviceID > 0 && s.ServiceID != *serviceID {
+				continue
+			}
 			list = append(list, *s)
 		}
 	}
 	return list, nil
 }
 
-func (m *mockComptimeRepo) FindActiveInvoiceItemsForComptime(ctx context.Context, vendorID int64, startDate, endDate time.Time) ([]domain.InvoiceItem, error) {
+func (m *mockComptimeRepo) FindActiveInvoiceItemsForComptime(ctx context.Context, vendorID int64, startDate, endDate time.Time, customerID, serviceID *int64) ([]domain.InvoiceItem, error) {
 	var list []domain.InvoiceItem
 	for _, it := range m.invoiceItems {
 		if it.DeletedAt == nil {
+			if customerID != nil && *customerID > 0 {
+				if it.Invoice == nil || it.Invoice.Plan == nil || it.Invoice.Plan.CustomerID != *customerID {
+					continue
+				}
+			}
+			if serviceID != nil && *serviceID > 0 && it.ServiceID != *serviceID {
+				continue
+			}
 			list = append(list, *it)
 		}
 	}
@@ -462,13 +499,17 @@ func TestComptimeService_Resync(t *testing.T) {
 		SessionStatus:  string(domain.StatusDone),
 	}
 
-	res, err := svc.Resync(ctx, 1, time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC), time.Date(2026, 6, 30, 0, 0, 0, 0, time.UTC), "all")
+	// 1. Resync without filters (assumes all)
+	res, err := svc.Resync(ctx, 1, time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC), time.Date(2026, 6, 30, 0, 0, 0, 0, time.UTC), "all", nil, nil)
 	if err != nil {
 		t.Fatalf("Resync failed: %v", err)
 	}
 	if res.SessionsSynced != 1 || res.InvoicesSynced != 1 {
 		t.Errorf("expected 1 session and 1 invoice synced, got sessions=%d invoices=%d",
 			res.SessionsSynced, res.InvoicesSynced)
+	}
+	if res.ComptimeUpdated != 1 {
+		t.Errorf("expected 1 comptime updated, got %d", res.ComptimeUpdated)
 	}
 
 	comp, _ := repo.GetComptimeByCustomerServiceMonth(ctx, 100, 200, periodStart)
@@ -478,6 +519,69 @@ func TestComptimeService_Resync(t *testing.T) {
 	if comp.InvoicedMinutes != 120 || comp.ConsumedMinutes != 60 || comp.Balance != 60 {
 		t.Errorf("expected invoiced=120, consumed=60, balance=60; got invoiced=%d, consumed=%d, balance=%d",
 			comp.InvoicedMinutes, comp.ConsumedMinutes, comp.Balance)
+	}
+
+	// 2. Resync filtering for a different customer (should sync 0)
+	otherCustID := int64(999)
+	resOther, err := svc.Resync(ctx, 1, time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC), time.Date(2026, 6, 30, 0, 0, 0, 0, time.UTC), "all", &otherCustID, nil)
+	if err != nil {
+		t.Fatalf("Resync with other customer failed: %v", err)
+	}
+	if resOther.SessionsSynced != 0 || resOther.InvoicesSynced != 0 {
+		t.Errorf("expected 0 synced for other customer, got sessions=%d invoices=%d",
+			resOther.SessionsSynced, resOther.InvoicesSynced)
+	}
+
+	// 3. Resync filtering for matching customer and service
+	targetCustID := int64(100)
+	targetServiceID := int64(200)
+	resFilter, err := svc.Resync(ctx, 1, time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC), time.Date(2026, 6, 30, 0, 0, 0, 0, time.UTC), "all", &targetCustID, &targetServiceID)
+	if err != nil {
+		t.Fatalf("Resync with filter failed: %v", err)
+	}
+	if resFilter.CustomerID == nil || *resFilter.CustomerID != 100 || resFilter.ServiceID == nil || *resFilter.ServiceID != 200 {
+		t.Errorf("expected result to reflect customer and service filters")
+	}
+}
+
+func TestComptimeService_DeleteComptime(t *testing.T) {
+	repo := newMockComptimeRepo()
+	svc := NewComptime(repo, nil)
+	ctx := context.Background()
+
+	m1 := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
+	comp := &domain.Comptime{
+		ID:              50,
+		VendorID:        1,
+		CustomerID:      100,
+		ServiceID:       200,
+		Month:           m1,
+		InvoicedMinutes: 100,
+		ConsumedMinutes: 40,
+		Balance:         60,
+	}
+	repo.comptimes[50] = comp
+	repo.comptimeSessions[1] = &domain.ComptimeSession{ID: 1, ComptimeID: 50, SessionID: 10}
+	repo.comptimeItems[1] = &domain.ComptimeInvoiceItem{ID: 1, ComptimeID: 50, InvoiceItemID: 20}
+
+	// 1. Delete existing comptime
+	if err := svc.DeleteComptime(ctx, 50); err != nil {
+		t.Fatalf("DeleteComptime failed: %v", err)
+	}
+
+	if comp.DeletedAt == nil {
+		t.Errorf("expected comptime to be soft-deleted")
+	}
+	if repo.comptimeSessions[1].DeletedAt == nil {
+		t.Errorf("expected comptimeSession to be soft-deleted")
+	}
+	if repo.comptimeItems[1].DeletedAt == nil {
+		t.Errorf("expected comptimeItem to be soft-deleted")
+	}
+
+	// 2. Delete non-existent comptime returns error
+	if err := svc.DeleteComptime(ctx, 9999); err == nil {
+		t.Errorf("expected error deleting non-existent comptime")
 	}
 }
 

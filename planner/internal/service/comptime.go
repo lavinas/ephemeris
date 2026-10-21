@@ -431,18 +431,33 @@ func (s *ComptimeService) ProcessComptimeExtraDeleted(ctx context.Context, extra
 	return s.repo.DeleteComptimeExtra(ctx, extraID)
 }
 
-// Resync executes full resynchronization of sessions and invoices within the given date period.
-func (s *ComptimeService) Resync(ctx context.Context, vendorID int64, startDate, endDate time.Time, dataType string) (*port.ResyncResult, error) {
+// Resync executes full resynchronization of sessions and invoices within the given date period,
+// optionally filtered by customer and service. If not specified (nil or <= 0), it syncs all.
+func (s *ComptimeService) Resync(ctx context.Context, vendorID int64, startDate, endDate time.Time, dataType string, customerID, serviceID *int64) (*port.ResyncResult, error) {
 	startExec := time.Now()
-	result := &port.ResyncResult{
-		VendorID:  vendorID,
-		StartDate: startDate,
-		EndDate:   endDate,
-		DataType:  dataType,
+	if dataType == "" || dataType == "todos" {
+		dataType = "all"
+	}
+	if customerID != nil && *customerID <= 0 {
+		customerID = nil
+	}
+	if serviceID != nil && *serviceID <= 0 {
+		serviceID = nil
 	}
 
+	result := &port.ResyncResult{
+		VendorID:   vendorID,
+		CustomerID: customerID,
+		ServiceID:  serviceID,
+		StartDate:  startDate,
+		EndDate:    endDate,
+		DataType:   dataType,
+	}
+
+	affectedComptimes := make(map[string]bool)
+
 	if dataType == "session" || dataType == "all" {
-		sessions, err := s.repo.FindActiveSessionsForComptime(ctx, vendorID, startDate, endDate)
+		sessions, err := s.repo.FindActiveSessionsForComptime(ctx, vendorID, startDate, endDate, customerID, serviceID)
 		if err != nil {
 			return nil, fmt.Errorf("erro ao buscar sessões para ressincronização: %w", err)
 		}
@@ -453,12 +468,14 @@ func (s *ComptimeService) Resync(ctx context.Context, vendorID int64, startDate,
 				}
 			} else {
 				result.SessionsSynced++
+				key := fmt.Sprintf("%d_%d_%s", sess.CustomerID, sess.ServiceID, domain.NormalizeMonth(sess.SessionDate).Format("2006-01"))
+				affectedComptimes[key] = true
 			}
 		}
 	}
 
 	if dataType == "invoice" || dataType == "all" {
-		items, err := s.repo.FindActiveInvoiceItemsForComptime(ctx, vendorID, startDate, endDate)
+		items, err := s.repo.FindActiveInvoiceItemsForComptime(ctx, vendorID, startDate, endDate, customerID, serviceID)
 		if err != nil {
 			return nil, fmt.Errorf("erro ao buscar faturas para ressincronização: %w", err)
 		}
@@ -469,10 +486,50 @@ func (s *ComptimeService) Resync(ctx context.Context, vendorID int64, startDate,
 				}
 			} else {
 				result.InvoicesSynced++
+				cID := int64(0)
+				if it.Invoice != nil && it.Invoice.Plan != nil {
+					cID = it.Invoice.Plan.CustomerID
+				}
+				pStart := time.Time{}
+				if it.Invoice != nil {
+					pStart = it.Invoice.PeriodStart
+				}
+				key := fmt.Sprintf("%d_%d_%s", cID, it.ServiceID, domain.NormalizeMonth(pStart).Format("2006-01"))
+				affectedComptimes[key] = true
 			}
 		}
 	}
 
+	result.ComptimeUpdated = len(affectedComptimes)
 	result.Duration = time.Since(startExec)
 	return result, nil
+}
+
+// DeleteComptime soft-deletes a comptime record, its associations, and recalculates subsequent months' balances.
+func (s *ComptimeService) DeleteComptime(ctx context.Context, id int64) error {
+	comptime, err := s.repo.GetComptime(ctx, id)
+	if err != nil {
+		return fmt.Errorf("erro ao buscar comptime id %d: %w", id, err)
+	}
+	if comptime == nil {
+		return fmt.Errorf("registro de banco de horas não encontrado")
+	}
+
+	_ = s.repo.LockCustomerService(ctx, comptime.CustomerID, comptime.ServiceID)
+
+	if err := s.repo.DeleteComptime(ctx, id); err != nil {
+		return fmt.Errorf("erro ao excluir banco de horas: %w", err)
+	}
+
+	// Recalcula cascata para os meses subsequentes se houver
+	subsequents, err := s.repo.GetSubsequentComptimes(ctx, comptime.CustomerID, comptime.ServiceID, comptime.Month)
+	if err == nil && len(subsequents) > 0 {
+		_ = s.recalculateAndPropagate(ctx, &subsequents[0])
+	}
+
+	if s.logger != nil {
+		s.logger.IPrintf(2, "Comptime: registro %d excluído para cliente %d serviço %d mês %s",
+			id, comptime.CustomerID, comptime.ServiceID, comptime.Month.Format("2006-01"))
+	}
+	return nil
 }

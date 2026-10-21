@@ -100,7 +100,7 @@ func NewHandlerHtml(repo port.Repository, logger port.Logger, tdata []byte, plan
 		} else if data, err := os.ReadFile("../../../web/templates/comptime.html"); err == nil {
 			compData = data
 		} else {
-			compData = []byte(`{{define "index"}}<html><body>Comptime</body></html>{{end}}{{define "fragment"}}<div>Comptime</div>{{end}}{{define "tabela"}}<div>Tabela</div>{{end}}{{define "modal_resync"}}<div>Resync</div>{{end}}{{define "modal_resync_resultado"}}<div>Resultado</div>{{end}}`)
+			compData = []byte(`{{define "index"}}<html><body>Comptime</body></html>{{end}}{{define "fragment"}}<div>Comptime</div>{{end}}{{define "tabela"}}<div>Tabela</div>{{end}}{{define "modal_resync"}}<div>Resync</div>{{end}}{{define "modal_resync_resultado"}}<div>Resultado</div>{{end}}{{define "linha_comptime"}}<div>Linha</div>{{end}}{{define "linha_comptime_deletar_aviso"}}<div>Aviso</div>{{end}}`)
 		}
 	}
 

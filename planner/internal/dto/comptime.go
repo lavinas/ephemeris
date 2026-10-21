@@ -90,10 +90,12 @@ func NewComptimeListResponse(code int, status, message string, items []port.Comp
 
 // ComptimeResyncRequest represents the parameters for triggering a resynchronization job.
 type ComptimeResyncRequest struct {
-	VendorID  int64  `json:"vendor_id"`
-	StartDate string `json:"start_date"`
-	EndDate   string `json:"end_date"`
-	DataType  string `json:"data_type"` // "session", "invoice", "all"
+	VendorID   int64  `json:"vendor_id"`
+	StartDate  string `json:"start_date"`
+	EndDate    string `json:"end_date"`
+	DataType   string `json:"data_type"` // "session", "invoice", "all"
+	CustomerID *int64 `json:"customer_id,omitempty"`
+	ServiceID  *int64 `json:"service_id,omitempty"`
 }
 
 // Validate validates the resynchronization request parameters.
@@ -113,11 +115,17 @@ func (r *ComptimeResyncRequest) Validate(repo port.Repository) error {
 	if _, err := time.Parse("2006-01-02", r.EndDate); err != nil {
 		return fmt.Errorf("end_date inválida: %w", err)
 	}
-	if r.DataType == "" {
+	if r.DataType == "" || r.DataType == "todos" {
 		r.DataType = "all"
 	}
 	if r.DataType != "session" && r.DataType != "invoice" && r.DataType != "all" {
 		return fmt.Errorf("data_type deve ser 'session', 'invoice' ou 'all'")
+	}
+	if r.CustomerID != nil && *r.CustomerID <= 0 {
+		r.CustomerID = nil
+	}
+	if r.ServiceID != nil && *r.ServiceID <= 0 {
+		r.ServiceID = nil
 	}
 	return nil
 }
@@ -134,4 +142,17 @@ func NewComptimeResyncResponse(code int, status, message string, result *port.Re
 		ResponseBase: NewResponseBase(code, status, message),
 		Result:       result,
 	}
+}
+
+// ComptimeDeleteRequest represents the parameters for deleting a comptime record.
+type ComptimeDeleteRequest struct {
+	ID int64 `json:"id"`
+}
+
+// Validate validates the delete request.
+func (r *ComptimeDeleteRequest) Validate() error {
+	if r.ID <= 0 {
+		return fmt.Errorf("id é obrigatório e deve ser maior que zero")
+	}
+	return nil
 }

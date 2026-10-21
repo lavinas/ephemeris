@@ -450,6 +450,43 @@ func (h *HandlerApi) InvoiceBill(w http.ResponseWriter, r *http.Request) {
 	h.writeResponse(w, response)
 }
 
+// ComptimeDelete handler for deleting a comptime record via JSON API (/comptime/delete)
+func (h *HandlerApi) ComptimeDelete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete && r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	requestDTO := &dto.ComptimeDeleteRequest{}
+	if r.Body != nil && r.Body != http.NoBody {
+		_ = json.NewDecoder(r.Body).Decode(requestDTO)
+	}
+	if requestDTO.ID == 0 && r.URL.Query().Get("id") != "" {
+		if id, err := strconv.ParseInt(r.URL.Query().Get("id"), 10, 64); err == nil {
+			requestDTO.ID = id
+		}
+	}
+
+	if err := requestDTO.Validate(); err != nil {
+		h.writeResponse(w, dto.NewResponseBase(http.StatusBadRequest, "error", err.Error()))
+		return
+	}
+
+	cr, ok := h.repo.(port.ComptimeRepository)
+	if !ok {
+		h.writeResponse(w, dto.NewResponseBase(http.StatusInternalServerError, "error", "ComptimeRepository não disponível"))
+		return
+	}
+
+	svc := service.NewComptime(cr, h.logger)
+	if err := svc.DeleteComptime(r.Context(), requestDTO.ID); err != nil {
+		h.logger.IPrintf(1, "Erro ao excluir comptime %d: %v", requestDTO.ID, err)
+		h.writeResponse(w, dto.NewResponseBase(http.StatusInternalServerError, "error", err.Error()))
+		return
+	}
+
+	h.writeResponse(w, dto.NewResponseBase(http.StatusOK, "success", "Registro de banco de horas excluído com sucesso"))
+}
 
 // writeResponse writes the given response to the http.ResponseWriter with the appropriate status
 func (h *HandlerApi) writeResponse(w http.ResponseWriter, response port.OutDTO) {
