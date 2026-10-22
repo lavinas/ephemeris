@@ -105,4 +105,7 @@ create index idx_session_updated_at on session(updated_at);
 create index idx_session_updated_at on session(deleted_at);
 create index idx_sesson_session_date on session(session_date);
 
+-- Sync sequence with current max ID
+select setval('planner.session_id_seq', coalesce((select max(id) from planner.session), 1));
+
 

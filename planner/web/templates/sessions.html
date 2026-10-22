@@ -7,7 +7,7 @@
 			if (selectedOption && selectedOption.dataset && selectedOption.dataset.minutes) {
 				var form = selectElem.closest('form');
 				if (form) {
-					var duracaoInput = form.querySelector('input[name="add_duracao"]');
+					var duracaoInput = form.querySelector('input[name="add_duracao"], input[name="edit_duracao"]');
 					if (duracaoInput) {
 						duracaoInput.value = selectedOption.dataset.minutes;
 					}
@@ -184,7 +184,7 @@
 				if (selectedOption && selectedOption.dataset && selectedOption.dataset.minutes) {
 					var form = selectElem.closest('form');
 					if (form) {
-						var duracaoInput = form.querySelector('input[name="add_duracao"]');
+						var duracaoInput = form.querySelector('input[name="add_duracao"], input[name="edit_duracao"]');
 						if (duracaoInput) {
 							duracaoInput.value = selectedOption.dataset.minutes;
 						}
@@ -468,9 +468,9 @@
 			</select>
 		</div>
 		<div>
-			<select name="edit_servico_id" required class="input-inline-tabela">
+			<select name="edit_servico_id" required class="input-inline-tabela" onchange="atualizarDuracaoServico(this)">
 				{{range .Services}}
-					<option value="{{.ID}}" {{if eq .ID $.ServiceID}}selected{{end}}>{{.Name}}</option>
+					<option value="{{.ID}}" data-minutes="{{if .SessionMinutes}}{{.SessionMinutes}}{{else}}60{{end}}" {{if eq .ID $.ServiceID}}selected{{end}}>{{.Name}}</option>
 				{{end}}
 			</select>
 		</div>

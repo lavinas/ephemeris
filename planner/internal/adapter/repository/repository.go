@@ -109,7 +109,7 @@ func (a *Repository) Save(model interface{}) error {
 	if a.Tx != nil {
 		db = a.Tx
 	}
-	return db.Clauses(clause.OnConflict{
+	return db.Omit(clause.Associations).Clauses(clause.OnConflict{
 		UpdateAll: true,
 	}).CreateInBatches(model, batchSizeInsertTransaction).Error
 }

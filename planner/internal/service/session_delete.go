@@ -55,6 +55,8 @@ func (s *SessionDelete) Run(InDto port.InDTO) port.OutDTO {
 	// Perform soft delete by setting DeletedAt to current time
 	now := time.Now()
 	ret[0].DeletedAt = &now
+	ret[0].Customer = nil
+	ret[0].Service = nil
 	err = s.repo.Save(&ret[0])
 	if err != nil {
 		s.logger.IPrintf(2, "Error saving session: %v", err)

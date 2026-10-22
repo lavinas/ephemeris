@@ -73,6 +73,8 @@ func (s *SessionUpdate) Run(InDto port.InDTO) port.OutDTO {
 
 // updateSessionModel updates the session model with the data from the request.
 func (s *SessionUpdate) updateSessionModel(sessionModel *domain.Session, req *dto.SessionUpdateRequest) error {
+	sessionModel.Customer = nil
+	sessionModel.Service = nil
 	if req.CustomerID != 0 {
 		sessionModel.CustomerID = req.CustomerID
 	}
@@ -98,5 +100,6 @@ func (s *SessionUpdate) updateSessionModel(sessionModel *domain.Session, req *dt
 	} else {
 		sessionModel.Comments = nil
 	}
+	sessionModel.UpdatedAt = time.Now()
 	return nil
 }
