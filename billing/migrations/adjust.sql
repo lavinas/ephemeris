@@ -2,6 +2,7 @@
 
 create SCHEMA if not exists billing;
 
+set search_path to billing;
 
 create table tmp_invoices as (select * from invoice);
 create table tmp_invoice_item as (select * from invoice_item);
@@ -36,6 +37,8 @@ create table invoice (
     updated_at timestamp not null,
     constraint invoice_uk1 unique(vendor_id, external_code)
 );
+
+create index idx_invoice_vendor_id on invoice(vendor_id);
 create index idx_invoice_customer_id on invoice(customer_id);
 
 create table invoice_item (
