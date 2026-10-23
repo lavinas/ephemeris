@@ -370,7 +370,7 @@
 
 	{{define "linha_customer"}}
 	<div id="customer-{{.ID}}" class="linha-box grade-tabela-customer text-sm" style="align-items: center !important; padding-top: 14px; padding-bottom: 14px;">
-		<div class="font-bold text-gray-100 texto-truncado">{{.Nickname}}</div>
+		<div class="font-bold text-indigo-300 texto-truncado">{{.Nickname}}</div>
 		<div class="text-gray-300 font-medium texto-truncado">{{.Name}}</div>
 		<div class="text-gray-400 font-mono text-xs">{{.Document}}</div>
 		<div class="text-gray-400 font-mono text-xs">{{.Whatsapp}}</div>
@@ -420,7 +420,7 @@
 
 	{{define "linha_customer_edit"}}
 	<form id="customer-{{.ID}}" hx-post="/html/customers/atualizar?id={{.ID}}" hx-target="#tabela-container" hx-include="#filtro-form" class="linha-box grade-tabela-customer formulario-edit text-sm shadow-md" style="align-items: center !important; padding-top: 14px; padding-bottom: 14px;">
-		<div class="font-bold text-gray-300 font-mono text-xs">{{.Nickname}}</div>
+		<div class="font-bold text-indigo-300 font-mono text-xs">{{.Nickname}}</div>
 		<div><input type="text" name="edit_name" value="{{.Name}}" required class="input-inline-tabela"></div>
 		<div><input type="text" name="edit_document" value="{{.Document}}" required class="input-inline-tabela"></div>
 		<div><input type="text" name="edit_whatsapp" value="{{.Whatsapp}}" required class="input-inline-tabela"></div>

@@ -8,7 +8,7 @@ drop table if exists invoice cascade;
 # plan_invoicing é uma tabela de controle de faturas dos planos
 create table invoice (
     id bigserial primary key,
-    plan_id bigint not null references plan(id) on delete cascade,
+    plan_id bigint null references plan(id) on delete cascade,
     invoicing_date date not null,
     due_date date not null,
     period_start date not null,
