@@ -3,8 +3,7 @@ create schema if not exists planner;
 
 set search_path to planner;
 
-
-drop table invoice;
+drop table if exists invoice cascade;
 # plan_invoicing
 # plan_invoicing é uma tabela de controle de faturas dos planos
 create table invoice (
@@ -21,7 +20,11 @@ create table invoice (
     deleted_at timestamp
 );
 
-drop table invoice_item;
+create index idx_invoice_plan_id on invoice(plan_id);
+
+
+
+drop table if exists invoice_item cascade;
 
 # plan_invoicing_item
 # plan_invoicing_item é uma tabela de controle de itens de faturas dos planos
@@ -39,15 +42,4 @@ create table invoice_item (
     deleted_at timestamp
 );
 
-
-/*
-drop table invoice_item_session;
-
-create table invoice_item_session (
-    id bigserial primary key,
-    invoice_item_id bigint not null references invoice_item(id) on delete cascade,
-    session_id bigint not null references session(id) on delete cascade,
-    created_at timestamp not null
-);
-
-*/
+create index idx_invoice_item_invoice_id on invoice_item(invoice_id);
