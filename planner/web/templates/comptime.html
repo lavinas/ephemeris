@@ -161,30 +161,25 @@
 			</div>
 		</form>
 
-		<div class="flex items-center justify-between gap-4 mt-6">
-			<div class="flex items-center gap-3">
-				<button type="button"
-						hx-post="/html/comptime/tabela/reset"
-						hx-target="#tabela-container-comptime"
-						onclick="var f=document.getElementById('filtro-form-comptime'); if(f) f.reset(); var p=document.getElementById('input-pagina-form-comptime'); if(p) p.value='1';"
-						class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold text-xs px-4 py-2 rounded-lg border border-gray-700 transition duration-150 shadow-md cursor-pointer flex items-center gap-2">
-					<span>🧹</span>
-					<span>Limpar Filtros</span>
-				</button>
-				<button type="button"
-						hx-get="/html/comptime/resync-modal"
-						hx-target="#modal-container-comptime"
-						hx-include="#filtro-form-comptime"
-						class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-wider px-4 py-2 rounded-lg border border-indigo-400 transition duration-150 shadow-md flex items-center gap-2 cursor-pointer">
-					<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-					</svg>
-					<span>Ressincronizar</span>
-				</button>
-			</div>
-			<div id="totais-container-comptime">
-				{{template "totais_resumo_comptime" .}}
-			</div>
+		<div class="flex items-center gap-3 mt-6">
+			<button type="button"
+					hx-post="/html/comptime/tabela/reset"
+					hx-target="#tabela-container-comptime"
+					onclick="var f=document.getElementById('filtro-form-comptime'); if(f) f.reset(); var p=document.getElementById('input-pagina-form-comptime'); if(p) p.value='1';"
+					class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold text-xs px-4 py-2 rounded-lg border border-gray-700 transition duration-150 shadow-md cursor-pointer flex items-center gap-2">
+				<span>🧹</span>
+				<span>Limpar Filtros</span>
+			</button>
+			<button type="button"
+					hx-get="/html/comptime/resync-modal"
+					hx-target="#modal-container-comptime"
+					hx-include="#filtro-form-comptime"
+					class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-wider px-4 py-2 rounded-lg border border-indigo-400 transition duration-150 shadow-md flex items-center gap-2 cursor-pointer">
+				<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+				</svg>
+				<span>Ressincronizar</span>
+			</button>
 		</div>
 
 		<div style="height: 28px; width: 100%;"></div>
@@ -196,30 +191,6 @@
 		<div id="tabela-container-comptime" class="w-full">
 			{{template "tabela" .}}
 		</div>
-	</div>
-</div>
-{{end}}
-
-{{define "totais_resumo_comptime"}}
-<div class="flex items-center gap-4 bg-gray-950 border border-gray-800 px-4 py-2 rounded-lg shadow-sm" style="display: flex; align-items: center; gap: 1.25rem;">
-	<div class="text-xs text-gray-400 font-semibold uppercase tracking-wider">
-		Registros: <span class="text-gray-100 font-bold font-mono text-sm ml-1">{{.TotalRegistros}}</span>
-	</div>
-	<div style="height: 16px; width: 1px; background-color: #374151;"></div>
-	<div class="text-xs text-gray-400 font-semibold uppercase tracking-wider">
-		Faturados: <span class="text-indigo-400 font-bold font-mono text-sm ml-1">{{.TotalFaturados}} min</span>
-	</div>
-	<div style="height: 16px; width: 1px; background-color: #374151;"></div>
-	<div class="text-xs text-gray-400 font-semibold uppercase tracking-wider">
-		Consumidos: <span class="text-amber-400 font-bold font-mono text-sm ml-1">{{.TotalConsumidos}} min</span>
-	</div>
-	<div style="height: 16px; width: 1px; background-color: #374151;"></div>
-	<div class="text-xs text-gray-400 font-semibold uppercase tracking-wider">
-		Saldo Mês: <span class="{{if ge .TotalSaldoMes 0}}text-emerald-400{{else}}text-rose-400{{end}} font-bold font-mono text-sm ml-1">{{if gt .TotalSaldoMes 0}}+{{end}}{{.TotalSaldoMes}} min</span>
-	</div>
-	<div style="height: 16px; width: 1px; background-color: #374151;"></div>
-	<div class="text-xs text-gray-400 font-semibold uppercase tracking-wider">
-		Saldo Total: <span class="{{if ge .TotalSaldo 0}}text-emerald-400{{else}}text-rose-400{{end}} font-bold font-mono text-sm ml-1">{{if gt .TotalSaldo 0}}+{{end}}{{.TotalSaldo}} min</span>
 	</div>
 </div>
 {{end}}
@@ -247,9 +218,6 @@
 {{end}}
 
 {{define "tabela"}}
-<div id="totais-container-comptime" hx-swap-oob="true">
-	{{template "totais_resumo_comptime" .}}
-</div>
 <div id="modal-container-comptime" hx-swap-oob="true"></div>
 
 <div class="w-full">

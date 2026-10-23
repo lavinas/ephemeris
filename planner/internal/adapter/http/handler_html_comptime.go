@@ -323,10 +323,6 @@ func (h *HandlerHtml) buildComptimePageData(r *http.Request) map[string]interfac
 	}
 
 	items := make([]comptimeRecordItem, len(records))
-	totalFaturados := 0
-	totalConsumidos := 0
-	totalSaldoMes := 0
-	totalSaldo := 0
 
 	for i, rec := range records {
 		monthBalance := rec.MonthBalance
@@ -351,10 +347,6 @@ func (h *HandlerHtml) buildComptimePageData(r *http.Request) map[string]interfac
 			UpdatedAt:          rec.UpdatedAt,
 			UpdatedAtFormatado: rec.UpdatedAt.Format("02/01/2006 15:04"),
 		}
-		totalFaturados += rec.InvoicedMinutes
-		totalConsumidos += rec.ConsumedMinutes
-		totalSaldoMes += monthBalance
-		totalSaldo += rec.Balance
 	}
 
 	totalPages := int(math.Ceil(float64(totalRegistros) / float64(pageSize)))
@@ -393,10 +385,6 @@ func (h *HandlerHtml) buildComptimePageData(r *http.Request) map[string]interfac
 		"Pagina":           page,
 		"TotalPaginas":     totalPages,
 		"TotalRegistros":   totalRegistros,
-		"TotalFaturados":   totalFaturados,
-		"TotalConsumidos":  totalConsumidos,
-		"TotalSaldoMes":    totalSaldoMes,
-		"TotalSaldo":       totalSaldo,
 		"FiltroMesInicio":  mesInicioStr,
 		"FiltroMesFim":     mesFimStr,
 		"FiltroNickname":   nickname,
