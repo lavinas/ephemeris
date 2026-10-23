@@ -32,6 +32,7 @@ type Repository interface {
 	DeletePlan(id int64) error
 	FindCustomerActivePlansWithServices(customerID int64, serviceIDs []int64, excludePlanID int64) ([]domain.Plan, error)
 	SaveInvoice(invoice *domain.Invoice) error
+	SaveInvoices(invoices []*domain.Invoice) error
 	GetInvoiceByID(id int64) (*domain.Invoice, error)
 	FindInvoices(conditions map[string]interface{}, orderBy ...string) ([]domain.Invoice, error)
 	FindInvoicesPaged(page, pageSize int, conditions map[string]interface{}, orderBy ...string) ([]domain.Invoice, int64, float64, error)
@@ -41,5 +42,6 @@ type Repository interface {
 	FindActivePlansForInvoicing(planID *int64, vendorID *int64, customerID *int64, planType *int, serviceID *int64, startDate, endDate time.Time) ([]domain.Plan, error)
 	FindBillableSessions(customerID int64, serviceID int64, startDate, endDate time.Time) ([]domain.Session, error)
 	GetInvoiceForSession(sessionID int64) (*domain.Invoice, error)
+	CheckInvoiceExists(customerID int64, invoiceDate, periodStart, periodEnd time.Time, excludeInvoiceID int64) (bool, error)
 }
 

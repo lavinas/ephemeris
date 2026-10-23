@@ -230,6 +230,35 @@
 			<div class="flex justify-between items-center w-full" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
 				<div class="flex justify-start items-center gap-3">
 					<button type="button"
+							hx-get="/html/invoicing/novo"
+							hx-target="#modal-container-invoicing"
+							class="bg-indigo-950/50 hover:bg-indigo-900/70 text-indigo-200 hover:text-white font-bold text-sm px-5 py-2 rounded-lg border border-indigo-700/60 hover:border-indigo-600 transition duration-150 shadow-md cursor-pointer flex items-center gap-2">
+						<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+						</svg>
+						<span>+ Adicionar</span>
+					</button>
+
+					<!-- Formulário Oculto para Importação de CSV -->
+					<form id="form-import-csv-invoicing"
+						  hx-post="/html/invoicing/importar-csv"
+						  hx-target="#tabela-container-invoicing"
+						  hx-encoding="multipart/form-data"
+						  class="hidden" style="display: none;">
+						<input type="file" id="csv-file-input-invoicing" name="file" accept=".csv,text/csv"
+							   onchange="if(this.files && this.files.length > 0) { htmx.trigger(this.form, 'submit'); this.value = ''; }"
+							   style="display: none;">
+					</form>
+					<button type="button"
+							onclick="document.getElementById('csv-file-input-invoicing').click();"
+							class="bg-sky-950/40 hover:bg-sky-900/60 text-sky-300 hover:text-sky-100 font-bold text-sm px-5 py-2 rounded-lg border border-sky-800/60 hover:border-sky-700 transition duration-150 shadow-md cursor-pointer flex items-center gap-2">
+						<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+						</svg>
+						<span>Importar CSV</span>
+					</button>
+
+					<button type="button"
 							hx-post="/html/invoicing/faturar-lote-aviso"
 							hx-target="#modal-container-invoicing"
 							hx-include="#filtro-form-invoicing"
@@ -315,6 +344,31 @@
 		{{template "totais_resumo" .}}
 	</div>
 	<div id="modal-container-invoicing" hx-swap-oob="true"></div>
+
+	{{if .MensagemErro}}
+	<div class="mb-4 p-4 bg-rose-950/70 border border-rose-800 text-rose-200 rounded-lg text-sm flex items-center justify-between shadow-lg">
+		<div class="flex items-center gap-2">
+			<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-rose-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+			</svg>
+			<span>{{.MensagemErro}}</span>
+		</div>
+		<button type="button" onclick="this.parentElement.remove()" class="text-rose-400 hover:text-rose-100 font-bold text-lg px-2 py-0.5 cursor-pointer">&times;</button>
+	</div>
+	{{end}}
+
+	{{if .MensagemSucesso}}
+	<div class="mb-4 p-4 bg-emerald-950/70 border border-emerald-800 text-emerald-200 rounded-lg text-sm flex items-center justify-between shadow-lg">
+		<div class="flex items-center gap-2">
+			<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+			</svg>
+			<span>{{.MensagemSucesso}}</span>
+		</div>
+		<button type="button" onclick="this.parentElement.remove()" class="text-emerald-400 hover:text-emerald-100 font-bold text-lg px-2 py-0.5 cursor-pointer">&times;</button>
+	</div>
+	{{end}}
+
 	<div class="w-full">
 		<div class="grade-tabela-invoicing topo-tabela-invoicing">
 			<div>DATA FATURA</div>
@@ -835,6 +889,274 @@
 		</div>
 	</div>
 	{{end}}
+
+	{{define "linha_item_invoice_nova"}}
+	<div class="linha-item-modal grid grid-cols-12 gap-3 items-center bg-gray-950/40 p-2.5 rounded-lg border border-gray-800">
+		<div class="col-span-4">
+			<select name="item_service_id" required class="w-full bg-gray-900 border border-gray-700 text-gray-200 text-xs rounded p-2 focus:border-indigo-500 outline-none">
+				<option value="" disabled selected>Selecione o serviço...</option>
+				{{range .Services}}
+					<option value="{{.ID}}">{{.Name}}</option>
+				{{end}}
+			</select>
+		</div>
+		<div class="col-span-2">
+			<input type="number" step="0.01" min="0.01" name="item_price" placeholder="Preço" required oninput="recalcularTotalModalInvoice()" class="w-full bg-gray-900 border border-gray-700 text-gray-200 text-xs rounded p-2 focus:border-indigo-500 outline-none text-right font-mono">
+		</div>
+		<div class="col-span-2">
+			<input type="number" min="1" name="item_quantity" value="1" placeholder="Qtd" required oninput="recalcularTotalModalInvoice()" class="w-full bg-gray-900 border border-gray-700 text-gray-200 text-xs rounded p-2 focus:border-indigo-500 outline-none text-center font-mono">
+		</div>
+		<div class="col-span-3">
+			<input type="text" name="item_description" placeholder="Descrição (opcional)" class="w-full bg-gray-900 border border-gray-700 text-gray-200 text-xs rounded p-2 focus:border-indigo-500 outline-none">
+		</div>
+		<div class="col-span-1 text-center">
+			<button type="button" onclick="removerLinhaItem(this)" class="p-1.5 text-gray-400 hover:text-rose-400 hover:bg-gray-800 rounded transition cursor-pointer" title="Remover item">
+				<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+				</svg>
+			</button>
+		</div>
+	</div>
+	{{end}}
+
+	{{define "modal_criar_invoice"}}
+	<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+		<div class="bg-gray-900 border border-gray-800 rounded-xl max-w-4xl w-full shadow-2xl overflow-hidden my-8 animate-in fade-in zoom-in-95 duration-150">
+			<!-- Header -->
+			<div class="flex items-center justify-between px-6 py-4 border-b border-gray-800 bg-gray-900/90">
+				<div class="flex items-center gap-3">
+					<div class="p-2 bg-indigo-600/20 text-indigo-400 rounded-lg border border-indigo-500/30">
+						<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+						</svg>
+					</div>
+					<div>
+						<h3 class="text-sm font-bold text-gray-100 uppercase tracking-wide">Adicionar Pré-Fatura</h3>
+						<p class="text-xs text-gray-400">Inclusão manual de fatura com itens e cálculo automático</p>
+					</div>
+				</div>
+				<button type="button" onclick="document.getElementById('modal-container-invoicing').innerHTML = '';"
+						class="text-gray-400 hover:text-gray-200 hover:bg-gray-800 p-1.5 rounded-lg transition cursor-pointer">
+					<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+						<path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+					</svg>
+				</button>
+			</div>
+
+			<!-- Content -->
+			<div class="p-6">
+				{{if .Erro}}
+					<div class="mb-5 p-4 bg-rose-950/70 border border-rose-800 text-rose-200 rounded-lg text-sm flex items-center justify-between shadow-lg">
+						<div class="flex items-center gap-2">
+							<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-rose-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+							</svg>
+							<span>{{.Erro}}</span>
+						</div>
+						<button type="button" onclick="this.parentElement.remove()" class="text-rose-400 hover:text-rose-100 font-bold px-2 py-0.5 cursor-pointer">&times;</button>
+					</div>
+				{{end}}
+
+				<form hx-post="/html/invoicing/salvar"
+					  hx-target="#modal-container-invoicing"
+					  hx-include="#filtro-form-invoicing"
+					  class="space-y-5">
+
+					<!-- Dados Gerais -->
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<div class="campo-box">
+							<label>Cliente (Nickname) *</label>
+							<input type="text" name="nickname" value="{{.Nickname}}" list="lista-nicknames-modal-create" required placeholder="Digite ou selecione o cliente...">
+							<datalist id="lista-nicknames-modal-create">
+								{{range .Nicknames}}
+									<option value="{{.}}">
+								{{end}}
+							</datalist>
+						</div>
+						<div class="campo-box">
+							<label>Referência (Opcional)</label>
+							<input type="number" name="reference_invoice_id" value="{{if .ReferenceInvoiceID}}{{.ReferenceInvoiceID}}{{end}}" placeholder="Ex: 520 (opcional)">
+						</div>
+					</div>
+
+					<!-- Datas -->
+					<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+						<div class="campo-box">
+							<label>Data da Fatura *</label>
+							<input type="date" name="invoice_date" value="{{.InvoiceDate}}" required>
+						</div>
+						<div class="campo-box">
+							<label>Vencimento *</label>
+							<input type="date" name="due_date" value="{{.DueDate}}" required>
+						</div>
+						<div class="campo-box">
+							<label>Período Inicial *</label>
+							<input type="date" name="period_start" value="{{.PeriodStart}}" required>
+						</div>
+						<div class="campo-box">
+							<label>Período Final *</label>
+							<input type="date" name="period_end" value="{{.PeriodEnd}}" required>
+						</div>
+					</div>
+
+					<!-- Itens da Fatura -->
+					<div class="border border-gray-800 rounded-xl p-4 bg-gray-950/30 space-y-3">
+						<div class="flex items-center justify-between pb-2 border-b border-gray-800">
+							<div class="text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center gap-2">
+								<span>Itens da Pré-Fatura</span>
+								<span class="text-[10px] text-gray-500 font-normal">(pelo menos 1 item obrigatório)</span>
+							</div>
+							<button type="button" onclick="adicionarLinhaItemLocal()"
+									class="px-3 py-1.5 bg-indigo-950/60 hover:bg-indigo-900/80 text-indigo-300 hover:text-indigo-100 text-xs font-semibold rounded-lg border border-indigo-800/60 transition cursor-pointer flex items-center gap-1.5">
+								<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+								</svg>
+								<span>+ Adicionar Item</span>
+							</button>
+						</div>
+
+						<!-- Header dos Itens -->
+						<div class="grid grid-cols-12 gap-3 px-2 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+							<div class="col-span-4">SERVIÇO *</div>
+							<div class="col-span-2 text-right">PREÇO (R$) *</div>
+							<div class="col-span-2 text-center">QUANTIDADE *</div>
+							<div class="col-span-3">DESCRIÇÃO</div>
+							<div class="col-span-1 text-center">AÇÃO</div>
+						</div>
+
+						<!-- Lista Dinâmica de Itens -->
+						<div id="lista-itens-invoice-modal" class="space-y-2.5">
+							{{range .Items}}
+								<div class="linha-item-modal grid grid-cols-12 gap-3 items-center bg-gray-950/40 p-2.5 rounded-lg border border-gray-800">
+									<div class="col-span-4">
+										<select name="item_service_id" required class="w-full bg-gray-900 border border-gray-700 text-gray-200 text-xs rounded p-2 focus:border-indigo-500 outline-none">
+											<option value="" disabled {{if not .ServiceID}}selected{{end}}>Selecione o serviço...</option>
+											{{range $.Services}}
+												<option value="{{.ID}}" {{if eq .ID $.ServiceID}}selected{{end}}>{{.Name}}</option>
+											{{end}}
+										</select>
+									</div>
+									<div class="col-span-2">
+										<input type="number" step="0.01" min="0.01" name="item_price" value="{{if .Price}}{{.Price}}{{end}}" placeholder="0,00" required oninput="recalcularTotalModalInvoice()" class="w-full bg-gray-900 border border-gray-700 text-gray-200 text-xs rounded p-2 focus:border-indigo-500 outline-none text-right font-mono">
+									</div>
+									<div class="col-span-2">
+										<input type="number" min="1" name="item_quantity" value="{{if .Quantity}}{{.Quantity}}{{else}}1{{end}}" placeholder="1" required oninput="recalcularTotalModalInvoice()" class="w-full bg-gray-900 border border-gray-700 text-gray-200 text-xs rounded p-2 focus:border-indigo-500 outline-none text-center font-mono">
+									</div>
+									<div class="col-span-3">
+										<input type="text" name="item_description" value="{{.Description}}" placeholder="Descrição (opcional)" class="w-full bg-gray-900 border border-gray-700 text-gray-200 text-xs rounded p-2 focus:border-indigo-500 outline-none">
+									</div>
+									<div class="col-span-1 text-center">
+										<button type="button" onclick="removerLinhaItem(this)" class="p-1.5 text-gray-400 hover:text-rose-400 hover:bg-gray-800 rounded transition cursor-pointer" title="Remover item">
+											<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+											</svg>
+										</button>
+									</div>
+								</div>
+							{{end}}
+						</div>
+
+						<!-- Totalizador do Modal -->
+						<div class="flex justify-end items-center gap-3 pt-3 border-t border-gray-800">
+							<span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Calculado:</span>
+							<span id="total-modal-invoice-display" class="text-emerald-400 font-bold text-lg font-mono">R$ 0,00</span>
+						</div>
+					</div>
+
+					<!-- Rodapé com Botões -->
+					<div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-800">
+						<button type="button" onclick="document.getElementById('modal-container-invoicing').innerHTML = '';"
+								class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm font-medium rounded-lg border border-gray-700 transition cursor-pointer">
+							Cancelar
+						</button>
+						<button type="submit"
+								class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-lg shadow-lg hover:shadow-indigo-600/30 transition cursor-pointer flex items-center gap-2">
+							<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+							</svg>
+							<span>Salvar Fatura</span>
+						</button>
+					</div>
+				</form>
+			</div>
+		</div>
+
+		<!-- Template oculto de linha para clonagem rápida via JS -->
+		<div id="template-linha-item-modal" style="display: none;" class="grid-cols-12 gap-3 items-center bg-gray-950/40 p-2.5 rounded-lg border border-gray-800">
+			<div class="col-span-4">
+				<select name="item_service_id" required class="w-full bg-gray-900 border border-gray-700 text-gray-200 text-xs rounded p-2 focus:border-indigo-500 outline-none">
+					<option value="" disabled selected>Selecione o serviço...</option>
+					{{range .Services}}
+						<option value="{{.ID}}">{{.Name}}</option>
+					{{end}}
+				</select>
+			</div>
+			<div class="col-span-2">
+				<input type="number" step="0.01" min="0.01" name="item_price" placeholder="0,00" required oninput="recalcularTotalModalInvoice()" class="w-full bg-gray-900 border border-gray-700 text-gray-200 text-xs rounded p-2 focus:border-indigo-500 outline-none text-right font-mono">
+			</div>
+			<div class="col-span-2">
+				<input type="number" min="1" name="item_quantity" value="1" placeholder="1" required oninput="recalcularTotalModalInvoice()" class="w-full bg-gray-900 border border-gray-700 text-gray-200 text-xs rounded p-2 focus:border-indigo-500 outline-none text-center font-mono">
+			</div>
+			<div class="col-span-3">
+				<input type="text" name="item_description" placeholder="Descrição (opcional)" class="w-full bg-gray-900 border border-gray-700 text-gray-200 text-xs rounded p-2 focus:border-indigo-500 outline-none">
+			</div>
+			<div class="col-span-1 text-center">
+				<button type="button" onclick="removerLinhaItem(this)" class="p-1.5 text-gray-400 hover:text-rose-400 hover:bg-gray-800 rounded transition cursor-pointer" title="Remover item">
+					<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+					</svg>
+				</button>
+			</div>
+		</div>
+
+		<script>
+		function recalcularTotalModalInvoice() {
+			var total = 0;
+			var container = document.getElementById('lista-itens-invoice-modal');
+			if (!container) return;
+			var precos = container.querySelectorAll('input[name="item_price"]');
+			var qtds = container.querySelectorAll('input[name="item_quantity"]');
+			for (var i = 0; i < precos.length; i++) {
+				var p = parseFloat(precos[i].value.replace(',', '.')) || 0;
+				var q = parseInt(qtds[i].value) || 0;
+				total += p * q;
+			}
+			var display = document.getElementById('total-modal-invoice-display');
+			if (display) {
+				display.innerText = 'R$ ' + total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+			}
+		}
+
+		function removerLinhaItem(btn) {
+			var container = document.getElementById('lista-itens-invoice-modal');
+			if (!container) return;
+			var rows = container.querySelectorAll('.linha-item-modal');
+			if (rows.length > 1) {
+				btn.closest('.linha-item-modal').remove();
+				recalcularTotalModalInvoice();
+			} else {
+				alert('A fatura deve ter pelo menos 1 item.');
+			}
+		}
+
+		function adicionarLinhaItemLocal() {
+			var container = document.getElementById('lista-itens-invoice-modal');
+			var templateRow = document.getElementById('template-linha-item-modal');
+			if (container && templateRow) {
+				var clone = templateRow.cloneNode(true);
+				clone.removeAttribute('id');
+				clone.style.display = 'grid';
+				clone.classList.add('linha-item-modal');
+				container.appendChild(clone);
+				recalcularTotalModalInvoice();
+			}
+		}
+
+		setTimeout(recalcularTotalModalInvoice, 50);
+		</script>
+	</div>
+	{{end}}
+
 
 
 

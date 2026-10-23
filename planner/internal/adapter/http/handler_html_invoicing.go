@@ -842,3 +842,203 @@ func reverse(s string) string {
 	}
 	return string(r)
 }
+
+// InvoicingCreateModal handles GET /invoicing/novo and renders the manual invoice inclusion modal
+func (h *HandlerHtml) InvoicingCreateModal(w http.ResponseWriter, r *http.Request) {
+	data := h.getInvoiceModalCreateData(nil, "")
+	h.tmplInvoicing.ExecuteTemplate(w, "modal_criar_invoice", data)
+}
+
+// InvoicingItemRow handles GET /invoicing/item-linha and renders a new empty row for invoice items
+func (h *HandlerHtml) InvoicingItemRow(w http.ResponseWriter, r *http.Request) {
+	data := map[string]interface{}{
+		"Services": h.getServices(),
+	}
+	h.tmplInvoicing.ExecuteTemplate(w, "linha_item_invoice_nova", data)
+}
+
+// InvoicingSave handles POST /html/invoicing/salvar to create a new invoice manually
+func (h *HandlerHtml) InvoicingSave(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Dados de formulário inválidos", http.StatusBadRequest)
+		return
+	}
+
+	nickname := strings.TrimSpace(r.FormValue("nickname"))
+	invoiceDate := strings.TrimSpace(r.FormValue("invoice_date"))
+	dueDate := strings.TrimSpace(r.FormValue("due_date"))
+	periodStart := strings.TrimSpace(r.FormValue("period_start"))
+	periodEnd := strings.TrimSpace(r.FormValue("period_end"))
+	refStr := strings.TrimSpace(r.FormValue("reference_invoice_id"))
+	var refID *int64
+	if refStr != "" {
+		if id, err := strconv.ParseInt(refStr, 10, 64); err == nil {
+			refID = &id
+		}
+	}
+
+	serviceIDs := r.Form["item_service_id"]
+	prices := r.Form["item_price"]
+	quantities := r.Form["item_quantity"]
+	descriptions := r.Form["item_description"]
+
+	var items []dto.InvoiceItemCreateRequest
+	for i := 0; i < len(serviceIDs); i++ {
+		sid, _ := strconv.ParseInt(serviceIDs[i], 10, 64)
+		price := 0.0
+		if i < len(prices) {
+			cleanP := strings.ReplaceAll(strings.TrimSpace(prices[i]), ",", ".")
+			price, _ = strconv.ParseFloat(cleanP, 64)
+		}
+		qty := 0
+		if i < len(quantities) {
+			qty, _ = strconv.Atoi(strings.TrimSpace(quantities[i]))
+		}
+		desc := ""
+		if i < len(descriptions) {
+			desc = strings.TrimSpace(descriptions[i])
+		}
+
+		if sid > 0 || price > 0 || qty > 0 || desc != "" {
+			items = append(items, dto.InvoiceItemCreateRequest{
+				ServiceID:   sid,
+				Price:       price,
+				Quantity:    qty,
+				Description: desc,
+			})
+		}
+	}
+
+	req := &dto.InvoiceCreateRequest{
+		Nickname:           nickname,
+		InvoiceDate:        invoiceDate,
+		DueDate:            dueDate,
+		PeriodStart:        periodStart,
+		PeriodEnd:          periodEnd,
+		ReferenceInvoiceID: refID,
+		Items:              items,
+	}
+
+	svc := service.NewInvoiceCreate(h.repo, h.logger)
+	resp := svc.Run(req)
+	if resp.GetStatusCode() != 201 {
+		data := h.getInvoiceModalCreateData(req, resp.GetMessage())
+		h.tmplInvoicing.ExecuteTemplate(w, "modal_criar_invoice", data)
+		return
+	}
+
+	h.renderInvoicingTableWithMessages(w, r, "Fatura criada com sucesso!", "")
+}
+
+// InvoicingImportCSV handles POST /html/invoicing/importar-csv to import invoices from CSV
+func (h *HandlerHtml) InvoicingImportCSV(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	err := r.ParseMultipartForm(32 << 20)
+	if err != nil {
+		h.renderInvoicingTableWithMessages(w, r, "", "Erro ao processar formulário multipart: "+err.Error())
+		return
+	}
+
+	file, _, err := r.FormFile("file")
+	if err != nil {
+		file, _, err = r.FormFile("arquivo")
+		if err != nil {
+			file, _, err = r.FormFile("csv")
+		}
+	}
+	if err != nil {
+		h.renderInvoicingTableWithMessages(w, r, "", "Arquivo CSV não selecionado (campo 'file')")
+		return
+	}
+	defer file.Close()
+
+	req := &dto.InvoiceImportCSVRequest{
+		Reader: file,
+	}
+
+	svc := service.NewInvoiceImportCSV(h.repo, h.logger)
+	resp := svc.Run(req)
+	if resp.GetStatusCode() != 200 {
+		h.renderInvoicingTableWithMessages(w, r, "", resp.GetMessage())
+		return
+	}
+
+	h.renderInvoicingTableWithMessages(w, r, resp.GetMessage(), "")
+}
+
+func (h *HandlerHtml) getInvoiceModalCreateData(req *dto.InvoiceCreateRequest, erro string) map[string]interface{} {
+	now := time.Now()
+	invoiceDate := now.Format("2006-01-02")
+	dueDate := now.AddDate(0, 0, 3).Format("2006-01-02")
+	firstDay := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	lastDay := firstDay.AddDate(0, 1, -1)
+	periodStart := firstDay.Format("2006-01-02")
+	periodEnd := lastDay.Format("2006-01-02")
+	nickname := ""
+	var refID *int64
+	var items []dto.InvoiceItemCreateRequest
+
+	if req != nil {
+		if req.InvoiceDate != "" {
+			invoiceDate = req.InvoiceDate
+		}
+		if req.DueDate != "" {
+			dueDate = req.DueDate
+		}
+		if req.PeriodStart != "" {
+			periodStart = req.PeriodStart
+		}
+		if req.PeriodEnd != "" {
+			periodEnd = req.PeriodEnd
+		}
+		nickname = req.Nickname
+		refID = req.ReferenceInvoiceID
+		items = req.Items
+	}
+
+	if len(items) == 0 {
+		items = []dto.InvoiceItemCreateRequest{
+			{Quantity: 1},
+		}
+	}
+
+	return map[string]interface{}{
+		"Nicknames":          h.getCustomersNicknames(),
+		"Services":           h.getServices(),
+		"InvoiceDate":        invoiceDate,
+		"DueDate":            dueDate,
+		"PeriodStart":        periodStart,
+		"PeriodEnd":          periodEnd,
+		"Nickname":           nickname,
+		"ReferenceInvoiceID": refID,
+		"Items":              items,
+		"Erro":               erro,
+	}
+}
+
+func (h *HandlerHtml) renderInvoicingTableWithMessages(w http.ResponseWriter, r *http.Request, msgSucesso, msgErro string) {
+	svc := service.NewInvoiceList(h.repo, h.logger)
+	req := &dto.InvoiceListRequest{
+		Page:        1,
+		PageSize:    itensPorPag,
+		PendingOnly: true,
+	}
+	respdto := svc.Run(req)
+	var response *dto.InvoiceListResponse
+	if respdto.GetStatusCode() == 200 {
+		response, _ = respdto.(*dto.InvoiceListResponse)
+	}
+	page := h.getInvoicePageData(response)
+	if msgSucesso != "" {
+		page["MensagemSucesso"] = msgSucesso
+	}
+	if msgErro != "" {
+		page["MensagemErro"] = msgErro
+	}
+	h.tmplInvoicing.ExecuteTemplate(w, "tabela", page)
+}
+

@@ -237,6 +237,29 @@ func (m *mockInvoicingRepoForService) GetInvoiceForSession(sessionID int64) (*do
 	return nil, nil
 }
 
+func (m *mockInvoicingRepoForService) SaveInvoices(invoices []*domain.Invoice) error {
+	for _, inv := range invoices {
+		if err := m.SaveInvoice(inv); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (m *mockInvoicingRepoForService) CheckInvoiceExists(customerID int64, invoiceDate, periodStart, periodEnd time.Time, excludeInvoiceID int64) (bool, error) {
+	for _, inv := range m.invoices {
+		if inv.DeletedAt != nil || inv.ID == excludeInvoiceID {
+			continue
+		}
+		if inv.InvoicingDate.Equal(invoiceDate) && inv.PeriodStart.Equal(periodStart) && inv.PeriodEnd.Equal(periodEnd) {
+			if inv.Plan != nil && inv.Plan.CustomerID == customerID {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
+}
+
 func floatPtr(v float64) *float64 { return &v }
 func intPtr(v int) *int          { return &v }
 func stringPtr(v string) *string  { return &v }

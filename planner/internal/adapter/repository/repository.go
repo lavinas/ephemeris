@@ -1005,4 +1005,89 @@ func (a *Repository) GetInvoiceForSession(sessionID int64) (*domain.Invoice, err
 	return &invoice, nil
 }
 
+// SaveInvoices saves multiple invoices and their items in a transaction
+func (a *Repository) SaveInvoices(invoices []*domain.Invoice) error {
+	db := a.DB
+	useExistingTx := false
+	if a.Tx != nil {
+		db = a.Tx
+		useExistingTx = true
+	}
+
+	tx := db
+	if !useExistingTx {
+		tx = db.Begin()
+		if tx.Error != nil {
+			return tx.Error
+		}
+		defer func() {
+			if r := recover(); r != nil {
+				tx.Rollback()
+			}
+		}()
+	}
+
+	now := time.Now()
+	for _, invoice := range invoices {
+		invoice.UpdatedAt = now
+		if invoice.CreatedAt.IsZero() {
+			invoice.CreatedAt = now
+		}
+
+		if err := tx.Omit("Items", "Plan").Create(invoice).Error; err != nil {
+			if !useExistingTx {
+				tx.Rollback()
+			}
+			return err
+		}
+
+		for i := range invoice.Items {
+			invoice.Items[i].InvoiceID = invoice.ID
+			invoice.Items[i].CreatedAt = now
+			invoice.Items[i].UpdatedAt = now
+			if invoice.Items[i].Quantity == 0 && invoice.Items[i].InvoicedQuantity > 0 {
+				invoice.Items[i].Quantity = invoice.Items[i].InvoicedQuantity
+			}
+			if err := tx.Omit("Service", "Invoice").Create(&invoice.Items[i]).Error; err != nil {
+				if !useExistingTx {
+					tx.Rollback()
+				}
+				return err
+			}
+		}
+	}
+
+	if !useExistingTx {
+		return tx.Commit().Error
+	}
+	return nil
+}
+
+// CheckInvoiceExists checks if an invoice exists for the same customer, invoice date, period start and period end
+func (a *Repository) CheckInvoiceExists(customerID int64, invoiceDate, periodStart, periodEnd time.Time, excludeInvoiceID int64) (bool, error) {
+	db := a.DB
+	if a.Tx != nil {
+		db = a.Tx
+	}
+	var count int64
+	query := db.Table("planner.invoice").
+		Joins("JOIN planner.plan ON planner.plan.id = planner.invoice.plan_id").
+		Where("planner.plan.customer_id = ?", customerID).
+		Where("planner.invoice.invoicing_date = ?", invoiceDate.Format("2006-01-02")).
+		Where("planner.invoice.period_start = ?", periodStart.Format("2006-01-02")).
+		Where("planner.invoice.period_end = ?", periodEnd.Format("2006-01-02")).
+		Where("planner.invoice.deleted_at IS NULL").
+		Where("planner.plan.deleted_at IS NULL")
+
+	if excludeInvoiceID > 0 {
+		query = query.Where("planner.invoice.id <> ?", excludeInvoiceID)
+	}
+
+	err := query.Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
 

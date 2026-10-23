@@ -128,6 +128,8 @@ func (m *mockPlanRepo) DeleteInvoicesByIDs(ids []int64) error { return nil }
 func (m *mockPlanRepo) FindActivePlansForInvoicing(planID *int64, vendorID *int64, customerID *int64, planType *int, serviceID *int64, startDate, endDate time.Time) ([]domain.Plan, error) { return nil, nil }
 func (m *mockPlanRepo) FindBillableSessions(customerID int64, serviceID int64, startDate, endDate time.Time) ([]domain.Session, error) { return nil, nil }
 func (m *mockPlanRepo) GetInvoiceForSession(sessionID int64) (*domain.Invoice, error) { return nil, nil }
+func (m *mockPlanRepo) SaveInvoices(invoices []*domain.Invoice) error { return nil }
+func (m *mockPlanRepo) CheckInvoiceExists(customerID int64, invoiceDate, periodStart, periodEnd time.Time, excludeInvoiceID int64) (bool, error) { return false, nil }
 
 func floatPtr(v float64) *float64 {
 	return &v

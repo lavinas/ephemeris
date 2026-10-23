@@ -175,6 +175,13 @@ func (m *mockPlanRepoForService) FindActivePlansForInvoicing(planID *int64, vend
 }
 func (m *mockPlanRepoForService) FindBillableSessions(customerID int64, serviceID int64, startDate, endDate time.Time) ([]domain.Session, error) { return nil, nil }
 func (m *mockPlanRepoForService) GetInvoiceForSession(sessionID int64) (*domain.Invoice, error) { return nil, nil }
+func (m *mockPlanRepoForService) SaveInvoices(invoices []*domain.Invoice) error {
+	for _, inv := range invoices {
+		m.invoices = append(m.invoices, *inv)
+	}
+	return nil
+}
+func (m *mockPlanRepoForService) CheckInvoiceExists(customerID int64, invoiceDate, periodStart, periodEnd time.Time, excludeInvoiceID int64) (bool, error) { return false, nil }
 
 func TestPlanCRUD_Services(t *testing.T) {
 	repo := newMockPlanRepoForService()

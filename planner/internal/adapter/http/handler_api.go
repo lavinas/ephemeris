@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"planner/internal/adapter/billing"
 	"planner/internal/dto"
@@ -486,6 +487,72 @@ func (h *HandlerApi) ComptimeDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.writeResponse(w, dto.NewResponseBase(http.StatusOK, "success", "Registro de banco de horas excluído com sucesso"))
+}
+
+// InvoiceCreate handles creating a new manual invoice via JSON API (/invoice/create or /invoicing/create)
+func (h *HandlerApi) InvoiceCreate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	requestDTO := &dto.InvoiceCreateRequest{}
+	if r.Body != nil && r.Body != http.NoBody {
+		if err := json.NewDecoder(r.Body).Decode(requestDTO); err != nil {
+			h.writeResponse(w, dto.NewInvoiceCreateResponse(http.StatusBadRequest, "error", "Invalid JSON format: "+err.Error(), nil))
+			return
+		}
+	}
+
+	svc := service.NewInvoiceCreate(h.repo, h.logger)
+	response := svc.Run(requestDTO)
+	h.writeResponse(w, response)
+}
+
+// InvoiceImportCSV handles importing invoices via CSV upload in multipart/form-data (/invoice/import-csv or /invoicing/import-csv)
+func (h *HandlerApi) InvoiceImportCSV(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var requestDTO *dto.InvoiceImportCSVRequest
+	contentType := r.Header.Get("Content-Type")
+
+	if strings.HasPrefix(contentType, "multipart/form-data") {
+		err := r.ParseMultipartForm(32 << 20)
+		if err != nil {
+			h.writeResponse(w, dto.NewInvoiceImportCSVResponse(http.StatusBadRequest, "error", "Erro ao processar formulário multipart: "+err.Error(), 0, 0, 0))
+			return
+		}
+		file, _, err := r.FormFile("file")
+		if err != nil {
+			file, _, err = r.FormFile("arquivo")
+			if err != nil {
+				file, _, err = r.FormFile("csv")
+			}
+		}
+		if err != nil {
+			h.writeResponse(w, dto.NewInvoiceImportCSVResponse(http.StatusBadRequest, "error", "Arquivo CSV não fornecido no formulário (campo 'file')", 0, 0, 0))
+			return
+		}
+		defer file.Close()
+		requestDTO = &dto.InvoiceImportCSVRequest{Reader: file}
+	} else if strings.Contains(contentType, "text/csv") || strings.Contains(contentType, "text/plain") {
+		requestDTO = &dto.InvoiceImportCSVRequest{Reader: r.Body}
+	} else {
+		requestDTO = &dto.InvoiceImportCSVRequest{}
+		if r.Body != nil && r.Body != http.NoBody {
+			if err := json.NewDecoder(r.Body).Decode(requestDTO); err != nil {
+				h.writeResponse(w, dto.NewInvoiceImportCSVResponse(http.StatusBadRequest, "error", "Formato inválido: "+err.Error(), 0, 0, 0))
+				return
+			}
+		}
+	}
+
+	svc := service.NewInvoiceImportCSV(h.repo, h.logger)
+	response := svc.Run(requestDTO)
+	h.writeResponse(w, response)
 }
 
 // writeResponse writes the given response to the http.ResponseWriter with the appropriate status

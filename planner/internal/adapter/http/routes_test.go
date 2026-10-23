@@ -1,7 +1,9 @@
 package http
 
 import (
+	"bytes"
 	"context"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -76,6 +78,8 @@ func (d *dummyRepo) DeleteInvoicesByIDs(ids []int64) error { return nil }
 func (d *dummyRepo) FindActivePlansForInvoicing(planID *int64, vendorID *int64, customerID *int64, planType *int, serviceID *int64, startDate, endDate time.Time) ([]domain.Plan, error) { return nil, nil }
 func (d *dummyRepo) FindBillableSessions(customerID int64, serviceID int64, startDate, endDate time.Time) ([]domain.Session, error) { return nil, nil }
 func (d *dummyRepo) GetInvoiceForSession(sessionID int64) (*domain.Invoice, error) { return nil, nil }
+func (d *dummyRepo) SaveInvoices(invoices []*domain.Invoice) error { return nil }
+func (d *dummyRepo) CheckInvoiceExists(customerID int64, invoiceDate, periodStart, periodEnd time.Time, excludeInvoiceID int64) (bool, error) { return false, nil }
 
 
 func TestRootEndpointServesStaticIndex(t *testing.T) {
@@ -483,6 +487,20 @@ func (m *mockInvoiceRouteRepo) GetVendorByID(id int64) (*domain.Vendor, error) {
 
 func (m *mockInvoiceRouteRepo) GetCustomerByID(id int64) (*domain.Customer, error) {
 	return &domain.Customer{ID: id, Nickname: "cliente_teste", VendorID: 1}, nil
+}
+
+func (m *mockInvoiceRouteRepo) GetCustomer(vendorID int64, nickname string) (*domain.Customer, error) {
+	if nickname == "inexistente" {
+		return nil, nil
+	}
+	return &domain.Customer{ID: 10, Nickname: nickname, VendorID: vendorID}, nil
+}
+
+func (m *mockInvoiceRouteRepo) FindServices(vendorID int64) ([]domain.Service, error) {
+	return []domain.Service{
+		{ID: 1, Name: "Aula Canto 30", VendorID: vendorID},
+		{ID: 10, Name: "Servico Teste", VendorID: vendorID},
+	}, nil
 }
 
 func (m *mockInvoiceRouteRepo) GetInvoiceByID(id int64) (*domain.Invoice, error) {
@@ -1597,6 +1615,121 @@ func TestAPIComptimeRoutes(t *testing.T) {
 		t.Fatalf("expected 400 on /comptime/delete with invalid id, got %d", recDelInvalid.Code)
 	}
 }
+
+func TestInvoiceCreateAndImportCSVRoutes(t *testing.T) {
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("could not get working dir: %v", err)
+	}
+	defer os.Chdir(origDir)
+
+	if err := os.Chdir("../../.."); err != nil {
+		t.Fatalf("could not chdir to planner/backend: %v", err)
+	}
+
+	mockR := &mockInvoiceRouteRepo{}
+	routes, err := NewRoutes(mockR, &dummyLogger{}, nil)
+	if err != nil {
+		t.Fatalf("failed to create routes: %v", err)
+	}
+
+	// 1. GET /html/invoicing/novo (Modal)
+	reqModal := httptest.NewRequest(http.MethodGet, "/html/invoicing/novo", nil)
+	recModal := httptest.NewRecorder()
+	routes.ServeHTTP(recModal, reqModal)
+	if recModal.Code != http.StatusOK {
+		t.Errorf("expected 200 on /html/invoicing/novo, got %d", recModal.Code)
+	}
+	if !strings.Contains(recModal.Body.String(), "Adicionar Pré-Fatura") {
+		t.Errorf("expected modal to contain 'Adicionar Pré-Fatura', got: %s", recModal.Body.String())
+	}
+
+	// 2. GET /html/invoicing/item-linha (Dynamic item row)
+	reqRow := httptest.NewRequest(http.MethodGet, "/html/invoicing/item-linha", nil)
+	recRow := httptest.NewRecorder()
+	routes.ServeHTTP(recRow, reqRow)
+	if recRow.Code != http.StatusOK {
+		t.Errorf("expected 200 on /html/invoicing/item-linha, got %d", recRow.Code)
+	}
+	if !strings.Contains(recRow.Body.String(), "linha-item-modal") {
+		t.Errorf("expected row to contain 'linha-item-modal', got: %s", recRow.Body.String())
+	}
+
+	// 3. POST /html/invoicing/salvar (HTML manual save)
+	formData := strings.NewReader("nickname=cliente_teste&invoice_date=2026-10-22&due_date=2026-10-25&period_start=2026-10-01&period_end=2026-10-31&item_service_id=1&item_price=100.00&item_quantity=2&item_description=teste")
+	reqSave := httptest.NewRequest(http.MethodPost, "/html/invoicing/salvar", formData)
+	reqSave.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	recSave := httptest.NewRecorder()
+	routes.ServeHTTP(recSave, reqSave)
+	if recSave.Code != http.StatusOK {
+		t.Errorf("expected 200 on /html/invoicing/salvar, got %d", recSave.Code)
+	}
+	if !strings.Contains(recSave.Body.String(), "Fatura criada com sucesso") {
+		t.Errorf("expected table to contain success message, got: %s", recSave.Body.String())
+	}
+
+	// 4. POST /html/invoicing/importar-csv (HTML CSV import via multipart/form-data)
+	csvContent := `cliente,faturamento,vencimento,serviço,inicio,fim,descrição,preço,quantidade,referencia
+cliente_teste,02/01/2024,05/01/2026,Aula Canto 30,01/12/2023,31/12/2023,aula 1,"98,00",2,`
+
+	buf := &bytes.Buffer{}
+	writer := multipart.NewWriter(buf)
+	part, err := writer.CreateFormFile("file", "test.csv")
+	if err != nil {
+		t.Fatalf("failed to create form file: %v", err)
+	}
+	part.Write([]byte(csvContent))
+	writer.Close()
+
+	reqImportHTML := httptest.NewRequest(http.MethodPost, "/html/invoicing/importar-csv", buf)
+	reqImportHTML.Header.Set("Content-Type", writer.FormDataContentType())
+	recImportHTML := httptest.NewRecorder()
+	routes.ServeHTTP(recImportHTML, reqImportHTML)
+	if recImportHTML.Code != http.StatusOK {
+		t.Errorf("expected 200 on /html/invoicing/importar-csv, got %d", recImportHTML.Code)
+	}
+	if !strings.Contains(recImportHTML.Body.String(), "importados com sucesso") {
+		t.Errorf("expected table to contain success message, got: %s", recImportHTML.Body.String())
+	}
+
+	// 5. POST /api/invoice/create (API JSON manual save)
+	jsonBody := `{
+		"nickname": "cliente_teste",
+		"invoice_date": "2026-10-22",
+		"due_date": "2026-10-25",
+		"period_start": "2026-10-01",
+		"period_end": "2026-10-31",
+		"items": [
+			{"service_id": 1, "price": 100.0, "quantity": 1, "description": "api item"}
+		]
+	}`
+	reqAPICreate := httptest.NewRequest(http.MethodPost, "/api/invoice/create", strings.NewReader(jsonBody))
+	reqAPICreate.Header.Set("Content-Type", "application/json")
+	recAPICreate := httptest.NewRecorder()
+	routes.ServeHTTP(recAPICreate, reqAPICreate)
+	if recAPICreate.Code != http.StatusCreated {
+		t.Errorf("expected 201 on /api/invoice/create, got %d: %s", recAPICreate.Code, recAPICreate.Body.String())
+	}
+
+	// 6. POST /api/invoicing/import-csv (API CSV import via multipart/form-data)
+	bufAPI := &bytes.Buffer{}
+	writerAPI := multipart.NewWriter(bufAPI)
+	partAPI, err := writerAPI.CreateFormFile("file", "api_test.csv")
+	if err != nil {
+		t.Fatalf("failed to create api form file: %v", err)
+	}
+	partAPI.Write([]byte(csvContent))
+	writerAPI.Close()
+
+	reqAPIImport := httptest.NewRequest(http.MethodPost, "/api/invoicing/import-csv", bufAPI)
+	reqAPIImport.Header.Set("Content-Type", writerAPI.FormDataContentType())
+	recAPIImport := httptest.NewRecorder()
+	routes.ServeHTTP(recAPIImport, reqAPIImport)
+	if recAPIImport.Code != http.StatusOK {
+		t.Errorf("expected 200 on /api/invoicing/import-csv, got %d: %s", recAPIImport.Code, recAPIImport.Body.String())
+	}
+}
+
 
 
 

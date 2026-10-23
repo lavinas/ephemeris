@@ -1,0 +1,22 @@
+No subprojeto planner:
+- htmx (modal), handler, serviço de inclusão de uma invoice:
+    - Criar o serviço, dto, etc
+    - No htmx colocar um botão (+ Adicionar) que abre um modal para inclusão.
+    - Também expor api do serviço da mesma forma que os demais
+    - Prever que para cada invoice pode ter 1 ou mais invoice_item
+    - Na inclusão o usuário entrará com: nickaname do customer (no htmx trazer a lista de nicknames possiveis da mesma forma que está em sessões), data da invoice (default hoje), data de vencimento (default 3 dias após hoje), período inicial da fatura (1 dia do mês corrente) e período final da fatura (último dia do mês corrente), possivel referência (não obrigatória). Entrar com um ou mais itens (no htmx possibiiltar incluir mais itens) com os valores: serviço, preço, descrição, quantidade
+    - O sistema calcula o amount através da soma de preços * quantidade dos itens;
+    - Validações:
+        - Não se pode ter mais do que 1 customer + invoice_date + period_start + period_end registrados na base de dados
+        - Deve-se ter 1 ou mais itens
+        - Cada item deve ter um serviço registrado
+        - preço e quantidade devem ser maior que zero
+        - A data de vencimento deve ser maior ou igual a data da invoice
+- htmx, handler, serviço para importação de csv com uma lista de invoices:
+    - Um exemplo de csv está em planner/tmp/example.csv
+    - Os campos do csv são: client (nickname), faturamento (invoice_date), vencimento (due_date), inicio (period_start), fim (period_end), serviço (service.name), descrição (description), preço (item.price), quantidade (item.quantity), referência (reference_invoice_id)
+    - O csv pode ter 1 ou mais itens em mais de uma linha do csv, desta forma, linhas com o mesmo cliente + faturamento + inicio + fim devem ser colocadas na mesma invoice com varios itens (caso a referencia for preenchida e divergente em alguma linha, deve-se validar e retornar um erro);
+    - Validar a consistência e exxistência dos campos, caso haja algum erro, retornar a descrição de erros do primeiro erro e não considerar nennhuma linha
+    - no htmx, deve-se ter um botão de importar csv e ao ser clicado, abre-se no sistema operacional um opção para que o usuário selecione um arquivo csv para importação; 
+    - Deve-se ter uma api também para importação de csv, que receba o arquivo csv em formato multipart/form-data, deste forma, a comunicação entre o htmx e o serviço (backend) será desta forma.
+    - Da mesma forma não se deve ter na base de dado mais do que 1 customer + invoice_date + period_start + period_end registrados
