@@ -66,9 +66,11 @@ func (s *PayPerViewStrategy) CalculateSession(
 	amount := price
 	if plan.Price != nil {
 		amount = *plan.Price
+		price = *plan.Price
+		invItem.Price = price
 	}
 
-	dueDate := currentDate
+	dueDate := session.SessionDate
 	if plan.Package != nil {
 		dueDate = plan.Package.PaymentDate
 		if dueDate.Before(currentDate) {
@@ -81,10 +83,7 @@ func (s *PayPerViewStrategy) CalculateSession(
 		}
 	}
 
-	invoicingDate := plan.PlanStart
-	if session.SessionDate.After(plan.PlanStart) {
-		invoicingDate = session.SessionDate
-	}
+	invoicingDate := session.SessionDate
 
 	invoice := &domain.Invoice{
 		PlanID:             plan.ID,
