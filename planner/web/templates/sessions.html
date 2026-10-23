@@ -439,7 +439,7 @@
 	<div id="sessao-{{.ID}}" class="linha-box grade-tabela text-sm" style="align-items: start !important; padding-top: 20px; padding-bottom: 20px;">
 		<div class="text-gray-400 font-mono font-medium">{{.DataFormatada}}</div>
 		<div class="flex flex-col truncate" title="{{if .CustomerName}}{{.CustomerName}}{{end}}">
-			<span class="font-bold text-gray-100 truncate">{{.Nickname}}</span>
+			<span class="font-bold text-indigo-300 truncate">{{.Nickname}}</span>
 			{{if .CustomerName}}<span class="text-xs text-gray-400 truncate">{{.CustomerName}}</span>{{end}}
 		</div>
 		<div><span style="--status-color: {{.StatusCor}}; color: var(--status-color) !important;" class="text-xs uppercase tracking-wider font-black">{{.Status}}</span></div>
@@ -475,7 +475,7 @@
 	<form id="sessao-{{.ID}}" hx-post="/html/sessoes/atualizar?id={{.ID}}" hx-target="#tabela-container" hx-include="#filtro-form" class="linha-box grade-tabela formulario-edit text-sm shadow-md" style="align-items: start !important; padding-top: 20px; padding-bottom: 20px;">
 		<div><input type="date" name="edit_data" value="{{.Data}}" required class="input-inline-tabela"></div>
 		<div class="flex flex-col truncate" style="padding-top: 4px;" title="{{if .CustomerName}}{{.CustomerName}}{{end}}">
-			<span class="font-bold text-gray-100 truncate">{{.Nickname}}</span>
+			<span class="font-bold text-indigo-300 truncate">{{.Nickname}}</span>
 			{{if .CustomerName}}<span class="text-xs text-gray-400 truncate">{{.CustomerName}}</span>{{end}}
 		</div>
 		<div>
