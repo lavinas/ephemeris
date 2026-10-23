@@ -42,6 +42,7 @@ type InvoiceListResponse struct {
 type InvoiceList struct {
 	ID               int64                 `json:"id"`
 	Customer         string                `json:"customer"`
+	CustomerName     string                `json:"customer_name,omitempty"`
 	Amount           float64               `json:"amount"`
 	InvoiceDate      string                `json:"invoicing"`
 	DueDate          string                `json:"due"`

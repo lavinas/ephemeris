@@ -351,6 +351,12 @@ func TestInvoicesRealTemplate(t *testing.T) {
 	if !strings.Contains(bodyTable, "Envio Nota") {
 		t.Errorf("expected table body to contain 'Envio Nota'")
 	}
+	if !strings.Contains(bodyTable, "cliente_teste") {
+		t.Errorf("expected table body to contain customer nickname 'cliente_teste'")
+	}
+	if !strings.Contains(bodyTable, "Cliente Teste") {
+		t.Errorf("expected table body to contain customer name 'Cliente Teste'")
+	}
 
 	// Test GET /html/invoices/editar?id=1
 	reqEdit := httptest.NewRequest(http.MethodGet, "/html/invoices/editar?id=1", nil)
@@ -362,6 +368,9 @@ func TestInvoicesRealTemplate(t *testing.T) {
 	bodyEdit := recEdit.Body.String()
 	if !strings.Contains(bodyEdit, `name="edit_tax"`) {
 		t.Errorf("expected edit row to contain 'name=\"edit_tax\"'")
+	}
+	if !strings.Contains(bodyEdit, "Cliente Teste") {
+		t.Errorf("expected edit row to contain customer name 'Cliente Teste'")
 	}
 }
 

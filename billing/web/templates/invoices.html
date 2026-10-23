@@ -751,7 +751,12 @@
 				<span class="text-[10px] font-mono text-gray-400 font-semibold tracking-tight mt-0.5 text-center" title="Código / ID: {{.ExternalCode}}">#{{.ExternalCode}}</span>
 			{{end}}
 		</div>
-		<div class="font-bold text-indigo-300 texto-truncado font-mono" title="{{.Customer}}">{{.Customer}}</div>
+		<div class="flex flex-col truncate" title="{{if .CustomerName}}{{.CustomerName}}{{else}}{{.Customer}}{{end}}">
+			<span class="font-bold text-indigo-300 texto-truncado font-mono">{{.Customer}}</span>
+			{{if .CustomerName}}
+				<span class="text-xs text-gray-400 truncate">{{.CustomerName}}</span>
+			{{end}}
+		</div>
 		<div>
 			{{if .Overdue}}
 				<span class="badge-tag bg-rose-950/60 text-rose-300 border border-rose-800/60 font-mono text-xs">{{.DueDateFormatada}}</span>
@@ -873,7 +878,12 @@
 			<input type="date" name="edit_invoicing" value="{{.DataInvoice}}" required class="input-inline-tabela mb-1">
 			<input type="text" name="edit_external_code" value="{{.ExternalCode}}" placeholder="Cód. ext..." class="input-inline-tabela text-xs text-center" title="Código / ID Externo">
 		</div>
-		<div class="font-bold text-indigo-300 texto-truncado font-mono" style="padding-top: 14px;">{{.Customer}}</div>
+		<div class="flex flex-col truncate" style="padding-top: 14px;" title="{{if .CustomerName}}{{.CustomerName}}{{else}}{{.Customer}}{{end}}">
+			<span class="font-bold text-indigo-300 texto-truncado font-mono">{{.Customer}}</span>
+			{{if .CustomerName}}
+				<span class="text-xs text-gray-400 truncate">{{.CustomerName}}</span>
+			{{end}}
+		</div>
 		<div>
 			<label class="block text-2xs font-bold text-gray-400 uppercase">Vencimento</label>
 			<input type="date" name="edit_due" value="{{.DueDate}}" required class="input-inline-tabela">

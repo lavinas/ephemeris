@@ -881,9 +881,17 @@ func (h *HandlerHtml) mapSingleInvoiceData(inv domain.Invoice) map[string]interf
 	canDelete := inv.CanDelete() && !isExternal
 	canEdit := inv.CanEdit() && !isExternal
 
+	customerName := inv.Customer.Name
+	if customerName == "" && inv.Customer.Nickname != "" && h.repo != nil {
+		if c, err := h.repo.GetCustomer(vendorID, inv.Customer.Nickname); err == nil && c != nil {
+			customerName = c.Name
+		}
+	}
+
 	return map[string]interface{}{
 		"ID":                        inv.ID,
 		"Customer":                  inv.Customer.Nickname,
+		"CustomerName":              customerName,
 		"DataInvoice":               inv.InvoiceDate.Format("2006-01-02"),
 		"DataInvoiceFormatada":      inv.InvoiceDate.Format("02/01/2006"),
 		"DueDate":                   inv.DueDate.Format("2006-01-02"),
