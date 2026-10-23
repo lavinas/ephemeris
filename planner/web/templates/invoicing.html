@@ -10,7 +10,7 @@
 		}
 		.grade-tabela-invoicing {
 			display: grid !important;
-			grid-template-columns: 0.85fr 1fr 1.15fr 0.85fr 0.95fr 5.6fr 0.65fr !important;
+			grid-template-columns: 0.85fr 1.1fr 1.15fr 1.1fr 0.95fr 5.2fr 0.65fr !important;
 			gap: 16px !important;
 			align-items: start !important;
 			width: 100% !important;
@@ -434,16 +434,10 @@
 		<div class="text-sm font-mono text-gray-300">
 			{{.DataFaturaFormatada}}
 		</div>
-		<div class="flex flex-col">
-			<span class="font-bold text-sm text-indigo-400">{{.Nickname}}</span>
-			{{if .Invoiced}}
-				<span class="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-300 bg-emerald-950/60 border border-emerald-800/60 px-1.5 py-0.5 rounded w-fit mt-1" title="Faturada no subsistema Billing (#{{.ReferenceInvoiceID}})">
-					✓ Faturada #{{.ReferenceInvoiceID}}
-				</span>
-			{{else}}
-				<span class="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-300 bg-amber-950/60 border border-amber-800/60 px-1.5 py-0.5 rounded w-fit mt-1" title="Pré-fatura pendente de envio para o billing">
-					⏳ Pendente
-				</span>
+		<div class="flex flex-col truncate" title="{{if .CustomerName}}{{.CustomerName}}{{end}}">
+			<span class="font-bold text-sm text-indigo-400 truncate">{{.Nickname}}</span>
+			{{if .CustomerName}}
+				<span class="text-xs text-gray-400 truncate">{{.CustomerName}}</span>
 			{{end}}
 		</div>
 		<div class="flex flex-col items-start gap-2" style="gap: 8px;">
@@ -465,8 +459,19 @@
 				<div><span class="text-[9px] text-gray-500 uppercase font-semibold">Até: </span><span class="font-mono text-gray-300 font-medium">{{if .PeriodEndFormatada}}{{.PeriodEndFormatada}}{{else}}-{{end}}</span></div>
 			</div>
 		</div>
-		<div class="text-sm font-mono text-gray-300 font-medium">
-			{{.VencimentoFormatado}}
+		<div class="flex flex-col items-start">
+			<span class="text-sm font-mono text-gray-300 font-medium">
+				{{.VencimentoFormatado}}
+			</span>
+			{{if .Invoiced}}
+				<span class="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-300 bg-emerald-950/60 border border-emerald-800/60 px-1.5 py-0.5 rounded w-fit mt-1.5 whitespace-nowrap" title="Faturada no subsistema Billing (#{{.ReferenceInvoiceID}})">
+					✓ Faturada #{{.ReferenceInvoiceID}}
+				</span>
+			{{else}}
+				<span class="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-300 bg-amber-950/60 border border-amber-800/60 px-1.5 py-0.5 rounded w-fit mt-1.5 whitespace-nowrap" title="Pré-fatura pendente de envio para o billing">
+					⏳ Pendente
+				</span>
+			{{end}}
 		</div>
 		<div>
 			<span class="font-bold text-sm font-mono text-emerald-300 bg-emerald-950/60 border border-emerald-800/60 px-2.5 py-1 rounded-md inline-block">
@@ -551,16 +556,10 @@
 		<div class="text-sm font-mono text-gray-300">
 			{{.DataFaturaFormatada}}
 		</div>
-		<div class="flex flex-col">
-			<span class="font-bold text-sm text-indigo-400">{{.Nickname}}</span>
-			{{if .Invoiced}}
-				<span class="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-300 bg-emerald-950/60 border border-emerald-800/60 px-1.5 py-0.5 rounded w-fit mt-1" title="Faturada no subsistema Billing (#{{.ReferenceInvoiceID}})">
-					✓ Faturada #{{.ReferenceInvoiceID}}
-				</span>
-			{{else}}
-				<span class="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-300 bg-amber-950/60 border border-amber-800/60 px-1.5 py-0.5 rounded w-fit mt-1" title="Pré-fatura pendente de envio para o billing">
-					⏳ Pendente
-				</span>
+		<div class="flex flex-col truncate" title="{{if .CustomerName}}{{.CustomerName}}{{end}}">
+			<span class="font-bold text-sm text-indigo-400 truncate">{{.Nickname}}</span>
+			{{if .CustomerName}}
+				<span class="text-xs text-gray-400 truncate">{{.CustomerName}}</span>
 			{{end}}
 		</div>
 		<div class="flex flex-col items-start gap-2" style="gap: 8px;">
@@ -582,10 +581,19 @@
 				<div><span class="text-[9px] text-gray-500 uppercase font-semibold">Até: </span><span class="font-mono text-gray-300 font-medium">{{if .PeriodEndFormatada}}{{.PeriodEndFormatada}}{{else}}-{{end}}</span></div>
 			</div>
 		</div>
-		<div class="flex flex-col gap-1">
+		<div class="flex flex-col gap-1 items-start">
 			<label class="text-[10px] font-bold text-indigo-400 uppercase">Vencimento</label>
 			<input type="date" name="due_date" value="{{.DueDate}}" required
 				   class="bg-gray-900 text-gray-100 border border-indigo-500 rounded px-2 py-1 text-xs font-mono font-bold focus:ring-2 focus:ring-indigo-500 outline-none w-full shadow-sm">
+			{{if .Invoiced}}
+				<span class="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-300 bg-emerald-950/60 border border-emerald-800/60 px-1.5 py-0.5 rounded w-fit mt-1 whitespace-nowrap" title="Faturada no subsistema Billing (#{{.ReferenceInvoiceID}})">
+					✓ Faturada #{{.ReferenceInvoiceID}}
+				</span>
+			{{else}}
+				<span class="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-300 bg-amber-950/60 border border-amber-800/60 px-1.5 py-0.5 rounded w-fit mt-1 whitespace-nowrap" title="Pré-fatura pendente de envio para o billing">
+					⏳ Pendente
+				</span>
+			{{end}}
 		</div>
 		<div>
 			<div class="flex flex-col">

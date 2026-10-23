@@ -486,7 +486,7 @@ func (m *mockInvoiceRouteRepo) GetVendorByID(id int64) (*domain.Vendor, error) {
 }
 
 func (m *mockInvoiceRouteRepo) GetCustomerByID(id int64) (*domain.Customer, error) {
-	return &domain.Customer{ID: id, Nickname: "cliente_teste", VendorID: 1}, nil
+	return &domain.Customer{ID: id, Name: "Cliente Teste Completo", Nickname: "cliente_teste", VendorID: 1}, nil
 }
 
 func (m *mockInvoiceRouteRepo) GetCustomer(vendorID int64, nickname string) (*domain.Customer, error) {
@@ -982,6 +982,9 @@ func TestInvoicing_AlreadyInvoicedBlockedAndPendingFilter(t *testing.T) {
 		t.Errorf("expected 200 on /html/invoicing/tabela, got %d", recTable.Code)
 	}
 	bodyTable := recTable.Body.String()
+	if !strings.Contains(bodyTable, "Cliente Teste Completo") {
+		t.Errorf("expected invoiced row to show customer name 'Cliente Teste Completo', got: %s", bodyTable)
+	}
 	if !strings.Contains(bodyTable, "Faturada #8888") {
 		t.Errorf("expected invoiced row to show 'Faturada #8888', got: %s", bodyTable)
 	}

@@ -132,6 +132,7 @@ type InvoiceDTO struct {
 	ID                 int64            `json:"id"`
 	InvoiceDate        string           `json:"invoice_date"`
 	Nickname           string           `json:"nickname"`
+	CustomerName       string           `json:"customer_name,omitempty"`
 	PlanType           int              `json:"plan_type"`
 	PlanTypeName       string           `json:"plan_type_name"`
 	DueDate            string           `json:"due_date"`

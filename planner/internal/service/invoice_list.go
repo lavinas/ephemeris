@@ -108,15 +108,18 @@ func (s *InvoiceList) mapInvoicesToDTO(invoices []domain.Invoice) []dto.InvoiceD
 	result := make([]dto.InvoiceDTO, len(invoices))
 	for i, inv := range invoices {
 		nickname := ""
+		customerName := ""
 		planType := 0
 		if inv.Plan != nil {
 			planType = inv.Plan.PlanType
 			if inv.Plan.Customer != nil {
 				nickname = inv.Plan.Customer.Nickname
+				customerName = inv.Plan.Customer.Name
 			} else if inv.Plan.CustomerID != 0 && s.repo != nil {
 				c, err := s.repo.GetCustomerByID(inv.Plan.CustomerID)
 				if err == nil && c != nil {
 					nickname = c.Nickname
+					customerName = c.Name
 				}
 			}
 		} else if inv.PlanID != 0 && s.repo != nil {
@@ -125,10 +128,12 @@ func (s *InvoiceList) mapInvoicesToDTO(invoices []domain.Invoice) []dto.InvoiceD
 				planType = p.PlanType
 				if p.Customer != nil {
 					nickname = p.Customer.Nickname
+					customerName = p.Customer.Name
 				} else if p.CustomerID != 0 {
 					c, err := s.repo.GetCustomerByID(p.CustomerID)
 					if err == nil && c != nil {
 						nickname = c.Nickname
+						customerName = c.Name
 					}
 				}
 			}
@@ -176,6 +181,7 @@ func (s *InvoiceList) mapInvoicesToDTO(invoices []domain.Invoice) []dto.InvoiceD
 			ID:                 inv.ID,
 			InvoiceDate:        inv.InvoicingDate.Format("2006-01-02"),
 			Nickname:           nickname,
+			CustomerName:       customerName,
 			PlanType:           planType,
 			PlanTypeName:       planTypeName,
 			DueDate:            inv.DueDate.Format("2006-01-02"),

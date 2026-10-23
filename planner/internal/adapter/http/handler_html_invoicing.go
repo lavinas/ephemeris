@@ -768,6 +768,7 @@ func (h *HandlerHtml) getInvoiceData(response *dto.InvoiceListResponse) []map[st
 			"InvoiceDate":          inv.InvoiceDate,
 			"DataFaturaFormatada":  dataFaturaFormatada,
 			"Nickname":             inv.Nickname,
+			"CustomerName":         inv.CustomerName,
 			"PlanType":             inv.PlanType,
 			"PlanTypeName":         inv.PlanTypeName,
 			"DueDate":              inv.DueDate,
