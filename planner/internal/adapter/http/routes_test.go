@@ -1088,7 +1088,7 @@ func (m *mockReconcileRouteRepo) Find(page, pagesize int, conditions map[string]
 }
 
 func (m *mockReconcileRouteRepo) GetCustomerByID(id int64) (*domain.Customer, error) {
-	return &domain.Customer{ID: id, Nickname: "cliente_teste"}, nil
+	return &domain.Customer{ID: id, Nickname: "cliente_teste", Name: "Cliente Teste Completo"}, nil
 }
 
 func (m *mockReconcileRouteRepo) GetServiceByID(id int64) (*domain.Service, error) {
@@ -1252,6 +1252,20 @@ func TestHTMLSessionReconciliationButtonStates(t *testing.T) {
 	}
 	if strings.Contains(body, `hx-post="/html/sessoes/reconciliar`) {
 		t.Errorf("expected session row NOT to contain hx-post to /html/sessoes/reconciliar")
+	}
+
+	// Verify Cliente column header and CustomerName under Nickname
+	if !strings.Contains(body, "<div>Cliente</div>") {
+		t.Errorf("expected session table header to contain '<div>Cliente</div>'")
+	}
+	if strings.Contains(body, "<div>Usuário</div>") {
+		t.Errorf("expected session table header NOT to contain '<div>Usuário</div>'")
+	}
+	if !strings.Contains(body, "cliente_teste") {
+		t.Errorf("expected session row to contain nickname 'cliente_teste'")
+	}
+	if !strings.Contains(body, "Cliente Teste Completo") {
+		t.Errorf("expected session row to contain CustomerName 'Cliente Teste Completo'")
 	}
 }
 

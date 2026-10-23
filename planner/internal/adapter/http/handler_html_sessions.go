@@ -431,6 +431,7 @@ func (h *HandlerHtml) getSessionData(response *dto.SessionListResponse) []map[st
 		ss := map[string]interface{}{
 			"ID":            session.SessionID,
 			"Nickname":      session.Nickname,
+			"CustomerName":  session.CustomerName,
 			"Data":          session.Date,
 			"DataFormatada": formatedDate.Format("02/01/2006"),
 			"Duracao":       session.Minutes,

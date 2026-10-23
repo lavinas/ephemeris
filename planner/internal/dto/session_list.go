@@ -34,14 +34,15 @@ type SessionListResponse struct {
 
 // Session represents a session with its details.
 type Session struct {
-	SessionID int64  `json:"session_id"`
-	Nickname  string `json:"nickname"`
-	Date      string `json:"date"`
-	Minutes   int    `json:"minutes"`
-	Status    string `json:"status"`
-	ServiceID int64  `json:"service_id,omitempty"`
-	Service   string `json:"service,omitempty"`
-	Comments  string `json:"comments,omitempty"`
+	SessionID    int64  `json:"session_id"`
+	Nickname     string `json:"nickname"`
+	CustomerName string `json:"customer_name,omitempty"`
+	Date         string `json:"date"`
+	Minutes      int    `json:"minutes"`
+	Status       string `json:"status"`
+	ServiceID    int64  `json:"service_id,omitempty"`
+	Service      string `json:"service,omitempty"`
+	Comments     string `json:"comments,omitempty"`
 }
 
 // NewSessionListResponse creates a new instance of SessionListResponse with the provided parameters.

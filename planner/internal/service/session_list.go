@@ -69,12 +69,15 @@ func (s *SessionList) dtoOut(sessions []domain.Session, page, pageSize, totalPag
 			comments = *session.Comments
 		}
 		nickname := ""
+		customerName := ""
 		if session.Customer != nil {
 			nickname = session.Customer.Nickname
+			customerName = session.Customer.Name
 		} else if session.CustomerID != 0 && s.repo != nil {
 			cust, err := s.repo.GetCustomerByID(session.CustomerID)
 			if err == nil && cust != nil {
 				nickname = cust.Nickname
+				customerName = cust.Name
 			}
 		}
 		serviceName := ""
@@ -87,14 +90,15 @@ func (s *SessionList) dtoOut(sessions []domain.Session, page, pageSize, totalPag
 			}
 		}
 		dtoSessions[i] = dto.Session{
-			SessionID: session.ID,
-			Nickname:  nickname,
-			Date:      session.SessionDate.Format("2006-01-02"),
-			Minutes:   session.SessionMinutes,
-			ServiceID: session.ServiceID,
-			Service:   serviceName,
-			Status:    session.SessionStatus,
-			Comments:  comments,
+			SessionID:    session.ID,
+			Nickname:     nickname,
+			CustomerName: customerName,
+			Date:         session.SessionDate.Format("2006-01-02"),
+			Minutes:      session.SessionMinutes,
+			ServiceID:    session.ServiceID,
+			Service:      serviceName,
+			Status:       session.SessionStatus,
+			Comments:     comments,
 		}
 	}
 
