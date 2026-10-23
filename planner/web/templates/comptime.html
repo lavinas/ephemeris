@@ -125,6 +125,8 @@
 			  hx-post="/html/comptime/tabela"
 			  hx-target="#tabela-container-comptime"
 			  hx-trigger="input delay:200ms, change"
+			  oninput="var p=document.getElementById('input-pagina-form-comptime'); if(p && event.target.id!=='input-pagina-form-comptime') p.value='1';"
+			  onchange="var p=document.getElementById('input-pagina-form-comptime'); if(p && event.target.id!=='input-pagina-form-comptime') p.value='1';"
 			  class="w-full">
 			<input type="hidden" id="input-pagina-form-comptime" name="page" value="1">
 			<input type="hidden" name="vendor_id" value="1">
@@ -280,6 +282,7 @@
 							hx-post="/html/comptime/tabela?page={{subtrair .Pagina 1}}"
 							hx-target="#tabela-container-comptime"
 							hx-include="#filtro-form-comptime"
+							onclick="var p = document.getElementById('input-pagina-form-comptime'); if(p) p.value='{{subtrair .Pagina 1}}';"
 							class="px-3 py-1 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded border border-gray-700 transition cursor-pointer">
 						&larr; Anterior
 					</button>
@@ -294,6 +297,7 @@
 							hx-post="/html/comptime/tabela?page={{adicionar .Pagina 1}}"
 							hx-target="#tabela-container-comptime"
 							hx-include="#filtro-form-comptime"
+							onclick="var p = document.getElementById('input-pagina-form-comptime'); if(p) p.value='{{adicionar .Pagina 1}}';"
 							class="px-3 py-1 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded border border-gray-700 transition cursor-pointer">
 						Próxima &rarr;
 					</button>
@@ -304,6 +308,10 @@
 				{{end}}
 			</div>
 		</div>
+		<script>
+			var p = document.getElementById("input-pagina-form-comptime");
+			if (p) p.value = "{{.Pagina}}";
+		</script>
 	{{else}}
 		<div class="py-12 text-center text-gray-400 italic bg-gray-950 rounded-xl border border-dashed border-gray-800 mt-2">
 			Nenhum registro de banco de horas encontrado para os filtros selecionados.
@@ -321,8 +329,9 @@
 		<span class="font-bold text-sm text-indigo-300 font-mono truncate">{{if .CustomerNickname}}{{.CustomerNickname}}{{else}}-{{end}}</span>
 		{{if .CustomerName}}<span class="text-xs text-gray-400 truncate">{{.CustomerName}}</span>{{end}}
 	</div>
-	<div class="text-gray-300 truncate" title="{{.ServiceName}}">
-		{{.ServiceName}}
+	<div class="flex flex-col truncate" title="{{.ServiceName}}{{if .ServiceDescription}} - {{.ServiceDescription}}{{end}}">
+		<span class="font-bold text-sm text-gray-200 truncate">{{.ServiceName}}</span>
+		{{if .ServiceDescription}}<span class="text-xs text-gray-400 truncate">{{.ServiceDescription}}</span>{{end}}
 	</div>
 	<div class="text-right font-mono font-bold text-indigo-400">
 		{{.InvoicedMinutes}} min

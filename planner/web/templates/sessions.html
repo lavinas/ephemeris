@@ -43,22 +43,28 @@
 			margin-bottom: 12px !important;
 		}
 		.linha-box {
-			background-color: #f3f4f6 !important;
-			border: 1px solid #e5e7eb !important;
+			background-color: #111827 !important;
+			border: 1px solid #1f2937 !important;
 			border-radius: 8px !important;
 			margin-bottom: 8px !important;
-			color: #1f2937 !important;
-			transition: background-color 0.15s ease !important;
-			box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+			color: #f3f4f6 !important;
+			transition: all 0.15s ease !important;
+			box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
 		}
-		.linha-box.formulario-add, .linha-box.formulario-edit, .linha-box.aviso-deletar {
-			background-color: #ffffff !important;
-			border: 1px solid #4f46e5 !important;
-			color: #1f2937 !important;
+		.linha-box.formulario-add, .linha-box.formulario-edit {
+			background-color: #111827 !important;
+			border: 1px solid #6366f1 !important;
+			color: #f3f4f6 !important;
 		}
-		.linha-box.aviso-deletar { border-color: #e11d48 !important; }
+		.linha-box.aviso-deletar {
+			background-color: rgba(244, 63, 94, 0.1) !important;
+			border: 1px solid rgba(244, 63, 94, 0.4) !important;
+			color: #fecdd3 !important;
+		}
 		.linha-box:hover:not(.formulario-add):not(.formulario-edit):not(.aviso-deletar) {
-			background-color: #e5e7eb !important;
+			background-color: #1f2937 !important;
+			border-color: #374151 !important;
+			transform: translateY(-1px);
 		}
 		.campo-box {
 			background-color: #1f2937 !important;
@@ -91,16 +97,16 @@
 		.input-inline-tabela {
 			width: 100% !important;
 			padding: 6px 10px !important;
-			background-color: #f9fafb !important;
-			border: 1px solid #d1d5db !important;
-			color: #1f2937 !important;
+			background-color: #1f2937 !important;
+			border: 1px solid #4b5563 !important;
+			color: #f9fafb !important;
 			border-radius: 6px !important;
 			font-size: 14px !important;
 			outline: none !important;
 			box-sizing: border-box !important;
 		}
 		.campo-box input:focus, .campo-box select:focus { border-color: #6366f1 !important; }
-		.input-inline-tabela:focus { border-color: #4f46e5 !important; background-color: #ffffff !important; }
+		.input-inline-tabela:focus { border-color: #6366f1 !important; background-color: #111827 !important; }
 		.texto-truncado { white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
 		.comentario-multilinha { white-space: normal !important; word-break: break-word !important; line-height: 1.4 !important; }
 	</style>
@@ -220,22 +226,28 @@
 				margin-bottom: 12px !important;
 			}
 			.linha-box {
-				background-color: #f3f4f6 !important;
-				border: 1px solid #e5e7eb !important;
+				background-color: #111827 !important;
+				border: 1px solid #1f2937 !important;
 				border-radius: 8px !important;
 				margin-bottom: 8px !important;
-				color: #1f2937 !important;
-				transition: background-color 0.15s ease !important;
-				box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+				color: #f3f4f6 !important;
+				transition: all 0.15s ease !important;
+				box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
 			}
-			.linha-box.formulario-add, .linha-box.formulario-edit, .linha-box.aviso-deletar {
-				background-color: #ffffff !important;
-				border: 1px solid #4f46e5 !important;
-				color: #1f2937 !important;
+			.linha-box.formulario-add, .linha-box.formulario-edit {
+				background-color: #111827 !important;
+				border: 1px solid #6366f1 !important;
+				color: #f3f4f6 !important;
 			}
-			.linha-box.aviso-deletar { border-color: #e11d48 !important; }
+			.linha-box.aviso-deletar {
+				background-color: rgba(244, 63, 94, 0.1) !important;
+				border: 1px solid rgba(244, 63, 94, 0.4) !important;
+				color: #fecdd3 !important;
+			}
 			.linha-box:hover:not(.formulario-add):not(.formulario-edit):not(.aviso-deletar) {
-				background-color: #e5e7eb !important;
+				background-color: #1f2937 !important;
+				border-color: #374151 !important;
+				transform: translateY(-1px);
 			}
 			.campo-box {
 				background-color: #1f2937 !important;
@@ -268,20 +280,20 @@
 			.input-inline-tabela {
 				width: 100% !important;
 				padding: 6px 10px !important;
-				background-color: #f9fafb !important;
-				border: 1px solid #d1d5db !important;
-				color: #1f2937 !important;
+				background-color: #1f2937 !important;
+				border: 1px solid #4b5563 !important;
+				color: #f9fafb !important;
 				border-radius: 6px !important;
 				font-size: 14px !important;
 				outline: none !important;
 				box-sizing: border-box !important;
 			}
 			.campo-box input:focus, .campo-box select:focus { border-color: #6366f1 !important; }
-			.input-inline-tabela:focus { border-color: #4f46e5 !important; background-color: #ffffff !important; }
+			.input-inline-tabela:focus { border-color: #6366f1 !important; background-color: #111827 !important; }
 			.texto-truncado { white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
 			.comentario-multilinha { white-space: normal !important; word-break: break-word !important; line-height: 1.4 !important; }
 			html, body {
-				background-color: #ffffff !important;
+				background-color: #030712 !important;
 			}
 		</style>
 	</head>
@@ -380,7 +392,7 @@
 		<div><textarea name="add_comentario" placeholder="Escreva um comentário..." rows="2" class="input-inline-tabela" style="resize: vertical;">{{.Comentario}}</textarea></div>
 		<div class="flex gap-2 justify-start w-full" style="justify-content: flex-start !important; align-items: center !important;">
 			<button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold text-xs px-3 py-2 rounded-md transition w-16 text-center">Salvar</button>
-			<button type="button" hx-get="/html/sessoes/bloco/limpar" hx-target="#formulario-cadastro-container" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs px-3 py-2 rounded-md border border-gray-300 transition w-16 text-center">Cancelar</button>
+			<button type="button" hx-get="/html/sessoes/bloco/limpar" hx-target="#formulario-cadastro-container" class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-xs px-3 py-2 rounded-md border border-gray-700 transition w-16 text-center">Cancelar</button>
 		</div>
 	</form>
 	{{end}}
@@ -388,12 +400,12 @@
 	{{define "tabela"}}
 	<div class="w-full">
 		{{if .ErrorMessage}}
-		<div class="linha-box bg-rose-50 border border-rose-300 text-rose-800 p-4 rounded-xl shadow-md mb-4 flex items-center justify-between gap-4" style="background-color: #fff1f2 !important; border-color: #fda4af !important; color: #9f1239 !important;">
+		<div class="linha-box bg-rose-950/60 border border-rose-800/80 text-rose-200 p-4 rounded-xl shadow-md mb-4 flex items-center justify-between gap-4" style="background-color: rgba(76, 5, 25, 0.6) !important; border-color: rgba(159, 18, 57, 0.8) !important; color: #fecdd3 !important;">
 			<div class="flex items-center gap-3" style="display: flex; align-items: center; gap: 0.75rem;">
 				<span class="text-xl">⚠️</span>
-				<div class="font-bold text-sm text-rose-900" style="color: #881337 !important;">{{.ErrorMessage}}</div>
+				<div class="font-bold text-sm text-rose-200" style="color: #fecdd3 !important;">{{.ErrorMessage}}</div>
 			</div>
-			<button type="button" onclick="this.closest('.linha-box').remove()" class="text-rose-500 hover:text-rose-700 font-bold text-xs px-2 py-1 bg-rose-100 hover:bg-rose-200 rounded transition cursor-pointer" style="background-color: #ffe4e6; color: #e11d48; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer;">✕ Fechar</button>
+			<button type="button" onclick="this.closest('.linha-box').remove()" class="text-rose-400 hover:text-rose-200 font-bold text-xs px-2 py-1 bg-rose-900/50 hover:bg-rose-900 rounded transition cursor-pointer" style="background-color: rgba(136, 19, 55, 0.5); color: #fecdd3; border: 1px solid rgba(225, 29, 72, 0.3); border-radius: 4px; padding: 4px 8px; cursor: pointer;">✕ Fechar</button>
 		</div>
 		{{end}}
 		<div class="grade-tabela topo-tabela">
@@ -425,18 +437,18 @@
 
 	{{define "linha_sessao"}}
 	<div id="sessao-{{.ID}}" class="linha-box grade-tabela text-sm" style="align-items: start !important; padding-top: 20px; padding-bottom: 20px;">
-		<div class="text-gray-600 font-mono font-medium">{{.DataFormatada}}</div>
-		<div class="font-bold text-gray-900 texto-truncado">{{.Nickname}}</div>
+		<div class="text-gray-400 font-mono font-medium">{{.DataFormatada}}</div>
+		<div class="font-bold text-gray-100 texto-truncado">{{.Nickname}}</div>
 		<div><span style="--status-color: {{.StatusCor}}; color: var(--status-color) !important;" class="text-xs uppercase tracking-wider font-black">{{.Status}}</span></div>
-		<div class="text-gray-700 font-medium italic font-mono">{{.Servico}}</div>
-		<div class="text-gray-700 font-bold font-mono text-base" style="text-align: center !important;">{{.Duracao}}</div>
-		<div class="text-gray-600 comentario-multilinha">{{pularLinhas .Comentario}}</div>
+		<div class="text-gray-300 font-medium italic font-mono">{{.Servico}}</div>
+		<div class="text-gray-200 font-bold font-mono text-base" style="text-align: center !important;">{{.Duracao}}</div>
+		<div class="text-gray-400 comentario-multilinha">{{pularLinhas .Comentario}}</div>
 		<div class="flex items-center gap-1.5 justify-start w-full" style="justify-content: flex-start !important; align-items: center !important;">
 			<button type="button"
 					hx-get="/html/sessoes/editar?id={{.ID}}"
 					hx-target="#sessao-{{.ID}}"
 					hx-swap="outerHTML"
-					class="p-1.5 text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 rounded transition cursor-pointer"
+					class="p-1.5 text-indigo-400 hover:text-indigo-200 hover:bg-indigo-950/60 rounded transition cursor-pointer"
 					title="Editar">
 				<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -446,7 +458,7 @@
 					hx-get="/html/sessoes/deletar-aviso?id={{.ID}}"
 					hx-target="#sessao-{{.ID}}"
 					hx-swap="outerHTML"
-					class="p-1.5 text-rose-600 hover:text-rose-900 hover:bg-rose-50 rounded transition cursor-pointer"
+					class="p-1.5 text-rose-400 hover:text-rose-200 hover:bg-rose-950/60 rounded transition cursor-pointer"
 					title="Excluir">
 				<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -459,7 +471,7 @@
 	{{define "linha_sessao_edit"}}
 	<form id="sessao-{{.ID}}" hx-post="/html/sessoes/atualizar?id={{.ID}}" hx-target="#tabela-container" hx-include="#filtro-form" class="linha-box grade-tabela formulario-edit text-sm shadow-md" style="align-items: start !important; padding-top: 20px; padding-bottom: 20px;">
 		<div><input type="date" name="edit_data" value="{{.Data}}" required class="input-inline-tabela"></div>
-		<div class="font-bold text-gray-900 texto-truncado" style="padding-top: 6px;">{{.Nickname}}</div>
+		<div class="font-bold text-gray-100 texto-truncado" style="padding-top: 6px;">{{.Nickname}}</div>
 		<div>
 			<select name="edit_status" required class="input-inline-tabela">
 				<option value="realizada" {{if eq .Status "realizada"}}selected{{end}}>Realizada</option>
@@ -478,17 +490,17 @@
 		<div><textarea name="edit_comentario" rows="2" class="input-inline-tabela" style="resize: vertical;">{{.Comentario}}</textarea></div>
 		<div class="flex gap-2 justify-start w-full" style="justify-content: flex-start !important; align-items: start !important;">
 			<button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold text-xs px-2.5 py-1.5 rounded-md transition shadow-sm w-16 text-center">Salvar</button>
-			<button type="button" hx-get="/html/sessoes/cancelar-edicao?id={{.ID}}" hx-target="#sessao-{{.ID}}" hx-swap="outerHTML" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs px-2.5 py-1.5 rounded-md border border-gray-300 transition shadow-sm w-16 text-center">Cancelar</button>
+			<button type="button" hx-get="/html/sessoes/cancelar-edicao?id={{.ID}}" hx-target="#sessao-{{.ID}}" hx-swap="outerHTML" class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-xs px-2.5 py-1.5 rounded-md border border-gray-700 transition shadow-sm w-16 text-center">Cancelar</button>
 		</div>
 	</form>
 	{{end}}
 
 	{{define "linha_sessao_deletar_aviso"}}
-	<div id="sessao-{{.ID}}" class="linha-box grade-tabela aviso-deletar text-sm bg-rose-50/50 py-5" style="align-items: center !important;">
-		<div class="col-span-6 text-rose-700 font-bold flex items-center gap-2" style="grid-column: span 6 / span 6 !important;">⚠️ Deseja realmente excluir permanentemente a sessão de <span class="underline">{{.Nickname}}</span>?</div>
+	<div id="sessao-{{.ID}}" class="linha-box grade-tabela aviso-deletar text-sm py-5" style="align-items: center !important;">
+		<div class="col-span-6 text-rose-300 font-bold flex items-center gap-2" style="grid-column: span 6 / span 6 !important;">⚠️ Deseja realmente excluir permanentemente a sessão de <span class="underline text-rose-100">{{.Nickname}}</span>?</div>
 		<div class="flex gap-2 justify-end w-full" style="justify-content: flex-end !important;">
 			<button hx-post="/html/sessoes/deletar?id={{.ID}}" hx-target="#tabela-container" hx-include="#filtro-form" class="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-3 py-2 rounded-md transition shadow-md">Sim, deletar</button>
-			<button hx-get="/html/sessoes/cancelar-edicao?id={{.ID}}" hx-target="#sessao-{{.ID}}" hx-swap="outerHTML" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs px-3 py-2 rounded-md border border-gray-300 transition shadow-sm">Não</button>
+			<button hx-get="/html/sessoes/cancelar-edicao?id={{.ID}}" hx-target="#sessao-{{.ID}}" hx-swap="outerHTML" class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-xs px-3 py-2 rounded-md border border-gray-700 transition shadow-sm">Não</button>
 		</div>
 	</div>
 	{{end}}

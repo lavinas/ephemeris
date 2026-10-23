@@ -19,6 +19,7 @@ type comptimeRecordItem struct {
 	CustomerName       string
 	ServiceID          int64
 	ServiceName        string
+	ServiceDescription string
 	Month              time.Time
 	MonthFormatado     string
 	InvoicedMinutes    int
@@ -214,11 +215,11 @@ func (h *HandlerHtml) ComptimeResync(w http.ResponseWriter, r *http.Request) {
 // buildComptimePageData queries comptime records and builds context map for template.
 func (h *HandlerHtml) buildComptimePageData(r *http.Request) map[string]interface{} {
 	page := 1
-	if pStr := r.FormValue("page"); pStr != "" {
+	if pStr := r.URL.Query().Get("page"); pStr != "" {
 		if p, err := strconv.Atoi(pStr); err == nil && p > 0 {
 			page = p
 		}
-	} else if pStr := r.URL.Query().Get("page"); pStr != "" {
+	} else if pStr := r.FormValue("page"); pStr != "" {
 		if p, err := strconv.Atoi(pStr); err == nil && p > 0 {
 			page = p
 		}
@@ -320,6 +321,7 @@ func (h *HandlerHtml) buildComptimePageData(r *http.Request) map[string]interfac
 			CustomerName:       rec.CustomerName,
 			ServiceID:          rec.ServiceID,
 			ServiceName:        rec.ServiceName,
+			ServiceDescription: rec.ServiceDescription,
 			Month:              rec.Month,
 			MonthFormatado:     rec.Month.Format("2006-01"),
 			InvoicedMinutes:    rec.InvoicedMinutes,
@@ -415,8 +417,12 @@ func (h *HandlerHtml) ComptimeDeleteWarning(w http.ResponseWriter, r *http.Reque
 	}
 
 	serviceName := fmt.Sprintf("Serviço #%d", comptime.ServiceID)
+	serviceDescription := ""
 	if svc, err := h.repo.GetServiceByID(comptime.ServiceID); err == nil && svc != nil {
 		serviceName = svc.Name
+		if svc.Description != nil {
+			serviceDescription = *svc.Description
+		}
 	}
 
 	item := comptimeRecordItem{
@@ -427,6 +433,7 @@ func (h *HandlerHtml) ComptimeDeleteWarning(w http.ResponseWriter, r *http.Reque
 		CustomerName:       customerName,
 		ServiceID:          comptime.ServiceID,
 		ServiceName:        serviceName,
+		ServiceDescription: serviceDescription,
 		Month:              comptime.Month,
 		MonthFormatado:     comptime.Month.Format("2006-01"),
 		InvoicedMinutes:    comptime.InvoicedMinutes,
@@ -469,8 +476,12 @@ func (h *HandlerHtml) ComptimeCancelDelete(w http.ResponseWriter, r *http.Reques
 	}
 
 	serviceName := fmt.Sprintf("Serviço #%d", comptime.ServiceID)
+	serviceDescription := ""
 	if svc, err := h.repo.GetServiceByID(comptime.ServiceID); err == nil && svc != nil {
 		serviceName = svc.Name
+		if svc.Description != nil {
+			serviceDescription = *svc.Description
+		}
 	}
 
 	item := comptimeRecordItem{
@@ -481,6 +492,7 @@ func (h *HandlerHtml) ComptimeCancelDelete(w http.ResponseWriter, r *http.Reques
 		CustomerName:       customerName,
 		ServiceID:          comptime.ServiceID,
 		ServiceName:        serviceName,
+		ServiceDescription: serviceDescription,
 		Month:              comptime.Month,
 		MonthFormatado:     comptime.Month.Format("2006-01"),
 		InvoicedMinutes:    comptime.InvoicedMinutes,

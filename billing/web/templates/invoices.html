@@ -31,23 +31,33 @@
 			margin-bottom: 12px !important;
 		}
 		.linha-box {
-			background-color: #f3f4f6 !important;
-			border: 1px solid #e5e7eb !important;
+			background-color: #111827 !important;
+			border: 1px solid #1f2937 !important;
 			border-radius: 8px !important;
 			margin-bottom: 8px !important;
-			color: #1f2937 !important;
-			transition: background-color 0.15s ease !important;
-			box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+			color: #f3f4f6 !important;
+			transition: all 0.15s ease !important;
+			box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important;
 		}
-		.linha-box.formulario-add, .linha-box.formulario-edit, .linha-box.aviso-deletar, .linha-box.aviso-pagar {
-			background-color: #ffffff !important;
-			border: 1px solid #4f46e5 !important;
-			color: #1f2937 !important;
+		.linha-box.formulario-add, .linha-box.formulario-edit {
+			background-color: #111827 !important;
+			border: 1px solid #6366f1 !important;
+			color: #f3f4f6 !important;
 		}
-		.linha-box.aviso-deletar { border-color: #e11d48 !important; }
-		.linha-box.aviso-pagar { border-color: #10b981 !important; }
+		.linha-box.aviso-deletar {
+			background-color: rgba(244, 63, 94, 0.1) !important;
+			border: 1px solid rgba(244, 63, 94, 0.4) !important;
+			color: #fecdd3 !important;
+		}
+		.linha-box.aviso-pagar {
+			background-color: rgba(16, 185, 129, 0.1) !important;
+			border: 1px solid rgba(16, 185, 129, 0.4) !important;
+			color: #a7f3d0 !important;
+		}
 		.linha-box:hover:not(.formulario-add):not(.formulario-edit):not(.aviso-deletar):not(.aviso-pagar) {
-			background-color: #e5e7eb !important;
+			background-color: #1f2937 !important;
+			border-color: #374151 !important;
+			transform: translateY(-1px);
 		}
 		.campo-box {
 			background-color: #1f2937 !important;
@@ -80,16 +90,16 @@
 		.input-inline-tabela {
 			width: 100% !important;
 			padding: 6px 10px !important;
-			background-color: #f9fafb !important;
-			border: 1px solid #d1d5db !important;
-			color: #1f2937 !important;
+			background-color: #1f2937 !important;
+			border: 1px solid #4b5563 !important;
+			color: #f9fafb !important;
 			border-radius: 6px !important;
 			font-size: 13px !important;
 			outline: none !important;
 			box-sizing: border-box !important;
 		}
 		.campo-box input:focus, .campo-box select:focus { border-color: #6366f1 !important; }
-		.input-inline-tabela:focus { border-color: #4f46e5 !important; background-color: #ffffff !important; }
+		.input-inline-tabela:focus { border-color: #6366f1 !important; background-color: #111827 !important; box-shadow: 0 0 0 1px #6366f1 !important; }
 		.texto-truncado { white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
 		.comentario-multilinha { white-space: normal !important; word-break: break-word !important; overflow-wrap: anywhere !important; line-height: 1.35 !important; min-width: 0 !important; }
 		.badge-tag {
@@ -281,23 +291,33 @@
 				margin-bottom: 12px !important;
 			}
 			.linha-box {
-				background-color: #f3f4f6 !important;
-				border: 1px solid #e5e7eb !important;
+				background-color: #111827 !important;
+				border: 1px solid #1f2937 !important;
 				border-radius: 8px !important;
 				margin-bottom: 8px !important;
-				color: #1f2937 !important;
-				transition: background-color 0.15s ease !important;
-				box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+				color: #f3f4f6 !important;
+				transition: all 0.15s ease !important;
+				box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important;
 			}
-			.linha-box.formulario-add, .linha-box.formulario-edit, .linha-box.aviso-deletar, .linha-box.aviso-pagar {
-				background-color: #ffffff !important;
-				border: 1px solid #4f46e5 !important;
-				color: #1f2937 !important;
+			.linha-box.formulario-add, .linha-box.formulario-edit {
+				background-color: #111827 !important;
+				border: 1px solid #6366f1 !important;
+				color: #f3f4f6 !important;
 			}
-			.linha-box.aviso-deletar { border-color: #e11d48 !important; }
-			.linha-box.aviso-pagar { border-color: #10b981 !important; }
+			.linha-box.aviso-deletar {
+				background-color: rgba(244, 63, 94, 0.1) !important;
+				border: 1px solid rgba(244, 63, 94, 0.4) !important;
+				color: #fecdd3 !important;
+			}
+			.linha-box.aviso-pagar {
+				background-color: rgba(16, 185, 129, 0.1) !important;
+				border: 1px solid rgba(16, 185, 129, 0.4) !important;
+				color: #a7f3d0 !important;
+			}
 			.linha-box:hover:not(.formulario-add):not(.formulario-edit):not(.aviso-deletar):not(.aviso-pagar) {
-				background-color: #e5e7eb !important;
+				background-color: #1f2937 !important;
+				border-color: #374151 !important;
+				transform: translateY(-1px);
 			}
 			.campo-box {
 				background-color: #1f2937 !important;
@@ -330,16 +350,16 @@
 			.input-inline-tabela {
 				width: 100% !important;
 				padding: 6px 10px !important;
-				background-color: #f9fafb !important;
-				border: 1px solid #d1d5db !important;
-				color: #1f2937 !important;
+				background-color: #1f2937 !important;
+				border: 1px solid #4b5563 !important;
+				color: #f9fafb !important;
 				border-radius: 6px !important;
 				font-size: 13px !important;
 				outline: none !important;
 				box-sizing: border-box !important;
 			}
 			.campo-box input:focus, .campo-box select:focus { border-color: #6366f1 !important; }
-			.input-inline-tabela:focus { border-color: #4f46e5 !important; background-color: #ffffff !important; }
+			.input-inline-tabela:focus { border-color: #6366f1 !important; background-color: #111827 !important; box-shadow: 0 0 0 1px #6366f1 !important; }
 			.texto-truncado { white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
 			.comentario-multilinha { white-space: normal !important; word-break: break-word !important; overflow-wrap: anywhere !important; line-height: 1.35 !important; min-width: 0 !important; }
 			.badge-tag {
@@ -365,7 +385,7 @@
 				to { transform: rotate(360deg); }
 			}
 			html, body {
-				background-color: #ffffff !important;
+				background-color: #030712 !important;
 			}
 		</style>
 	</head>
@@ -523,17 +543,17 @@
 	{{end}}
 
 	{{define "formulario_cadastro"}}
-	<form hx-post="/html/invoices/salvar" hx-target="#tabela-container" hx-include="#filtro-form" class="linha-box formulario-add text-sm shadow-xl p-6" style="background-color: #ffffff !important; border: 1px solid #4f46e5 !important; border-radius: 12px; padding: 24px;">
-		<div class="font-bold text-base text-indigo-900 border-b pb-3 mb-4 flex items-center justify-between">
+	<form hx-post="/html/invoices/salvar" hx-target="#tabela-container" hx-include="#filtro-form" class="linha-box formulario-add text-sm shadow-xl p-6" style="background-color: #111827 !important; border: 1px solid #6366f1 !important; border-radius: 12px; padding: 24px;">
+		<div class="font-bold text-base text-indigo-400 border-b border-gray-800 pb-3 mb-4 flex items-center justify-between">
 			<div class="flex items-center gap-2">
-				<span class="text-indigo-600">📄</span>
+				<span class="text-indigo-400">📄</span>
 				<span>Nova Fatura</span>
 			</div>
-			<span class="text-xs font-normal text-gray-500">Preencha os dados e adicione os itens correspondentes</span>
+			<span class="text-xs font-normal text-gray-400">Preencha os dados e adicione os itens correspondentes</span>
 		</div>
 		<div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-4 mb-6">
 			<div>
-				<label class="block text-xs font-bold text-gray-600 uppercase mb-1">Cliente *</label>
+				<label class="block text-xs font-bold text-gray-300 uppercase mb-1">Cliente *</label>
 				<input type="text" name="add_customer" value="{{.Customer}}" placeholder="Selecione ou digite..." list="lista-nicknames" required class="input-inline-tabela">
 				<datalist id="lista-nicknames">
 					{{range .Nicknames}}
@@ -542,48 +562,48 @@
 				</datalist>
 			</div>
 			<div>
-				<label class="block text-xs font-bold text-gray-600 uppercase mb-1">Data Fatura *</label>
+				<label class="block text-xs font-bold text-gray-300 uppercase mb-1">Data Fatura *</label>
 				<input type="date" name="add_invoicing" value="{{.InvoiceDate}}" required class="input-inline-tabela">
 			</div>
 			<div>
-				<label class="block text-xs font-bold text-gray-600 uppercase mb-1">Vencimento *</label>
+				<label class="block text-xs font-bold text-gray-300 uppercase mb-1">Vencimento *</label>
 				<input type="date" name="add_due" value="{{.DueDate}}" required class="input-inline-tabela">
 			</div>
 			<div>
-				<label class="block text-xs font-bold text-gray-600 uppercase mb-1">Pagamento</label>
+				<label class="block text-xs font-bold text-gray-300 uppercase mb-1">Pagamento</label>
 				<input type="date" name="add_payment" value="{{.PaymentDate}}" class="input-inline-tabela">
 			</div>
 			<div>
-				<label class="block text-xs font-bold text-gray-600 uppercase mb-1">Envio Fatura</label>
+				<label class="block text-xs font-bold text-gray-300 uppercase mb-1">Envio Fatura</label>
 				<input type="date" name="add_email_sent" value="{{.EmailSentDate}}" class="input-inline-tabela">
 			</div>
 			<div>
-				<label class="block text-xs font-bold text-gray-600 uppercase mb-1">Envio Recibo</label>
+				<label class="block text-xs font-bold text-gray-300 uppercase mb-1">Envio Recibo</label>
 				<input type="date" name="add_email_receipt" value="{{.EmailReceiptDate}}" class="input-inline-tabela">
 			</div>
 			<div>
-				<label class="block text-xs font-bold text-gray-600 uppercase mb-1">Ext. Cod.</label>
+				<label class="block text-xs font-bold text-gray-300 uppercase mb-1">Ext. Cod.</label>
 				<input type="text" name="add_external_code" value="{{.ExternalCode}}" placeholder="Cód. externo..." class="input-inline-tabela">
 			</div>
 		</div>
 		
 		<div class="mb-4">
-			<label class="block text-xs font-bold text-gray-600 uppercase mb-1">Observações</label>
+			<label class="block text-xs font-bold text-gray-300 uppercase mb-1">Observações</label>
 			<input type="text" name="add_notes" value="{{.Notes}}" placeholder="Observações adicionais da fatura..." class="input-inline-tabela">
 		</div>
 
 		<!-- Lista de Itens Dinâmicos -->
-		<div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+		<div class="bg-gray-950 border border-gray-800 rounded-lg p-4 mb-6">
 			<div class="flex items-center justify-between mb-3">
-				<span class="text-xs font-bold text-gray-700 uppercase tracking-wider">Itens da Fatura</span>
-				<button type="button" onclick="adicionarLinhaItem()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs px-3 py-1.5 rounded border border-indigo-200 transition flex items-center gap-1 cursor-pointer">
+				<span class="text-xs font-bold text-gray-300 uppercase tracking-wider">Itens da Fatura</span>
+				<button type="button" onclick="adicionarLinhaItem()" class="bg-indigo-950/60 hover:bg-indigo-900/80 text-indigo-300 font-bold text-xs px-3 py-1.5 rounded border border-indigo-700/60 transition flex items-center gap-1 cursor-pointer">
 					<span>＋</span> Adicionar Linha
 				</button>
 			</div>
 			<div id="container-itens-form" class="space-y-2">
 				{{if .Items}}
 					{{range $idx, $item := .Items}}
-					<div class="linha-item-form grid grid-cols-12 gap-3 items-center bg-white p-2.5 rounded border border-gray-200 shadow-sm">
+					<div class="linha-item-form grid grid-cols-12 gap-3 items-center bg-gray-900 p-2.5 rounded border border-gray-800 shadow-sm">
 						<div class="col-span-6">
 							<input type="text" name="item_descricao[]" value="{{$item.Description}}" placeholder="Descrição do item ou serviço..." required class="input-inline-tabela text-xs">
 						</div>
@@ -594,12 +614,12 @@
 							<input type="number" name="item_preco[]" value="{{$item.Price}}" step="0.01" min="0.01" placeholder="Preço (R$)" required class="input-inline-tabela text-xs text-right" oninput="calcularTotalForm()">
 						</div>
 						<div class="col-span-1 text-center">
-							<button type="button" onclick="removerLinhaItem(this)" class="text-rose-600 hover:text-rose-800 font-bold text-sm px-2 py-1 rounded hover:bg-rose-50 cursor-pointer" title="Remover item">✕</button>
+							<button type="button" onclick="removerLinhaItem(this)" class="text-rose-400 hover:text-rose-300 font-bold text-sm px-2 py-1 rounded hover:bg-rose-950/50 cursor-pointer" title="Remover item">✕</button>
 						</div>
 					</div>
 					{{end}}
 				{{else}}
-					<div class="linha-item-form grid grid-cols-12 gap-3 items-center bg-white p-2.5 rounded border border-gray-200 shadow-sm">
+					<div class="linha-item-form grid grid-cols-12 gap-3 items-center bg-gray-900 p-2.5 rounded border border-gray-800 shadow-sm">
 						<div class="col-span-6">
 							<input type="text" name="item_descricao[]" placeholder="Descrição do item ou serviço..." required class="input-inline-tabela text-xs">
 						</div>
@@ -610,20 +630,20 @@
 							<input type="number" name="item_preco[]" step="0.01" min="0.01" placeholder="Preço (R$)" required class="input-inline-tabela text-xs text-right" oninput="calcularTotalForm()">
 						</div>
 						<div class="col-span-1 text-center">
-							<button type="button" onclick="removerLinhaItem(this)" class="text-rose-600 hover:text-rose-800 font-bold text-sm px-2 py-1 rounded hover:bg-rose-50 cursor-pointer" title="Remover item">✕</button>
+							<button type="button" onclick="removerLinhaItem(this)" class="text-rose-400 hover:text-rose-300 font-bold text-sm px-2 py-1 rounded hover:bg-rose-950/50 cursor-pointer" title="Remover item">✕</button>
 						</div>
 					</div>
 				{{end}}
 			</div>
-			<div class="flex justify-end mt-3 pt-2 border-t border-gray-200 text-xs text-gray-700 font-bold">
+			<div class="flex justify-end mt-3 pt-2 border-t border-gray-800 text-xs text-gray-300 font-bold">
 				<span class="mr-2">Total Calculado:</span>
-				<span id="label-total-form" class="font-mono text-indigo-700 text-sm">R$ 0,00</span>
+				<span id="label-total-form" class="font-mono text-indigo-400 text-sm">R$ 0,00</span>
 			</div>
 		</div>
 
 		<div class="flex gap-3 justify-start items-center">
-			<button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold text-sm px-6 py-2 rounded-lg transition shadow-md cursor-pointer">Salvar Fatura</button>
-			<button type="button" hx-get="/html/invoices/bloco/limpar" hx-target="#formulario-cadastro-container" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-sm px-6 py-2 rounded-lg border border-gray-300 transition cursor-pointer">Cancelar</button>
+			<button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm px-6 py-2 rounded-lg transition shadow-md cursor-pointer border border-emerald-400">Salvar Fatura</button>
+			<button type="button" hx-get="/html/invoices/bloco/limpar" hx-target="#formulario-cadastro-container" class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-sm px-6 py-2 rounded-lg border border-gray-700 transition cursor-pointer">Cancelar</button>
 		</div>
 	</form>
 
@@ -631,7 +651,7 @@
 		function adicionarLinhaItem() {
 			const container = document.getElementById('container-itens-form');
 			const novaLinha = document.createElement('div');
-			novaLinha.className = 'linha-item-form grid grid-cols-12 gap-3 items-center bg-white p-2.5 rounded border border-gray-200 shadow-sm';
+			novaLinha.className = 'linha-item-form grid grid-cols-12 gap-3 items-center bg-gray-900 p-2.5 rounded border border-gray-800 shadow-sm';
 			novaLinha.innerHTML = `
 				<div class="col-span-6">
 					<input type="text" name="item_descricao[]" placeholder="Descrição do item ou serviço..." required class="input-inline-tabela text-xs">
@@ -643,7 +663,7 @@
 					<input type="number" name="item_preco[]" step="0.01" min="0.01" placeholder="Preço (R$)" required class="input-inline-tabela text-xs text-right" oninput="calcularTotalForm()">
 				</div>
 				<div class="col-span-1 text-center">
-					<button type="button" onclick="removerLinhaItem(this)" class="text-rose-600 hover:text-rose-800 font-bold text-sm px-2 py-1 rounded hover:bg-rose-50 cursor-pointer" title="Remover item">✕</button>
+					<button type="button" onclick="removerLinhaItem(this)" class="text-rose-400 hover:text-rose-300 font-bold text-sm px-2 py-1 rounded hover:bg-rose-950/50 cursor-pointer" title="Remover item">✕</button>
 				</div>
 			`;
 			container.appendChild(novaLinha);
@@ -726,67 +746,67 @@
 	{{define "linha_invoice"}}
 	<div id="invoice-{{.ID}}" class="linha-box grade-tabela text-sm" style="align-items: start !important; padding-top: 16px; padding-bottom: 16px;">
 		<div class="flex flex-col items-center w-fit" style="width: fit-content; text-align: center;">
-			<span class="text-gray-700 font-mono font-bold text-xs">{{.DataInvoiceFormatada}}</span>
+			<span class="text-gray-300 font-mono font-bold text-xs">{{.DataInvoiceFormatada}}</span>
 			{{if .ExternalCode}}
-				<span class="text-[10px] font-mono text-gray-500 font-semibold tracking-tight mt-0.5 text-center" title="Código / ID: {{.ExternalCode}}">#{{.ExternalCode}}</span>
+				<span class="text-[10px] font-mono text-gray-400 font-semibold tracking-tight mt-0.5 text-center" title="Código / ID: {{.ExternalCode}}">#{{.ExternalCode}}</span>
 			{{end}}
 		</div>
-		<div class="font-bold text-gray-900 texto-truncado" title="{{.Customer}}">{{.Customer}}</div>
+		<div class="font-bold text-indigo-300 texto-truncado font-mono" title="{{.Customer}}">{{.Customer}}</div>
 		<div>
 			{{if .Overdue}}
-				<span class="badge-tag bg-rose-100 text-rose-800 border border-rose-300 font-mono text-xs">{{.DueDateFormatada}}</span>
+				<span class="badge-tag bg-rose-950/60 text-rose-300 border border-rose-800/60 font-mono text-xs">{{.DueDateFormatada}}</span>
 			{{else}}
-				<span class="badge-tag bg-sky-100 text-sky-800 border border-sky-300 font-mono text-xs">{{.DueDateFormatada}}</span>
+				<span class="badge-tag bg-sky-950/60 text-sky-300 border border-sky-800/60 font-mono text-xs">{{.DueDateFormatada}}</span>
 			{{end}}
 		</div>
 		<div>
 			{{if .EmailSentDateRaw}}
-				<span class="badge-tag bg-sky-100 text-sky-800 border border-sky-300 font-mono text-xs">✓ {{.EmailSentDateFormatada}}</span>
+				<span class="badge-tag bg-sky-950/60 text-sky-300 border border-sky-800/60 font-mono text-xs">✓ {{.EmailSentDateFormatada}}</span>
 			{{else}}
-				<span class="badge-tag bg-gray-200 text-gray-600 border border-gray-300 text-xs">Não enviado</span>
+				<span class="badge-tag bg-gray-800/60 text-gray-400 border border-gray-700/60 text-xs">Não enviado</span>
 			{{end}}
 		</div>
 		<div>
 			{{if .PaymentDateRaw}}
-				<span class="badge-tag bg-emerald-100 text-emerald-800 border border-emerald-300 font-mono text-xs">✓ {{.PaymentDateFormatada}}</span>
+				<span class="badge-tag bg-emerald-950/60 text-emerald-300 border border-emerald-800/60 font-mono text-xs">✓ {{.PaymentDateFormatada}}</span>
 			{{else if .Overdue}}
-				<span class="badge-tag bg-rose-100 text-rose-800 border border-rose-300 font-mono text-xs">Vencido</span>
+				<span class="badge-tag bg-rose-950/60 text-rose-300 border border-rose-800/60 font-mono text-xs">Vencido</span>
 			{{else}}
-				<span class="badge-tag bg-amber-100 text-amber-800 border border-amber-300 font-mono text-xs">Pendente</span>
+				<span class="badge-tag bg-amber-950/60 text-amber-300 border border-amber-800/60 font-mono text-xs">Pendente</span>
 			{{end}}
 		</div>
 		<div>
 			{{if .EmailReceiptDateRaw}}
-				<span class="badge-tag bg-purple-100 text-purple-800 border border-purple-300 font-mono text-xs">✓ {{.EmailReceiptDateFormatada}}</span>
+				<span class="badge-tag bg-purple-950/60 text-purple-300 border border-purple-800/60 font-mono text-xs">✓ {{.EmailReceiptDateFormatada}}</span>
 			{{else}}
-				<span class="badge-tag bg-gray-200 text-gray-600 border border-gray-300 text-xs">Não enviado</span>
+				<span class="badge-tag bg-gray-800/60 text-gray-400 border border-gray-700/60 text-xs">Não enviado</span>
 			{{end}}
 		</div>
 		<div>
 			{{if .TaxDateRaw}}
-				<span class="badge-tag bg-teal-100 text-teal-800 border border-teal-300 font-mono text-xs">✓ {{.TaxDateFormatada}}</span>
+				<span class="badge-tag bg-teal-950/60 text-teal-300 border border-teal-800/60 font-mono text-xs">✓ {{.TaxDateFormatada}}</span>
 			{{else}}
-				<span class="badge-tag bg-gray-200 text-gray-600 border border-gray-300 text-xs">Não enviado</span>
+				<span class="badge-tag bg-gray-800/60 text-gray-400 border border-gray-700/60 text-xs">Não enviado</span>
 			{{end}}
 		</div>
 		<div class="comentario-multilinha" style="min-width: 0;">
-			<div class="font-mono font-bold text-indigo-700 text-sm mb-1">{{.ValorFormatado}}</div>
+			<div class="font-mono font-bold text-indigo-400 text-sm mb-1">{{.ValorFormatado}}</div>
 			{{if .Items}}
-				<div class="text-xs text-gray-600 space-y-0.5" style="min-width: 0;">
+				<div class="text-xs text-gray-300 space-y-0.5" style="min-width: 0;">
 					{{range .Items}}
 						<div style="word-break: break-word; overflow-wrap: anywhere; white-space: normal; line-height: 1.35;">• {{.Quantity}}x {{.Description}} ({{.PrecoFormatado}})</div>
 					{{end}}
 				</div>
 			{{end}}
 			{{if .Notes}}
-				<div class="text-xs text-gray-500 italic mt-1 font-sans" style="word-break: break-word; overflow-wrap: anywhere; white-space: normal; line-height: 1.35;">Obs: {{.Notes}}</div>
+				<div class="text-xs text-gray-400 italic mt-1 font-sans" style="word-break: break-word; overflow-wrap: anywhere; white-space: normal; line-height: 1.35;">Obs: {{.Notes}}</div>
 			{{end}}
 		</div>
 		<div class="flex flex-wrap gap-1.5 justify-end w-full" style="justify-content: flex-end !important; align-items: start !important; text-align: right;">
 			<button type="button"
 					data-id="{{.ID}}"
 					onclick="baixarDocumentoPDF(this.dataset.id, 0, this)"
-					class="p-1.5 text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 rounded transition cursor-pointer"
+					class="p-1.5 text-indigo-400 hover:text-indigo-200 hover:bg-indigo-950/60 rounded transition cursor-pointer border border-transparent hover:border-indigo-800/60"
 					title="Baixar Fatura PDF">
 				<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -796,7 +816,7 @@
 				<button type="button"
 						data-id="{{.ID}}"
 						onclick="baixarDocumentoPDF(this.dataset.id, 1, this)"
-						class="p-1.5 text-purple-600 hover:text-purple-900 hover:bg-purple-50 rounded transition cursor-pointer"
+						class="p-1.5 text-purple-400 hover:text-purple-200 hover:bg-purple-950/60 rounded transition cursor-pointer border border-transparent hover:border-purple-800/60"
 						title="Baixar Recibo PDF">
 					<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
@@ -809,7 +829,7 @@
 					hx-target="#invoice-{{.ID}}"
 					hx-swap="outerHTML"
 					hx-disabled-elt="this"
-					class="p-1.5 text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 rounded transition cursor-pointer"
+					class="p-1.5 text-indigo-400 hover:text-indigo-200 hover:bg-indigo-950/60 rounded transition cursor-pointer border border-transparent hover:border-indigo-800/60"
 					title="Editar dados da invoice">
 				<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -822,7 +842,7 @@
 						hx-target="#invoice-{{.ID}}"
 						hx-swap="outerHTML"
 						hx-disabled-elt="this"
-						class="p-1.5 text-emerald-600 hover:text-emerald-900 hover:bg-emerald-50 rounded transition cursor-pointer"
+						class="p-1.5 text-emerald-400 hover:text-emerald-200 hover:bg-emerald-950/60 rounded transition cursor-pointer border border-transparent hover:border-emerald-800/60"
 						title="Registrar pagamento">
 					<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -835,7 +855,7 @@
 						hx-target="#invoice-{{.ID}}"
 						hx-swap="outerHTML"
 						hx-disabled-elt="this"
-						class="p-1.5 text-rose-600 hover:text-rose-900 hover:bg-rose-50 rounded transition cursor-pointer"
+						class="p-1.5 text-rose-400 hover:text-rose-200 hover:bg-rose-950/60 rounded transition cursor-pointer border border-transparent hover:border-rose-800/60"
 						title="Deletar/Cancelar invoice">
 					<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -849,71 +869,71 @@
 	{{define "linha_invoice_edit"}}
 	<form id="invoice-{{.ID}}" hx-post="/html/invoices/atualizar?id={{.ID}}" hx-target="#tabela-container" hx-include="#filtro-form" class="linha-box grade-tabela formulario-edit text-sm shadow-md" style="align-items: start !important; padding-top: 16px; padding-bottom: 16px;">
 		<div>
-			<label class="block text-2xs font-bold text-gray-500 uppercase">Data</label>
+			<label class="block text-2xs font-bold text-gray-400 uppercase">Data</label>
 			<input type="date" name="edit_invoicing" value="{{.DataInvoice}}" required class="input-inline-tabela mb-1">
 			<input type="text" name="edit_external_code" value="{{.ExternalCode}}" placeholder="Cód. ext..." class="input-inline-tabela text-xs text-center" title="Código / ID Externo">
 		</div>
-		<div class="font-bold text-gray-900 texto-truncado" style="padding-top: 14px;">{{.Customer}}</div>
+		<div class="font-bold text-indigo-300 texto-truncado font-mono" style="padding-top: 14px;">{{.Customer}}</div>
 		<div>
-			<label class="block text-2xs font-bold text-gray-500 uppercase">Vencimento</label>
+			<label class="block text-2xs font-bold text-gray-400 uppercase">Vencimento</label>
 			<input type="date" name="edit_due" value="{{.DueDate}}" required class="input-inline-tabela">
 		</div>
 		<div>
-			<label class="block text-2xs font-bold text-gray-500 uppercase">Envio Fatura</label>
+			<label class="block text-2xs font-bold text-gray-400 uppercase">Envio Fatura</label>
 			<input type="date" name="edit_email_sent" value="{{.EmailSentDateRaw}}" class="input-inline-tabela">
 		</div>
 		<div>
-			<label class="block text-2xs font-bold text-gray-500 uppercase">Pagamento</label>
+			<label class="block text-2xs font-bold text-gray-400 uppercase">Pagamento</label>
 			<input type="date" name="edit_payment" value="{{.PaymentDateRaw}}" class="input-inline-tabela">
 		</div>
 		<div>
-			<label class="block text-2xs font-bold text-gray-500 uppercase">Envio Recibo</label>
+			<label class="block text-2xs font-bold text-gray-400 uppercase">Envio Recibo</label>
 			<input type="date" name="edit_email_receipt" value="{{.EmailReceiptDateRaw}}" class="input-inline-tabela">
 		</div>
 		<div>
-			<label class="block text-2xs font-bold text-gray-500 uppercase">Envio Nota</label>
+			<label class="block text-2xs font-bold text-gray-400 uppercase">Envio Nota</label>
 			<input type="date" name="edit_tax" value="{{.TaxDateRaw}}" class="input-inline-tabela">
 		</div>
 		<div>
-			<div class="font-mono font-bold text-indigo-700 text-xs mb-1">{{.ValorFormatado}}</div>
-			<div class="text-xs text-gray-500 italic">Itens não editáveis após emissão</div>
+			<div class="font-mono font-bold text-indigo-400 text-xs mb-1">{{.ValorFormatado}}</div>
+			<div class="text-xs text-gray-400 italic">Itens não editáveis após emissão</div>
 		</div>
 		<div class="flex gap-1.5 justify-end w-full" style="justify-content: flex-end !important; align-items: start !important; padding-top: 10px;">
-			<button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold text-xs px-3 py-1.5 rounded transition shadow-sm cursor-pointer">Salvar</button>
-			<button type="button" hx-get="/html/invoices/cancelar-edicao?id={{.ID}}" hx-target="#invoice-{{.ID}}" hx-swap="outerHTML" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs px-3 py-1.5 rounded border border-gray-300 transition shadow-sm cursor-pointer">Cancelar</button>
+			<button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3 py-1.5 rounded transition shadow-sm cursor-pointer border border-emerald-400">Salvar</button>
+			<button type="button" hx-get="/html/invoices/cancelar-edicao?id={{.ID}}" hx-target="#invoice-{{.ID}}" hx-swap="outerHTML" class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-xs px-3 py-1.5 rounded border border-gray-700 transition shadow-sm cursor-pointer">Cancelar</button>
 		</div>
 	</form>
 	{{end}}
 
 	{{define "linha_invoice_deletar_aviso"}}
-	<div id="invoice-{{.ID}}" class="linha-box grade-tabela aviso-deletar text-sm bg-rose-50/50 py-5" style="align-items: center !important;">
-		<div class="col-span-7 text-rose-700 font-bold flex items-center gap-2" style="grid-column: span 7 / span 7 !important;">
+	<div id="invoice-{{.ID}}" class="linha-box grade-tabela aviso-deletar text-sm py-5" style="align-items: center !important;">
+		<div class="col-span-7 text-rose-300 font-bold flex items-center gap-2" style="grid-column: span 7 / span 7 !important;">
 			<span>⚠️</span>
 			<span>Deseja realmente cancelar/excluir permanentemente a invoice <strong>#{{.ID}}</strong> de <span class="underline">{{.Customer}}</span> no valor de <strong>{{.ValorFormatado}}</strong>?</span>
 		</div>
 		<div class="col-span-2 flex gap-2 justify-end w-full" style="grid-column: span 2 / span 2 !important; justify-content: flex-end !important;">
-			<button hx-post="/html/invoices/cancelar?id={{.ID}}" hx-target="#tabela-container" hx-include="#filtro-form" hx-disabled-elt="this" class="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-3 py-2 rounded transition shadow-md cursor-pointer">Sim, cancelar</button>
-			<button hx-get="/html/invoices/cancelar-edicao?id={{.ID}}" hx-target="#invoice-{{.ID}}" hx-swap="outerHTML" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs px-3 py-2 rounded border border-gray-300 transition shadow-sm cursor-pointer">Não</button>
+			<button hx-post="/html/invoices/cancelar?id={{.ID}}" hx-target="#tabela-container" hx-include="#filtro-form" hx-disabled-elt="this" class="bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs px-3 py-2 rounded transition shadow-md cursor-pointer border border-rose-400">Sim, cancelar</button>
+			<button hx-get="/html/invoices/cancelar-edicao?id={{.ID}}" hx-target="#invoice-{{.ID}}" hx-swap="outerHTML" class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-xs px-3 py-2 rounded border border-gray-700 transition shadow-sm cursor-pointer">Não</button>
 		</div>
 	</div>
 	{{end}}
 
 	{{define "linha_invoice_pagamento_aviso"}}
-	<form id="invoice-{{.ID}}" hx-post="/html/invoices/pagar?id={{.ID}}" hx-target="#tabela-container" hx-include="#filtro-form" hx-indicator="#spinner-pay-{{.ID}}" hx-disabled-elt="find button, find input" class="linha-box grade-tabela aviso-pagar text-sm bg-emerald-50/50 py-4" style="align-items: center !important;">
-		<div class="col-span-7 text-emerald-800 font-bold flex items-center gap-2" style="grid-column: span 7 / span 7 !important;">
+	<form id="invoice-{{.ID}}" hx-post="/html/invoices/pagar?id={{.ID}}" hx-target="#tabela-container" hx-include="#filtro-form" hx-indicator="#spinner-pay-{{.ID}}" hx-disabled-elt="find button, find input" class="linha-box grade-tabela aviso-pagar text-sm py-4" style="align-items: center !important;">
+		<div class="col-span-7 text-emerald-300 font-bold flex items-center gap-2" style="grid-column: span 7 / span 7 !important;">
 			<span>💰</span>
 			<span>Confirmar pagamento de <span class="underline">{{.Customer}}</span> ({{.ValorFormatado}})? Data:</span>
 			<input type="date" name="payment_date" value="{{.DataHoje}}" required class="input-inline-tabela" style="width: auto !important; display: inline-block !important;">
 		</div>
 		<div class="col-span-2 flex gap-2 justify-end w-full" style="grid-column: span 2 / span 2 !important; justify-content: flex-end !important;">
-			<button type="submit" class="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-xs px-3 py-2 rounded transition shadow-md cursor-pointer flex items-center gap-2" style="display: inline-flex; align-items: center; gap: 6px;">
+			<button type="submit" class="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-xs px-3 py-2 rounded transition shadow-md cursor-pointer flex items-center gap-2 border border-emerald-400" style="display: inline-flex; align-items: center; gap: 6px;">
 				<svg id="spinner-pay-{{.ID}}" class="htmx-indicator" style="width: 14px; height: 14px; animation: spin 1s linear infinite;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
 					<circle style="opacity: 0.25;" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
 					<path style="opacity: 0.75;" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
 				</svg>
 				<span>Confirmar Pagamento</span>
 			</button>
-			<button type="button" hx-get="/html/invoices/cancelar-edicao?id={{.ID}}" hx-target="#invoice-{{.ID}}" hx-swap="outerHTML" class="bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 font-bold text-xs px-3 py-2 rounded border border-gray-300 transition shadow-sm cursor-pointer">Cancelar</button>
+			<button type="button" hx-get="/html/invoices/cancelar-edicao?id={{.ID}}" hx-target="#invoice-{{.ID}}" hx-swap="outerHTML" class="bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-gray-300 font-bold text-xs px-3 py-2 rounded border border-gray-700 transition shadow-sm cursor-pointer">Cancelar</button>
 		</div>
 	</form>
 	{{end}}

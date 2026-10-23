@@ -28,22 +28,28 @@
 			margin-bottom: 12px !important;
 		}
 		.linha-box {
-			background-color: #f3f4f6 !important;
-			border: 1px solid #e5e7eb !important;
+			background-color: #111827 !important;
+			border: 1px solid #1f2937 !important;
 			border-radius: 8px !important;
 			margin-bottom: 8px !important;
-			color: #1f2937 !important;
-			transition: background-color 0.15s ease !important;
-			box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+			color: #f3f4f6 !important;
+			transition: all 0.15s ease !important;
+			box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
 		}
-		.linha-box.formulario-add, .linha-box.formulario-edit, .linha-box.aviso-deletar {
-			background-color: #ffffff !important;
-			border: 1px solid #4f46e5 !important;
-			color: #1f2937 !important;
+		.linha-box.formulario-add, .linha-box.formulario-edit {
+			background-color: #111827 !important;
+			border: 1px solid #6366f1 !important;
+			color: #f3f4f6 !important;
 		}
-		.linha-box.aviso-deletar { border-color: #e11d48 !important; }
+		.linha-box.aviso-deletar {
+			background-color: rgba(244, 63, 94, 0.1) !important;
+			border: 1px solid rgba(244, 63, 94, 0.4) !important;
+			color: #fecdd3 !important;
+		}
 		.linha-box:hover:not(.formulario-add):not(.formulario-edit):not(.aviso-deletar) {
-			background-color: #e5e7eb !important;
+			background-color: #1f2937 !important;
+			border-color: #374151 !important;
+			transform: translateY(-1px);
 		}
 		.campo-box {
 			background-color: #1f2937 !important;
@@ -76,16 +82,16 @@
 		.input-inline-tabela {
 			width: 100% !important;
 			padding: 6px 10px !important;
-			background-color: #f9fafb !important;
-			border: 1px solid #d1d5db !important;
-			color: #1f2937 !important;
+			background-color: #1f2937 !important;
+			border: 1px solid #4b5563 !important;
+			color: #f9fafb !important;
 			border-radius: 6px !important;
 			font-size: 14px !important;
 			outline: none !important;
 			box-sizing: border-box !important;
 		}
 		.campo-box input:focus, .campo-box select:focus { border-color: #6366f1 !important; }
-		.input-inline-tabela:focus { border-color: #4f46e5 !important; background-color: #ffffff !important; }
+		.input-inline-tabela:focus { border-color: #6366f1 !important; background-color: #111827 !important; }
 		.texto-truncado { white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
 	</style>
 	<div class="bg-gray-950 text-gray-100 font-sans antialiased min-h-screen py-10 px-4" style="background-color: #030712; color: #f3f4f6; font-family: ui-sans-serif, system-ui, sans-serif; min-height: 100vh; padding: 2.5rem 1rem;">
@@ -173,22 +179,28 @@
 				margin-bottom: 12px !important;
 			}
 			.linha-box {
-				background-color: #f3f4f6 !important;
-				border: 1px solid #e5e7eb !important;
+				background-color: #111827 !important;
+				border: 1px solid #1f2937 !important;
 				border-radius: 8px !important;
 				margin-bottom: 8px !important;
-				color: #1f2937 !important;
-				transition: background-color 0.15s ease !important;
-				box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+				color: #f3f4f6 !important;
+				transition: all 0.15s ease !important;
+				box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
 			}
-			.linha-box.formulario-add, .linha-box.formulario-edit, .linha-box.aviso-deletar {
-				background-color: #ffffff !important;
-				border: 1px solid #4f46e5 !important;
-				color: #1f2937 !important;
+			.linha-box.formulario-add, .linha-box.formulario-edit {
+				background-color: #111827 !important;
+				border: 1px solid #6366f1 !important;
+				color: #f3f4f6 !important;
 			}
-			.linha-box.aviso-deletar { border-color: #e11d48 !important; }
+			.linha-box.aviso-deletar {
+				background-color: rgba(244, 63, 94, 0.1) !important;
+				border: 1px solid rgba(244, 63, 94, 0.4) !important;
+				color: #fecdd3 !important;
+			}
 			.linha-box:hover:not(.formulario-add):not(.formulario-edit):not(.aviso-deletar) {
-				background-color: #e5e7eb !important;
+				background-color: #1f2937 !important;
+				border-color: #374151 !important;
+				transform: translateY(-1px);
 			}
 			.campo-box {
 				background-color: #1f2937 !important;
@@ -221,19 +233,19 @@
 			.input-inline-tabela {
 				width: 100% !important;
 				padding: 6px 10px !important;
-				background-color: #f9fafb !important;
-				border: 1px solid #d1d5db !important;
-				color: #1f2937 !important;
+				background-color: #1f2937 !important;
+				border: 1px solid #4b5563 !important;
+				color: #f9fafb !important;
 				border-radius: 6px !important;
 				font-size: 14px !important;
 				outline: none !important;
 				box-sizing: border-box !important;
 			}
 			.campo-box input:focus, .campo-box select:focus { border-color: #6366f1 !important; }
-			.input-inline-tabela:focus { border-color: #4f46e5 !important; background-color: #ffffff !important; }
+			.input-inline-tabela:focus { border-color: #6366f1 !important; background-color: #111827 !important; }
 			.texto-truncado { white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
 			html, body {
-				background-color: #ffffff !important;
+				background-color: #030712 !important;
 			}
 		</style>
 	</head>
@@ -305,11 +317,11 @@
 			<input type="email" name="add_email" value="{{.AddEmail}}" placeholder="Email..." required class="input-inline-tabela">
 		</div>
 		<div>
-			<span class="text-xs uppercase tracking-wider font-black" style="color: #10b981 !important;">Ativo</span>
+			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-950/60 text-emerald-300 border border-emerald-800/60">Ativo</span>
 		</div>
 		<div class="flex gap-2 justify-start w-full" style="justify-content: flex-start !important; align-items: center !important;">
 			<button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold text-xs px-3 py-2 rounded-md transition w-16 text-center">Salvar</button>
-			<button type="button" hx-get="/html/customers/bloco/limpar" hx-target="#formulario-cadastro-container" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs px-3 py-2 rounded-md border border-gray-300 transition w-16 text-center">Cancelar</button>
+			<button type="button" hx-get="/html/customers/bloco/limpar" hx-target="#formulario-cadastro-container" class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-xs px-3 py-2 rounded-md border border-gray-700 transition w-16 text-center">Cancelar</button>
 		</div>
 	</form>
 	{{end}}
@@ -317,12 +329,12 @@
 	{{define "tabela_customer"}}
 	<div class="w-full">
 		{{if .ErrorMessage}}
-		<div class="linha-box bg-rose-50 border border-rose-300 text-rose-800 p-4 rounded-xl shadow-md mb-4 flex items-center justify-between gap-4">
+		<div class="linha-box bg-rose-950/60 border border-rose-800/80 text-rose-200 p-4 rounded-xl shadow-md mb-4 flex items-center justify-between gap-4" style="background-color: rgba(76, 5, 25, 0.6) !important; border-color: rgba(159, 18, 57, 0.8) !important; color: #fecdd3 !important;">
 			<div class="flex items-center gap-3">
 				<span class="text-xl">⚠️</span>
-				<div class="font-bold text-sm text-rose-900">{{.ErrorMessage}}</div>
+				<div class="font-bold text-sm text-rose-200">{{.ErrorMessage}}</div>
 			</div>
-			<button type="button" onclick="this.closest('.linha-box').remove()" class="text-rose-500 hover:text-rose-700 font-bold text-xs px-2 py-1 bg-rose-100 hover:bg-rose-200 rounded transition cursor-pointer">✕ Fechar</button>
+			<button type="button" onclick="this.closest('.linha-box').remove()" class="text-rose-400 hover:text-rose-200 font-bold text-xs px-2 py-1 bg-rose-900/50 hover:bg-rose-900 rounded transition cursor-pointer" style="background-color: rgba(136, 19, 55, 0.5); color: #fecdd3; border: 1px solid rgba(225, 29, 72, 0.3); border-radius: 4px; padding: 4px 8px; cursor: pointer;">✕ Fechar</button>
 		</div>
 		{{end}}
 		<div class="grade-tabela-customer topo-tabela">
@@ -358,16 +370,16 @@
 
 	{{define "linha_customer"}}
 	<div id="customer-{{.ID}}" class="linha-box grade-tabela-customer text-sm" style="align-items: center !important; padding-top: 14px; padding-bottom: 14px;">
-		<div class="font-bold text-gray-900 texto-truncado">{{.Nickname}}</div>
-		<div class="text-gray-700 font-medium texto-truncado">{{.Name}}</div>
-		<div class="text-gray-600 font-mono text-xs">{{.Document}}</div>
-		<div class="text-gray-600 font-mono text-xs">{{.Whatsapp}}</div>
-		<div class="text-gray-600 texto-truncado text-xs">{{.Email}}</div>
+		<div class="font-bold text-gray-100 texto-truncado">{{.Nickname}}</div>
+		<div class="text-gray-300 font-medium texto-truncado">{{.Name}}</div>
+		<div class="text-gray-400 font-mono text-xs">{{.Document}}</div>
+		<div class="text-gray-400 font-mono text-xs">{{.Whatsapp}}</div>
+		<div class="text-gray-400 texto-truncado text-xs">{{.Email}}</div>
 		<div>
 			{{if eq .Status 1}}
-				<span class="text-xs uppercase tracking-wider font-black" style="color: #10b981 !important;">Ativo</span>
+				<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-950/60 text-emerald-300 border border-emerald-800/60">Ativo</span>
 			{{else}}
-				<span class="text-xs uppercase tracking-wider font-black" style="color: #ef4444 !important;">Inativo</span>
+				<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-rose-950/60 text-rose-300 border border-rose-800/60">Inativo</span>
 			{{end}}
 		</div>
 		<div class="flex items-center gap-1.5 justify-start w-full" style="justify-content: flex-start !important; align-items: center !important;">
@@ -375,7 +387,7 @@
 					hx-get="/html/customers/editar?id={{.ID}}"
 					hx-target="#customer-{{.ID}}"
 					hx-swap="outerHTML"
-					class="p-1.5 text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 rounded transition cursor-pointer"
+					class="p-1.5 text-indigo-400 hover:text-indigo-200 hover:bg-indigo-950/60 rounded transition cursor-pointer"
 					title="Editar">
 				<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -386,7 +398,7 @@
 						hx-get="/html/customers/deletar-aviso?id={{.ID}}"
 						hx-target="#customer-{{.ID}}"
 						hx-swap="outerHTML"
-						class="p-1.5 text-rose-600 hover:text-rose-900 hover:bg-rose-50 rounded transition cursor-pointer"
+						class="p-1.5 text-rose-400 hover:text-rose-200 hover:bg-rose-950/60 rounded transition cursor-pointer"
 						title="Inativar">
 					<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -395,7 +407,7 @@
 			{{else}}
 				<button type="button"
 						disabled
-						class="p-1.5 text-gray-400 cursor-not-allowed opacity-40 rounded"
+						class="p-1.5 text-gray-600 cursor-not-allowed opacity-40 rounded"
 						title="Inativo">
 					<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
@@ -408,7 +420,7 @@
 
 	{{define "linha_customer_edit"}}
 	<form id="customer-{{.ID}}" hx-post="/html/customers/atualizar?id={{.ID}}" hx-target="#tabela-container" hx-include="#filtro-form" class="linha-box grade-tabela-customer formulario-edit text-sm shadow-md" style="align-items: center !important; padding-top: 14px; padding-bottom: 14px;">
-		<div class="font-bold text-gray-600 font-mono text-xs">{{.Nickname}}</div>
+		<div class="font-bold text-gray-300 font-mono text-xs">{{.Nickname}}</div>
 		<div><input type="text" name="edit_name" value="{{.Name}}" required class="input-inline-tabela"></div>
 		<div><input type="text" name="edit_document" value="{{.Document}}" required class="input-inline-tabela"></div>
 		<div><input type="text" name="edit_whatsapp" value="{{.Whatsapp}}" required class="input-inline-tabela"></div>
@@ -421,17 +433,17 @@
 		</div>
 		<div class="flex gap-2 justify-start w-full" style="justify-content: flex-start !important; align-items: center !important;">
 			<button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold text-xs px-2.5 py-1.5 rounded-md transition shadow-sm w-16 text-center">Salvar</button>
-			<button type="button" hx-get="/html/customers/cancelar-edicao?id={{.ID}}" hx-target="#customer-{{.ID}}" hx-swap="outerHTML" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs px-2.5 py-1.5 rounded-md border border-gray-300 transition shadow-sm w-16 text-center">Cancelar</button>
+			<button type="button" hx-get="/html/customers/cancelar-edicao?id={{.ID}}" hx-target="#customer-{{.ID}}" hx-swap="outerHTML" class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-xs px-2.5 py-1.5 rounded-md border border-gray-700 transition shadow-sm w-16 text-center">Cancelar</button>
 		</div>
 	</form>
 	{{end}}
 
 	{{define "linha_customer_deletar_aviso"}}
-	<div id="customer-{{.ID}}" class="linha-box grade-tabela-customer aviso-deletar text-sm bg-rose-50/50 py-5" style="align-items: center !important;">
-		<div class="col-span-6 text-rose-700 font-bold flex items-center gap-2" style="grid-column: span 6 / span 6 !important;">⚠️ Deseja realmente inativar o cliente <span class="underline">{{.Nickname}} ({{.Name}})</span>?</div>
+	<div id="customer-{{.ID}}" class="linha-box grade-tabela-customer aviso-deletar text-sm py-5" style="align-items: center !important;">
+		<div class="col-span-6 text-rose-300 font-bold flex items-center gap-2" style="grid-column: span 6 / span 6 !important;">⚠️ Deseja realmente inativar o cliente <span class="underline text-rose-100">{{.Nickname}} ({{.Name}})</span>?</div>
 		<div class="flex gap-2 justify-end w-full" style="justify-content: flex-end !important;">
 			<button hx-post="/html/customers/deletar?id={{.ID}}" hx-target="#tabela-container" hx-include="#filtro-form" class="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-3 py-2 rounded-md transition shadow-md">Sim, inativar</button>
-			<button hx-get="/html/customers/cancelar-edicao?id={{.ID}}" hx-target="#customer-{{.ID}}" hx-swap="outerHTML" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs px-3 py-2 rounded-md border border-gray-300 transition shadow-sm">Não</button>
+			<button hx-get="/html/customers/cancelar-edicao?id={{.ID}}" hx-target="#customer-{{.ID}}" hx-swap="outerHTML" class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-xs px-3 py-2 rounded-md border border-gray-700 transition shadow-sm">Não</button>
 		</div>
 	</div>
 	{{end}}

@@ -26,9 +26,10 @@ type ComptimeView struct {
 	CustomerID       int64     `json:"customer_id"`
 	CustomerNickname string    `json:"customer_nickname"`
 	CustomerName     string    `json:"customer_name"`
-	ServiceID        int64     `json:"service_id"`
-	ServiceName      string    `json:"service_name"`
-	Month            time.Time `json:"month"`
+	ServiceID          int64     `json:"service_id"`
+	ServiceName        string    `json:"service_name"`
+	ServiceDescription string    `json:"service_description"`
+	Month              time.Time `json:"month"`
 	InvoicedMinutes  int       `json:"invoiced_minutes"`
 	ConsumedMinutes  int       `json:"consumed_minutes"`
 	MonthBalance     int       `json:"month_balance"`

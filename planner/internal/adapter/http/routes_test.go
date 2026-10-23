@@ -1453,14 +1453,15 @@ func TestHTMLComptimeRoutes(t *testing.T) {
 				CustomerID:       10,
 				CustomerNickname: "cteste",
 				CustomerName:     "Cliente Teste",
-				ServiceID:        20,
-				ServiceName:      "Psicoterapia",
-				Month:            time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC),
-				InvoicedMinutes:  240,
-				ConsumedMinutes:  180,
-				MonthBalance:     60,
-				Balance:          60,
-				UpdatedAt:        time.Now(),
+				ServiceID:          20,
+				ServiceName:        "Psicoterapia",
+				ServiceDescription: "Atendimento Clínico Semanal",
+				Month:              time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC),
+				InvoicedMinutes:    240,
+				ConsumedMinutes:    180,
+				MonthBalance:       60,
+				Balance:            60,
+				UpdatedAt:          time.Now(),
 			},
 		},
 	}
@@ -1487,6 +1488,12 @@ func TestHTMLComptimeRoutes(t *testing.T) {
 	if !strings.Contains(bodyPage, "Cliente Teste") {
 		t.Errorf("expected body to contain 'Cliente Teste'")
 	}
+	if !strings.Contains(bodyPage, "Psicoterapia") {
+		t.Errorf("expected body to contain 'Psicoterapia'")
+	}
+	if !strings.Contains(bodyPage, "Atendimento Clínico Semanal") {
+		t.Errorf("expected body to contain 'Atendimento Clínico Semanal'")
+	}
 	if !strings.Contains(bodyPage, "SALDO MÊS") {
 		t.Errorf("expected body to contain 'SALDO MÊS'")
 	}
@@ -1497,7 +1504,7 @@ func TestHTMLComptimeRoutes(t *testing.T) {
 		t.Errorf("expected body to contain '240 min'")
 	}
 
-	// 2. Test POST /comptime/tabela
+	// 2. Test POST /comptime/tabela (with ServiceDescription rendered)
 	reqTable := httptest.NewRequest(http.MethodPost, "/comptime/tabela", nil)
 	recTable := httptest.NewRecorder()
 	mux.ServeHTTP(recTable, reqTable)
@@ -1508,8 +1515,28 @@ func TestHTMLComptimeRoutes(t *testing.T) {
 	if !strings.Contains(bodyTable, "Psicoterapia") {
 		t.Errorf("expected table to contain 'Psicoterapia'")
 	}
+	if !strings.Contains(bodyTable, "Atendimento Clínico Semanal") {
+		t.Errorf("expected table to contain 'Atendimento Clínico Semanal'")
+	}
 	if !strings.Contains(bodyTable, "+60 min") {
 		t.Errorf("expected table to contain '+60 min'")
+	}
+
+	// 2.1 Test POST /comptime/tabela?page=2 with form body containing page=1 (pagination precedence)
+	pageForm := url.Values{"page": {"1"}}
+	reqPage2 := httptest.NewRequest(http.MethodPost, "/comptime/tabela?page=2", strings.NewReader(pageForm.Encode()))
+	reqPage2.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	recPage2 := httptest.NewRecorder()
+	mux.ServeHTTP(recPage2, reqPage2)
+	if recPage2.Code != http.StatusOK {
+		t.Fatalf("expected 200 on /comptime/tabela?page=2, got %d", recPage2.Code)
+	}
+	bodyPage2 := recPage2.Body.String()
+	if !strings.Contains(bodyPage2, `Página <span class="font-bold text-gray-200">2</span>`) {
+		t.Errorf("expected table to show page 2, got: %s", bodyPage2)
+	}
+	if !strings.Contains(bodyPage2, `if (p) p.value = "2";`) {
+		t.Errorf("expected sync script to set page to 2")
 	}
 
 	// 3. Test GET /comptime/resync-modal
