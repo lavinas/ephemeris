@@ -5,6 +5,7 @@ import (
 	"math"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"planner/internal/domain"
@@ -78,16 +79,22 @@ func (h *HandlerHtml) ComptimeResyncModal(w http.ResponseWriter, r *http.Request
 	}
 
 	var selectedCustomerID int64
+	var selectedNickname string
 	if cStr := r.FormValue("customer_id"); cStr != "" {
 		if c, err := strconv.ParseInt(cStr, 10, 64); err == nil && c > 0 {
 			selectedCustomerID = c
 		}
 	}
-	if selectedCustomerID == 0 {
-		if nick := r.FormValue("nickname"); nick != "" && h.repo != nil {
-			if cust, err := h.repo.GetCustomer(vendorID, nick); err == nil && cust != nil {
-				selectedCustomerID = cust.ID
-			}
+	if nick := strings.TrimSpace(r.FormValue("nickname")); nick != "" {
+		selectedNickname = nick
+	}
+	if selectedCustomerID == 0 && selectedNickname != "" && h.repo != nil {
+		if cust, err := h.repo.GetCustomer(vendorID, selectedNickname); err == nil && cust != nil {
+			selectedCustomerID = cust.ID
+		}
+	} else if selectedCustomerID > 0 && selectedNickname == "" && h.repo != nil {
+		if cust, err := h.repo.GetCustomerByID(selectedCustomerID); err == nil && cust != nil {
+			selectedNickname = cust.Nickname
 		}
 	}
 
@@ -118,7 +125,9 @@ func (h *HandlerHtml) ComptimeResyncModal(w http.ResponseWriter, r *http.Request
 		"DefaultStartDate":   firstDayOfYear,
 		"DefaultEndDate":     today,
 		"SelectedCustomerID": selectedCustomerID,
+		"SelectedNickname":   selectedNickname,
 		"SelectedServiceID":  selectedServiceID,
+		"Nicknames":          h.getCustomersNicknames(),
 		"Customers":          customers,
 		"Services":           services,
 	}
@@ -168,6 +177,17 @@ func (h *HandlerHtml) ComptimeResync(w http.ResponseWriter, r *http.Request) {
 					if cust.Nickname != "" {
 						customerName = cust.Nickname + " - " + cust.Name
 					}
+				}
+			}
+		}
+	}
+	if customerID == nil {
+		if nick := strings.TrimSpace(r.FormValue("nickname")); nick != "" && h.repo != nil {
+			if cust, err := h.repo.GetCustomer(vendorID, nick); err == nil && cust != nil {
+				customerID = &cust.ID
+				customerName = cust.Name
+				if cust.Nickname != "" {
+					customerName = cust.Nickname + " - " + cust.Name
 				}
 			}
 		}

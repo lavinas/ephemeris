@@ -435,12 +435,13 @@
 
 			<div>
 				<label class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">Cliente</label>
-				<select name="customer_id" class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none">
-					<option value="0" {{if eq $.SelectedCustomerID 0}}selected{{end}}>Todos os Clientes</option>
-					{{range .Customers}}
-						<option value="{{.ID}}" {{if eq $.SelectedCustomerID .ID}}selected{{end}}>{{.Nickname}} - {{.Name}}</option>
+				<input type="text" name="nickname" value="{{.SelectedNickname}}" placeholder="Todos os clientes (digite para filtrar)..." list="lista-nicknames-modal-resync"
+					   class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none">
+				<datalist id="lista-nicknames-modal-resync">
+					{{range .Nicknames}}
+						<option value="{{.}}">
 					{{end}}
-				</select>
+				</datalist>
 			</div>
 
 			<div>

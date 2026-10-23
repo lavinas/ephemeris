@@ -1439,6 +1439,17 @@ func (m *mockComptimeRouteRepo) GetInvoiceItemByID(ctx context.Context, id int64
 func (m *mockComptimeRouteRepo) DeleteComptime(ctx context.Context, id int64) error {
 	return nil
 }
+func (m *mockComptimeRouteRepo) FindCustomers(page, pageSize int, vendorID int64, name, nickname, document *string, status *int, email, whatsapp *string) ([]domain.Customer, error) {
+	return []domain.Customer{
+		{ID: 1, VendorID: 1, Nickname: "cli_alpha", Name: "Alpha Corp"},
+	}, nil
+}
+func (m *mockComptimeRouteRepo) GetCustomer(vendorID int64, nickname string) (*domain.Customer, error) {
+	if nickname == "cli_alpha" {
+		return &domain.Customer{ID: 1, VendorID: 1, Nickname: "cli_alpha", Name: "Alpha Corp"}, nil
+	}
+	return nil, nil
+}
 
 func TestHTMLComptimeRoutes(t *testing.T) {
 	origDir, err := os.Getwd()
@@ -1570,6 +1581,15 @@ func TestHTMLComptimeRoutes(t *testing.T) {
 	if !strings.Contains(bodyModal, "Executar Sincronização") {
 		t.Errorf("expected modal to contain 'Executar Sincronização'")
 	}
+	if !strings.Contains(bodyModal, `list="lista-nicknames-modal-resync"`) {
+		t.Errorf("expected modal to contain datalist input for nicknames")
+	}
+	if !strings.Contains(bodyModal, `<datalist id="lista-nicknames-modal-resync">`) {
+		t.Errorf("expected modal to contain datalist element lista-nicknames-modal-resync")
+	}
+	if !strings.Contains(bodyModal, `<option value="cli_alpha">`) {
+		t.Errorf("expected modal datalist to contain option for cli_alpha")
+	}
 
 	// 4. Test POST /comptime/resync
 	formData := url.Values{
@@ -1589,6 +1609,26 @@ func TestHTMLComptimeRoutes(t *testing.T) {
 	bodyResync := recResync.Body.String()
 	if !strings.Contains(bodyResync, "Sincronização Concluída") {
 		t.Errorf("expected resync response to contain 'Sincronização Concluída'")
+	}
+
+	// 4.1 Test POST /comptime/resync with nickname
+	formDataNick := url.Values{
+		"start_date": {"2026-01-01"},
+		"end_date":   {"2026-06-30"},
+		"data_type":  {"todos"},
+		"nickname":   {"cli_alpha"},
+		"service_id": {"2"},
+	}
+	reqResyncNick := httptest.NewRequest(http.MethodPost, "/comptime/resync", strings.NewReader(formDataNick.Encode()))
+	reqResyncNick.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	recResyncNick := httptest.NewRecorder()
+	mux.ServeHTTP(recResyncNick, reqResyncNick)
+	if recResyncNick.Code != http.StatusOK {
+		t.Fatalf("expected 200 on /comptime/resync with nickname, got %d", recResyncNick.Code)
+	}
+	bodyResyncNick := recResyncNick.Body.String()
+	if !strings.Contains(bodyResyncNick, "cli_alpha - Alpha Corp") {
+		t.Errorf("expected resync with nickname to show customer name 'cli_alpha - Alpha Corp', got: %s", bodyResyncNick)
 	}
 
 	// 5. Test GET /comptime/deletar-aviso?id=1
