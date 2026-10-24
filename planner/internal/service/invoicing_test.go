@@ -729,4 +729,40 @@ func TestInvoicingService_Run(t *testing.T) {
 			t.Errorf("expected invoice plan_id 20, got %d", repo.invoices[0].PlanID)
 		}
 	})
+
+	t.Run("manual plan is passive and generates no invoices", func(t *testing.T) {
+		repo := newMockInvoicingRepoForService()
+		logger := &mockLogger{}
+
+		price := 200.0
+		planStart := time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)
+		planEnd := time.Date(2026, 9, 30, 0, 0, 0, 0, time.UTC)
+
+		repo.plans = []domain.Plan{
+			{
+				ID:         99,
+				CustomerID: 1,
+				PlanStart:  planStart,
+				PlanEnd:    &planEnd,
+				PlanType:   int(domain.PlanTypeManual),
+				Price:      &price,
+			},
+		}
+
+		svc := NewInvoicing(repo, logger)
+		start := "2026-09-01"
+		end := "2026-09-30"
+
+		req := &dto.InvoicingRequest{
+			StartDate: &start,
+			EndDate:   &end,
+		}
+		resp := svc.Run(req)
+		if resp.GetStatusCode() != 200 {
+			t.Fatalf("invoicing failed: %s", resp.GetMessage())
+		}
+		if len(repo.invoices) != 0 {
+			t.Fatalf("expected 0 invoices generated for manual plan, got %d", len(repo.invoices))
+		}
+	})
 }

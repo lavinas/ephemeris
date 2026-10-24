@@ -601,4 +601,51 @@ func TestPlanCreate_AutomaticPackageInvoicing(t *testing.T) {
 	})
 }
 
+func TestPlanUpdate_ToManualClearsItemsAndSpecializations(t *testing.T) {
+	repo := newMockPlanRepoForService()
+	logger := &mockLogger{}
+
+	pStart, _ := time.Parse("2006-01-02", "2026-01-01")
+	existingPlan := &domain.Plan{
+		ID:         77,
+		CustomerID: 1,
+		PlanStart:  pStart,
+		PlanType:   1,
+		Agenda: &domain.PlanAgenda{
+			ID:         77,
+			PaymentDay: 10,
+			TermType:   1,
+		},
+		Items: []domain.PlanItem{
+			{ID: 1, PlanID: 77, ServiceID: 1, OrderIndex: 1},
+		},
+	}
+	repo.plans[77] = existingPlan
+
+	updateSvc := NewPlanUpdate(repo, logger)
+	planEnd := "2026-12-31"
+	req := &dto.PlanUpdateRequest{
+		ID:       77,
+		PlanType: int(domain.PlanTypeManual),
+		PlanEnd:  &planEnd,
+		Items:    []dto.PlanItemRequest{},
+	}
+
+	resp := updateSvc.Run(req)
+	if resp.GetStatusCode() != 200 {
+		t.Fatalf("PlanUpdate failed: %s", resp.GetMessage())
+	}
+
+	updated, _ := repo.GetPlanByID(77)
+	if updated.PlanType != int(domain.PlanTypeManual) {
+		t.Errorf("expected plan_type 5 (Manual), got %d", updated.PlanType)
+	}
+	if len(updated.Items) != 0 {
+		t.Errorf("expected 0 items after updating to manual, got %d", len(updated.Items))
+	}
+	if updated.Agenda != nil {
+		t.Errorf("expected agenda specialization to be nil, got %+v", updated.Agenda)
+	}
+}
+
 

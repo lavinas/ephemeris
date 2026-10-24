@@ -73,8 +73,13 @@ func TestInvoiceListRequest_ValidationErrors(t *testing.T) {
 		},
 		{
 			name:    "invalid plan type",
-			req:     InvoiceListRequest{PlanType: 5},
+			req:     InvoiceListRequest{PlanType: 6},
 			wantErr: true,
+		},
+		{
+			name:    "valid manual plan type",
+			req:     InvoiceListRequest{PlanType: 5},
+			wantErr: false,
 		},
 		{
 			name:    "negative service id",

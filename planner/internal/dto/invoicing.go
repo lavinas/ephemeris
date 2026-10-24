@@ -103,8 +103,8 @@ func (r *InvoicingRequest) UnmarshalJSON(data []byte) error {
 // Validate checks if the InvoicingRequest has valid data.
 func (r *InvoicingRequest) Validate(repo port.Repository) error {
 	if r.PlanType != nil && *r.PlanType != 0 {
-		if *r.PlanType < int(domain.PlanTypeAgenda) || *r.PlanType > int(domain.PlanTypePayPerView) {
-			return fmt.Errorf("tipo de plano inválido: %d (deve ser entre 1 e 4)", *r.PlanType)
+		if *r.PlanType < int(domain.PlanTypeAgenda) || *r.PlanType > int(domain.PlanTypeManual) {
+			return fmt.Errorf("tipo de plano inválido: %d (deve ser entre 1 e 5)", *r.PlanType)
 		}
 	}
 

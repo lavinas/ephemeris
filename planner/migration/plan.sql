@@ -10,7 +10,7 @@ create table plan (
     customer_id bigint not null references customer(id) on delete cascade,
     plan_start date not null,
     plan_end date null,
-    plan_type int not null check(plan_type in (1,2,3,4)), -- 1: plan_agenda, 2: plan_package, 3: plan_notebook, 4: pay_per_view
+    plan_type int not null check(plan_type in (1,2,3,4,5)), -- 1: plan_agenda, 2: plan_package, 3: plan_notebook, 4: pay_per_view, 5: manual
     price numeric(15, 2) null, -- if not null, then override the item prices
     created_at timestamp not null,
     updated_at timestamp not null,

@@ -92,7 +92,7 @@ func (s *InvoiceCreate) Run(input port.InDTO) port.OutDTO {
 		serviceIDs = append(serviceIDs, it.ServiceID)
 	}
 
-	planID, err := s.resolveOrCreatePlan(customer.ID, serviceIDs, periodStart, req.Items)
+	planID, err := s.resolveOrCreatePlan(customer.ID, invoiceDate)
 	if err != nil {
 		return dto.NewInvoiceCreateResponse(500, "error", fmt.Sprintf("erro ao associar plano: %v", err), nil)
 	}
@@ -136,31 +136,34 @@ func (s *InvoiceCreate) Run(input port.InDTO) port.OutDTO {
 	return dto.NewInvoiceCreateResponse(201, "success", "Fatura criada com sucesso", invoiceDTO)
 }
 
-func (s *InvoiceCreate) resolveOrCreatePlan(customerID int64, serviceIDs []int64, periodStart time.Time, items []dto.InvoiceItemCreateRequest) (int64, error) {
-	plans, err := s.repo.FindCustomerActivePlansWithServices(customerID, serviceIDs, 0)
-	if err == nil && len(plans) > 0 {
-		return plans[0].ID, nil
+func (s *InvoiceCreate) resolveOrCreatePlan(customerID int64, invoiceDate time.Time) (int64, error) {
+	conditions := map[string]interface{}{
+		"customer_id = ?": customerID,
+		"deleted_at IS NULL": nil,
+		"plan_type = ?": int(domain.PlanTypeManual),
+		"plan_start <= ?": invoiceDate,
+		"(plan_end IS NULL OR plan_end >= ?)": invoiceDate,
 	}
 
-	activePlans, _, err := s.repo.FindPlans(1, 1, map[string]interface{}{
-		"planner.plan.customer_id = ?": customerID,
-		"planner.plan.deleted_at IS NULL": nil,
-	})
-	if err == nil && len(activePlans) > 0 {
-		return activePlans[0].ID, nil
+	plans, _, err := s.repo.FindPlans(1, 100, conditions, "id desc")
+	if err == nil {
+		invDateOnly := time.Date(invoiceDate.Year(), invoiceDate.Month(), invoiceDate.Day(), 0, 0, 0, 0, time.UTC)
+		for _, p := range plans {
+			if p.CustomerID == customerID && p.DeletedAt == nil && p.PlanType == int(domain.PlanTypeManual) {
+				pStart := time.Date(p.PlanStart.Year(), p.PlanStart.Month(), p.PlanStart.Day(), 0, 0, 0, 0, time.UTC)
+				matches := !invDateOnly.Before(pStart)
+				if p.PlanEnd != nil {
+					pEnd := time.Date(p.PlanEnd.Year(), p.PlanEnd.Month(), p.PlanEnd.Day(), 0, 0, 0, 0, time.UTC)
+					matches = matches && !invDateOnly.After(pEnd)
+				}
+				if matches {
+					return p.ID, nil
+				}
+			}
+		}
 	}
 
-	plan := domain.NewPlan(customerID, periodStart, nil, int(domain.PlanTypePayPerView), nil)
-	plan.PayPerView = &domain.PlanPayPerView{PaymentTerm: 3}
-	for i, it := range items {
-		p := it.Price
-		plan.Items = append(plan.Items, domain.PlanItem{
-			ServiceID:  it.ServiceID,
-			OrderIndex: i + 1,
-			Price:      &p,
-		})
-	}
-
+	plan := domain.NewPlan(customerID, invoiceDate, &invoiceDate, int(domain.PlanTypeManual), nil)
 	if err := s.repo.SavePlan(plan); err != nil {
 		return 0, err
 	}

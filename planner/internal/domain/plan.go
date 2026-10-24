@@ -14,6 +14,7 @@ const (
 	PlanTypePackage    PlanType = 2 // 2: plan_package
 	PlanTypeNotebook   PlanType = 3 // 3: plan_notebook
 	PlanTypePayPerView PlanType = 4 // 4: plan_payperview
+	PlanTypeManual     PlanType = 5 // 5: manual
 )
 
 // String returns human-readable label for PlanType
@@ -27,6 +28,8 @@ func (pt PlanType) String() string {
 		return "Caderneta"
 	case PlanTypePayPerView:
 		return "Pay-per-view"
+	case PlanTypeManual:
+		return "Manual"
 	default:
 		return "Desconhecido"
 	}

@@ -149,9 +149,9 @@ func (r *PlanCreateRequest) validateDates() error {
 		return fmt.Errorf("data de início não pode ser nula")
 	}
 
-	if r.PlanType == int(domain.PlanTypePackage) {
+	if r.PlanType == int(domain.PlanTypePackage) || r.PlanType == int(domain.PlanTypeManual) {
 		if r.PlanEnd == nil || strings.TrimSpace(*r.PlanEnd) == "" {
-			return fmt.Errorf("data de término (plan_end) é obrigatória para plano do tipo pacote")
+			return fmt.Errorf("data de término (plan_end) é obrigatória para plano do tipo %s", strings.ToLower(domain.PlanType(r.PlanType).String()))
 		}
 	}
 
@@ -168,13 +168,20 @@ func (r *PlanCreateRequest) validateDates() error {
 }
 
 func (r *PlanCreateRequest) validatePlanType() error {
-	if r.PlanType < 1 || r.PlanType > 4 {
-		return fmt.Errorf("tipo de plano inválido (%d), deve ser 1 (agenda), 2 (pacote), 3 (caderneta) ou 4 (pay-per-view)", r.PlanType)
+	if r.PlanType < 1 || r.PlanType > 5 {
+		return fmt.Errorf("tipo de plano inválido (%d), deve ser 1 (agenda), 2 (pacote), 3 (caderneta), 4 (pay-per-view) ou 5 (manual)", r.PlanType)
 	}
 	return nil
 }
 
 func (r *PlanCreateRequest) validateItems(repo port.Repository) error {
+	if r.PlanType == int(domain.PlanTypeManual) {
+		if len(r.Items) > 0 {
+			return fmt.Errorf("plano manual não pode conter serviços (itens)")
+		}
+		return nil
+	}
+
 	if len(r.Items) == 0 {
 		return fmt.Errorf("o plano deve conter pelo menos um serviço (item)")
 	}
@@ -213,6 +220,9 @@ func (r *PlanCreateRequest) validateItems(repo port.Repository) error {
 }
 
 func (r *PlanCreateRequest) validateSpecialized() error {
+	if r.PlanType == int(domain.PlanTypeManual) {
+		return nil
+	}
 	switch r.PlanType {
 	case int(domain.PlanTypeAgenda):
 		if r.Agenda == nil {
@@ -265,6 +275,12 @@ func (r *PlanCreateRequest) validateSpecialized() error {
 }
 
 func (r *PlanCreateRequest) validatePrices() error {
+	if r.PlanType == int(domain.PlanTypeManual) {
+		if r.Price != nil && *r.Price < 0 {
+			return errors.New("o valor do plano não pode ser negativo")
+		}
+		return nil
+	}
 	itemPrices := make([]*float64, len(r.Items))
 	for i, item := range r.Items {
 		itemPrices[i] = item.Price
@@ -273,7 +289,7 @@ func (r *PlanCreateRequest) validatePrices() error {
 }
 
 func (r *PlanCreateRequest) validateServicePeriodOverlap(repo port.Repository) error {
-	if repo == nil || r.CustomerID == 0 {
+	if repo == nil || r.CustomerID == 0 || r.PlanType == int(domain.PlanTypeManual) || len(r.Items) == 0 {
 		return nil
 	}
 	startTime, err := time.Parse("2006-01-02", r.PlanStart)

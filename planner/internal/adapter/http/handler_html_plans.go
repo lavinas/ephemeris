@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"planner/internal/domain"
 	"planner/internal/dto"
 	"planner/internal/service"
 )
@@ -96,25 +97,27 @@ func (h *HandlerHtml) PlansSave(w http.ResponseWriter, r *http.Request) {
 	prices := r.Form["add_item_price"]
 
 	var items []dto.PlanItemRequest
-	for i, sIDStr := range services {
-		if sID, err := strconv.ParseInt(sIDStr, 10, 64); err == nil && sID > 0 {
-			orderIdx := i + 1
-			if i < len(orders) && orders[i] != "" {
-				if o, err := strconv.Atoi(orders[i]); err == nil && o > 0 {
-					orderIdx = o
+	if planType != int(domain.PlanTypeManual) {
+		for i, sIDStr := range services {
+			if sID, err := strconv.ParseInt(sIDStr, 10, 64); err == nil && sID > 0 {
+				orderIdx := i + 1
+				if i < len(orders) && orders[i] != "" {
+					if o, err := strconv.Atoi(orders[i]); err == nil && o > 0 {
+						orderIdx = o
+					}
 				}
-			}
-			var itemPrice *float64
-			if price == nil && i < len(prices) && prices[i] != "" {
-				if ip, err := strconv.ParseFloat(prices[i], 64); err == nil {
-					itemPrice = &ip
+				var itemPrice *float64
+				if price == nil && i < len(prices) && prices[i] != "" {
+					if ip, err := strconv.ParseFloat(prices[i], 64); err == nil {
+						itemPrice = &ip
+					}
 				}
+				items = append(items, dto.PlanItemRequest{
+					ServiceID:  sID,
+					OrderIndex: orderIdx,
+					Price:      itemPrice,
+				})
 			}
-			items = append(items, dto.PlanItemRequest{
-				ServiceID:  sID,
-				OrderIndex: orderIdx,
-				Price:      itemPrice,
-			})
 		}
 	}
 

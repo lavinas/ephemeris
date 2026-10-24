@@ -160,9 +160,9 @@ func (r *PlanUpdateRequest) validateDates() error {
 	if r.PlanType != 0 {
 		effectivePlanType = r.PlanType
 	}
-	if effectivePlanType == int(domain.PlanTypePackage) {
+	if effectivePlanType == int(domain.PlanTypePackage) || effectivePlanType == int(domain.PlanTypeManual) {
 		if endTime == nil || endTime.IsZero() {
-			return fmt.Errorf("data de término (plan_end) é obrigatória para plano do tipo pacote")
+			return fmt.Errorf("data de término (plan_end) é obrigatória para plano do tipo %s", strings.ToLower(domain.PlanType(effectivePlanType).String()))
 		}
 	}
 
@@ -173,13 +173,24 @@ func (r *PlanUpdateRequest) validateDates() error {
 }
 
 func (r *PlanUpdateRequest) validatePlanType() error {
-	if r.PlanType != 0 && (r.PlanType < 1 || r.PlanType > 4) {
-		return fmt.Errorf("tipo de plano inválido (%d), deve ser 1, 2, 3 ou 4", r.PlanType)
+	if r.PlanType != 0 && (r.PlanType < 1 || r.PlanType > 5) {
+		return fmt.Errorf("tipo de plano inválido (%d), deve ser 1, 2, 3, 4 ou 5", r.PlanType)
 	}
 	return nil
 }
 
 func (r *PlanUpdateRequest) validateItems(repo port.Repository) error {
+	effectivePlanType := r.Plan.PlanType
+	if r.PlanType != 0 {
+		effectivePlanType = r.PlanType
+	}
+	if effectivePlanType == int(domain.PlanTypeManual) {
+		if len(r.Items) > 0 {
+			return fmt.Errorf("plano manual não pode conter serviços (itens)")
+		}
+		return nil
+	}
+
 	if len(r.Items) == 0 {
 		return nil
 	}
@@ -221,6 +232,9 @@ func (r *PlanUpdateRequest) validateSpecialized() error {
 	planType := r.PlanType
 	if planType == 0 {
 		planType = r.Plan.PlanType
+	}
+	if planType == int(domain.PlanTypeManual) {
+		return nil
 	}
 
 	switch planType {
@@ -273,6 +287,14 @@ func (r *PlanUpdateRequest) validateServicePeriodOverlap(repo port.Repository) e
 	if repo == nil {
 		return nil
 	}
+	effectivePlanType := r.Plan.PlanType
+	if r.PlanType != 0 {
+		effectivePlanType = r.PlanType
+	}
+	if effectivePlanType == int(domain.PlanTypeManual) {
+		return nil
+	}
+
 	customerID := r.CustomerID
 	if customerID == 0 {
 		customerID = r.Plan.CustomerID
@@ -343,6 +365,23 @@ func (r *PlanUpdateRequest) validateServicePeriodOverlap(repo port.Repository) e
 }
 
 func (r *PlanUpdateRequest) validatePrices() error {
+	effectivePlanType := r.Plan.PlanType
+	if r.PlanType != 0 {
+		effectivePlanType = r.PlanType
+	}
+	if effectivePlanType == int(domain.PlanTypeManual) {
+		targetPrice := r.Plan.Price
+		if r.ClearPrice {
+			targetPrice = nil
+		} else if r.Price != nil {
+			targetPrice = r.Price
+		}
+		if targetPrice != nil && *targetPrice < 0 {
+			return errors.New("o valor do plano não pode ser negativo")
+		}
+		return nil
+	}
+
 	var targetPrice *float64
 	if r.ClearPrice {
 		targetPrice = nil

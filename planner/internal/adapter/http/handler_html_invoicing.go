@@ -1021,7 +1021,7 @@ func (h *HandlerHtml) getInvoiceModalCreateData(req *dto.InvoiceCreateRequest, e
 	}
 }
 
-func (h *HandlerHtml) renderInvoicingTableWithMessages(w http.ResponseWriter, r *http.Request, msgSucesso, msgErro string) {
+func (h *HandlerHtml) renderInvoicingTableWithMessages(w http.ResponseWriter, _ *http.Request, msgSucesso, msgErro string) {
 	svc := service.NewInvoiceList(h.repo, h.logger)
 	req := &dto.InvoiceListRequest{
 		Page:        1,

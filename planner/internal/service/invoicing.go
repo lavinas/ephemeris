@@ -94,6 +94,9 @@ func (s *Invoicing) Run(input port.InDTO) port.OutDTO {
 			procErr = s.processNotebook(plan, startDate, endDate, reprocess)
 		case domain.PlanTypePayPerView:
 			procErr = s.processPayPerView(plan, startDate, endDate, reprocess)
+		case domain.PlanTypeManual:
+			s.logger.IPrintf(2, "Plano manual %d ignorado no processamento de faturamento (estratégia passiva)", plan.ID)
+			continue
 		default:
 			procErr = fmt.Errorf("tipo de plano desconhecido ou não suportado: %d", plan.PlanType)
 		}

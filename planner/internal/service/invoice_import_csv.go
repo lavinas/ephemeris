@@ -51,21 +51,49 @@ func (s *InvoiceImportCSV) Run(input port.InDTO) port.OutDTO {
 		return dto.NewInvoiceImportCSVResponse(400, "Bad Request", "nenhuma fatura para importar", 0, 0, 0)
 	}
 
+	// For each customer, determine the first (min) and last (max) invoice date in the CSV
+	type customerDateRange struct {
+		firstDate time.Time
+		lastDate  time.Time
+	}
+	custDates := make(map[int64]*customerDateRange)
+	for _, group := range req.GroupedInvoices {
+		dr, exists := custDates[group.CustomerID]
+		if !exists {
+			custDates[group.CustomerID] = &customerDateRange{
+				firstDate: group.InvoiceDate,
+				lastDate:  group.InvoiceDate,
+			}
+		} else {
+			if group.InvoiceDate.Before(dr.firstDate) {
+				dr.firstDate = group.InvoiceDate
+			}
+			if group.InvoiceDate.After(dr.lastDate) {
+				dr.lastDate = group.InvoiceDate
+			}
+		}
+	}
+
+	// Create a manual plan for each customer whose start date is the first invoice date
+	// and end date is the last invoice date from the CSV
+	customerPlans := make(map[int64]int64, len(custDates))
+	for custID, dr := range custDates {
+		plan := domain.NewPlan(custID, dr.firstDate, &dr.lastDate, int(domain.PlanTypeManual), nil)
+		if err := s.repo.SavePlan(plan); err != nil {
+			s.logger.IPrintf(2, "Failed to create manual plan for customer ID %d: %v", custID, err)
+			return dto.NewInvoiceImportCSVResponse(500, "error", fmt.Sprintf("erro ao criar plano manual para cliente %d: %v", custID, err), 0, 0, 0)
+		}
+		customerPlans[custID] = plan.ID
+		s.logger.IPrintf(2, "Created manual plan #%d for customer ID %d (period: %s to %s)",
+			plan.ID, custID, dr.firstDate.Format("2006-01-02"), dr.lastDate.Format("2006-01-02"))
+	}
+
 	invoicesToSave := make([]*domain.Invoice, 0, len(req.GroupedInvoices))
 	totalItems := 0
 	totalAmount := 0.0
 
 	for _, group := range req.GroupedInvoices {
-		serviceIDs := make([]int64, 0, len(group.Items))
-		for _, it := range group.Items {
-			serviceIDs = append(serviceIDs, it.ServiceID)
-		}
-
-		planID, err := s.resolveOrCreatePlan(group.CustomerID, serviceIDs, group.PeriodStart, group.Items)
-		if err != nil {
-			s.logger.IPrintf(2, "Failed to resolve plan for customer %s (ID %d): %v", group.CustomerNickname, group.CustomerID, err)
-			return dto.NewInvoiceImportCSVResponse(500, "error", fmt.Sprintf("linha %d: erro ao associar plano: %v", group.FirstLineNumber, err), 0, 0, 0)
-		}
+		planID := customerPlans[group.CustomerID]
 
 		invTotal := 0.0
 		items := make([]domain.InvoiceItem, len(group.Items))
@@ -114,35 +142,4 @@ func (s *InvoiceImportCSV) Run(input port.InDTO) port.OutDTO {
 
 	msg := fmt.Sprintf("%d faturas e %d itens importados com sucesso", len(invoicesToSave), totalItems)
 	return dto.NewInvoiceImportCSVResponse(200, "success", msg, len(invoicesToSave), totalItems, totalAmount)
-}
-
-func (s *InvoiceImportCSV) resolveOrCreatePlan(customerID int64, serviceIDs []int64, periodStart time.Time, items []dto.CSVInvoiceItem) (int64, error) {
-	plans, err := s.repo.FindCustomerActivePlansWithServices(customerID, serviceIDs, 0)
-	if err == nil && len(plans) > 0 {
-		return plans[0].ID, nil
-	}
-
-	activePlans, _, err := s.repo.FindPlans(1, 1, map[string]interface{}{
-		"planner.plan.customer_id = ?": customerID,
-		"planner.plan.deleted_at IS NULL": nil,
-	})
-	if err == nil && len(activePlans) > 0 {
-		return activePlans[0].ID, nil
-	}
-
-	plan := domain.NewPlan(customerID, periodStart, nil, int(domain.PlanTypePayPerView), nil)
-	plan.PayPerView = &domain.PlanPayPerView{PaymentTerm: 3}
-	for i, it := range items {
-		p := it.Price
-		plan.Items = append(plan.Items, domain.PlanItem{
-			ServiceID:  it.ServiceID,
-			OrderIndex: i + 1,
-			Price:      &p,
-		})
-	}
-
-	if err := s.repo.SavePlan(plan); err != nil {
-		return 0, err
-	}
-	return plan.ID, nil
 }

@@ -135,6 +135,10 @@ func floatPtr(v float64) *float64 {
 	return &v
 }
 
+func strPtr(s string) *string {
+	return &s
+}
+
 func TestPlanCreateRequest_ValidAgenda(t *testing.T) {
 	repo := newMockPlanRepo()
 	req := &PlanCreateRequest{
@@ -619,6 +623,101 @@ func TestPlanUpdateRequest_DuplicateOrderValidation(t *testing.T) {
 	}
 	if err := u2.Validate(repo); err != nil {
 		t.Fatalf("expected valid distinct orders in update, got: %v", err)
+	}
+}
+
+func TestPlanCreateRequest_ManualPlanValidation(t *testing.T) {
+	repo := newMockPlanRepo()
+
+	// 1. Valid manual plan (no items, mandatory plan_end, optional price)
+	validReq := &PlanCreateRequest{
+		Nickname:  "cliente_teste",
+		PlanStart: "2026-10-01",
+		PlanEnd:   strPtr("2026-10-31"),
+		PlanType:  5,
+		Price:     floatPtr(150.0),
+	}
+	if err := validReq.Validate(repo); err != nil {
+		t.Fatalf("expected valid manual plan, got error: %v", err)
+	}
+
+	// 2. Manual plan without price is also valid
+	noPriceReq := &PlanCreateRequest{
+		Nickname:  "cliente_teste",
+		PlanStart: "2026-10-01",
+		PlanEnd:   strPtr("2026-10-31"),
+		PlanType:  5,
+	}
+	if err := noPriceReq.Validate(repo); err != nil {
+		t.Fatalf("expected valid manual plan without price, got error: %v", err)
+	}
+
+	// 3. Manual plan with items -> Error
+	withItemsReq := &PlanCreateRequest{
+		Nickname:  "cliente_teste",
+		PlanStart: "2026-10-01",
+		PlanEnd:   strPtr("2026-10-31"),
+		PlanType:  5,
+		Items: []PlanItemRequest{
+			{ServiceID: 1, OrderIndex: 1},
+		},
+	}
+	err := withItemsReq.Validate(repo)
+	if err == nil || !strings.Contains(err.Error(), "não pode conter serviços") {
+		t.Fatalf("expected error for manual plan with items, got: %v", err)
+	}
+
+	// 4. Manual plan without plan_end -> Error
+	noEndReq := &PlanCreateRequest{
+		Nickname:  "cliente_teste",
+		PlanStart: "2026-10-01",
+		PlanType:  5,
+	}
+	err = noEndReq.Validate(repo)
+	if err == nil || !strings.Contains(err.Error(), "é obrigatória para plano do tipo manual") {
+		t.Fatalf("expected error for manual plan without plan_end, got: %v", err)
+	}
+}
+
+func TestPlanUpdateRequest_ManualPlanValidation(t *testing.T) {
+	repo := newMockPlanRepo()
+
+	pStart, _ := time.Parse("2006-01-02", "2026-01-01")
+	existingPlan := domain.Plan{
+		ID:         50,
+		CustomerID: 10,
+		PlanStart:  pStart,
+		PlanType:   1,
+		Items: []domain.PlanItem{
+			{ID: 1, PlanID: 50, ServiceID: 1, OrderIndex: 1},
+		},
+	}
+	repo.existingPlan = &existingPlan
+
+	planTypeManual := 5
+	// 1. Valid update to Manual plan: no items, valid plan_end
+	validUpdate := &PlanUpdateRequest{
+		ID:       50,
+		PlanType: planTypeManual,
+		PlanEnd:  strPtr("2026-12-31"),
+		Items:    []PlanItemRequest{},
+	}
+	if err := validUpdate.Validate(repo); err != nil {
+		t.Fatalf("expected valid manual plan update, got error: %v", err)
+	}
+
+	// 2. Invalid update to Manual plan with items -> Error
+	invalidItemsUpdate := &PlanUpdateRequest{
+		ID:       50,
+		PlanType: planTypeManual,
+		PlanEnd:  strPtr("2026-12-31"),
+		Items: []PlanItemRequest{
+			{ServiceID: 1, OrderIndex: 1},
+		},
+	}
+	err := invalidItemsUpdate.Validate(repo)
+	if err == nil || !strings.Contains(err.Error(), "não pode conter serviços") {
+		t.Fatalf("expected error for manual plan update with items, got: %v", err)
 	}
 }
 

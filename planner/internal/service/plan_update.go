@@ -118,5 +118,11 @@ func (s *PlanUpdate) applyUpdates(plan *domain.Plan, req *dto.PlanUpdateRequest)
 				PaymentTerm: req.PayPerView.PaymentTerm,
 			}
 		}
+	case int(domain.PlanTypeManual):
+		plan.Items = nil
+		plan.Agenda = nil
+		plan.Package = nil
+		plan.Notebook = nil
+		plan.PayPerView = nil
 	}
 }

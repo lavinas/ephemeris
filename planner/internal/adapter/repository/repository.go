@@ -466,6 +466,11 @@ func (a *Repository) SavePlan(plan *domain.Plan) error {
 				return err
 			}
 		}
+	} else if plan.PlanType == int(domain.PlanTypeManual) {
+		if err := tx.Where("plan_id = ?", plan.ID).Delete(&domain.PlanItem{}).Error; err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 
 	if plan.PlanType != int(domain.PlanTypeAgenda) {

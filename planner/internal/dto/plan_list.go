@@ -199,8 +199,8 @@ func (r *PlanListRequest) validatePagination() error {
 }
 
 func (r *PlanListRequest) validatePlanType() error {
-	if r.PlanType < 0 || r.PlanType > 4 {
-		return errors.New("plan_type inválido, deve ser entre 1 e 4")
+	if r.PlanType < 0 || r.PlanType > 5 {
+		return errors.New("plan_type inválido, deve ser entre 1 e 5")
 	}
 	return nil
 }
