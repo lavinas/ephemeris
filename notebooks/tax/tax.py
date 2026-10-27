@@ -5,7 +5,7 @@ from base64 import b64decode, b64encode
 
 # Configurações
 # endpoint = 'http://localhost:8081'
-endpoint = 'http://192.168.1.138:8081'
+endpoint = 'http://192.168.1.138:8081/api'
 page = 1
 page_size = 1000
 

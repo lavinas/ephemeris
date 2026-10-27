@@ -71,3 +71,53 @@ build/
 *.log
 .env*
 .ds_store
+
+# ==========================================
+# Segurança: Certificados e Chaves Privadas
+# ==========================================
+# Ignora arquivos de chaves privadas especificamente
+*.key
+*.pem
+*.pfx
+*.p12
+
+# Ignora pastas inteiras que contenham certificados locais de desenvolvimento
+**/configs/certs/*.key
+**/configs/certs/*.pem
+**/assets/certs/*.key
+
+# Se você usa ferramentas como o mkcert para gerar certificados locais, ignore-os:
+rootCA*.pem
+
+# ==========================================
+# Arquivos de Configuração com Dados Sensíveis
+# ==========================================
+.env
+.env.*
+!.env.example
+
+# ==========================================
+# Binários e Artefatos do Go
+# ==========================================
+# Ignora o binário compilado na raiz ou subpastas
+/meu-projeto-go
+*.exe
+*.exe_
+*.dll
+*.so
+*.dylib
+
+# Diretório de build comum
+/dist/
+/build/
+
+# ==========================================
+# Ferramentas e IDEs
+# ==========================================
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
