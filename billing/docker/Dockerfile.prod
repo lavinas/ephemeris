@@ -33,6 +33,9 @@ COPY --from=builder /app/billing.json .
 COPY --from=builder /app/web/templates ./web/templates
 COPY --from=builder /app/web/static ./web/static
 
+# Copia certificados digitais
+COPY --from=builder /app/config/certs/estudio_amelia.pfx /app/config/certs
+
 # Altera a propriedade dos arquivos copiados para o appuser
 RUN chown -R appuser:appuser /app
 
