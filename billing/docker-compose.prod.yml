@@ -31,6 +31,8 @@ services:
     volumes:
       # Sincroniza a pasta de logs local com a interna do container
       - ./log:/app/log
+      # Sincroniza a pasta de certificados digitais
+      - ./config/certs:/app/config/certs:ro
     environment:
       - DB_HOST=billing_db
       - DB_PORT=5432
