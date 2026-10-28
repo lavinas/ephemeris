@@ -226,6 +226,25 @@ func PeriodsOverlap(start1 time.Time, end1 *time.Time, start2 time.Time, end2 *t
 	return cond1 && cond2
 }
 
+// IsActiveAt checks whether the plan is active on the given reference date (comparing date part only).
+func (p *Plan) IsActiveAt(refDate time.Time) bool {
+	if p == nil || p.DeletedAt != nil {
+		return false
+	}
+	ref := time.Date(refDate.Year(), refDate.Month(), refDate.Day(), 0, 0, 0, 0, time.UTC)
+	start := time.Date(p.PlanStart.Year(), p.PlanStart.Month(), p.PlanStart.Day(), 0, 0, 0, 0, time.UTC)
+	if ref.Before(start) {
+		return false
+	}
+	if p.PlanEnd != nil {
+		end := time.Date(p.PlanEnd.Year(), p.PlanEnd.Month(), p.PlanEnd.Day(), 0, 0, 0, 0, time.UTC)
+		if ref.After(end) {
+			return false
+		}
+	}
+	return true
+}
+
 // ValidatePlanPrices checks the business rules for pricing on a plan and its items:
 // 1. Plan price and item prices are mutually exclusive (if plan price is non-null, item prices must be null, and vice-versa).
 // 2. Either the plan or the items must have a defined price (cannot both be null).

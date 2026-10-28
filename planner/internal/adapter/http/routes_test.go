@@ -1814,6 +1814,159 @@ cliente_teste,02/01/2024,05/01/2026,Aula Canto 30,01/12/2023,31/12/2023,aula 1,"
 	}
 }
 
+type mockSessionServicesRouteRepo struct {
+	dummyRepo
+}
+
+func (m *mockSessionServicesRouteRepo) FindServices(vendorID int64) ([]domain.Service, error) {
+	min30, min45, min60 := 30, 45, 60
+	return []domain.Service{
+		{ID: 1, VendorID: 1, Name: "online/piano/60", SessionMinutes: &min60},
+		{ID: 2, VendorID: 1, Name: "online/canto/30", SessionMinutes: &min30},
+		{ID: 3, VendorID: 1, Name: "online/violao/45", SessionMinutes: &min45},
+	}, nil
+}
+
+func (m *mockSessionServicesRouteRepo) GetServiceByID(id int64) (*domain.Service, error) {
+	svcs, _ := m.FindServices(1)
+	for _, s := range svcs {
+		if s.ID == id {
+			return &s, nil
+		}
+	}
+	return nil, nil
+}
+
+func (m *mockSessionServicesRouteRepo) GetCustomer(vendorID int64, nickname string) (*domain.Customer, error) {
+	if nickname == "cliente_com_plano" {
+		return &domain.Customer{ID: 10, VendorID: 1, Nickname: "cliente_com_plano", Name: "Cliente Com Plano"}, nil
+	}
+	if nickname == "cliente_sem_plano" {
+		return &domain.Customer{ID: 20, VendorID: 1, Nickname: "cliente_sem_plano", Name: "Cliente Sem Plano"}, nil
+	}
+	return nil, nil
+}
+
+func (m *mockSessionServicesRouteRepo) FindPlans(page, pageSize int, conditions map[string]interface{}, orderBy ...string) ([]domain.Plan, int64, error) {
+	now := time.Now()
+	start := now.AddDate(0, -1, 0)
+	end := now.AddDate(0, 1, 0)
+	svcs, _ := m.FindServices(1)
+	return []domain.Plan{
+		{
+			ID:         1,
+			CustomerID: 10,
+			PlanStart:  start,
+			PlanEnd:    &end,
+			PlanType:   int(domain.PlanTypeAgenda),
+			Items: []domain.PlanItem{
+				{ID: 1, PlanID: 1, ServiceID: 1, OrderIndex: 1, Service: &svcs[0]}, // online/piano/60
+				{ID: 2, PlanID: 1, ServiceID: 2, OrderIndex: 2, Service: &svcs[1]}, // online/canto/30
+			},
+		},
+	}, 1, nil
+}
+
+func (m *mockSessionServicesRouteRepo) FindCount(conditions map[string]interface{}) (int64, error) {
+	return 1, nil
+}
+
+func (m *mockSessionServicesRouteRepo) Find(page, pagesize int, conditions map[string]interface{}, orderBy ...string) ([]interface{}, error) {
+	return []interface{}{
+		domain.Session{
+			ID:             99,
+			CustomerID:     10,
+			Customer:       &domain.Customer{ID: 10, Nickname: "cliente_com_plano", Name: "Cliente Com Plano"},
+			ServiceID:      2,
+			Service:        &domain.Service{ID: 2, Name: "online/canto/30"},
+			SessionDate:    time.Now(),
+			SessionMinutes: 30,
+			SessionStatus:  "realizada",
+		},
+	}, nil
+}
+
+func TestSessionsServices_HTMXAndAPI(t *testing.T) {
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("could not get working dir: %v", err)
+	}
+	defer os.Chdir(origDir)
+
+	if err := os.Chdir("../../.."); err != nil {
+		t.Fatalf("could not chdir to planner/backend: %v", err)
+	}
+
+	sessionsTmpl, err := os.ReadFile("web/templates/sessions.html")
+	if err != nil {
+		t.Fatalf("failed to read sessions.html: %v", err)
+	}
+
+	repo := &mockSessionServicesRouteRepo{}
+	routes, err := NewRoutes(repo, &dummyLogger{}, sessionsTmpl)
+	if err != nil {
+		t.Fatalf("failed to create routes: %v", err)
+	}
+
+	// 1. HTMX GET /html/sessoes/servicos for customer WITH active plan
+	req1 := httptest.NewRequest(http.MethodGet, "/html/sessoes/servicos?add_nickname=cliente_com_plano", nil)
+	rec1 := httptest.NewRecorder()
+	routes.ServeHTTP(rec1, req1)
+	if rec1.Code != http.StatusOK {
+		t.Fatalf("expected 200 on /html/sessoes/servicos, got %d", rec1.Code)
+	}
+	body1 := rec1.Body.String()
+	if !strings.Contains(body1, "online/canto/30") || !strings.Contains(body1, "online/piano/60") {
+		t.Errorf("expected plan services in response, got: %s", body1)
+	}
+	if strings.Contains(body1, "online/violao/45") {
+		t.Errorf("did not expect non-plan service 'online/violao/45' for customer with active plan, got: %s", body1)
+	}
+	idxCanto := strings.Index(body1, "online/canto/30")
+	idxPiano := strings.Index(body1, "online/piano/60")
+	if idxCanto > idxPiano {
+		t.Errorf("expected 'online/canto/30' before 'online/piano/60' (ordered by name), got: %s", body1)
+	}
+
+	// 2. HTMX GET /html/sessoes/servicos for customer WITHOUT active plan
+	req2 := httptest.NewRequest(http.MethodGet, "/html/sessoes/servicos?add_nickname=cliente_sem_plano", nil)
+	rec2 := httptest.NewRecorder()
+	routes.ServeHTTP(rec2, req2)
+	if rec2.Code != http.StatusOK {
+		t.Fatalf("expected 200 on /html/sessoes/servicos, got %d", rec2.Code)
+	}
+	body2 := rec2.Body.String()
+	if !strings.Contains(body2, "online/canto/30") || !strings.Contains(body2, "online/piano/60") || !strings.Contains(body2, "online/violao/45") {
+		t.Errorf("expected all 3 services for customer without active plan, got: %s", body2)
+	}
+
+	// 3. HTMX GET /html/sessoes/editar?id=99 (session belongs to cliente_com_plano)
+	reqEdit := httptest.NewRequest(http.MethodGet, "/html/sessoes/editar?id=99", nil)
+	recEdit := httptest.NewRecorder()
+	routes.ServeHTTP(recEdit, reqEdit)
+	if recEdit.Code != http.StatusOK {
+		t.Fatalf("expected 200 on /html/sessoes/editar, got %d", recEdit.Code)
+	}
+	bodyEdit := recEdit.Body.String()
+	if !strings.Contains(bodyEdit, "online/canto/30") || !strings.Contains(bodyEdit, "online/piano/60") {
+		t.Errorf("expected plan services in edit form, got: %s", bodyEdit)
+	}
+	if strings.Contains(bodyEdit, "online/violao/45") {
+		t.Errorf("did not expect 'online/violao/45' in edit form for customer with active plan, got: %s", bodyEdit)
+	}
+
+	// 4. API GET /api/session/services?nickname=cliente_com_plano
+	reqAPI := httptest.NewRequest(http.MethodGet, "/api/session/services?nickname=cliente_com_plano", nil)
+	recAPI := httptest.NewRecorder()
+	routes.ServeHTTP(recAPI, reqAPI)
+	if recAPI.Code != http.StatusOK {
+		t.Fatalf("expected 200 on /api/session/services, got %d: %s", recAPI.Code, recAPI.Body.String())
+	}
+	if !strings.Contains(recAPI.Body.String(), "online/canto/30") || strings.Contains(recAPI.Body.String(), "online/violao/45") {
+		t.Errorf("unexpected API response for cliente_com_plano: %s", recAPI.Body.String())
+	}
+}
+
 
 
 

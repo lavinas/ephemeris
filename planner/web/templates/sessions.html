@@ -14,6 +14,11 @@
 				}
 			}
 		}
+		document.addEventListener('htmx:afterSwap', function(evt) {
+			if (evt.detail && evt.detail.target && evt.detail.target.id === 'add-servico-select') {
+				atualizarDuracaoServico(evt.detail.target);
+			}
+		});
 	</script>
 	<style>
 		.grade-filtros {
@@ -197,6 +202,11 @@
 					}
 				}
 			}
+			document.addEventListener('htmx:afterSwap', function(evt) {
+				if (evt.detail && evt.detail.target && evt.detail.target.id === 'add-servico-select') {
+					atualizarDuracaoServico(evt.detail.target);
+				}
+			});
 		</script>
 		<style>
 			.grade-filtros {
@@ -362,11 +372,22 @@
 	</html>
 	{{end}}
 
+	{{define "opcoes_servicos"}}
+	<option value="" disabled {{if not .ServiceID}}selected{{end}}>Selecione o serviço...</option>
+	{{range .Services}}
+		<option value="{{.ID}}" data-minutes="{{if .SessionMinutes}}{{.SessionMinutes}}{{else}}60{{end}}" {{if eq .ID $.ServiceID}}selected{{end}}>{{.Name}}</option>
+	{{end}}
+	{{end}}
+
 	{{define "formulario_cadastro"}}
 	<form hx-post="/html/sessoes/salvar" hx-target="#tabela-container" hx-include="#filtro-form" class="linha-box grade-tabela formulario-add text-sm shadow-lg">
 		<div><input type="date" name="add_data" value="{{.DataPadrao}}" required class="input-inline-tabela"></div>
 		<div>
-			<input type="text" name="add_nickname" value="{{.Nickname}}" placeholder="Nickname..." list="lista-nicknames" required class="input-inline-tabela">
+			<input type="text" name="add_nickname" value="{{.Nickname}}" placeholder="Nickname..." list="lista-nicknames" required class="input-inline-tabela"
+				hx-get="/html/sessoes/servicos"
+				hx-trigger="change, input changed delay:200ms"
+				hx-target="#add-servico-select"
+				hx-swap="innerHTML">
 			<datalist id="lista-nicknames">
 				{{range .Nicknames}}
 					<option value="{{.}}">
@@ -381,11 +402,8 @@
 			</select>
 		</div>
 		<div>
-			<select name="add_servico_id" required class="input-inline-tabela" onchange="atualizarDuracaoServico(this)">
-				<option value="" disabled {{if not .ServiceID}}selected{{end}}>Selecione o serviço...</option>
-				{{range .Services}}
-					<option value="{{.ID}}" data-minutes="{{if .SessionMinutes}}{{.SessionMinutes}}{{else}}60{{end}}" {{if eq .ID $.ServiceID}}selected{{end}}>{{.Name}}</option>
-				{{end}}
+			<select id="add-servico-select" name="add_servico_id" required class="input-inline-tabela" onchange="atualizarDuracaoServico(this)">
+				{{template "opcoes_servicos" .}}
 			</select>
 		</div>
 		<div><input type="number" name="add_duracao" value="{{.DuracaoPadrao}}" min="1" required class="input-inline-tabela" style="text-align: center !important;"></div>

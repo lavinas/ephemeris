@@ -1,6 +1,8 @@
 package http
 
 import (
+	"fmt"
+	"html"
 	"net/http"
 	"strconv"
 	"strings"
@@ -59,8 +61,13 @@ func (h *HandlerHtml) Sessions(w http.ResponseWriter, r *http.Request) {
 
 // SessionsCreate handler for the /sessions/novo endpoint
 func (h *HandlerHtml) SessionsCreate(w http.ResponseWriter, r *http.Request) {
+	_ = r.ParseForm()
+	nickname := strings.TrimSpace(r.URL.Query().Get("nickname"))
+	if nickname == "" {
+		nickname = strings.TrimSpace(r.FormValue("add_nickname"))
+	}
 	hoje := time.Now().Format("2006-01-02")
-	services := h.getServices()
+	services := h.getServicesForCustomer(nickname)
 	duracaoPadrao := 60
 	var defaultServiceID int64
 	if len(services) > 0 {
@@ -74,10 +81,79 @@ func (h *HandlerHtml) SessionsCreate(w http.ResponseWriter, r *http.Request) {
 		"DataPadrao":    hoje,
 		"DuracaoPadrao": duracaoPadrao,
 		"Nicknames":     h.getCustomersNicknames(),
+		"Nickname":      nickname,
 		"Services":      services,
 		"ServiceID":     defaultServiceID,
 	}
 	h.tmpl.ExecuteTemplate(w, "formulario_cadastro", dadosPadrao)
+}
+
+// SessionsServices handler for the /sessoes/servicos endpoint, returning the <option> list for a customer nickname.
+func (h *HandlerHtml) SessionsServices(w http.ResponseWriter, r *http.Request) {
+	_ = r.ParseForm()
+	nickname := strings.TrimSpace(r.URL.Query().Get("nickname"))
+	if nickname == "" {
+		nickname = strings.TrimSpace(r.FormValue("add_nickname"))
+	}
+	if nickname == "" {
+		nickname = strings.TrimSpace(r.FormValue("edit_nickname"))
+	}
+	if nickname == "" {
+		nickname = strings.TrimSpace(r.FormValue("nickname"))
+	}
+
+	selectedIDStr := r.URL.Query().Get("service_id")
+	if selectedIDStr == "" {
+		selectedIDStr = r.FormValue("add_servico_id")
+	}
+	if selectedIDStr == "" {
+		selectedIDStr = r.FormValue("edit_servico_id")
+	}
+	selectedServiceID, _ := strconv.ParseInt(selectedIDStr, 10, 64)
+
+	services := h.getServicesForCustomer(nickname)
+	foundSelected := false
+	for _, s := range services {
+		if s.ID == selectedServiceID {
+			foundSelected = true
+			break
+		}
+	}
+	if !foundSelected {
+		if len(services) > 0 {
+			selectedServiceID = services[0].ID
+		} else {
+			selectedServiceID = 0
+		}
+	}
+
+	data := map[string]interface{}{
+		"Services":  services,
+		"ServiceID": selectedServiceID,
+	}
+	if h.tmpl != nil && h.tmpl.Lookup("opcoes_servicos") != nil {
+		_ = h.tmpl.ExecuteTemplate(w, "opcoes_servicos", data)
+		return
+	}
+
+	var sb strings.Builder
+	if selectedServiceID == 0 {
+		sb.WriteString(`<option value="" disabled selected>Selecione o serviço...</option>`)
+	} else {
+		sb.WriteString(`<option value="" disabled>Selecione o serviço...</option>`)
+	}
+	for _, s := range services {
+		mins := 60
+		if s.SessionMinutes != nil && *s.SessionMinutes > 0 {
+			mins = *s.SessionMinutes
+		}
+		selAttr := ""
+		if s.ID == selectedServiceID {
+			selAttr = " selected"
+		}
+		sb.WriteString(fmt.Sprintf(`<option value="%d" data-minutes="%d"%s>%s</option>`, s.ID, mins, selAttr, html.EscapeString(s.Name)))
+	}
+	w.Write([]byte(sb.String()))
 }
 
 // SessionsSave handler for the /sessions/salvar endpoint
@@ -141,7 +217,7 @@ func (h *HandlerHtml) SessionsSave(w http.ResponseWriter, r *http.Request) {
 			"Nicknames":     h.getCustomersNicknames(),
 			"Nickname":      nickname,
 			"Status":        status,
-			"Services":      h.getServices(),
+			"Services":      h.getServicesForCustomer(nickname),
 			"ServiceID":     serviceID,
 			"Comentario":    comment,
 		}
@@ -264,7 +340,8 @@ func (h *HandlerHtml) SessionsEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	dadosPadrao := h.getSessionData(response)[0]
-	dadosPadrao["Services"] = h.getServices()
+	nickname, _ := dadosPadrao["Nickname"].(string)
+	dadosPadrao["Services"] = h.getServicesForCustomer(nickname)
 	h.tmpl.ExecuteTemplate(w, "linha_sessao_edit", dadosPadrao)
 }
 

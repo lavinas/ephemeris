@@ -136,6 +136,39 @@ func (h *HandlerApi) SessionUsers(w http.ResponseWriter, r *http.Request) {
 	h.writeResponse(w, response)
 }
 
+// SessionServices handler for the /session/services and /service/list endpoints
+func (h *HandlerApi) SessionServices(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet && r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	requestDTO := &dto.SessionServicesRequest{
+		VendorID: 1,
+	}
+	if r.Body != nil && r.Body != http.NoBody && r.ContentLength > 0 {
+		if err := json.NewDecoder(r.Body).Decode(requestDTO); err != nil {
+			http.Error(w, "Bad request", http.StatusBadRequest)
+			return
+		}
+	}
+	q := r.URL.Query()
+	if requestDTO.Nickname == "" {
+		if nick := q.Get("nickname"); nick != "" {
+			requestDTO.Nickname = nick
+		} else if nick := q.Get("add_nickname"); nick != "" {
+			requestDTO.Nickname = nick
+		}
+	}
+	if vStr := q.Get("vendor_id"); vStr != "" {
+		if vid, err := strconv.ParseInt(vStr, 10, 64); err == nil {
+			requestDTO.VendorID = vid
+		}
+	}
+	svc := service.NewSessionServices(h.repo, h.logger)
+	response := svc.Run(requestDTO)
+	h.writeResponse(w, response)
+}
+
 // PlanCreate handler for the /plan/create endpoint
 func (h *HandlerApi) PlanCreate(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {

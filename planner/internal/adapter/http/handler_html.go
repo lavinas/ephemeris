@@ -8,6 +8,7 @@ import (
 
 	"planner/internal/adapter/billing"
 	"planner/internal/domain"
+	"planner/internal/dto"
 	"planner/internal/port"
 	"planner/internal/service"
 )
@@ -182,10 +183,30 @@ func (h *HandlerHtml) getCustomersNicknames() []string {
 
 // getServices retrieves all services for vendor 1
 func (h *HandlerHtml) getServices() []domain.Service {
-	services, err := h.repo.FindServices(1)
-	if err != nil {
-		h.logger.IPrintf(2, "Failed to retrieve services: %v", err)
+	return h.getServicesForCustomer("")
+}
+
+// getServicesForCustomer retrieves suggested services for the given customer nickname using the SessionServices use case.
+func (h *HandlerHtml) getServicesForCustomer(nickname string) []domain.Service {
+	svc := service.NewSessionServices(h.repo, h.logger)
+	out := svc.Run(&dto.SessionServicesRequest{
+		VendorID: 1,
+		Nickname: nickname,
+	})
+	resp, ok := out.(*dto.SessionServicesResponse)
+	if !ok || resp.GetStatusCode() != http.StatusOK {
+		h.logger.IPrintf(2, "Failed to retrieve services for nickname %q: %v", nickname, out)
 		return nil
+	}
+	services := make([]domain.Service, len(resp.Services))
+	for i, s := range resp.Services {
+		services[i] = domain.Service{
+			ID:             s.ID,
+			VendorID:       s.VendorID,
+			Name:           s.Name,
+			Description:    s.Description,
+			SessionMinutes: s.SessionMinutes,
+		}
 	}
 	return services
 }
