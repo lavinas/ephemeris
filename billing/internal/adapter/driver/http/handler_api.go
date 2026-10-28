@@ -12,21 +12,27 @@ import (
 
 // HandlerApi is an HTTP handler for the API endpoints
 type HandlerApi struct {
-	logger port.Logger
-	repo   port.Repository
-	taxer  port.Taxer
-	pixer  port.Pixer
-	issuer port.Issuer
+	logger     port.Logger
+	repo       port.Repository
+	taxer      port.Taxer
+	taxEmitter port.TaxEmitter
+	pixer      port.Pixer
+	issuer     port.Issuer
 }
 
 // NewHandlerApi creates a new instance of HandlerApi
-func NewHandlerApi(repo port.Repository, logger port.Logger, taxer port.Taxer, pixer port.Pixer, issuer port.Issuer) *HandlerApi {
+func NewHandlerApi(repo port.Repository, logger port.Logger, taxer port.Taxer, pixer port.Pixer, issuer port.Issuer, taxEmitter ...port.TaxEmitter) *HandlerApi {
+	var emitter port.TaxEmitter
+	if len(taxEmitter) > 0 {
+		emitter = taxEmitter[0]
+	}
 	return &HandlerApi{
-		repo:   repo,
-		logger: logger,
-		taxer:  taxer,
-		pixer:  pixer,
-		issuer: issuer,
+		repo:       repo,
+		logger:     logger,
+		taxer:      taxer,
+		taxEmitter: emitter,
+		pixer:      pixer,
+		issuer:     issuer,
 	}
 }
 
@@ -250,7 +256,7 @@ func (h *HandlerApi) InvoicePayment(w http.ResponseWriter, r *http.Request) {
 		h.writeResponse(w, dto.NewResponseBase(http.StatusBadRequest, "error", "Invalid JSON format: "+err.Error()))
 		return
 	}
-	svc := service.NewInvoicePayment(h.repo, h.logger, h.issuer, h.pixer)
+	svc := service.NewInvoicePayment(h.repo, h.logger, h.issuer, h.pixer, h.taxEmitter)
 	resp := svc.Run(req)
 	h.writeResponse(w, resp)
 }
@@ -299,6 +305,22 @@ func (h *HandlerApi) TaxClear(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	svc := service.NewTaxClear(h.repo, h.logger, h.taxer)
+	resp := svc.Run(req)
+	h.writeResponse(w, resp)
+}
+
+// InvoiceTaxEmit handles /invoice/tax/emit or /invoice/api/tax/emit or /tax/api/emit-single
+func (h *HandlerApi) InvoiceTaxEmit(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	req := &dto.InvoiceTaxEmitRequest{}
+	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+		h.writeResponse(w, dto.NewResponseBase(http.StatusBadRequest, "error", "Invalid JSON format: "+err.Error()))
+		return
+	}
+	svc := service.NewInvoiceTaxEmit(h.repo, h.logger, h.taxEmitter)
 	resp := svc.Run(req)
 	h.writeResponse(w, resp)
 }

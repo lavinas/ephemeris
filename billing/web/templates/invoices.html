@@ -111,6 +111,29 @@
 			font-weight: 600;
 			white-space: nowrap !important;
 		}
+		dialog.modal-delicado {
+			background: transparent !important;
+			border: none !important;
+			padding: 0 !important;
+			margin: auto !important;
+			max-width: 440px !important;
+			width: 90% !important;
+			outline: none !important;
+		}
+		dialog.modal-delicado::backdrop {
+			background: rgba(3, 7, 18, 0.75) !important;
+			backdrop-filter: blur(5px) !important;
+			-webkit-backdrop-filter: blur(5px) !important;
+		}
+		.modal-delicado-card {
+			background: linear-gradient(145deg, #111827 0%, #0f172a 100%) !important;
+			border: 1px solid rgba(45, 212, 191, 0.35) !important;
+			border-radius: 16px !important;
+			box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 20px -5px rgba(20, 184, 166, 0.2) !important;
+			padding: 24px !important;
+			position: relative !important;
+			text-align: left !important;
+		}
 	</style>
 	<div class="bg-gray-950 text-gray-100 font-sans antialiased min-h-screen py-10 px-4" style="background-color: #030712; color: #f3f4f6; font-family: ui-sans-serif, system-ui, sans-serif; min-height: 100vh; padding: 2.5rem 1rem;">
 		<div class="max-w-[94rem] mx-auto bg-gray-900 shadow-2xl rounded-2xl overflow-hidden border border-gray-800 p-8" style="max-width: 94rem; margin: 0 auto; background-color: #111827; border-radius: 1rem; border: 1px solid #1f2937; padding: 2rem;">
@@ -370,6 +393,29 @@
 				font-size: 11px;
 				font-weight: 600;
 				white-space: nowrap !important;
+			}
+			dialog.modal-delicado {
+				background: transparent !important;
+				border: none !important;
+				padding: 0 !important;
+				margin: auto !important;
+				max-width: 440px !important;
+				width: 90% !important;
+				outline: none !important;
+			}
+			dialog.modal-delicado::backdrop {
+				background: rgba(3, 7, 18, 0.75) !important;
+				backdrop-filter: blur(5px) !important;
+				-webkit-backdrop-filter: blur(5px) !important;
+			}
+			.modal-delicado-card {
+				background: linear-gradient(145deg, #111827 0%, #0f172a 100%) !important;
+				border: 1px solid rgba(45, 212, 191, 0.35) !important;
+				border-radius: 16px !important;
+				box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 20px -5px rgba(20, 184, 166, 0.2) !important;
+				padding: 24px !important;
+				position: relative !important;
+				text-align: left !important;
 			}
 			.htmx-indicator {
 				display: none;
@@ -713,6 +759,16 @@
 		</div>
 		{{end}}
 
+		{{if .SuccessMessage}}
+		<div class="linha-box bg-emerald-50 border border-emerald-300 text-emerald-800 p-4 rounded-xl shadow-md mb-4 flex items-center justify-between gap-4" style="background-color: #ecfdf5 !important; border-color: #6ee7b7 !important; color: #065f46 !important;">
+			<div class="flex items-center gap-3" style="display: flex; align-items: center; gap: 0.75rem;">
+				<span class="text-xl">✅</span>
+				<div class="font-bold text-sm text-emerald-900" style="color: #064e3b !important;">{{.SuccessMessage}}</div>
+			</div>
+			<button type="button" onclick="this.closest('.linha-box').remove()" class="text-emerald-500 hover:text-emerald-700 font-bold text-xs px-2 py-1 bg-emerald-100 hover:bg-emerald-200 rounded transition cursor-pointer" style="background-color: #d1fae5; color: #047857; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer;">✕ Fechar</button>
+		</div>
+		{{end}}
+
 		<div class="grade-tabela topo-tabela">
 			<div>Data</div>
 			<div>Cliente</div>
@@ -853,6 +909,74 @@
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
 					</svg>
 				</button>
+			{{end}}
+			{{if .CanTax}}
+				<button type="button"
+						onclick="document.getElementById('modal-tax-{{.ID}}').showModal()"
+						class="p-1.5 text-teal-400 hover:text-teal-200 hover:bg-teal-950/60 rounded transition cursor-pointer border border-transparent hover:border-teal-800/60 relative"
+						title="Emitir Nota Fiscal (NFS-e)">
+					<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+					</svg>
+				</button>
+
+				<dialog id="modal-tax-{{.ID}}" class="modal-delicado" onclick="if(event.target===this) this.close()">
+					<div class="modal-delicado-card">
+						<div style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, #14b8a6, #06b6d4, #6366f1);"></div>
+						
+						<div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+							<div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(20, 184, 166, 0.15); border: 1px solid rgba(45, 212, 191, 0.4); display: flex; align-items: center; justify-content: center; font-size: 20px;">
+								🏛️
+							</div>
+							<div>
+								<h3 style="font-size: 16px; font-weight: 700; color: #f9fafb; margin: 0;">Emitir NFS-e</h3>
+								<p style="font-size: 12px; color: #94a3b8; margin: 2px 0 0 0;">Prefeitura Municipal de São Paulo</p>
+							</div>
+						</div>
+
+						<div style="background: rgba(17, 24, 39, 0.8); border: 1px solid #374151; border-radius: 10px; padding: 14px; margin-bottom: 18px; font-size: 13px;">
+							<div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+								<span style="color: #9ca3af;">Fatura:</span>
+								<span style="font-weight: 700; color: #f3f4f6; font-family: monospace;">#{{.ID}}</span>
+							</div>
+							<div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+								<span style="color: #9ca3af;">Cliente:</span>
+								<span style="font-weight: 600; color: #f3f4f6;">{{.Customer}}</span>
+							</div>
+							<div style="display: flex; justify-content: space-between; padding-top: 8px; border-top: 1px solid #1f2937;">
+								<span style="color: #9ca3af;">Valor:</span>
+								<span style="font-weight: 800; color: #34d399; font-size: 15px; font-family: monospace;">{{.ValorFormatado}}</span>
+							</div>
+						</div>
+
+						<p style="font-size: 12px; color: #9ca3af; line-height: 1.4; margin: 0 0 20px 0;">
+							A NFS-e será transmitida e assinada digitalmente com certificado A1. Deseja confirmar o envio?
+						</p>
+
+						<div style="display: flex; justify-content: flex-end; gap: 10px;">
+							<button type="button"
+									onclick="document.getElementById('modal-tax-{{.ID}}').close()"
+									class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-xs px-4 py-2.5 rounded-lg border border-gray-700 transition cursor-pointer"
+									style="background-color: #1f2937; color: #d1d5db; font-weight: 600; font-size: 0.8125rem; padding: 0.5rem 1rem; border-radius: 0.5rem; border: 1px solid #374151; cursor: pointer;">
+								Cancelar
+							</button>
+							<button type="button"
+									hx-post="/html/invoices/emitir-nfse?id={{.ID}}"
+									hx-target="#tabela-container"
+									hx-include="#filtro-form"
+									hx-indicator="#spinner-modal-tax-{{.ID}}"
+									hx-disabled-elt="this"
+									class="bg-teal-600 hover:bg-teal-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-xs px-4 py-2.5 rounded-lg border border-teal-400 transition cursor-pointer flex items-center gap-2 shadow-lg"
+									style="background: linear-gradient(135deg, #0d9488, #0f766e); color: #fff; font-weight: 700; font-size: 0.8125rem; padding: 0.5rem 1.125rem; border-radius: 0.5rem; border: 1px solid #2dd4bf; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+								<svg id="spinner-modal-tax-{{.ID}}" class="htmx-indicator" style="width: 14px; height: 14px; animation: spin 1s linear infinite;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+									<circle style="opacity: 0.25;" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+									<path style="opacity: 0.75;" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+								</svg>
+								<span>Confirmar Emissão</span>
+							</button>
+						</div>
+					</div>
+				</dialog>
 			{{end}}
 			{{if .CanDelete}}
 				<button type="button"

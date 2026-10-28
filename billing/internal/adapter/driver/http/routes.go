@@ -7,15 +7,20 @@ import (
 )
 
 // NewRoutes creates the root http.ServeMux combining static, API, and HTML routes.
-func NewRoutes(repo port.Repository, logger port.Logger, taxer port.Taxer, pixer port.Pixer, issuer port.Issuer, htmlTemplate []byte) (*http.ServeMux, error) {
+func NewRoutes(repo port.Repository, logger port.Logger, taxer port.Taxer, pixer port.Pixer, issuer port.Issuer, htmlTemplate []byte, taxEmitter ...port.TaxEmitter) (*http.ServeMux, error) {
 	mux := http.NewServeMux()
+
+	var emitter port.TaxEmitter
+	if len(taxEmitter) > 0 {
+		emitter = taxEmitter[0]
+	}
 
 	// Static assets
 	fs := http.FileServer(http.Dir("web/static"))
 	mux.Handle("/static/", http.StripPrefix("/static/", fs))
 
 	// API routes
-	apiRoutes := NewAPIRoutes(repo, logger, taxer, pixer, issuer)
+	apiRoutes := NewAPIRoutes(repo, logger, taxer, pixer, issuer, emitter)
 	mux.Handle("/api/", http.StripPrefix("/api", apiRoutes))
 
 	// Direct endpoint mappings for API backward compatibility
@@ -23,10 +28,10 @@ func NewRoutes(repo port.Repository, logger port.Logger, taxer port.Taxer, pixer
 	mux.Handle("/invoice/api/", apiRoutes)
 	mux.Handle("/invoice/cancel", apiRoutes)
 	mux.Handle("/tax/api/", apiRoutes)
-	mux.HandleFunc("/ping", NewHandlerApi(repo, logger, taxer, pixer, issuer).Ping)
+	mux.HandleFunc("/ping", NewHandlerApi(repo, logger, taxer, pixer, issuer, emitter).Ping)
 
 	// HTML routes
-	htmlRoutes, htmlHandler, err := NewHTMLRoutes(repo, logger, taxer, pixer, issuer, htmlTemplate)
+	htmlRoutes, htmlHandler, err := NewHTMLRoutes(repo, logger, taxer, pixer, issuer, htmlTemplate, emitter)
 	if err != nil {
 		return nil, err
 	}
@@ -39,9 +44,9 @@ func NewRoutes(repo port.Repository, logger port.Logger, taxer port.Taxer, pixer
 }
 
 // NewAPIRoutes creates API routes mux
-func NewAPIRoutes(repo port.Repository, logger port.Logger, taxer port.Taxer, pixer port.Pixer, issuer port.Issuer) *http.ServeMux {
+func NewAPIRoutes(repo port.Repository, logger port.Logger, taxer port.Taxer, pixer port.Pixer, issuer port.Issuer, taxEmitter ...port.TaxEmitter) *http.ServeMux {
 	mux := http.NewServeMux()
-	handler := NewHandlerApi(repo, logger, taxer, pixer, issuer)
+	handler := NewHandlerApi(repo, logger, taxer, pixer, issuer, taxEmitter...)
 
 	mux.HandleFunc("/ping", handler.Ping)
 	mux.HandleFunc("/customer/create", handler.CustomerCreate)
@@ -63,20 +68,23 @@ func NewAPIRoutes(repo port.Repository, logger port.Logger, taxer port.Taxer, pi
 	mux.HandleFunc("/invoice/api/payment", handler.InvoicePayment)
 	mux.HandleFunc("/invoice/bill", handler.InvoiceBill)
 	mux.HandleFunc("/invoice/api/bill", handler.InvoiceBill)
+	mux.HandleFunc("/invoice/tax/emit", handler.InvoiceTaxEmit)
+	mux.HandleFunc("/invoice/api/tax/emit", handler.InvoiceTaxEmit)
 
 	mux.HandleFunc("/tax/generate", handler.TaxGenerate)
 	mux.HandleFunc("/tax/api/generate", handler.TaxGenerate)
 	mux.HandleFunc("/tax/clear", handler.TaxClear)
 	mux.HandleFunc("/tax/api/clear", handler.TaxClear)
+	mux.HandleFunc("/tax/api/emit-single", handler.InvoiceTaxEmit)
 
 	return mux
 }
 
 // NewHTMLRoutes creates HTML routes mux
-func NewHTMLRoutes(repo port.Repository, logger port.Logger, taxer port.Taxer, pixer port.Pixer, issuer port.Issuer, htmlTemplate []byte) (*http.ServeMux, *HandlerHtml, error) {
+func NewHTMLRoutes(repo port.Repository, logger port.Logger, taxer port.Taxer, pixer port.Pixer, issuer port.Issuer, htmlTemplate []byte, taxEmitter ...port.TaxEmitter) (*http.ServeMux, *HandlerHtml, error) {
 	mux := http.NewServeMux()
 	logger.IPrintf(0, "Initializing HTML routes")
-	handler, err := NewHandlerHtml(repo, logger, taxer, pixer, issuer, htmlTemplate)
+	handler, err := NewHandlerHtml(repo, logger, taxer, pixer, issuer, htmlTemplate, taxEmitter...)
 	if err != nil {
 		logger.IPrintf(0, "Failed to initialize HTML handler: %v", err)
 		return nil, nil, err
@@ -99,6 +107,7 @@ func NewHTMLRoutes(repo port.Repository, logger port.Logger, taxer port.Taxer, p
 	mux.HandleFunc("/invoices/cancelar", handler.InvoicesDelete)
 	mux.HandleFunc("/invoices/pagamento-aviso", handler.InvoicesPaymentWarning)
 	mux.HandleFunc("/invoices/pagar", handler.InvoicesPay)
+	mux.HandleFunc("/invoices/emitir-nfse", handler.InvoicesEmitTax)
 	mux.HandleFunc("/invoices/enviar-invoice", handler.InvoicesSendInvoice)
 	mux.HandleFunc("/invoices/enviar-recibo", handler.InvoicesSendReceipt)
 	mux.HandleFunc("/invoices/download", handler.InvoicesDownloadPDF)

@@ -66,6 +66,11 @@ type Taxer interface {
 	ClearEmission(source string) (map[int64]*domain.EmissionItem, error)
 }
 
+// TaxEmitter defines the interface for real-time single NFS-e communication with tax authorities.
+type TaxEmitter interface {
+	EmitSingle(ctx context.Context, invoice *domain.Invoice, rpsNumber int64) (*domain.EmissionItem, error)
+}
+
 // Pixer defines the interface for generating Pix payment payloads.
 type Pixer interface {
 	Get(request InDTO) (string, string, error)

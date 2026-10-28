@@ -3,6 +3,7 @@ module billing
 go 1.26.2
 
 require (
+	github.com/beevik/etree v1.8.1
 	github.com/chromedp/cdproto v0.0.0-20260719223732-95f6af754cfe
 	github.com/chromedp/chromedp v0.16.0
 	github.com/ianlopshire/go-fixedwidth v0.10.0
@@ -11,12 +12,14 @@ require (
 	github.com/nats-io/nats.go v1.54.0
 	github.com/nyaruka/phonenumbers v1.8.0
 	github.com/robfig/cron/v3 v3.0.1
+	github.com/russellhaering/goxmldsig v1.6.1
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	go.uber.org/zap v1.28.0
 	golang.org/x/text v0.42.0
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/gorm v1.31.1
+	software.sslmate.com/src/go-pkcs12 v0.7.4
 )
 
 require (

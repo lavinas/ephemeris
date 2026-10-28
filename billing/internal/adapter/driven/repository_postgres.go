@@ -312,7 +312,7 @@ func (a *PostgresRepository) FindInvoices(page, pageSize int, customer int64,
 // GetInvoiceByExternalCode retrieves a single invoice by vendorID and externalCode
 func (a *PostgresRepository) GetInvoiceByExternalCode(vendorID int64, externalCode string) (*domain.Invoice, error) {
 	var invoice domain.Invoice
-	err := a.getDB().Preload("InvoiceItems").Preload("Customer").
+	err := a.getDB().Preload("InvoiceItems").Preload("Customer").Preload("Vendor").
 		Where("vendor_id = ? AND external_code = ?", vendorID, externalCode).First(&invoice).Error
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil
@@ -326,7 +326,7 @@ func (a *PostgresRepository) GetInvoiceByExternalCode(vendorID int64, externalCo
 // GetInvoice retrieves a single invoice by ID
 func (a *PostgresRepository) GetInvoice(id int64) (*domain.Invoice, error) {
 	var invoice domain.Invoice
-	err := a.getDB().Preload("InvoiceItems").Preload("Customer").
+	err := a.getDB().Preload("InvoiceItems").Preload("Customer").Preload("Vendor").
 		Where("id = ?", id).First(&invoice).Error
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil // Return nil if no record is found

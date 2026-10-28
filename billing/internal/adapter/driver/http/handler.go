@@ -21,21 +21,27 @@ const (
 
 // Handler is an HTTP handler for the API and HTML pages
 type Handler struct {
-	logger port.Logger
-	repo   port.Repository
-	taxer  port.Taxer
-	pixer  port.Pixer
-	issuer port.Issuer
+	logger     port.Logger
+	repo       port.Repository
+	taxer      port.Taxer
+	taxEmitter port.TaxEmitter
+	pixer      port.Pixer
+	issuer     port.Issuer
 }
 
 // NewHandler creates a new instance of Handler
-func NewHandler(repo port.Repository, logger port.Logger, taxer port.Taxer, pixer port.Pixer, issuer port.Issuer) *Handler {
+func NewHandler(repo port.Repository, logger port.Logger, taxer port.Taxer, pixer port.Pixer, issuer port.Issuer, taxEmitter ...port.TaxEmitter) *Handler {
+	var emitter port.TaxEmitter
+	if len(taxEmitter) > 0 {
+		emitter = taxEmitter[0]
+	}
 	return &Handler{
-		repo:   repo,
-		logger: logger,
-		taxer:  taxer,
-		pixer:  pixer,
-		issuer: issuer,
+		repo:       repo,
+		logger:     logger,
+		taxer:      taxer,
+		taxEmitter: emitter,
+		pixer:      pixer,
+		issuer:     issuer,
 	}
 }
 
@@ -47,7 +53,7 @@ func (h *Handler) Run(addr string) error {
 	}
 	h.logger.IPrintf(0, "HTML template loaded successfully")
 
-	mainMux, err := NewRoutes(h.repo, h.logger, h.taxer, h.pixer, h.issuer, template)
+	mainMux, err := NewRoutes(h.repo, h.logger, h.taxer, h.pixer, h.issuer, template, h.taxEmitter)
 	if err != nil {
 		return fmt.Errorf("error creating routes: %v", err)
 	}

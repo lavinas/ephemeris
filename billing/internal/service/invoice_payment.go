@@ -39,19 +39,31 @@ func GetGlobalPaymentTimeout() time.Duration {
 // InvoicePayment handles the business logic for registering an invoice payment and atomically sending the receipt email.
 type InvoicePayment struct {
 	*Base
-	issuer  port.Issuer
-	pixer   port.Pixer
-	timeout time.Duration
+	issuer     port.Issuer
+	pixer      port.Pixer
+	taxEmitter port.TaxEmitter
+	timeout    time.Duration
 }
 
 // NewInvoicePayment creates a new instance of InvoicePayment with the global configured timeout.
-func NewInvoicePayment(repo port.Repository, logger port.Logger, issuer port.Issuer, pixer port.Pixer) *InvoicePayment {
-	return &InvoicePayment{
-		Base:    NewBase(repo, logger),
-		issuer:  issuer,
-		pixer:   pixer,
-		timeout: GetGlobalPaymentTimeout(),
+func NewInvoicePayment(repo port.Repository, logger port.Logger, issuer port.Issuer, pixer port.Pixer, taxEmitter ...port.TaxEmitter) *InvoicePayment {
+	var emitter port.TaxEmitter
+	if len(taxEmitter) > 0 {
+		emitter = taxEmitter[0]
 	}
+	return &InvoicePayment{
+		Base:       NewBase(repo, logger),
+		issuer:     issuer,
+		pixer:      pixer,
+		taxEmitter: emitter,
+		timeout:    GetGlobalPaymentTimeout(),
+	}
+}
+
+// SetTaxEmitter configures the TaxEmitter instance for automatic NFS-e emission upon payment.
+func (s *InvoicePayment) SetTaxEmitter(emitter port.TaxEmitter) *InvoicePayment {
+	s.taxEmitter = emitter
+	return s
 }
 
 // NewInvoicePaymentWithTimeout creates a new instance of InvoicePayment with a custom timeout.
@@ -174,8 +186,35 @@ func (s *InvoicePayment) Run(inDTO port.InDTO) port.OutDTO {
 			return
 		}
 
-		s.logger.IPrintf(2, "Successfully registered payment and sent receipt for invoice ID %d", invoice.ID)
-		resChan <- result{resp: dto.NewInvoicePaymentResponse(200, "success", "Payment registered and receipt sent successfully")}
+		successMsg := "Payment registered and receipt sent successfully"
+		// If tax emitter is present and invoice is taxable, attempt automatic NFS-e emission
+		if s.taxEmitter != nil && invoice.IsTaxable() {
+			s.logger.IPrintf(2, "Invoice ID %d is taxable; triggering automatic NFS-e emission", invoice.ID)
+			taxSvc := NewInvoiceTaxEmit(s.repo, s.logger, s.taxEmitter)
+			taxReq := &dto.InvoiceTaxEmitRequest{
+				Vendor: req.Vendor,
+				ID:     invoice.ID,
+			}
+			taxOut := taxSvc.Run(taxReq)
+			if taxOut != nil && taxOut.GetStatusCode() == 200 {
+				if taxResp, ok := taxOut.(dto.InvoiceTaxEmitResponse); ok && taxResp.NFENumber != nil {
+					successMsg = fmt.Sprintf("Pagamento registrado, recibo enviado e NFS-e #%d emitida com sucesso", *taxResp.NFENumber)
+				} else {
+					successMsg = "Pagamento registrado, recibo enviado e NFS-e emitida com sucesso"
+				}
+				s.logger.IPrintf(2, "Automatic NFS-e emission succeeded for invoice ID %d", invoice.ID)
+			} else {
+				errMsg := "Prefeitura indisponível ou rejeitou a emissão"
+				if taxResp, ok := taxOut.(dto.InvoiceTaxEmitResponse); ok && taxResp.Message != "" {
+					errMsg = taxResp.Message
+				}
+				s.logger.IPrintf(1, "Automatic NFS-e emission failed for invoice ID %d: %s. Invoice remains available for manual retry.", invoice.ID, errMsg)
+				successMsg = fmt.Sprintf("Pagamento registrado e recibo enviado com sucesso. Aviso da NFS-e: %s", errMsg)
+			}
+		}
+
+		s.logger.IPrintf(2, "Successfully registered payment and completed post-payment actions for invoice ID %d", invoice.ID)
+		resChan <- result{resp: dto.NewInvoicePaymentResponse(200, "success", successMsg)}
 	}()
 
 	select {

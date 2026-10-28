@@ -22,16 +22,17 @@ const (
 
 // HandlerHtml is an HTTP handler for the HTML pages
 type HandlerHtml struct {
-	logger port.Logger
-	repo   port.Repository
-	taxer  port.Taxer
-	pixer  port.Pixer
-	issuer port.Issuer
-	tmpl   *template.Template
+	logger     port.Logger
+	repo       port.Repository
+	taxer      port.Taxer
+	taxEmitter port.TaxEmitter
+	pixer      port.Pixer
+	issuer     port.Issuer
+	tmpl       *template.Template
 }
 
 // NewHandlerHtml creates a new instance of HandlerHtml
-func NewHandlerHtml(repo port.Repository, logger port.Logger, taxer port.Taxer, pixer port.Pixer, issuer port.Issuer, tdata []byte) (*HandlerHtml, error) {
+func NewHandlerHtml(repo port.Repository, logger port.Logger, taxer port.Taxer, pixer port.Pixer, issuer port.Issuer, tdata []byte, taxEmitter ...port.TaxEmitter) (*HandlerHtml, error) {
 	funcMap := template.FuncMap{
 		"pularLinhas": func(texto string) template.HTML {
 			safeStr := template.HTMLEscapeString(texto)
@@ -48,13 +49,19 @@ func NewHandlerHtml(repo port.Repository, logger port.Logger, taxer port.Taxer, 
 		return nil, err
 	}
 
+	var emitter port.TaxEmitter
+	if len(taxEmitter) > 0 {
+		emitter = taxEmitter[0]
+	}
+
 	return &HandlerHtml{
-		repo:   repo,
-		logger: logger,
-		taxer:  taxer,
-		pixer:  pixer,
-		issuer: issuer,
-		tmpl:   tmpl,
+		repo:       repo,
+		logger:     logger,
+		taxer:      taxer,
+		taxEmitter: emitter,
+		pixer:      pixer,
+		issuer:     issuer,
+		tmpl:       tmpl,
 	}, nil
 }
 
@@ -544,7 +551,7 @@ func (h *HandlerHtml) InvoicesPay(w http.ResponseWriter, r *http.Request) {
 		PaymentDate: paymentDate,
 	}
 
-	svc := service.NewInvoicePayment(h.repo, h.logger, h.issuer, h.pixer)
+	svc := service.NewInvoicePayment(h.repo, h.logger, h.issuer, h.pixer, h.taxEmitter)
 	respOut := svc.Run(req)
 
 	pagina, _ := strconv.Atoi(r.FormValue("page"))
@@ -570,6 +577,58 @@ func (h *HandlerHtml) InvoicesPay(w http.ResponseWriter, r *http.Request) {
 			errMsg = respBase.Message
 		}
 		pageData["ErrorMessage"] = errMsg
+	} else {
+		if respBase, ok := respOut.(dto.InvoicePaymentResponse); ok && respBase.Message != "" {
+			pageData["SuccessMessage"] = respBase.Message
+		}
+	}
+
+	h.tmpl.ExecuteTemplate(w, "tabela", pageData)
+}
+
+// InvoicesEmitTax executes manual NFS-e emission for an invoice
+func (h *HandlerHtml) InvoicesEmitTax(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	id, _ := strconv.ParseInt(r.URL.Query().Get("id"), 10, 64)
+	vendorNick := h.getVendorNickname()
+
+	req := &dto.InvoiceTaxEmitRequest{
+		Vendor: vendorNick,
+		ID:     id,
+	}
+
+	svc := service.NewInvoiceTaxEmit(h.repo, h.logger, h.taxEmitter)
+	respOut := svc.Run(req)
+
+	pagina, _ := strconv.Atoi(r.FormValue("page"))
+	if pagina <= 0 {
+		pagina = 1
+	}
+	pageData := h.loadPageData(
+		pagina,
+		r.FormValue("customer"),
+		r.FormValue("invoicing"),
+		r.FormValue("due"),
+		r.FormValue("payment"),
+		r.FormValue("email_sent"),
+		r.FormValue("email_receipt"),
+		r.FormValue("tax"),
+		r.FormValue("item_desc"),
+		r.FormValue("overdue"),
+	)
+
+	if respOut.GetStatusCode() != 200 {
+		errMsg := "Falha ao emitir nota fiscal"
+		if respBase, ok := respOut.(dto.InvoiceTaxEmitResponse); ok && respBase.Message != "" {
+			errMsg = respBase.Message
+		}
+		pageData["ErrorMessage"] = errMsg
+	} else {
+		successMsg := "Nota Fiscal emitida com sucesso!"
+		if respBase, ok := respOut.(dto.InvoiceTaxEmitResponse); ok && respBase.Message != "" {
+			successMsg = respBase.Message
+		}
+		pageData["SuccessMessage"] = successMsg
 	}
 
 	h.tmpl.ExecuteTemplate(w, "tabela", pageData)
@@ -913,6 +972,7 @@ func (h *HandlerHtml) mapSingleInvoiceData(inv domain.Invoice) map[string]interf
 		"CanDelete":                 canDelete,
 		"CanEdit":                   canEdit,
 		"CanPay":                    inv.CanPay(),
+		"CanTax":                    inv.CanTax(),
 		"IsExternal":                isExternal,
 		"ValorTotal":                inv.Amount,
 		"ValorFormatado":            formatMoney(inv.Amount),

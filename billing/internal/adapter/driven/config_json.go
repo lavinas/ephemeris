@@ -13,6 +13,7 @@ type JsonConfig struct {
 	NATS     JsonNATSConfig     `json:"nats"`
 	Service  JsonServiceConfig  `json:"service"`
 	AutoBill JsonAutoBillConfig `json:"auto_bill"`
+	Tax      JsonTaxConfig      `json:"tax"`
 }
 
 // JsonAutoBillConfig represents the automatic billing cron configuration
@@ -148,6 +149,68 @@ func (v *JsonConfig) GetAutoBillData() (enabled bool, daysInAdvance int, schedul
 	}
 
 	return enabled, daysInAdvance, schedules
+}
+
+// JsonTaxConfig represents the tax emission (NFS-e) configuration structure
+type JsonTaxConfig struct {
+	Environment         string  `json:"environment"`
+	CertificatePath     string  `json:"certificate_path"`
+	CertificatePassword string  `json:"certificate_password"`
+	ServiceCode         int     `json:"service_code"`
+	Aliquot             float64 `json:"aliquot"`
+	Serie               string  `json:"serie"`
+	TimeoutSeconds      int     `json:"timeout_seconds"`
+	HomologationURL     string  `json:"homologation_url"`
+	ProductionURL       string  `json:"production_url"`
+}
+
+// GetTaxData returns the tax emission configuration
+func (v *JsonConfig) GetTaxData() (env, certPath, certPassword string, serviceCode int, aliquot float64, serie string, timeoutSeconds int, url string) {
+	env = v.Tax.Environment
+	if env == "" {
+		env = "homologation"
+	}
+
+	certPath = v.Tax.CertificatePath
+	if certPath == "" {
+		certPath = "config/certs/estudio_amelia.pfx"
+	}
+
+	certPassword = v.Tax.CertificatePassword
+	if certPassword == "" {
+		certPassword = os.Getenv("BILLING_TAX_CERT_PASSWORD")
+	}
+
+	serviceCode = v.Tax.ServiceCode
+	if serviceCode <= 0 {
+		serviceCode = 5762
+	}
+
+	aliquot = v.Tax.Aliquot
+
+	serie = v.Tax.Serie
+	if serie == "" {
+		serie = "A"
+	}
+
+	timeoutSeconds = v.Tax.TimeoutSeconds
+	if timeoutSeconds <= 0 {
+		timeoutSeconds = 25
+	}
+
+	if env == "production" {
+		url = v.Tax.ProductionURL
+		if url == "" {
+			url = "https://nfews.prefeitura.sp.gov.br/lotenfe.asmx"
+		}
+	} else {
+		url = v.Tax.HomologationURL
+		if url == "" {
+			url = "https://nfews.prefeitura.sp.gov.br/lotenfe.asmx"
+		}
+	}
+
+	return env, certPath, certPassword, serviceCode, aliquot, serie, timeoutSeconds, url
 }
 
 

@@ -130,4 +130,13 @@ func (i *Invoice) CanPay() bool {
 	return i.PaymentDate == nil
 }
 
+// CanTax checks if the invoice can have a tax note emitted (paid, not cancelled, tax date is nil, customer has document).
+func (i *Invoice) CanTax() bool {
+	return i.CancellationDate == nil &&
+		i.PaymentDate != nil &&
+		i.TaxDate == nil &&
+		i.Customer.Document != nil &&
+		*i.Customer.Document != ""
+}
+
 

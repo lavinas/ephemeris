@@ -30,5 +30,14 @@
         "days_in_advance": 3,
         "hours": [8, 14, 20],
         "schedules": []
+    },
+    "tax": {
+        "environment": "homologation",
+        "certificate_path": "config/certs/estudio_amelia.pfx",
+        "certificate_password": "pwd22Adm*",
+        "service_code": 5762,
+        "aliquot": 0.0,
+        "serie": "A",
+        "timeout_seconds": 25
     }
 }

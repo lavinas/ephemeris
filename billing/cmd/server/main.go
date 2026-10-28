@@ -43,6 +43,9 @@ func main() {
 	defer repo.Close()
 	// Taxer initialization
 	taxer := driven.NewTaxer()
+	// TaxEmitter initialization
+	taxEnv, certPath, certPassword, serviceCode, aliquot, serie, taxTimeout, taxURL := cfg.GetTaxData()
+	taxEmitter := driven.NewSPNfseEmitter(logger, taxEnv, certPath, certPassword, serviceCode, aliquot, serie, taxTimeout, taxURL)
 	// Pixer initialization
 	pixer := driven.NewPixer(logger)
 	// Issuer initialization
@@ -92,7 +95,7 @@ func main() {
 	// Initialize HTTP Handler
 	os.Setenv("TZ", timezone)
 	webAddr := cfg.GetWebAddr()
-	handler := driverHttp.NewHandler(repo, logger, taxer, pixer, issuer)
+	handler := driverHttp.NewHandler(repo, logger, taxer, pixer, issuer, taxEmitter)
 	if err := handler.Run(webAddr); err != nil {
 		logger.IPrintf(0, "Error running server: %v", err)
 	}
