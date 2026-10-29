@@ -138,10 +138,10 @@ func (s *InvoiceCreate) Run(input port.InDTO) port.OutDTO {
 
 func (s *InvoiceCreate) resolveOrCreatePlan(customerID int64, invoiceDate time.Time) (int64, error) {
 	conditions := map[string]interface{}{
-		"customer_id = ?": customerID,
-		"deleted_at IS NULL": nil,
-		"plan_type = ?": int(domain.PlanTypeManual),
-		"plan_start <= ?": invoiceDate,
+		"customer_id = ?":                     customerID,
+		"deleted_at IS NULL":                  nil,
+		"plan_type = ?":                       int(domain.PlanTypeManual),
+		"plan_start <= ?":                     invoiceDate,
 		"(plan_end IS NULL OR plan_end >= ?)": invoiceDate,
 	}
 

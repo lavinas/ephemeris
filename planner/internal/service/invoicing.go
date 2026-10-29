@@ -42,7 +42,6 @@ func (s *Invoicing) SetComptimeService(cs port.ComptimeService) {
 	s.comptime = cs
 }
 
-
 // Run executes the invoicing process using the provided input DTO.
 func (s *Invoicing) Run(input port.InDTO) port.OutDTO {
 	s.logger.IPrintf(2, "Processing invoicing request: %v", input)

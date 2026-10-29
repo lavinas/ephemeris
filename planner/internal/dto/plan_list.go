@@ -34,16 +34,16 @@ type PlanListResponse struct {
 
 // PlanDTO represents a plan and all its detailed data
 type PlanDTO struct {
-	ID           int64            `json:"id"`
-	CustomerID   int64            `json:"customer_id"`
-	Nickname     string           `json:"nickname"`
-	CustomerName string           `json:"customer_name"`
-	PlanStart    string           `json:"plan_start"`
-	PlanEnd      *string          `json:"plan_end,omitempty"`
-	PlanType     int              `json:"plan_type"`
-	PlanTypeName string           `json:"plan_type_name"`
-	Price        *float64         `json:"price,omitempty"`
-	Items        []PlanItemDTO    `json:"items"`
+	ID           int64              `json:"id"`
+	CustomerID   int64              `json:"customer_id"`
+	Nickname     string             `json:"nickname"`
+	CustomerName string             `json:"customer_name"`
+	PlanStart    string             `json:"plan_start"`
+	PlanEnd      *string            `json:"plan_end,omitempty"`
+	PlanType     int                `json:"plan_type"`
+	PlanTypeName string             `json:"plan_type_name"`
+	Price        *float64           `json:"price,omitempty"`
+	Items        []PlanItemDTO      `json:"items"`
 	Agenda       *PlanAgendaDTO     `json:"agenda,omitempty"`
 	Package      *PlanPackageDTO    `json:"package,omitempty"`
 	Notebook     *PlanNotebookDTO   `json:"notebook,omitempty"`

@@ -108,4 +108,3 @@ func (v *Config) GetBillingURL() string {
 	}
 	return "http://localhost:8081"
 }
-

@@ -34,7 +34,6 @@ func (s *SessionUpdate) SetComptimeService(cs port.ComptimeService) {
 	s.comptime = cs
 }
 
-
 // UpdateSession updates an existing session with the provided data.
 func (s *SessionUpdate) Run(InDto port.InDTO) port.OutDTO {
 	s.logger.IPrintf(2, "Updating Session")

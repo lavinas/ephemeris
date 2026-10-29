@@ -64,23 +64,32 @@ func (d *dummyRepo) FindPlans(page, pageSize int, conditions map[string]interfac
 	return nil, 0, nil
 }
 func (d *dummyRepo) GetPlanByID(id int64) (*domain.Plan, error) { return nil, nil }
-func (d *dummyRepo) DeletePlan(id int64) error                    { return nil }
+func (d *dummyRepo) DeletePlan(id int64) error                  { return nil }
 func (d *dummyRepo) FindCustomerActivePlansWithServices(customerID int64, serviceIDs []int64, excludePlanID int64) ([]domain.Plan, error) {
 	return nil, nil
 }
-func (d *dummyRepo) SaveInvoice(invoice *domain.Invoice) error { return nil }
+func (d *dummyRepo) SaveInvoice(invoice *domain.Invoice) error        { return nil }
 func (d *dummyRepo) GetInvoiceByID(id int64) (*domain.Invoice, error) { return nil, nil }
-func (d *dummyRepo) FindInvoices(conditions map[string]interface{}, orderBy ...string) ([]domain.Invoice, error) { return nil, nil }
-func (d *dummyRepo) FindInvoicesPaged(page, pageSize int, conditions map[string]interface{}, orderBy ...string) ([]domain.Invoice, int64, float64, error) { return nil, 0, 0, nil }
-func (d *dummyRepo) DeleteInvoice(id int64) error { return nil }
+func (d *dummyRepo) FindInvoices(conditions map[string]interface{}, orderBy ...string) ([]domain.Invoice, error) {
+	return nil, nil
+}
+func (d *dummyRepo) FindInvoicesPaged(page, pageSize int, conditions map[string]interface{}, orderBy ...string) ([]domain.Invoice, int64, float64, error) {
+	return nil, 0, 0, nil
+}
+func (d *dummyRepo) DeleteInvoice(id int64) error                { return nil }
 func (d *dummyRepo) UpdateInvoice(invoice *domain.Invoice) error { return nil }
-func (d *dummyRepo) DeleteInvoicesByIDs(ids []int64) error { return nil }
-func (d *dummyRepo) FindActivePlansForInvoicing(planID *int64, vendorID *int64, customerID *int64, planType *int, serviceID *int64, startDate, endDate time.Time) ([]domain.Plan, error) { return nil, nil }
-func (d *dummyRepo) FindBillableSessions(customerID int64, serviceID int64, startDate, endDate time.Time) ([]domain.Session, error) { return nil, nil }
+func (d *dummyRepo) DeleteInvoicesByIDs(ids []int64) error       { return nil }
+func (d *dummyRepo) FindActivePlansForInvoicing(planID *int64, vendorID *int64, customerID *int64, planType *int, serviceID *int64, startDate, endDate time.Time) ([]domain.Plan, error) {
+	return nil, nil
+}
+func (d *dummyRepo) FindBillableSessions(customerID int64, serviceID int64, startDate, endDate time.Time) ([]domain.Session, error) {
+	return nil, nil
+}
 func (d *dummyRepo) GetInvoiceForSession(sessionID int64) (*domain.Invoice, error) { return nil, nil }
-func (d *dummyRepo) SaveInvoices(invoices []*domain.Invoice) error { return nil }
-func (d *dummyRepo) CheckInvoiceExists(customerID int64, invoiceDate, periodStart, periodEnd time.Time, excludeInvoiceID int64) (bool, error) { return false, nil }
-
+func (d *dummyRepo) SaveInvoices(invoices []*domain.Invoice) error                 { return nil }
+func (d *dummyRepo) CheckInvoiceExists(customerID int64, invoiceDate, periodStart, periodEnd time.Time, excludeInvoiceID int64) (bool, error) {
+	return false, nil
+}
 
 func TestRootEndpointServesStaticIndex(t *testing.T) {
 	// Change working directory to planner/backend for test to resolve web/static
@@ -1476,11 +1485,11 @@ func TestHTMLComptimeRoutes(t *testing.T) {
 	mockRepo := &mockComptimeRouteRepo{
 		records: []port.ComptimeView{
 			{
-				ID:               1,
-				VendorID:         1,
-				CustomerID:       10,
-				CustomerNickname: "cteste",
-				CustomerName:     "Cliente Teste",
+				ID:                 1,
+				VendorID:           1,
+				CustomerID:         10,
+				CustomerNickname:   "cteste",
+				CustomerName:       "Cliente Teste",
 				ServiceID:          20,
 				ServiceName:        "Psicoterapia",
 				ServiceDescription: "Atendimento Clínico Semanal",
@@ -1966,8 +1975,3 @@ func TestSessionsServices_HTMXAndAPI(t *testing.T) {
 		t.Errorf("unexpected API response for cliente_com_plano: %s", recAPI.Body.String())
 	}
 }
-
-
-
-
-

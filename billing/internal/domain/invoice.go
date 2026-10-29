@@ -138,5 +138,3 @@ func (i *Invoice) CanTax() bool {
 		i.Customer.Document != nil &&
 		*i.Customer.Document != ""
 }
-
-

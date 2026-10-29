@@ -9,7 +9,7 @@ import (
 
 func floatPtr(v float64) *float64 { return &v }
 func stringPtr(v string) *string  { return &v }
-func intPtr(v int) *int          { return &v }
+func intPtr(v int) *int           { return &v }
 
 func TestPackageStrategy_Calculate(t *testing.T) {
 	strat := NewPackageStrategy()

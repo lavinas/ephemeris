@@ -413,8 +413,8 @@ func (e *SPNfseEmitter) sendSOAP(ctx context.Context, clientCert *tls.Certificat
 }
 
 type soapEnvioRPSResponse struct {
-	XMLName    xml.Name `xml:"Envelope"`
-	Body       soapBody `xml:"Body"`
+	XMLName xml.Name `xml:"Envelope"`
+	Body    soapBody `xml:"Body"`
 }
 
 type soapBody struct {
@@ -426,7 +426,7 @@ type envioRPSResponse struct {
 }
 
 type retornoEnvioRPS struct {
-	XMLName  xml.Name `xml:"RetornoEnvioRPS"`
+	XMLName   xml.Name `xml:"RetornoEnvioRPS"`
 	Cabecalho struct {
 		Sucesso bool `xml:"Sucesso"`
 	} `xml:"Cabecalho"`

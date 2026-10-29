@@ -44,11 +44,11 @@ type cronMockRepo struct {
 	vendors  map[int64]*domain.Vendor
 }
 
-func (m *cronMockRepo) Save(model interface{}) error   { return nil }
-func (m *cronMockRepo) BeginTransaction() error        { return nil }
-func (m *cronMockRepo) CommitTransaction() error       { return nil }
-func (m *cronMockRepo) RollbackTransaction() error     { return nil }
-func (m *cronMockRepo) Close() error                   { return nil }
+func (m *cronMockRepo) Save(model interface{}) error { return nil }
+func (m *cronMockRepo) BeginTransaction() error      { return nil }
+func (m *cronMockRepo) CommitTransaction() error     { return nil }
+func (m *cronMockRepo) RollbackTransaction() error   { return nil }
+func (m *cronMockRepo) Close() error                 { return nil }
 
 func (m *cronMockRepo) FindCustomers(page, pageSize int, vendorID int64, name, nickname,
 	document *string, status *int, email, whatsapp *string) ([]domain.Customer, error) {

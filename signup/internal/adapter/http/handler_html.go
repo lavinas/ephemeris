@@ -936,4 +936,3 @@ func (h *HandlerHtml) renderErrorMessage(w http.ResponseWriter, msg, tableEndpoi
 	</div>`, template.HTMLEscapeString(msg))
 	w.Write([]byte(html))
 }
-

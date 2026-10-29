@@ -191,4 +191,3 @@ func NewHTMLRoutes(repo port.Repository, logger port.Logger, htmlTemplate []byte
 
 	return mux, handler, nil
 }
-

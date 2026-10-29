@@ -44,4 +44,3 @@ type Repository interface {
 	GetInvoiceForSession(sessionID int64) (*domain.Invoice, error)
 	CheckInvoiceExists(customerID int64, invoiceDate, periodStart, periodEnd time.Time, excludeInvoiceID int64) (bool, error)
 }
-

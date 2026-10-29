@@ -33,4 +33,3 @@ type BillingClient interface {
 	GetInvoiceByExternalCode(ctx context.Context, vendor, externalCode string) (*int64, error)
 	CancelInvoice(ctx context.Context, input BillingCancelInput) error
 }
-

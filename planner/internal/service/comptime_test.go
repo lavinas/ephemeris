@@ -10,24 +10,24 @@ import (
 )
 
 type mockComptimeRepo struct {
-	comptimes       map[int64]*domain.Comptime
-	sessions        map[int64]*domain.Session
-	invoiceItems    map[int64]*domain.InvoiceItem
+	comptimes        map[int64]*domain.Comptime
+	sessions         map[int64]*domain.Session
+	invoiceItems     map[int64]*domain.InvoiceItem
 	comptimeSessions map[int64]*domain.ComptimeSession
-	comptimeItems   map[int64]*domain.ComptimeInvoiceItem
-	comptimeExtras  map[int64]*domain.ComptimeExtra
-	idCounter       int64
+	comptimeItems    map[int64]*domain.ComptimeInvoiceItem
+	comptimeExtras   map[int64]*domain.ComptimeExtra
+	idCounter        int64
 }
 
 func newMockComptimeRepo() *mockComptimeRepo {
 	return &mockComptimeRepo{
-		comptimes:       make(map[int64]*domain.Comptime),
-		sessions:        make(map[int64]*domain.Session),
-		invoiceItems:    make(map[int64]*domain.InvoiceItem),
+		comptimes:        make(map[int64]*domain.Comptime),
+		sessions:         make(map[int64]*domain.Session),
+		invoiceItems:     make(map[int64]*domain.InvoiceItem),
 		comptimeSessions: make(map[int64]*domain.ComptimeSession),
-		comptimeItems:   make(map[int64]*domain.ComptimeInvoiceItem),
-		comptimeExtras:  make(map[int64]*domain.ComptimeExtra),
-		idCounter:       1,
+		comptimeItems:    make(map[int64]*domain.ComptimeInvoiceItem),
+		comptimeExtras:   make(map[int64]*domain.ComptimeExtra),
+		idCounter:        1,
 	}
 }
 
@@ -630,4 +630,3 @@ func TestComptimeService_MonthBalanceAndQueries(t *testing.T) {
 		t.Errorf("expected views[0].Balance = 50, got %d", views[0].Balance)
 	}
 }
-

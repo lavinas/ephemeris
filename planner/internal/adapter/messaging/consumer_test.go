@@ -147,23 +147,32 @@ func (m *mockRepo) FindPlans(page, pageSize int, conditions map[string]interface
 	return nil, 0, nil
 }
 func (m *mockRepo) GetPlanByID(id int64) (*domain.Plan, error) { return nil, nil }
-func (m *mockRepo) DeletePlan(id int64) error                    { return nil }
+func (m *mockRepo) DeletePlan(id int64) error                  { return nil }
 func (m *mockRepo) FindCustomerActivePlansWithServices(customerID int64, serviceIDs []int64, excludePlanID int64) ([]domain.Plan, error) {
 	return nil, nil
 }
-func (m *mockRepo) SaveInvoice(invoice *domain.Invoice) error { return nil }
+func (m *mockRepo) SaveInvoice(invoice *domain.Invoice) error        { return nil }
 func (m *mockRepo) GetInvoiceByID(id int64) (*domain.Invoice, error) { return nil, nil }
-func (m *mockRepo) FindInvoices(conditions map[string]interface{}, orderBy ...string) ([]domain.Invoice, error) { return nil, nil }
-func (m *mockRepo) FindInvoicesPaged(page, pageSize int, conditions map[string]interface{}, orderBy ...string) ([]domain.Invoice, int64, float64, error) { return nil, 0, 0, nil }
-func (m *mockRepo) DeleteInvoice(id int64) error { return nil }
+func (m *mockRepo) FindInvoices(conditions map[string]interface{}, orderBy ...string) ([]domain.Invoice, error) {
+	return nil, nil
+}
+func (m *mockRepo) FindInvoicesPaged(page, pageSize int, conditions map[string]interface{}, orderBy ...string) ([]domain.Invoice, int64, float64, error) {
+	return nil, 0, 0, nil
+}
+func (m *mockRepo) DeleteInvoice(id int64) error                { return nil }
 func (m *mockRepo) UpdateInvoice(invoice *domain.Invoice) error { return nil }
-func (m *mockRepo) DeleteInvoicesByIDs(ids []int64) error { return nil }
-func (m *mockRepo) FindActivePlansForInvoicing(planID *int64, vendorID *int64, customerID *int64, planType *int, serviceID *int64, startDate, endDate time.Time) ([]domain.Plan, error) { return nil, nil }
-func (m *mockRepo) FindBillableSessions(customerID int64, serviceID int64, startDate, endDate time.Time) ([]domain.Session, error) { return nil, nil }
+func (m *mockRepo) DeleteInvoicesByIDs(ids []int64) error       { return nil }
+func (m *mockRepo) FindActivePlansForInvoicing(planID *int64, vendorID *int64, customerID *int64, planType *int, serviceID *int64, startDate, endDate time.Time) ([]domain.Plan, error) {
+	return nil, nil
+}
+func (m *mockRepo) FindBillableSessions(customerID int64, serviceID int64, startDate, endDate time.Time) ([]domain.Session, error) {
+	return nil, nil
+}
 func (m *mockRepo) GetInvoiceForSession(sessionID int64) (*domain.Invoice, error) { return nil, nil }
-func (m *mockRepo) SaveInvoices(invoices []*domain.Invoice) error { return nil }
-func (m *mockRepo) CheckInvoiceExists(customerID int64, invoiceDate, periodStart, periodEnd time.Time, excludeInvoiceID int64) (bool, error) { return false, nil }
-
+func (m *mockRepo) SaveInvoices(invoices []*domain.Invoice) error                 { return nil }
+func (m *mockRepo) CheckInvoiceExists(customerID int64, invoiceDate, periodStart, periodEnd time.Time, excludeInvoiceID int64) (bool, error) {
+	return false, nil
+}
 
 func TestNoopConsumer(t *testing.T) {
 	c := NewNoopConsumer()

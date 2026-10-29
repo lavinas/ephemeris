@@ -373,4 +373,3 @@ func TestInvoicesRealTemplate(t *testing.T) {
 		t.Errorf("expected edit row to contain customer name 'Cliente Teste'")
 	}
 }
-

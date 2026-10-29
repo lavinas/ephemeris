@@ -169,4 +169,3 @@ func TestComptimeRepository_SessionAndListOperations(t *testing.T) {
 		t.Errorf("expected joined CustomerName and ServiceName, got %+v", list[0])
 	}
 }
-

@@ -7,9 +7,9 @@ import (
 )
 
 type JsonConfig struct {
-	DB      JsonDBConfig      `json:"db"`
-	Log     JsonLogConfig     `json:"log"`
-	Web     JsonWebConfig     `json:"web"`
+	DB       JsonDBConfig       `json:"db"`
+	Log      JsonLogConfig      `json:"log"`
+	Web      JsonWebConfig      `json:"web"`
 	NATS     JsonNATSConfig     `json:"nats"`
 	Service  JsonServiceConfig  `json:"service"`
 	AutoBill JsonAutoBillConfig `json:"auto_bill"`
@@ -212,5 +212,3 @@ func (v *JsonConfig) GetTaxData() (env, certPath, certPassword string, serviceCo
 
 	return env, certPath, certPassword, serviceCode, aliquot, serie, timeoutSeconds, url
 }
-
-

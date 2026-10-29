@@ -288,5 +288,3 @@ func TestNotebookStrategy_ItemDescriptionFormat(t *testing.T) {
 		}
 	})
 }
-
-

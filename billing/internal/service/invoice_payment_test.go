@@ -422,4 +422,3 @@ func TestInvoicePayment_Timeout(t *testing.T) {
 		t.Errorf("expected transaction NOT to be committed after timeout")
 	}
 }
-

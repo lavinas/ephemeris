@@ -17,11 +17,11 @@ type mockRepo struct {
 	invoices []domain.Invoice
 }
 
-func (m *mockRepo) Save(model interface{}) error   { return nil }
-func (m *mockRepo) BeginTransaction() error        { return nil }
-func (m *mockRepo) CommitTransaction() error       { return nil }
-func (m *mockRepo) RollbackTransaction() error     { return nil }
-func (m *mockRepo) Close() error                   { return nil }
+func (m *mockRepo) Save(model interface{}) error { return nil }
+func (m *mockRepo) BeginTransaction() error      { return nil }
+func (m *mockRepo) CommitTransaction() error     { return nil }
+func (m *mockRepo) RollbackTransaction() error   { return nil }
+func (m *mockRepo) Close() error                 { return nil }
 
 func (m *mockRepo) FindCustomers(page, pageSize int, vendorID int64, name, nickname,
 	document *string, status *int, email, whatsapp *string) ([]domain.Customer, error) {

@@ -155,4 +155,3 @@ func TestPayPerViewStrategy_ItemDescriptionFormat(t *testing.T) {
 		}
 	})
 }
-

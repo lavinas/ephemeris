@@ -107,6 +107,7 @@ func (v *Vendor) GetByID(id int64) (bool, error) {
 	v.load(resp[0].(*Vendor))
 	return true, nil
 }
+
 // GetByDocument retrieves a vendor by their document.
 func (v *Vendor) GetByDocument(document string) (bool, error) {
 	conditions := map[string]interface{}{}

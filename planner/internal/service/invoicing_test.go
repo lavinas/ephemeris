@@ -74,7 +74,7 @@ func (m *mockInvoicingRepoForService) GetPlanByID(id int64) (*domain.Plan, error
 	}
 	return nil, nil
 }
-func (m *mockInvoicingRepoForService) DeletePlan(id int64) error                    { return nil }
+func (m *mockInvoicingRepoForService) DeletePlan(id int64) error { return nil }
 func (m *mockInvoicingRepoForService) FindCustomerActivePlansWithServices(customerID int64, serviceIDs []int64, excludePlanID int64) ([]domain.Plan, error) {
 	return nil, nil
 }
@@ -261,7 +261,7 @@ func (m *mockInvoicingRepoForService) CheckInvoiceExists(customerID int64, invoi
 }
 
 func floatPtr(v float64) *float64 { return &v }
-func intPtr(v int) *int          { return &v }
+func intPtr(v int) *int           { return &v }
 func stringPtr(v string) *string  { return &v }
 
 func TestInvoicingService_Run(t *testing.T) {

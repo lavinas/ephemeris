@@ -8,19 +8,19 @@ import (
 
 // Invoice represents a billing invoice generated from a plan.
 type Invoice struct {
-	ID                 int64          `gorm:"primaryKey;autoIncrement"`
-	PlanID             int64          `gorm:"column:plan_id;not null;index"`
-	Plan               *Plan          `gorm:"foreignKey:PlanID;references:ID"`
-	InvoicingDate      time.Time      `gorm:"type:date;column:invoicing_date;not null"`
-	DueDate            time.Time      `gorm:"type:date;column:due_date;not null"`
-	PeriodStart        time.Time      `gorm:"type:date;column:period_start;not null"`
-	PeriodEnd          time.Time      `gorm:"type:date;column:period_end;not null"`
-	Amount             float64        `gorm:"type:numeric(15,2);column:amount;not null"`
-	ReferenceInvoiceID *int64         `gorm:"column:reference_invoice_id"`
-	CreatedAt          time.Time      `gorm:"column:created_at;not null"`
-	UpdatedAt          time.Time      `gorm:"column:updated_at;not null"`
-	DeletedAt          *time.Time     `gorm:"column:deleted_at;index"`
-	Items              []InvoiceItem  `gorm:"foreignKey:InvoiceID;references:ID"`
+	ID                 int64         `gorm:"primaryKey;autoIncrement"`
+	PlanID             int64         `gorm:"column:plan_id;not null;index"`
+	Plan               *Plan         `gorm:"foreignKey:PlanID;references:ID"`
+	InvoicingDate      time.Time     `gorm:"type:date;column:invoicing_date;not null"`
+	DueDate            time.Time     `gorm:"type:date;column:due_date;not null"`
+	PeriodStart        time.Time     `gorm:"type:date;column:period_start;not null"`
+	PeriodEnd          time.Time     `gorm:"type:date;column:period_end;not null"`
+	Amount             float64       `gorm:"type:numeric(15,2);column:amount;not null"`
+	ReferenceInvoiceID *int64        `gorm:"column:reference_invoice_id"`
+	CreatedAt          time.Time     `gorm:"column:created_at;not null"`
+	UpdatedAt          time.Time     `gorm:"column:updated_at;not null"`
+	DeletedAt          *time.Time    `gorm:"column:deleted_at;index"`
+	Items              []InvoiceItem `gorm:"foreignKey:InvoiceID;references:ID"`
 }
 
 // TableName specifies table name for Invoice.

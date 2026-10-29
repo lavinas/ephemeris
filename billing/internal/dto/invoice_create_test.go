@@ -9,16 +9,16 @@ import (
 )
 
 type invoiceCreateMockRepo struct {
-	vendor    *domain.Vendor
-	customer  *domain.Customer
-	invoices  map[string]*domain.Invoice
+	vendor   *domain.Vendor
+	customer *domain.Customer
+	invoices map[string]*domain.Invoice
 }
 
-func (m *invoiceCreateMockRepo) Save(model interface{}) error        { return nil }
-func (m *invoiceCreateMockRepo) BeginTransaction() error             { return nil }
-func (m *invoiceCreateMockRepo) CommitTransaction() error            { return nil }
-func (m *invoiceCreateMockRepo) RollbackTransaction() error          { return nil }
-func (m *invoiceCreateMockRepo) Close() error                        { return nil }
+func (m *invoiceCreateMockRepo) Save(model interface{}) error { return nil }
+func (m *invoiceCreateMockRepo) BeginTransaction() error      { return nil }
+func (m *invoiceCreateMockRepo) CommitTransaction() error     { return nil }
+func (m *invoiceCreateMockRepo) RollbackTransaction() error   { return nil }
+func (m *invoiceCreateMockRepo) Close() error                 { return nil }
 func (m *invoiceCreateMockRepo) FindCustomers(page, pageSize int, vendorID int64, name, nickname, document *string, status *int, email, whatsapp *string) ([]domain.Customer, error) {
 	return nil, nil
 }

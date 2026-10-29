@@ -9,7 +9,6 @@ import (
 
 	"signup/internal/domain"
 	"signup/internal/port"
-
 )
 
 // CustomerUpdateRequest represents the request payload for updating an existing customer.

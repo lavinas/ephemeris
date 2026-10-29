@@ -15,12 +15,12 @@ func (m *mockLogger) IPrintf(level int, format string, v ...interface{}) {}
 func (m *mockLogger) Close()                                             {}
 
 type mockPlanRepoForService struct {
-	customers    map[string]*domain.Customer
-	services     map[int64]*domain.Service
-	plans        map[int64]*domain.Plan
-	nextPlanID   int64
-	activePlans  []domain.Plan
-	invoices     []domain.Invoice
+	customers   map[string]*domain.Customer
+	services    map[int64]*domain.Service
+	plans       map[int64]*domain.Plan
+	nextPlanID  int64
+	activePlans []domain.Plan
+	invoices    []domain.Invoice
 }
 
 func newMockPlanRepoForService() *mockPlanRepoForService {
@@ -46,7 +46,9 @@ func (m *mockPlanRepoForService) Save(model interface{}) error { return nil }
 func (m *mockPlanRepoForService) Find(page, pagesize int, conditions map[string]interface{}, orderBy ...string) ([]interface{}, error) {
 	return nil, nil
 }
-func (m *mockPlanRepoForService) FindCount(conditions map[string]interface{}) (int64, error) { return 0, nil }
+func (m *mockPlanRepoForService) FindCount(conditions map[string]interface{}) (int64, error) {
+	return 0, nil
+}
 func (m *mockPlanRepoForService) FindGroup(conditions map[string]interface{}, groupField string) ([]map[string]interface{}, error) {
 	return nil, nil
 }
@@ -78,7 +80,7 @@ func (m *mockPlanRepoForService) FindVendors(page, pageSize int, legalName, nick
 	return nil, nil
 }
 func (m *mockPlanRepoForService) GetVendor(nickname string) (*domain.Vendor, error) { return nil, nil }
-func (m *mockPlanRepoForService) GetVendorByID(id int64) (*domain.Vendor, error)   { return nil, nil }
+func (m *mockPlanRepoForService) GetVendorByID(id int64) (*domain.Vendor, error)    { return nil, nil }
 func (m *mockPlanRepoForService) FindServices(vendorID int64) ([]domain.Service, error) {
 	var list []domain.Service
 	for _, s := range m.services {
@@ -142,10 +144,12 @@ func (m *mockPlanRepoForService) GetInvoiceByID(id int64) (*domain.Invoice, erro
 func (m *mockPlanRepoForService) FindInvoices(conditions map[string]interface{}, orderBy ...string) ([]domain.Invoice, error) {
 	return nil, nil
 }
-func (m *mockPlanRepoForService) FindInvoicesPaged(page, pageSize int, conditions map[string]interface{}, orderBy ...string) ([]domain.Invoice, int64, float64, error) { return nil, 0, 0, nil }
-func (m *mockPlanRepoForService) DeleteInvoice(id int64) error { return nil }
+func (m *mockPlanRepoForService) FindInvoicesPaged(page, pageSize int, conditions map[string]interface{}, orderBy ...string) ([]domain.Invoice, int64, float64, error) {
+	return nil, 0, 0, nil
+}
+func (m *mockPlanRepoForService) DeleteInvoice(id int64) error                { return nil }
 func (m *mockPlanRepoForService) UpdateInvoice(invoice *domain.Invoice) error { return nil }
-func (m *mockPlanRepoForService) DeleteInvoicesByIDs(ids []int64) error { return nil }
+func (m *mockPlanRepoForService) DeleteInvoicesByIDs(ids []int64) error       { return nil }
 func (m *mockPlanRepoForService) FindActivePlansForInvoicing(planID *int64, vendorID *int64, customerID *int64, planType *int, serviceID *int64, startDate, endDate time.Time) ([]domain.Plan, error) {
 	var list []domain.Plan
 	for _, p := range m.plans {
@@ -173,15 +177,21 @@ func (m *mockPlanRepoForService) FindActivePlansForInvoicing(planID *int64, vend
 	}
 	return list, nil
 }
-func (m *mockPlanRepoForService) FindBillableSessions(customerID int64, serviceID int64, startDate, endDate time.Time) ([]domain.Session, error) { return nil, nil }
-func (m *mockPlanRepoForService) GetInvoiceForSession(sessionID int64) (*domain.Invoice, error) { return nil, nil }
+func (m *mockPlanRepoForService) FindBillableSessions(customerID int64, serviceID int64, startDate, endDate time.Time) ([]domain.Session, error) {
+	return nil, nil
+}
+func (m *mockPlanRepoForService) GetInvoiceForSession(sessionID int64) (*domain.Invoice, error) {
+	return nil, nil
+}
 func (m *mockPlanRepoForService) SaveInvoices(invoices []*domain.Invoice) error {
 	for _, inv := range invoices {
 		m.invoices = append(m.invoices, *inv)
 	}
 	return nil
 }
-func (m *mockPlanRepoForService) CheckInvoiceExists(customerID int64, invoiceDate, periodStart, periodEnd time.Time, excludeInvoiceID int64) (bool, error) { return false, nil }
+func (m *mockPlanRepoForService) CheckInvoiceExists(customerID int64, invoiceDate, periodStart, periodEnd time.Time, excludeInvoiceID int64) (bool, error) {
+	return false, nil
+}
 
 func TestPlanCRUD_Services(t *testing.T) {
 	repo := newMockPlanRepoForService()
@@ -647,5 +657,3 @@ func TestPlanUpdate_ToManualClearsItemsAndSpecializations(t *testing.T) {
 		t.Errorf("expected agenda specialization to be nil, got %+v", updated.Agenda)
 	}
 }
-
-

@@ -105,4 +105,3 @@ func (s *InvoiceDelete) Run(input port.InDTO) port.OutDTO {
 	s.logger.IPrintf(2, "Invoice with ID %d deleted (soft-delete) successfully", invoiceID)
 	return dto.NewInvoiceDeleteResponse(200, "OK", "fatura excluída com sucesso")
 }
-

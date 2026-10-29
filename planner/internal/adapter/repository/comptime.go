@@ -500,5 +500,3 @@ func (a *Repository) GetSessionByID(id int64) (*domain.Session, error) {
 	}
 	return &session, nil
 }
-
-

@@ -38,4 +38,3 @@ func MonthNameInPortuguese(m time.Month) string {
 		return ""
 	}
 }
-

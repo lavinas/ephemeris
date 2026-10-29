@@ -60,9 +60,9 @@ func TestPlanRepository_Integration(t *testing.T) {
 		{ServiceID: plan1.Items[0].ServiceID, OrderIndex: 1},
 	}
 	testPlan.Agenda = &domain.PlanAgenda{
-		Recurrence:  1,
-		WeekDay:     2,
-		TermType:    1,
+		Recurrence: 1,
+		WeekDay:    2,
+		TermType:   1,
 		PaymentDay: 15,
 	}
 

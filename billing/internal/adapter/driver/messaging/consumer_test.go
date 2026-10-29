@@ -341,4 +341,3 @@ func TestNATSConsumer_HandleVendorUpdated(t *testing.T) {
 		t.Errorf("expected updated email 'updated@acme.com', got '%s'", vnd.Email)
 	}
 }
-

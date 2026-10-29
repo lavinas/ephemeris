@@ -1094,5 +1094,3 @@ func (a *Repository) CheckInvoiceExists(customerID int64, invoiceDate, periodSta
 	}
 	return count > 0, nil
 }
-
-

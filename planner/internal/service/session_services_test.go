@@ -120,4 +120,3 @@ func TestSessionServices_CustomerWithoutActivePlans_ReturnsAllServicesOrderedByN
 		t.Fatalf("expected all 3 services when nickname is empty, got %d", len(respEmpty.Services))
 	}
 }
-

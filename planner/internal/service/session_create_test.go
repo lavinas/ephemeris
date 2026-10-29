@@ -19,23 +19,47 @@ func (m *mockComptimeRecorder) ProcessSessionCreated(ctx context.Context, sessio
 	m.sessionCreatedCalls = append(m.sessionCreatedCalls, sessionID)
 	return nil
 }
-func (m *mockComptimeRecorder) ProcessSessionUpdated(ctx context.Context, sessionID int64) error { return nil }
-func (m *mockComptimeRecorder) ProcessSessionDeleted(ctx context.Context, sessionID int64) error { return nil }
+func (m *mockComptimeRecorder) ProcessSessionUpdated(ctx context.Context, sessionID int64) error {
+	return nil
+}
+func (m *mockComptimeRecorder) ProcessSessionDeleted(ctx context.Context, sessionID int64) error {
+	return nil
+}
 func (m *mockComptimeRecorder) ProcessInvoiceItemCreated(ctx context.Context, invoiceItemID int64) error {
 	m.invoiceItemCreatedCalls = append(m.invoiceItemCreatedCalls, invoiceItemID)
 	return nil
 }
-func (m *mockComptimeRecorder) ProcessInvoiceItemUpdated(ctx context.Context, invoiceItemID int64) error { return nil }
-func (m *mockComptimeRecorder) ProcessInvoiceItemDeleted(ctx context.Context, invoiceItemID int64) error { return nil }
-func (m *mockComptimeRecorder) ProcessInvoiceDeleted(ctx context.Context, invoiceID int64) error     { return nil }
-func (m *mockComptimeRecorder) ProcessComptimeExtraCreated(ctx context.Context, extra *domain.ComptimeExtra) error { return nil }
-func (m *mockComptimeRecorder) ProcessComptimeExtraUpdated(ctx context.Context, extra *domain.ComptimeExtra) error { return nil }
-func (m *mockComptimeRecorder) ProcessComptimeExtraDeleted(ctx context.Context, extraID int64) error { return nil }
-func (m *mockComptimeRecorder) GetComptime(ctx context.Context, id int64) (*domain.Comptime, error) { return nil, nil }
-func (m *mockComptimeRecorder) GetComptimeByCustomerServiceMonth(ctx context.Context, customerID, serviceID int64, month time.Time) (*domain.Comptime, error) { return nil, nil }
-func (m *mockComptimeRecorder) ListComptime(ctx context.Context, filter port.ComptimeFilter) ([]port.ComptimeView, int64, error) { return nil, 0, nil }
+func (m *mockComptimeRecorder) ProcessInvoiceItemUpdated(ctx context.Context, invoiceItemID int64) error {
+	return nil
+}
+func (m *mockComptimeRecorder) ProcessInvoiceItemDeleted(ctx context.Context, invoiceItemID int64) error {
+	return nil
+}
+func (m *mockComptimeRecorder) ProcessInvoiceDeleted(ctx context.Context, invoiceID int64) error {
+	return nil
+}
+func (m *mockComptimeRecorder) ProcessComptimeExtraCreated(ctx context.Context, extra *domain.ComptimeExtra) error {
+	return nil
+}
+func (m *mockComptimeRecorder) ProcessComptimeExtraUpdated(ctx context.Context, extra *domain.ComptimeExtra) error {
+	return nil
+}
+func (m *mockComptimeRecorder) ProcessComptimeExtraDeleted(ctx context.Context, extraID int64) error {
+	return nil
+}
+func (m *mockComptimeRecorder) GetComptime(ctx context.Context, id int64) (*domain.Comptime, error) {
+	return nil, nil
+}
+func (m *mockComptimeRecorder) GetComptimeByCustomerServiceMonth(ctx context.Context, customerID, serviceID int64, month time.Time) (*domain.Comptime, error) {
+	return nil, nil
+}
+func (m *mockComptimeRecorder) ListComptime(ctx context.Context, filter port.ComptimeFilter) ([]port.ComptimeView, int64, error) {
+	return nil, 0, nil
+}
 func (m *mockComptimeRecorder) DeleteComptime(ctx context.Context, id int64) error { return nil }
-func (m *mockComptimeRecorder) Resync(ctx context.Context, vendorID int64, startDate, endDate time.Time, dataType string, customerID, serviceID *int64) (*port.ResyncResult, error) { return nil, nil }
+func (m *mockComptimeRecorder) Resync(ctx context.Context, vendorID int64, startDate, endDate time.Time, dataType string, customerID, serviceID *int64) (*port.ResyncResult, error) {
+	return nil, nil
+}
 
 type mockSessionCreateRepo struct {
 	mockPlanRepoForService
@@ -51,9 +75,9 @@ func newMockSessionCreateRepo() *mockSessionCreateRepo {
 	base := newMockPlanRepoForService()
 	return &mockSessionCreateRepo{
 		mockPlanRepoForService: *base,
-		customers:             make(map[string]*domain.Customer),
-		nextSessID:            101,
-		nextInvID:             201,
+		customers:              make(map[string]*domain.Customer),
+		nextSessID:             101,
+		nextInvID:              201,
 	}
 }
 

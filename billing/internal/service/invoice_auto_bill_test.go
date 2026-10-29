@@ -191,13 +191,13 @@ func TestInvoiceAutoBill_Success(t *testing.T) {
 	// Invoice 4: Due in 1 day, but already sent -> should NOT be sent
 	sentDate := now.AddDate(0, 0, -2)
 	repo.invoices[4] = &domain.Invoice{
-		ID:            4,
-		CustomerID:    1,
-		Customer:      domain.Customer{ID: 1, VendorID: 1, Nickname: "cliente_1", Name: "Cliente Um", Email: &email1},
-		Amount:        400.0,
-		InvoiceDate:   now.AddDate(0, 0, -10),
-		DueDate:       now.AddDate(0, 0, 1),
-		SentDate:      &sentDate,
+		ID:          4,
+		CustomerID:  1,
+		Customer:    domain.Customer{ID: 1, VendorID: 1, Nickname: "cliente_1", Name: "Cliente Um", Email: &email1},
+		Amount:      400.0,
+		InvoiceDate: now.AddDate(0, 0, -10),
+		DueDate:     now.AddDate(0, 0, 1),
+		SentDate:    &sentDate,
 		InvoiceItems: []domain.InvoiceItem{
 			{ID: 4, Description: "Item 4", Quantity: 1, Price: 400.0},
 		},

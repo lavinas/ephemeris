@@ -112,16 +112,16 @@ func (t TermType) String() string {
 
 // Plan represents the base subscription or session plan model.
 type Plan struct {
-	ID         int64         `gorm:"primaryKey;autoIncrement"`
-	CustomerID int64         `gorm:"not null;index"`
-	Customer   *Customer     `gorm:"foreignKey:CustomerID;references:ID"`
-	PlanStart  time.Time     `gorm:"type:date;not null"`
-	PlanEnd    *time.Time    `gorm:"type:date"`
-	PlanType   int           `gorm:"not null"` // 1: agenda, 2: package, 3: notebook
-	Price      *float64      `gorm:"type:numeric(15,2)"`
-	CreatedAt  time.Time     `gorm:"not null"`
-	UpdatedAt  time.Time     `gorm:"not null"`
-	DeletedAt  *time.Time    `gorm:"index"`
+	ID         int64           `gorm:"primaryKey;autoIncrement"`
+	CustomerID int64           `gorm:"not null;index"`
+	Customer   *Customer       `gorm:"foreignKey:CustomerID;references:ID"`
+	PlanStart  time.Time       `gorm:"type:date;not null"`
+	PlanEnd    *time.Time      `gorm:"type:date"`
+	PlanType   int             `gorm:"not null"` // 1: agenda, 2: package, 3: notebook
+	Price      *float64        `gorm:"type:numeric(15,2)"`
+	CreatedAt  time.Time       `gorm:"not null"`
+	UpdatedAt  time.Time       `gorm:"not null"`
+	DeletedAt  *time.Time      `gorm:"index"`
 	Items      []PlanItem      `gorm:"foreignKey:PlanID;references:ID"`
 	Agenda     *PlanAgenda     `gorm:"foreignKey:ID;references:ID"`
 	Package    *PlanPackage    `gorm:"foreignKey:ID;references:ID"`
@@ -295,5 +295,3 @@ func ValidatePlanItemOrders(orders []int) error {
 	}
 	return nil
 }
-
-

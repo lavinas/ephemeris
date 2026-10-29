@@ -197,7 +197,6 @@ func (s *InvoiceUpdate) Run(input port.InDTO) port.OutDTO {
 	return dto.NewInvoiceUpdateResponse(200, "success", "Pré-fatura atualizada com sucesso", invoiceDTO)
 }
 
-
 func (s *InvoiceUpdate) mapInvoiceToDTO(inv *domain.Invoice) *dto.InvoiceDTO {
 	if inv == nil {
 		return nil

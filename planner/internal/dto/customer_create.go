@@ -6,9 +6,9 @@ import (
 	"net/mail"
 	"strings"
 
+	"github.com/klassmann/cpfcnpj"
 	"planner/internal/domain"
 	"planner/internal/port"
-	"github.com/klassmann/cpfcnpj"
 )
 
 const (

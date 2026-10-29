@@ -55,7 +55,6 @@ func (m *mockInvoiceDeleteRepo) GetCustomerByID(id int64) (*domain.Customer, err
 	return &domain.Customer{ID: id, VendorID: 1, Nickname: "cliente_teste"}, nil
 }
 
-
 func TestInvoiceDelete_Success(t *testing.T) {
 	repo := newMockInvoiceDeleteRepo()
 	logger := &mockLogger{}
@@ -211,4 +210,3 @@ func TestInvoiceDelete_AlreadyInvoiced(t *testing.T) {
 		}
 	})
 }
-

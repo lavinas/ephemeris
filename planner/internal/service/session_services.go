@@ -128,4 +128,3 @@ func (s *SessionServices) resolveServices(req dto.SessionServicesRequest) ([]dom
 
 	return domain.ResolveServicesForCustomerPlans(customerPlans, allServices, today), nil
 }
-

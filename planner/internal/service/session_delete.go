@@ -34,7 +34,6 @@ func (s *SessionDelete) SetComptimeService(cs port.ComptimeService) {
 	s.comptime = cs
 }
 
-
 // DeleteSession deletes a session with the given session ID.
 func (s *SessionDelete) Run(InDto port.InDTO) port.OutDTO {
 	s.logger.IPrintf(2, "Deleting Session")

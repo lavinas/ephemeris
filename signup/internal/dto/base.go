@@ -88,7 +88,7 @@ func HashPassword(password string) (string, error) {
 
 // ValidateDocument checks if the provided document is a valid CPF or CNPJ.
 func ValidateDocument(document string, docType string) (string, error) {
-// validateCpfCnpj checks if the provided document is a valid CPF or CNPJ.
+	// validateCpfCnpj checks if the provided document is a valid CPF or CNPJ.
 	if docType == "cpf" || docType == "all" {
 		cpf := cpfcnpj.NewCPF(document)
 		if cpf.IsValid() {

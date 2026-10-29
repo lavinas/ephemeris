@@ -327,13 +327,13 @@ func (h *HandlerHtml) InvoicingDeleteBatchWarning(w http.ResponseWriter, r *http
 
 	svc := service.NewInvoiceList(h.repo, h.logger)
 	req := &dto.InvoiceListRequest{
-		Page:      1,
-		PageSize:  1,
-		Nickname:  r.FormValue("nickname"),
-		PlanType:  tipoFiltro,
-		ServiceID: servicoFiltro,
-		InvoiceID: faturaID,
-		PlanID:    planoID,
+		Page:        1,
+		PageSize:    1,
+		Nickname:    r.FormValue("nickname"),
+		PlanType:    tipoFiltro,
+		ServiceID:   servicoFiltro,
+		InvoiceID:   faturaID,
+		PlanID:      planoID,
 		StartDate:   startDate,
 		EndDate:     endDate,
 		PendingOnly: true,
@@ -1042,4 +1042,3 @@ func (h *HandlerHtml) renderInvoicingTableWithMessages(w http.ResponseWriter, _ 
 	}
 	h.tmplInvoicing.ExecuteTemplate(w, "tabela", page)
 }
-

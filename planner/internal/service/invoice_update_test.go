@@ -11,10 +11,10 @@ import (
 
 type mockInvoiceUpdateRepoForService struct {
 	mockPlanRepoForService
-	invoices      map[int64]*domain.Invoice
+	invoices       map[int64]*domain.Invoice
 	updatedInvoice *domain.Invoice
-	failGet       bool
-	failUpdate    bool
+	failGet        bool
+	failUpdate     bool
 }
 
 func newMockInvoiceUpdateRepoForService() *mockInvoiceUpdateRepoForService {
@@ -49,7 +49,6 @@ func (m *mockInvoiceUpdateRepoForService) GetVendorByID(id int64) (*domain.Vendo
 func (m *mockInvoiceUpdateRepoForService) GetCustomerByID(id int64) (*domain.Customer, error) {
 	return &domain.Customer{ID: id, VendorID: 1, Nickname: "cliente_teste"}, nil
 }
-
 
 func TestInvoiceUpdate_Success(t *testing.T) {
 	repo := newMockInvoiceUpdateRepoForService()
@@ -274,4 +273,3 @@ func TestInvoiceUpdate_AlreadyInvoiced(t *testing.T) {
 		}
 	})
 }
-

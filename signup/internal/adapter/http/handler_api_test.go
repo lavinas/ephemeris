@@ -895,4 +895,3 @@ func TestVendorList_Success(t *testing.T) {
 		t.Errorf("expected at least 1 vendor in list")
 	}
 }
-

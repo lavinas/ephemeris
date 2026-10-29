@@ -21,20 +21,20 @@ type ComptimeFilter struct {
 
 // ComptimeView represents an enriched monthly comptime record for display.
 type ComptimeView struct {
-	ID               int64     `json:"id"`
-	VendorID         int64     `json:"vendor_id"`
-	CustomerID       int64     `json:"customer_id"`
-	CustomerNickname string    `json:"customer_nickname"`
-	CustomerName     string    `json:"customer_name"`
+	ID                 int64     `json:"id"`
+	VendorID           int64     `json:"vendor_id"`
+	CustomerID         int64     `json:"customer_id"`
+	CustomerNickname   string    `json:"customer_nickname"`
+	CustomerName       string    `json:"customer_name"`
 	ServiceID          int64     `json:"service_id"`
 	ServiceName        string    `json:"service_name"`
 	ServiceDescription string    `json:"service_description"`
 	Month              time.Time `json:"month"`
-	InvoicedMinutes  int       `json:"invoiced_minutes"`
-	ConsumedMinutes  int       `json:"consumed_minutes"`
-	MonthBalance     int       `json:"month_balance"`
-	Balance          int       `json:"balance"`
-	UpdatedAt        time.Time `json:"updated_at"`
+	InvoicedMinutes    int       `json:"invoiced_minutes"`
+	ConsumedMinutes    int       `json:"consumed_minutes"`
+	MonthBalance       int       `json:"month_balance"`
+	Balance            int       `json:"balance"`
+	UpdatedAt          time.Time `json:"updated_at"`
 }
 
 // ComptimeRepository defines data access methods for banco de horas (comptime).

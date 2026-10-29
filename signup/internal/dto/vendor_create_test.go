@@ -7,9 +7,9 @@ import (
 
 type mockRepo struct{}
 
-func (m *mockRepo) BeginTransaction() error    { return nil }
-func (m *mockRepo) CommitTransaction() error   { return nil }
-func (m *mockRepo) RollbackTransaction() error { return nil }
+func (m *mockRepo) BeginTransaction() error      { return nil }
+func (m *mockRepo) CommitTransaction() error     { return nil }
+func (m *mockRepo) RollbackTransaction() error   { return nil }
 func (m *mockRepo) Save(model interface{}) error { return nil }
 func (m *mockRepo) Find(model interface{}, conditions map[string]interface{}, page, pagesize int, orderBy ...string) ([]interface{}, error) {
 	return []interface{}{}, nil

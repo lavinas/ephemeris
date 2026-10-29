@@ -10,7 +10,6 @@ import (
 
 	"signup/internal/domain"
 	"signup/internal/port"
-
 )
 
 // VendorUpdateRequest represents the request payload for updating an existing vendor.

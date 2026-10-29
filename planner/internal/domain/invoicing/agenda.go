@@ -223,4 +223,3 @@ func (s *AgendaStrategy) CalculateSessionsCount(planStart, effStart, effEnd time
 		return count
 	}
 }
-

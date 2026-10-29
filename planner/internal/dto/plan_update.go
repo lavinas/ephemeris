@@ -12,16 +12,16 @@ import (
 
 // PlanUpdateRequest represents a request to update an existing plan
 type PlanUpdateRequest struct {
-	ID           int64                `json:"id" validate:"required"`
-	CustomerID   int64                `json:"customer_id,omitempty"`
-	Nickname     string               `json:"nickname,omitempty"`
-	PlanStart    string               `json:"plan_start,omitempty"`
-	PlanEnd      *string              `json:"plan_end,omitempty"`
-	ClearPlanEnd bool                 `json:"clear_plan_end,omitempty"`
-	PlanType     int                  `json:"plan_type,omitempty"`
-	Price        *float64             `json:"price,omitempty"`
-	ClearPrice   bool                 `json:"clear_price,omitempty"`
-	Items        []PlanItemRequest    `json:"items,omitempty"`
+	ID           int64                  `json:"id" validate:"required"`
+	CustomerID   int64                  `json:"customer_id,omitempty"`
+	Nickname     string                 `json:"nickname,omitempty"`
+	PlanStart    string                 `json:"plan_start,omitempty"`
+	PlanEnd      *string                `json:"plan_end,omitempty"`
+	ClearPlanEnd bool                   `json:"clear_plan_end,omitempty"`
+	PlanType     int                    `json:"plan_type,omitempty"`
+	Price        *float64               `json:"price,omitempty"`
+	ClearPrice   bool                   `json:"clear_price,omitempty"`
+	Items        []PlanItemRequest      `json:"items,omitempty"`
 	Agenda       *PlanAgendaRequest     `json:"agenda,omitempty"`
 	Package      *PlanPackageRequest    `json:"package,omitempty"`
 	Notebook     *PlanNotebookRequest   `json:"notebook,omitempty"`

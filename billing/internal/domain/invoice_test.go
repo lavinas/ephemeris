@@ -137,4 +137,3 @@ func TestInvoice_CanPay(t *testing.T) {
 		}
 	})
 }
-

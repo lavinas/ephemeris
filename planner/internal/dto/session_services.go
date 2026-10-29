@@ -51,4 +51,3 @@ func (r *SessionServicesRequest) Validate(repo port.Repository) error {
 	r.Nickname = strings.TrimSpace(r.Nickname)
 	return nil
 }
-

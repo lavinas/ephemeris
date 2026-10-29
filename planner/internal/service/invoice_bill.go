@@ -233,4 +233,3 @@ func (s *InvoiceBill) billSingleInvoice(ctx context.Context, inv domain.Invoice)
 func (s *InvoiceBill) resolveVendorAndCustomer(inv domain.Invoice) (string, string, error) {
 	return resolveInvoiceVendorAndCustomer(s.repo, &inv)
 }
-

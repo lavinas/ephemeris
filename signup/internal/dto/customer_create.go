@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 	"signup/internal/domain"
 	"signup/internal/port"
+	"strings"
 )
 
 const (
