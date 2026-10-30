@@ -522,6 +522,166 @@ func (h *HandlerApi) ComptimeDelete(w http.ResponseWriter, r *http.Request) {
 	h.writeResponse(w, dto.NewResponseBase(http.StatusOK, "success", "Registro de banco de horas excluído com sucesso"))
 }
 
+// ComptimeAdjust handler for creating or updating a manual comptime adjustment (/comptime/adjust)
+func (h *HandlerApi) ComptimeAdjust(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodDelete {
+		h.ComptimeAdjustDelete(w, r)
+		return
+	}
+	if r.Method != http.MethodPost && r.Method != http.MethodPut && r.Method != http.MethodPatch {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	requestDTO := &dto.ComptimeAdjustRequest{}
+	if r.Body != nil && r.Body != http.NoBody {
+		if err := json.NewDecoder(r.Body).Decode(requestDTO); err != nil {
+			h.writeResponse(w, dto.NewComptimeAdjustResponse(http.StatusBadRequest, "error", "Formato JSON inválido: "+err.Error(), nil, nil))
+			return
+		}
+	}
+
+	q := r.URL.Query()
+	if requestDTO.ComptimeID == 0 && requestDTO.ID == 0 {
+		if idStr := q.Get("comptime_id"); idStr != "" {
+			if id, err := strconv.ParseInt(idStr, 10, 64); err == nil {
+				requestDTO.ComptimeID = id
+			}
+		} else if idStr := q.Get("id"); idStr != "" {
+			if id, err := strconv.ParseInt(idStr, 10, 64); err == nil {
+				requestDTO.ID = id
+			}
+		}
+	}
+	if requestDTO.CustomerID == 0 && q.Get("customer_id") != "" {
+		if cid, err := strconv.ParseInt(q.Get("customer_id"), 10, 64); err == nil {
+			requestDTO.CustomerID = cid
+		}
+	}
+	if requestDTO.Nickname == "" && q.Get("nickname") != "" {
+		requestDTO.Nickname = q.Get("nickname")
+	}
+	if requestDTO.ServiceID == 0 && q.Get("service_id") != "" {
+		if sid, err := strconv.ParseInt(q.Get("service_id"), 10, 64); err == nil {
+			requestDTO.ServiceID = sid
+		}
+	}
+	if requestDTO.Month == "" && q.Get("month") != "" {
+		requestDTO.Month = q.Get("month")
+	}
+	if requestDTO.Description == "" && q.Get("description") != "" {
+		requestDTO.Description = q.Get("description")
+	}
+
+	if err := requestDTO.Validate(h.repo); err != nil {
+		h.writeResponse(w, dto.NewComptimeAdjustResponse(http.StatusBadRequest, "error", err.Error(), nil, nil))
+		return
+	}
+
+	cr, ok := h.repo.(port.ComptimeRepository)
+	if !ok {
+		h.writeResponse(w, dto.NewComptimeAdjustResponse(http.StatusInternalServerError, "error", "ComptimeRepository não disponível", nil, nil))
+		return
+	}
+
+	svc := service.NewComptime(cr, h.logger)
+	if requestDTO.ComptimeID > 0 {
+		comptime, adjust, err := svc.SaveComptimeAdjustByID(r.Context(), requestDTO.ComptimeID, requestDTO.AdjustedMinutes, requestDTO.Description)
+		if err != nil {
+			h.logger.IPrintf(1, "Erro ao ajustar comptime %d: %v", requestDTO.ComptimeID, err)
+			h.writeResponse(w, dto.NewComptimeAdjustResponse(http.StatusBadRequest, "error", err.Error(), nil, nil))
+			return
+		}
+		h.writeResponse(w, dto.NewComptimeAdjustResponse(http.StatusOK, "success", "Ajuste de banco de horas atualizado com sucesso", comptime, adjust))
+		return
+	}
+
+	month, _ := requestDTO.ParsedMonth()
+	comptime, adjust, err := svc.SaveComptimeAdjust(r.Context(), requestDTO.VendorID, requestDTO.CustomerID, requestDTO.ServiceID, month, requestDTO.AdjustedMinutes, requestDTO.Description)
+	if err != nil {
+		h.logger.IPrintf(1, "Erro ao ajustar comptime (cliente %d, serviço %d, mês %s): %v", requestDTO.CustomerID, requestDTO.ServiceID, requestDTO.Month, err)
+		h.writeResponse(w, dto.NewComptimeAdjustResponse(http.StatusBadRequest, "error", err.Error(), nil, nil))
+		return
+	}
+
+	h.writeResponse(w, dto.NewComptimeAdjustResponse(http.StatusOK, "success", "Ajuste de banco de horas salvo com sucesso", comptime, adjust))
+}
+
+// ComptimeAdjustDelete handler for deleting/zeroing a manual comptime adjustment (/comptime/adjust/delete)
+func (h *HandlerApi) ComptimeAdjustDelete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete && r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	requestDTO := &dto.ComptimeAdjustDeleteRequest{}
+	if r.Body != nil && r.Body != http.NoBody {
+		_ = json.NewDecoder(r.Body).Decode(requestDTO)
+	}
+
+	q := r.URL.Query()
+	if requestDTO.ComptimeID == 0 && requestDTO.ID == 0 {
+		if idStr := q.Get("comptime_id"); idStr != "" {
+			if id, err := strconv.ParseInt(idStr, 10, 64); err == nil {
+				requestDTO.ComptimeID = id
+			}
+		} else if idStr := q.Get("id"); idStr != "" {
+			if id, err := strconv.ParseInt(idStr, 10, 64); err == nil {
+				requestDTO.ID = id
+			}
+		}
+	}
+	if requestDTO.CustomerID == 0 && q.Get("customer_id") != "" {
+		if cid, err := strconv.ParseInt(q.Get("customer_id"), 10, 64); err == nil {
+			requestDTO.CustomerID = cid
+		}
+	}
+	if requestDTO.Nickname == "" && q.Get("nickname") != "" {
+		requestDTO.Nickname = q.Get("nickname")
+	}
+	if requestDTO.ServiceID == 0 && q.Get("service_id") != "" {
+		if sid, err := strconv.ParseInt(q.Get("service_id"), 10, 64); err == nil {
+			requestDTO.ServiceID = sid
+		}
+	}
+	if requestDTO.Month == "" && q.Get("month") != "" {
+		requestDTO.Month = q.Get("month")
+	}
+
+	if err := requestDTO.Validate(h.repo); err != nil {
+		h.writeResponse(w, dto.NewComptimeAdjustResponse(http.StatusBadRequest, "error", err.Error(), nil, nil))
+		return
+	}
+
+	cr, ok := h.repo.(port.ComptimeRepository)
+	if !ok {
+		h.writeResponse(w, dto.NewComptimeAdjustResponse(http.StatusInternalServerError, "error", "ComptimeRepository não disponível", nil, nil))
+		return
+	}
+
+	svc := service.NewComptime(cr, h.logger)
+	if requestDTO.ComptimeID > 0 {
+		comptime, err := svc.DeleteComptimeAdjustByID(r.Context(), requestDTO.ComptimeID)
+		if err != nil {
+			h.logger.IPrintf(1, "Erro ao excluir ajuste do comptime %d: %v", requestDTO.ComptimeID, err)
+			h.writeResponse(w, dto.NewComptimeAdjustResponse(http.StatusBadRequest, "error", err.Error(), nil, nil))
+			return
+		}
+		h.writeResponse(w, dto.NewComptimeAdjustResponse(http.StatusOK, "success", "Ajuste de banco de horas removido com sucesso", comptime, nil))
+		return
+	}
+
+	month, _ := requestDTO.ParsedMonth()
+	comptime, err := svc.DeleteComptimeAdjust(r.Context(), requestDTO.VendorID, requestDTO.CustomerID, requestDTO.ServiceID, month)
+	if err != nil {
+		h.logger.IPrintf(1, "Erro ao excluir ajuste de comptime: %v", err)
+		h.writeResponse(w, dto.NewComptimeAdjustResponse(http.StatusBadRequest, "error", err.Error(), nil, nil))
+		return
+	}
+
+	h.writeResponse(w, dto.NewComptimeAdjustResponse(http.StatusOK, "success", "Ajuste de banco de horas removido com sucesso", comptime, nil))
+}
+
 // InvoiceCreate handles creating a new manual invoice via JSON API (/invoice/create or /invoicing/create)
 func (h *HandlerApi) InvoiceCreate(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {

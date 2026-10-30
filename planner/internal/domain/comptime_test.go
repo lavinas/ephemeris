@@ -43,17 +43,21 @@ func TestEffectiveSessionMinutes(t *testing.T) {
 
 func TestComptimeBalanceCalculation(t *testing.T) {
 	c := NewComptime(1, 10, 20, time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC))
-	if c.Balance != 0 || c.InvoicedMinutes != 0 || c.ConsumedMinutes != 0 {
+	if c.Balance != 0 || c.InvoicedMinutes != 0 || c.ConsumedMinutes != 0 || c.AdjustedMinutes != 0 {
 		t.Errorf("new comptime should have zero values, got %+v", c)
 	}
 
 	c.InvoicedMinutes = 120
 	c.ConsumedMinutes = 50
+	c.AdjustedMinutes = -20
 	c.RecalculateBalance(10) // previous month had 10 minutes balance
 
-	expectedBalance := 10 + 120 - 50 // 80
+	expectedBalance := 10 + 120 - 50 - 20 // 60
 	if c.Balance != expectedBalance {
 		t.Errorf("expected balance %d, got %d", expectedBalance, c.Balance)
+	}
+	if c.MonthBalance() != 50 {
+		t.Errorf("expected month balance 50, got %d", c.MonthBalance())
 	}
 }
 
@@ -67,7 +71,7 @@ func TestComptimeEntitiesTableNames(t *testing.T) {
 	if (ComptimeInvoiceItem{}).TableName() != "comptime_invoice_item" {
 		t.Errorf("unexpected table name for ComptimeInvoiceItem: %s", (ComptimeInvoiceItem{}).TableName())
 	}
-	if (ComptimeExtra{}).TableName() != "comptime_extra" {
-		t.Errorf("unexpected table name for ComptimeExtra: %s", (ComptimeExtra{}).TableName())
+	if (ComptimeAdjust{}).TableName() != "comptime_adjust" {
+		t.Errorf("unexpected table name for ComptimeAdjust: %s", (ComptimeAdjust{}).TableName())
 	}
 }

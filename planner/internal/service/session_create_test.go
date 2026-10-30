@@ -38,14 +38,20 @@ func (m *mockComptimeRecorder) ProcessInvoiceItemDeleted(ctx context.Context, in
 func (m *mockComptimeRecorder) ProcessInvoiceDeleted(ctx context.Context, invoiceID int64) error {
 	return nil
 }
-func (m *mockComptimeRecorder) ProcessComptimeExtraCreated(ctx context.Context, extra *domain.ComptimeExtra) error {
-	return nil
+func (m *mockComptimeRecorder) SaveComptimeAdjust(ctx context.Context, vendorID, customerID, serviceID int64, month time.Time, adjustedMinutes int, description string) (*domain.Comptime, *domain.ComptimeAdjust, error) {
+	return nil, nil, nil
 }
-func (m *mockComptimeRecorder) ProcessComptimeExtraUpdated(ctx context.Context, extra *domain.ComptimeExtra) error {
-	return nil
+func (m *mockComptimeRecorder) SaveComptimeAdjustByID(ctx context.Context, comptimeID int64, adjustedMinutes int, description string) (*domain.Comptime, *domain.ComptimeAdjust, error) {
+	return nil, nil, nil
 }
-func (m *mockComptimeRecorder) ProcessComptimeExtraDeleted(ctx context.Context, extraID int64) error {
-	return nil
+func (m *mockComptimeRecorder) DeleteComptimeAdjust(ctx context.Context, vendorID, customerID, serviceID int64, month time.Time) (*domain.Comptime, error) {
+	return nil, nil
+}
+func (m *mockComptimeRecorder) DeleteComptimeAdjustByID(ctx context.Context, comptimeID int64) (*domain.Comptime, error) {
+	return nil, nil
+}
+func (m *mockComptimeRecorder) GetComptimeAdjust(ctx context.Context, comptimeID int64) (*domain.ComptimeAdjust, error) {
+	return nil, nil
 }
 func (m *mockComptimeRecorder) GetComptime(ctx context.Context, id int64) (*domain.Comptime, error) {
 	return nil, nil

@@ -188,7 +188,7 @@ func (a *Repository) DeleteComptime(ctx context.Context, id int64) error {
 		Where("comptime_id = ? AND deleted_at IS NULL", id).
 		Update("deleted_at", now).Error
 	_ = db.WithContext(ctx).
-		Table("planner.comptime_extra").
+		Table("planner.comptime_adjust").
 		Where("comptime_id = ? AND deleted_at IS NULL", id).
 		Update("deleted_at", now).Error
 	return nil
@@ -216,9 +216,11 @@ func (a *Repository) ListComptime(ctx context.Context, filter port.ComptimeFilte
 			planner.comptime.month,
 			planner.comptime.invoiced_minutes,
 			planner.comptime.consumed_minutes,
+			planner.comptime.adjusted_minutes,
+			COALESCE((SELECT ca.description FROM planner.comptime_adjust ca WHERE ca.comptime_id = planner.comptime.id AND ca.deleted_at IS NULL ORDER BY ca.id DESC LIMIT 1), '') as adjust_description,
 			planner.comptime.invoiced_minutes as predict_minutes,
 			planner.comptime.consumed_minutes as done_minutes,
-			(planner.comptime.invoiced_minutes - planner.comptime.consumed_minutes) as month_balance,
+			(planner.comptime.invoiced_minutes - planner.comptime.consumed_minutes + planner.comptime.adjusted_minutes) as month_balance,
 			planner.comptime.balance,
 			planner.comptime.updated_at
 		`).
@@ -372,29 +374,49 @@ func (a *Repository) DeleteComptimeInvoiceItem(ctx context.Context, invoiceItemI
 		Update("deleted_at", now).Error
 }
 
-// SaveComptimeExtra saves or creates a comptime_extra.
-func (a *Repository) SaveComptimeExtra(ctx context.Context, ce *domain.ComptimeExtra) error {
+// FindComptimeAdjustByComptimeID finds an active comptime_adjust by comptime ID.
+func (a *Repository) FindComptimeAdjustByComptimeID(ctx context.Context, comptimeID int64) (*domain.ComptimeAdjust, error) {
 	db := a.DB
 	if a.Tx != nil {
 		db = a.Tx
 	}
-	ce.UpdatedAt = time.Now()
-	if ce.ID == 0 {
-		return db.WithContext(ctx).Create(ce).Error
+	var ca domain.ComptimeAdjust
+	err := db.WithContext(ctx).
+		Where("comptime_id = ? AND deleted_at IS NULL", comptimeID).
+		Order("id desc").
+		First(&ca).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
 	}
-	return db.WithContext(ctx).Save(ce).Error
+	if err != nil {
+		return nil, err
+	}
+	return &ca, nil
 }
 
-// DeleteComptimeExtra soft-deletes a comptime_extra by ID.
-func (a *Repository) DeleteComptimeExtra(ctx context.Context, id int64) error {
+// SaveComptimeAdjust saves or creates a comptime_adjust.
+func (a *Repository) SaveComptimeAdjust(ctx context.Context, ca *domain.ComptimeAdjust) error {
+	db := a.DB
+	if a.Tx != nil {
+		db = a.Tx
+	}
+	ca.UpdatedAt = time.Now()
+	if ca.ID == 0 {
+		return db.WithContext(ctx).Create(ca).Error
+	}
+	return db.WithContext(ctx).Save(ca).Error
+}
+
+// DeleteComptimeAdjustByComptimeID soft-deletes active comptime_adjust records for a comptime ID.
+func (a *Repository) DeleteComptimeAdjustByComptimeID(ctx context.Context, comptimeID int64) error {
 	db := a.DB
 	if a.Tx != nil {
 		db = a.Tx
 	}
 	now := time.Now()
 	return db.WithContext(ctx).
-		Model(&domain.ComptimeExtra{}).
-		Where("id = ? AND deleted_at IS NULL", id).
+		Model(&domain.ComptimeAdjust{}).
+		Where("comptime_id = ? AND deleted_at IS NULL", comptimeID).
 		Update("deleted_at", now).Error
 }
 

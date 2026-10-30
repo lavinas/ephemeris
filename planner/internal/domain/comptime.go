@@ -40,13 +40,14 @@ type Comptime struct {
 	Month           time.Time             `gorm:"type:date;column:month;not null;index" json:"month"`
 	InvoicedMinutes int                   `gorm:"column:invoiced_minutes;not null;default:0" json:"invoiced_minutes"`
 	ConsumedMinutes int                   `gorm:"column:consumed_minutes;not null;default:0" json:"consumed_minutes"`
+	AdjustedMinutes int                   `gorm:"column:adjusted_minutes;not null;default:0" json:"adjusted_minutes"`
 	Balance         int                   `gorm:"column:balance;not null;default:0" json:"balance"`
 	CreatedAt       time.Time             `gorm:"column:created_at;not null" json:"created_at"`
 	UpdatedAt       time.Time             `gorm:"column:updated_at;not null" json:"updated_at"`
 	DeletedAt       *time.Time            `gorm:"column:deleted_at;index" json:"deleted_at,omitempty"`
 	Sessions        []ComptimeSession     `gorm:"foreignKey:ComptimeID;references:ID" json:"sessions,omitempty"`
 	InvoiceItems    []ComptimeInvoiceItem `gorm:"foreignKey:ComptimeID;references:ID" json:"invoice_items,omitempty"`
-	Extras          []ComptimeExtra       `gorm:"foreignKey:ComptimeID;references:ID" json:"extras,omitempty"`
+	Adjusts         []ComptimeAdjust      `gorm:"foreignKey:ComptimeID;references:ID" json:"adjusts,omitempty"`
 }
 
 // TableName specifies table name for Comptime.
@@ -64,6 +65,7 @@ func NewComptime(vendorID, customerID, serviceID int64, month time.Time) *Compti
 		Month:           NormalizeMonth(month),
 		InvoicedMinutes: 0,
 		ConsumedMinutes: 0,
+		AdjustedMinutes: 0,
 		Balance:         0,
 		CreatedAt:       now,
 		UpdatedAt:       now,
@@ -73,13 +75,13 @@ func NewComptime(vendorID, customerID, serviceID int64, month time.Time) *Compti
 
 // RecalculateBalance updates Balance given a previous month's balance.
 func (c *Comptime) RecalculateBalance(previousBalance int) {
-	c.Balance = previousBalance + c.InvoicedMinutes - c.ConsumedMinutes
+	c.Balance = previousBalance + c.InvoicedMinutes - c.ConsumedMinutes + c.AdjustedMinutes
 	c.UpdatedAt = time.Now()
 }
 
-// MonthBalance returns the net minutes balance for the month (invoiced - consumed).
+// MonthBalance returns the net minutes balance for the month (invoiced - consumed + adjusted).
 func (c *Comptime) MonthBalance() int {
-	return c.InvoicedMinutes - c.ConsumedMinutes
+	return c.InvoicedMinutes - c.ConsumedMinutes + c.AdjustedMinutes
 }
 
 // ComptimeSession tracks an individual session's debit against comptime.
@@ -148,32 +150,32 @@ func NewComptimeInvoiceItem(comptimeID, invoiceItemID int64, month time.Time, in
 	}
 }
 
-// ComptimeExtra tracks manual minute adjustments (bonus, credit, discount).
-type ComptimeExtra struct {
+// ComptimeAdjust tracks manual minute adjustments (positive or negative) with a justification.
+type ComptimeAdjust struct {
 	ID              int64      `gorm:"primaryKey;autoIncrement" json:"id"`
 	ComptimeID      int64      `gorm:"column:comptime_id;not null;index" json:"comptime_id"`
 	Comptime        *Comptime  `gorm:"foreignKey:ComptimeID;references:ID" json:"comptime,omitempty"`
 	Month           time.Time  `gorm:"type:date;column:month;not null;index" json:"month"`
-	InvoicedMinutes int        `gorm:"column:invoiced_minutes;not null;default:0" json:"invoiced_minutes"`
-	ConsumedMinutes int        `gorm:"column:consumed_minutes;not null;default:0" json:"consumed_minutes"`
+	AdjustedMinutes int        `gorm:"column:adjusted_minutes;not null" json:"adjusted_minutes"`
+	Description     string     `gorm:"column:description;type:varchar(250);not null" json:"description"`
 	CreatedAt       time.Time  `gorm:"column:created_at;not null" json:"created_at"`
 	UpdatedAt       time.Time  `gorm:"column:updated_at;not null" json:"updated_at"`
 	DeletedAt       *time.Time `gorm:"column:deleted_at;index" json:"deleted_at,omitempty"`
 }
 
-// TableName specifies table name for ComptimeExtra.
-func (ComptimeExtra) TableName() string {
-	return "comptime_extra"
+// TableName specifies table name for ComptimeAdjust.
+func (ComptimeAdjust) TableName() string {
+	return "comptime_adjust"
 }
 
-// NewComptimeExtra creates a new ComptimeExtra instance.
-func NewComptimeExtra(comptimeID int64, month time.Time, invoicedMinutes, consumedMinutes int) *ComptimeExtra {
+// NewComptimeAdjust creates a new ComptimeAdjust instance.
+func NewComptimeAdjust(comptimeID int64, month time.Time, adjustedMinutes int, description string) *ComptimeAdjust {
 	now := time.Now()
-	return &ComptimeExtra{
+	return &ComptimeAdjust{
 		ComptimeID:      comptimeID,
 		Month:           NormalizeMonth(month),
-		InvoicedMinutes: invoicedMinutes,
-		ConsumedMinutes: consumedMinutes,
+		AdjustedMinutes: adjustedMinutes,
+		Description:     description,
 		CreatedAt:       now,
 		UpdatedAt:       now,
 		DeletedAt:       nil,

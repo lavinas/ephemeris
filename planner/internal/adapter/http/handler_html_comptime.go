@@ -26,16 +26,20 @@ type comptimeRecordItem struct {
 	MonthFormatado                string
 	InvoicedMinutes               int
 	ConsumedMinutes               int
+	AdjustedMinutes               int
+	AdjustDescription             string
 	PredictMinutes                int
 	DoneMinutes                   int
 	MonthBalance                  int
 	Balance                       int
 	PredictSessions               float64
 	DoneSessions                  float64
+	AdjustedSessions              float64
 	MonthBalanceSessions          float64
 	BalanceSessions               float64
 	PredictSessionsFormatado      string
 	DoneSessionsFormatado         string
+	AdjustedSessionsFormatado     string
 	MonthBalanceSessionsFormatado string
 	BalanceSessionsFormatado      string
 	UpdatedAt                     time.Time
@@ -46,10 +50,12 @@ func buildComptimeRecordItem(rec port.ComptimeView) comptimeRecordItem {
 	serviceMinutes := rec.ServiceMinutes
 	predictMinutes := rec.PredictMinutes
 	doneMinutes := rec.DoneMinutes
+	adjustedMinutes := rec.AdjustedMinutes
 	monthBalance := rec.MonthBalance
 	balance := rec.Balance
 	predictSessions := rec.PredictSessions
 	doneSessions := rec.DoneSessions
+	adjustedSessions := rec.AdjustedSessions
 	monthBalanceSessions := rec.MonthBalanceSessions
 	balanceSessions := rec.BalanceSessions
 
@@ -58,11 +64,14 @@ func buildComptimeRecordItem(rec port.ComptimeView) comptimeRecordItem {
 		serviceMinutes = 60
 		predictMinutes = rec.InvoicedMinutes
 		doneMinutes = rec.ConsumedMinutes
-		monthBalance = predictMinutes - doneMinutes
+		monthBalance = predictMinutes - doneMinutes + adjustedMinutes
 		predictSessions = domain.CalculateSessionsFromMinutes(predictMinutes, serviceMinutes)
 		doneSessions = domain.CalculateSessionsFromMinutes(doneMinutes, serviceMinutes)
+		adjustedSessions = domain.CalculateSessionsFromMinutes(adjustedMinutes, serviceMinutes)
 		monthBalanceSessions = domain.CalculateSessionsFromMinutes(monthBalance, serviceMinutes)
 		balanceSessions = domain.CalculateSessionsFromMinutes(balance, serviceMinutes)
+	} else if adjustedSessions == 0 && adjustedMinutes != 0 {
+		adjustedSessions = domain.CalculateSessionsFromMinutes(adjustedMinutes, serviceMinutes)
 	}
 
 	return comptimeRecordItem{
@@ -79,16 +88,20 @@ func buildComptimeRecordItem(rec port.ComptimeView) comptimeRecordItem {
 		MonthFormatado:                rec.Month.Format("2006-01"),
 		InvoicedMinutes:               rec.InvoicedMinutes,
 		ConsumedMinutes:               rec.ConsumedMinutes,
+		AdjustedMinutes:               adjustedMinutes,
+		AdjustDescription:             rec.AdjustDescription,
 		PredictMinutes:                predictMinutes,
 		DoneMinutes:                   doneMinutes,
 		MonthBalance:                  monthBalance,
 		Balance:                       balance,
 		PredictSessions:               predictSessions,
 		DoneSessions:                  doneSessions,
+		AdjustedSessions:              adjustedSessions,
 		MonthBalanceSessions:          monthBalanceSessions,
 		BalanceSessions:               balanceSessions,
 		PredictSessionsFormatado:      fmt.Sprintf("%.2f", predictSessions),
 		DoneSessionsFormatado:         fmt.Sprintf("%.2f", doneSessions),
+		AdjustedSessionsFormatado:     fmt.Sprintf("%.2f", adjustedSessions),
 		MonthBalanceSessionsFormatado: fmt.Sprintf("%.2f", monthBalanceSessions),
 		BalanceSessionsFormatado:      fmt.Sprintf("%.2f", balanceSessions),
 		UpdatedAt:                     rec.UpdatedAt,
@@ -440,9 +453,12 @@ func (h *HandlerHtml) buildComptimePageData(r *http.Request) map[string]interfac
 	}
 }
 
-// ComptimeDeleteWarning renders the inline deletion confirmation row for a comptime record.
-func (h *HandlerHtml) ComptimeDeleteWarning(w http.ResponseWriter, r *http.Request) {
+// ComptimeAdjustModal renders the modal for creating, updating or zeroing/deleting a manual hour adjustment.
+func (h *HandlerHtml) ComptimeAdjustModal(w http.ResponseWriter, r *http.Request) {
 	idStr := r.URL.Query().Get("id")
+	if idStr == "" {
+		idStr = r.FormValue("id")
+	}
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil || id <= 0 {
 		http.Error(w, "ID inválido", http.StatusBadRequest)
@@ -460,30 +476,96 @@ func (h *HandlerHtml) ComptimeDeleteWarning(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	h.tmplComptime.ExecuteTemplate(w, "linha_comptime_deletar_aviso", item)
+	h.tmplComptime.ExecuteTemplate(w, "modal_ajustar", item)
 }
 
-// ComptimeCancelDelete restores the normal row display for a comptime record without deleting.
-func (h *HandlerHtml) ComptimeCancelDelete(w http.ResponseWriter, r *http.Request) {
-	idStr := r.URL.Query().Get("id")
+// ComptimeAdjust handles creating, updating or zeroing a manual hour adjustment and re-rendering the updated table.
+func (h *HandlerHtml) ComptimeAdjust(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid form data", http.StatusBadRequest)
+		return
+	}
+
+	idStr := r.FormValue("id")
+	if idStr == "" {
+		idStr = r.FormValue("comptime_id")
+	}
+	if idStr == "" {
+		idStr = r.URL.Query().Get("id")
+	}
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil || id <= 0 {
 		http.Error(w, "ID inválido", http.StatusBadRequest)
 		return
 	}
 
-	if _, ok := h.repo.(port.ComptimeRepository); !ok {
-		http.Error(w, "Repository não disponível", http.StatusInternalServerError)
+	adjMinStr := strings.TrimSpace(r.FormValue("adjusted_minutes"))
+	adjustedMinutes := 0
+	if adjMinStr != "" {
+		val, errParse := strconv.Atoi(adjMinStr)
+		if errParse != nil {
+			http.Error(w, "Minutos ajustados inválidos", http.StatusBadRequest)
+			return
+		}
+		adjustedMinutes = val
+	}
+
+	description := strings.TrimSpace(r.FormValue("description"))
+	if adjustedMinutes != 0 && description == "" {
+		http.Error(w, "Justificativa/descrição é obrigatória para ajustes diferentes de zero", http.StatusBadRequest)
 		return
 	}
 
-	item, ok := h.findSingleComptimeRecordItem(r, id)
-	if !ok {
-		http.Error(w, "Registro não encontrado", http.StatusNotFound)
+	comptimeSvc := h.getComptimeService()
+	if comptimeSvc == nil {
+		http.Error(w, "ComptimeService not available", http.StatusInternalServerError)
 		return
 	}
 
-	h.tmplComptime.ExecuteTemplate(w, "linha_comptime", item)
+	if _, _, err := comptimeSvc.SaveComptimeAdjustByID(r.Context(), id, adjustedMinutes, description); err != nil {
+		h.logger.IPrintf(1, "Erro ao ajustar comptime %d: %v", id, err)
+		http.Error(w, fmt.Sprintf("Erro ao ajustar: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	data := h.buildComptimePageData(r)
+	h.tmplComptime.ExecuteTemplate(w, "tabela", data)
+}
+
+// ComptimeAdjustDelete handles deleting/zeroing a manual hour adjustment and re-rendering the updated table.
+func (h *HandlerHtml) ComptimeAdjustDelete(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid form data", http.StatusBadRequest)
+		return
+	}
+
+	idStr := r.FormValue("id")
+	if idStr == "" {
+		idStr = r.FormValue("comptime_id")
+	}
+	if idStr == "" {
+		idStr = r.URL.Query().Get("id")
+	}
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil || id <= 0 {
+		http.Error(w, "ID inválido", http.StatusBadRequest)
+		return
+	}
+
+	comptimeSvc := h.getComptimeService()
+	if comptimeSvc == nil {
+		http.Error(w, "ComptimeService not available", http.StatusInternalServerError)
+		return
+	}
+
+	if _, err := comptimeSvc.DeleteComptimeAdjustByID(r.Context(), id); err != nil {
+		h.logger.IPrintf(1, "Erro ao remover ajuste do comptime %d: %v", id, err)
+		http.Error(w, fmt.Sprintf("Erro ao remover ajuste: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	data := h.buildComptimePageData(r)
+	h.tmplComptime.ExecuteTemplate(w, "tabela", data)
 }
 
 func (h *HandlerHtml) findSingleComptimeRecordItem(r *http.Request, id int64) (comptimeRecordItem, bool) {
@@ -509,6 +591,11 @@ func (h *HandlerHtml) findSingleComptimeRecordItem(r *http.Request, id int64) (c
 		if errList == nil {
 			for _, v := range views {
 				if v.ID == id {
+					if v.AdjustDescription == "" {
+						if ca, errAdj := cr.FindComptimeAdjustByComptimeID(r.Context(), id); errAdj == nil && ca != nil {
+							v.AdjustDescription = ca.Description
+						}
+					}
 					return buildComptimeRecordItem(v), true
 				}
 			}
@@ -535,6 +622,11 @@ func (h *HandlerHtml) findSingleComptimeRecordItem(r *http.Request, id int64) (c
 		}
 	}
 
+	adjustDescription := ""
+	if ca, errAdj := cr.FindComptimeAdjustByComptimeID(r.Context(), comptime.ID); errAdj == nil && ca != nil {
+		adjustDescription = ca.Description
+	}
+
 	return buildComptimeRecordItem(port.ComptimeView{
 		ID:                   comptime.ID,
 		VendorID:             comptime.VendorID,
@@ -548,47 +640,17 @@ func (h *HandlerHtml) findSingleComptimeRecordItem(r *http.Request, id int64) (c
 		Month:                comptime.Month,
 		InvoicedMinutes:      comptime.InvoicedMinutes,
 		ConsumedMinutes:      comptime.ConsumedMinutes,
+		AdjustedMinutes:      comptime.AdjustedMinutes,
+		AdjustDescription:    adjustDescription,
 		PredictMinutes:       comptime.InvoicedMinutes,
 		DoneMinutes:          comptime.ConsumedMinutes,
 		MonthBalance:         comptime.MonthBalance(),
 		Balance:              comptime.Balance,
 		PredictSessions:      domain.CalculateSessionsFromMinutes(comptime.InvoicedMinutes, serviceMinutes),
 		DoneSessions:         domain.CalculateSessionsFromMinutes(comptime.ConsumedMinutes, serviceMinutes),
+		AdjustedSessions:     domain.CalculateSessionsFromMinutes(comptime.AdjustedMinutes, serviceMinutes),
 		MonthBalanceSessions: domain.CalculateSessionsFromMinutes(comptime.MonthBalance(), serviceMinutes),
 		BalanceSessions:      domain.CalculateSessionsFromMinutes(comptime.Balance, serviceMinutes),
 		UpdatedAt:            comptime.UpdatedAt,
 	}), true
-}
-
-// ComptimeDelete handles deleting a comptime record and re-rendering the updated table.
-func (h *HandlerHtml) ComptimeDelete(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Invalid form data", http.StatusBadRequest)
-		return
-	}
-
-	idStr := r.FormValue("id")
-	if idStr == "" {
-		idStr = r.URL.Query().Get("id")
-	}
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil || id <= 0 {
-		http.Error(w, "ID inválido", http.StatusBadRequest)
-		return
-	}
-
-	comptimeSvc := h.getComptimeService()
-	if comptimeSvc == nil {
-		http.Error(w, "ComptimeService not available", http.StatusInternalServerError)
-		return
-	}
-
-	if err := comptimeSvc.DeleteComptime(r.Context(), id); err != nil {
-		h.logger.IPrintf(1, "Erro ao excluir comptime %d: %v", id, err)
-		http.Error(w, fmt.Sprintf("Erro ao excluir: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	data := h.buildComptimePageData(r)
-	h.tmplComptime.ExecuteTemplate(w, "tabela", data)
 }

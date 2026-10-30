@@ -33,12 +33,15 @@ type ComptimeView struct {
 	Month                time.Time `json:"month"`
 	InvoicedMinutes      int       `json:"invoiced_minutes"`
 	ConsumedMinutes      int       `json:"consumed_minutes"`
+	AdjustedMinutes      int       `json:"adjusted_minutes"`
+	AdjustDescription    string    `json:"adjust_description"`
 	PredictMinutes       int       `json:"predict_minutes"`
 	DoneMinutes          int       `json:"done_minutes"`
 	MonthBalance         int       `json:"month_balance"`
 	Balance              int       `json:"balance"`
 	PredictSessions      float64   `json:"predict_sessions"`
 	DoneSessions         float64   `json:"done_sessions"`
+	AdjustedSessions     float64   `json:"adjusted_sessions"`
 	MonthBalanceSessions float64   `json:"month_balance_sessions"`
 	BalanceSessions      float64   `json:"balance_sessions"`
 	UpdatedAt            time.Time `json:"updated_at"`
@@ -70,9 +73,10 @@ type ComptimeRepository interface {
 	SaveComptimeInvoiceItem(ctx context.Context, cii *domain.ComptimeInvoiceItem) error
 	DeleteComptimeInvoiceItem(ctx context.Context, invoiceItemID int64) error
 
-	// ComptimeExtra
-	SaveComptimeExtra(ctx context.Context, ce *domain.ComptimeExtra) error
-	DeleteComptimeExtra(ctx context.Context, id int64) error
+	// ComptimeAdjust
+	FindComptimeAdjustByComptimeID(ctx context.Context, comptimeID int64) (*domain.ComptimeAdjust, error)
+	SaveComptimeAdjust(ctx context.Context, ca *domain.ComptimeAdjust) error
+	DeleteComptimeAdjustByComptimeID(ctx context.Context, comptimeID int64) error
 
 	// Queries for resynchronization job
 	FindActiveSessionsForComptime(ctx context.Context, vendorID int64, startDate, endDate time.Time, customerID, serviceID *int64) ([]domain.Session, error)
@@ -95,9 +99,11 @@ type ComptimeService interface {
 	ProcessInvoiceItemDeleted(ctx context.Context, invoiceItemID int64) error
 	ProcessInvoiceDeleted(ctx context.Context, invoiceID int64) error
 
-	ProcessComptimeExtraCreated(ctx context.Context, extra *domain.ComptimeExtra) error
-	ProcessComptimeExtraUpdated(ctx context.Context, extra *domain.ComptimeExtra) error
-	ProcessComptimeExtraDeleted(ctx context.Context, extraID int64) error
+	SaveComptimeAdjust(ctx context.Context, vendorID, customerID, serviceID int64, month time.Time, adjustedMinutes int, description string) (*domain.Comptime, *domain.ComptimeAdjust, error)
+	SaveComptimeAdjustByID(ctx context.Context, comptimeID int64, adjustedMinutes int, description string) (*domain.Comptime, *domain.ComptimeAdjust, error)
+	DeleteComptimeAdjust(ctx context.Context, vendorID, customerID, serviceID int64, month time.Time) (*domain.Comptime, error)
+	DeleteComptimeAdjustByID(ctx context.Context, comptimeID int64) (*domain.Comptime, error)
+	GetComptimeAdjust(ctx context.Context, comptimeID int64) (*domain.ComptimeAdjust, error)
 
 	GetComptime(ctx context.Context, id int64) (*domain.Comptime, error)
 	GetComptimeByCustomerServiceMonth(ctx context.Context, customerID, serviceID int64, month time.Time) (*domain.Comptime, error)

@@ -42,3 +42,18 @@ Content-Type: application/json
   "id": 1
 }
 
+### Ajustar horas manualmente no Comptime (incluir ou alterar)
+POST {{baseUrl}}/comptime/adjust
+Content-Type: application/json
+
+{
+  "comptime_id": 1,
+  "adjusted_minutes": 60,
+  "description": "Bônus de horas concedido"
+}
+
+### Remover/Zerar ajuste manual no Comptime
+DELETE {{baseUrl}}/comptime/adjust?id=1
+Content-Type: application/json
+
+

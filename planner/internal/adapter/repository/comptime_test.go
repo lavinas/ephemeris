@@ -115,9 +115,11 @@ func TestComptimeRepository_SessionAndListOperations(t *testing.T) {
 	month := time.Date(2098, time.January, 1, 0, 0, 0, 0, time.UTC)
 
 	// Clean up
+	_ = repo.DB.Exec("DELETE FROM planner.comptime_adjust WHERE comptime_id IN (SELECT id FROM planner.comptime WHERE customer_id = ? AND service_id = ? AND month = '2098-01-01')", customerID, serviceID).Error
 	_ = repo.DB.Exec("DELETE FROM planner.comptime_session WHERE session_id = ?", sessionID).Error
 	_ = repo.DB.Exec("DELETE FROM planner.comptime WHERE customer_id = ? AND service_id = ? AND month = '2098-01-01'", customerID, serviceID).Error
 	defer func() {
+		_ = repo.DB.Exec("DELETE FROM planner.comptime_adjust WHERE comptime_id IN (SELECT id FROM planner.comptime WHERE customer_id = ? AND service_id = ? AND month = '2098-01-01')", customerID, serviceID).Error
 		_ = repo.DB.Exec("DELETE FROM planner.comptime_session WHERE session_id = ?", sessionID).Error
 		_ = repo.DB.Exec("DELETE FROM planner.comptime WHERE customer_id = ? AND service_id = ? AND month = '2098-01-01'", customerID, serviceID).Error
 	}()
@@ -125,6 +127,22 @@ func TestComptimeRepository_SessionAndListOperations(t *testing.T) {
 	comp, err := repo.FindOrCreateComptime(ctx, vendorID, customerID, serviceID, month)
 	if err != nil {
 		t.Fatalf("FindOrCreateComptime failed: %v", err)
+	}
+
+	// Test ComptimeAdjust CRUD
+	ca := domain.NewComptimeAdjust(comp.ID, month, -30, "Ajuste de teste")
+	if err := repo.SaveComptimeAdjust(ctx, ca); err != nil {
+		t.Fatalf("SaveComptimeAdjust failed: %v", err)
+	}
+	comp.AdjustedMinutes = -30
+	_ = repo.SaveComptime(ctx, comp)
+
+	foundCA, err := repo.FindComptimeAdjustByComptimeID(ctx, comp.ID)
+	if err != nil {
+		t.Fatalf("FindComptimeAdjustByComptimeID failed: %v", err)
+	}
+	if foundCA == nil || foundCA.AdjustedMinutes != -30 || foundCA.Description != "Ajuste de teste" {
+		t.Errorf("expected found comptime_adjust with -30 minutes, got %+v", foundCA)
 	}
 
 	cs := domain.NewComptimeSession(comp.ID, sessionID, month, 50)

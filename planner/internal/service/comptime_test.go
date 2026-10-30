@@ -15,7 +15,7 @@ type mockComptimeRepo struct {
 	invoiceItems     map[int64]*domain.InvoiceItem
 	comptimeSessions map[int64]*domain.ComptimeSession
 	comptimeItems    map[int64]*domain.ComptimeInvoiceItem
-	comptimeExtras   map[int64]*domain.ComptimeExtra
+	comptimeAdjusts  map[int64]*domain.ComptimeAdjust
 	plans            []*domain.Plan
 	services         map[int64]*domain.Service
 	idCounter        int64
@@ -28,7 +28,7 @@ func newMockComptimeRepo() *mockComptimeRepo {
 		invoiceItems:     make(map[int64]*domain.InvoiceItem),
 		comptimeSessions: make(map[int64]*domain.ComptimeSession),
 		comptimeItems:    make(map[int64]*domain.ComptimeInvoiceItem),
-		comptimeExtras:   make(map[int64]*domain.ComptimeExtra),
+		comptimeAdjusts:  make(map[int64]*domain.ComptimeAdjust),
 		services:         make(map[int64]*domain.Service),
 		idCounter:        1,
 	}
@@ -124,9 +124,9 @@ func (m *mockComptimeRepo) DeleteComptime(ctx context.Context, id int64) error {
 				cii.DeletedAt = &now
 			}
 		}
-		for _, ce := range m.comptimeExtras {
-			if ce.ComptimeID == id {
-				ce.DeletedAt = &now
+		for _, ca := range m.comptimeAdjusts {
+			if ca.ComptimeID == id {
+				ca.DeletedAt = &now
 			}
 		}
 	}
@@ -136,16 +136,25 @@ func (m *mockComptimeRepo) DeleteComptime(ctx context.Context, id int64) error {
 func (m *mockComptimeRepo) ListComptime(ctx context.Context, filter port.ComptimeFilter) ([]port.ComptimeView, int64, error) {
 	var views []port.ComptimeView
 	for _, c := range m.comptimes {
+		if c.DeletedAt != nil {
+			continue
+		}
+		desc := ""
+		if ca, _ := m.FindComptimeAdjustByComptimeID(ctx, c.ID); ca != nil {
+			desc = ca.Description
+		}
 		views = append(views, port.ComptimeView{
-			ID:              c.ID,
-			VendorID:        c.VendorID,
-			CustomerID:      c.CustomerID,
-			ServiceID:       c.ServiceID,
-			Month:           c.Month,
-			InvoicedMinutes: c.InvoicedMinutes,
-			ConsumedMinutes: c.ConsumedMinutes,
-			MonthBalance:    c.MonthBalance(),
-			Balance:         c.Balance,
+			ID:                c.ID,
+			VendorID:          c.VendorID,
+			CustomerID:        c.CustomerID,
+			ServiceID:         c.ServiceID,
+			Month:             c.Month,
+			InvoicedMinutes:   c.InvoicedMinutes,
+			ConsumedMinutes:   c.ConsumedMinutes,
+			AdjustedMinutes:   c.AdjustedMinutes,
+			AdjustDescription: desc,
+			MonthBalance:      c.MonthBalance(),
+			Balance:           c.Balance,
 		})
 	}
 	return views, int64(len(views)), nil
@@ -217,19 +226,30 @@ func (m *mockComptimeRepo) DeleteComptimeInvoiceItem(ctx context.Context, invoic
 	return nil
 }
 
-func (m *mockComptimeRepo) SaveComptimeExtra(ctx context.Context, ce *domain.ComptimeExtra) error {
-	if ce.ID == 0 {
-		m.idCounter++
-		ce.ID = m.idCounter
+func (m *mockComptimeRepo) FindComptimeAdjustByComptimeID(ctx context.Context, comptimeID int64) (*domain.ComptimeAdjust, error) {
+	for _, ca := range m.comptimeAdjusts {
+		if ca.ComptimeID == comptimeID && ca.DeletedAt == nil {
+			return ca, nil
+		}
 	}
-	m.comptimeExtras[ce.ID] = ce
+	return nil, nil
+}
+
+func (m *mockComptimeRepo) SaveComptimeAdjust(ctx context.Context, ca *domain.ComptimeAdjust) error {
+	if ca.ID == 0 {
+		m.idCounter++
+		ca.ID = m.idCounter
+	}
+	m.comptimeAdjusts[ca.ID] = ca
 	return nil
 }
 
-func (m *mockComptimeRepo) DeleteComptimeExtra(ctx context.Context, id int64) error {
-	if ce, ok := m.comptimeExtras[id]; ok {
-		now := time.Now()
-		ce.DeletedAt = &now
+func (m *mockComptimeRepo) DeleteComptimeAdjustByComptimeID(ctx context.Context, comptimeID int64) error {
+	for _, ca := range m.comptimeAdjusts {
+		if ca.ComptimeID == comptimeID && ca.DeletedAt == nil {
+			now := time.Now()
+			ca.DeletedAt = &now
+		}
 	}
 	return nil
 }
@@ -989,4 +1009,82 @@ func TestComptimeService_ListComptime_CurrentMonthPredictions(t *testing.T) {
 			t.Errorf("expected MonthBalance=60 Balance=60, got %d / %d", v.MonthBalance, v.Balance)
 		}
 	})
+}
+
+func TestComptimeService_AdjustLifecycleAndCascadePropagation(t *testing.T) {
+	repo := newMockComptimeRepo()
+	svc := NewComptime(repo, nil)
+	ctx := context.Background()
+
+	m1 := time.Date(2026, time.March, 1, 0, 0, 0, 0, time.UTC)
+	m2 := time.Date(2026, time.April, 1, 0, 0, 0, 0, time.UTC)
+
+	// March: 120 invoiced, 60 consumed -> initial balance 60
+	cMarch, _ := repo.FindOrCreateComptime(ctx, 1, 100, 200, m1)
+	cMarch.InvoicedMinutes = 120
+	cMarch.ConsumedMinutes = 60
+	cMarch.RecalculateBalance(0)
+	_ = repo.SaveComptime(ctx, cMarch)
+
+	// April: 100 invoiced, 40 consumed -> initial balance 60 + 60 = 120
+	cApril, _ := repo.FindOrCreateComptime(ctx, 1, 100, 200, m2)
+	cApril.InvoicedMinutes = 100
+	cApril.ConsumedMinutes = 40
+	cApril.RecalculateBalance(cMarch.Balance)
+	_ = repo.SaveComptime(ctx, cApril)
+
+	// 1. Missing description must fail when adjusted_minutes != 0
+	if _, _, err := svc.SaveComptimeAdjust(ctx, 1, 100, 200, m1, 30, ""); err == nil {
+		t.Fatalf("expected error when description is empty for non-zero adjustment")
+	}
+
+	// 2. Insert positive adjustment (+30 min) on March
+	comp, adj, err := svc.SaveComptimeAdjust(ctx, 1, 100, 200, m1, 30, "Bônus de horas concedido")
+	if err != nil {
+		t.Fatalf("SaveComptimeAdjust failed: %v", err)
+	}
+	if adj == nil || adj.AdjustedMinutes != 30 || adj.Description != "Bônus de horas concedido" {
+		t.Fatalf("unexpected adjust record: %+v", adj)
+	}
+	if comp.AdjustedMinutes != 30 || comp.Balance != 90 {
+		t.Errorf("expected March AdjustedMinutes=30 and Balance=90, got adj=%d bal=%d", comp.AdjustedMinutes, comp.Balance)
+	}
+	cAprilUpdated, _ := repo.GetComptime(ctx, cApril.ID)
+	if cAprilUpdated.Balance != 150 {
+		t.Errorf("expected April Balance propagated to 150, got %d", cAprilUpdated.Balance)
+	}
+
+	// 3. Update existing adjustment on March to negative (-20 min) -> must update the SAME adjust record
+	firstAdjustID := adj.ID
+	comp2, adj2, err := svc.SaveComptimeAdjustByID(ctx, cMarch.ID, -20, "Correção de apontamento")
+	if err != nil {
+		t.Fatalf("SaveComptimeAdjustByID failed: %v", err)
+	}
+	if adj2 == nil || adj2.ID != firstAdjustID {
+		t.Errorf("expected single adjust record updated (ID %d), got %+v", firstAdjustID, adj2)
+	}
+	if comp2.AdjustedMinutes != -20 || comp2.Balance != 40 {
+		t.Errorf("expected March AdjustedMinutes=-20 and Balance=40, got adj=%d bal=%d", comp2.AdjustedMinutes, comp2.Balance)
+	}
+	cAprilUpdated2, _ := repo.GetComptime(ctx, cApril.ID)
+	if cAprilUpdated2.Balance != 100 {
+		t.Errorf("expected April Balance propagated to 100, got %d", cAprilUpdated2.Balance)
+	}
+
+	// 4. Delete adjustment on March -> zeroes adjusted_minutes, soft-deletes comptime_adjust, and propagates balance
+	comp3, err := svc.DeleteComptimeAdjustByID(ctx, cMarch.ID)
+	if err != nil {
+		t.Fatalf("DeleteComptimeAdjustByID failed: %v", err)
+	}
+	if comp3.AdjustedMinutes != 0 || comp3.Balance != 60 {
+		t.Errorf("expected March AdjustedMinutes=0 and Balance=60 after delete, got adj=%d bal=%d", comp3.AdjustedMinutes, comp3.Balance)
+	}
+	activeAdj, _ := svc.GetComptimeAdjust(ctx, cMarch.ID)
+	if activeAdj != nil {
+		t.Errorf("expected active adjustment to be nil after delete, got %+v", activeAdj)
+	}
+	cAprilUpdated3, _ := repo.GetComptime(ctx, cApril.ID)
+	if cAprilUpdated3.Balance != 120 {
+		t.Errorf("expected April Balance restored to 120, got %d", cAprilUpdated3.Balance)
+	}
 }

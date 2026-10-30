@@ -138,3 +138,55 @@ func TestComptimeDeleteRequest_Validation(t *testing.T) {
 		t.Errorf("expected error for ID -5")
 	}
 }
+
+func TestComptimeAdjustRequest_Validation(t *testing.T) {
+	// 1. Valid by ComptimeID
+	reqByID := ComptimeAdjustRequest{
+		ComptimeID:      10,
+		AdjustedMinutes: 45,
+		Description:     "Bônus contratual",
+	}
+	if err := reqByID.Validate(nil); err != nil {
+		t.Errorf("expected valid request by ComptimeID, got: %v", err)
+	}
+
+	// 2. Valid by customer/service/month with negative minutes
+	reqByMonth := ComptimeAdjustRequest{
+		CustomerID:      100,
+		ServiceID:       200,
+		Month:           "2026-04",
+		AdjustedMinutes: -30,
+		Description:     "Estorno de sessão duplicada",
+	}
+	if err := reqByMonth.Validate(nil); err != nil {
+		t.Errorf("expected valid request by customer/service/month, got: %v", err)
+	}
+
+	// 3. Missing description when AdjustedMinutes != 0
+	reqNoDesc := ComptimeAdjustRequest{
+		ComptimeID:      10,
+		AdjustedMinutes: 15,
+		Description:     "   ",
+	}
+	if err := reqNoDesc.Validate(nil); err == nil {
+		t.Errorf("expected error when description is empty")
+	}
+
+	// 4. Zero minutes is valid even without description (acts as zero/reset)
+	reqZero := ComptimeAdjustRequest{
+		ComptimeID:      10,
+		AdjustedMinutes: 0,
+	}
+	if err := reqZero.Validate(nil); err != nil {
+		t.Errorf("expected zero minutes to be valid, got: %v", err)
+	}
+
+	// 5. Missing identifier and customer/service/month
+	reqMissingIDs := ComptimeAdjustRequest{
+		AdjustedMinutes: 30,
+		Description:     "Justificativa",
+	}
+	if err := reqMissingIDs.Validate(nil); err == nil {
+		t.Errorf("expected error when both comptime_id and customer/service/month are missing")
+	}
+}

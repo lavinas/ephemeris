@@ -75,6 +75,12 @@ func NewAPIRoutes(repo port.Repository, logger port.Logger, billingClients ...po
 	mux.HandleFunc("/invoicing/import-csv", handler.InvoiceImportCSV)
 	mux.HandleFunc("/comptime/delete", handler.ComptimeDelete)
 	mux.HandleFunc("/banco-de-horas/delete", handler.ComptimeDelete)
+	mux.HandleFunc("/comptime/adjust", handler.ComptimeAdjust)
+	mux.HandleFunc("/comptime/ajustar", handler.ComptimeAdjust)
+	mux.HandleFunc("/comptime/adjust/delete", handler.ComptimeAdjustDelete)
+	mux.HandleFunc("/banco-de-horas/adjust", handler.ComptimeAdjust)
+	mux.HandleFunc("/banco-de-horas/ajustar", handler.ComptimeAdjust)
+	mux.HandleFunc("/banco-de-horas/adjust/delete", handler.ComptimeAdjustDelete)
 	mux.HandleFunc("/ping2", handler.Ping)
 	return mux
 }
@@ -175,9 +181,9 @@ func NewHTMLRoutes(repo port.Repository, logger port.Logger, htmlTemplate []byte
 	mux.HandleFunc("/comptime/tabela/reset", handler.ComptimeTableReset)
 	mux.HandleFunc("/comptime/resync-modal", handler.ComptimeResyncModal)
 	mux.HandleFunc("/comptime/resync", handler.ComptimeResync)
-	mux.HandleFunc("/comptime/deletar-aviso", handler.ComptimeDeleteWarning)
-	mux.HandleFunc("/comptime/cancelar-delete", handler.ComptimeCancelDelete)
-	mux.HandleFunc("/comptime/deletar", handler.ComptimeDelete)
+	mux.HandleFunc("/comptime/ajustar-modal", handler.ComptimeAdjustModal)
+	mux.HandleFunc("/comptime/ajustar", handler.ComptimeAdjust)
+	mux.HandleFunc("/comptime/ajustar/deletar", handler.ComptimeAdjustDelete)
 
 	mux.HandleFunc("/banco-de-horas", handler.ComptimeHTML)
 	mux.HandleFunc("/banco-de-horas/", handler.ComptimeHTML)
@@ -185,9 +191,9 @@ func NewHTMLRoutes(repo port.Repository, logger port.Logger, htmlTemplate []byte
 	mux.HandleFunc("/banco-de-horas/tabela/reset", handler.ComptimeTableReset)
 	mux.HandleFunc("/banco-de-horas/resync-modal", handler.ComptimeResyncModal)
 	mux.HandleFunc("/banco-de-horas/resync", handler.ComptimeResync)
-	mux.HandleFunc("/banco-de-horas/deletar-aviso", handler.ComptimeDeleteWarning)
-	mux.HandleFunc("/banco-de-horas/cancelar-delete", handler.ComptimeCancelDelete)
-	mux.HandleFunc("/banco-de-horas/deletar", handler.ComptimeDelete)
+	mux.HandleFunc("/banco-de-horas/ajustar-modal", handler.ComptimeAdjustModal)
+	mux.HandleFunc("/banco-de-horas/ajustar", handler.ComptimeAdjust)
+	mux.HandleFunc("/banco-de-horas/ajustar/deletar", handler.ComptimeAdjustDelete)
 
 	return mux, handler, nil
 }

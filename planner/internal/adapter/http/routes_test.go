@@ -277,12 +277,12 @@ func (m *mockPlanRepoWithItems) FindServices(vendorID int64) ([]domain.Service, 
 }
 
 func (m *mockPlanRepoWithItems) GetPlanByID(id int64) (*domain.Plan, error) {
-	now := time.Now()
+	start := time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC)
 	price := 100.0
 	return &domain.Plan{
 		ID:         id,
 		CustomerID: 100,
-		PlanStart:  now,
+		PlanStart:  start,
 		PlanType:   1,
 		Price:      &price,
 		Items:      []domain.PlanItem{{ServiceID: 10, OrderIndex: 1}},
@@ -1356,14 +1356,31 @@ func TestHTMLInvoicingReconciliationButton(t *testing.T) {
 
 type mockComptimeRouteRepo struct {
 	dummyRepo
-	records []port.ComptimeView
+	records     []port.ComptimeView
+	adjustments map[int64]*domain.ComptimeAdjust
 }
 
 func (m *mockComptimeRouteRepo) LockCustomerService(ctx context.Context, customerID, serviceID int64) error {
 	return nil
 }
 func (m *mockComptimeRouteRepo) FindOrCreateComptime(ctx context.Context, vendorID, customerID, serviceID int64, month time.Time) (*domain.Comptime, error) {
-	return nil, nil
+	norm := domain.NormalizeMonth(month)
+	for _, r := range m.records {
+		if r.CustomerID == customerID && r.ServiceID == serviceID && domain.NormalizeMonth(r.Month).Equal(norm) {
+			return m.GetComptime(ctx, r.ID)
+		}
+	}
+	c := domain.NewComptime(vendorID, customerID, serviceID, norm)
+	c.ID = int64(len(m.records) + 1)
+	m.records = append(m.records, port.ComptimeView{
+		ID:         c.ID,
+		VendorID:   vendorID,
+		CustomerID: customerID,
+		ServiceID:  serviceID,
+		Month:      norm,
+		UpdatedAt:  c.UpdatedAt,
+	})
+	return c, nil
 }
 func (m *mockComptimeRouteRepo) GetComptime(ctx context.Context, id int64) (*domain.Comptime, error) {
 	for _, r := range m.records {
@@ -1376,6 +1393,7 @@ func (m *mockComptimeRouteRepo) GetComptime(ctx context.Context, id int64) (*dom
 				Month:           r.Month,
 				InvoicedMinutes: r.InvoicedMinutes,
 				ConsumedMinutes: r.ConsumedMinutes,
+				AdjustedMinutes: r.AdjustedMinutes,
 				Balance:         r.Balance,
 				UpdatedAt:       r.UpdatedAt,
 			}, nil
@@ -1384,6 +1402,12 @@ func (m *mockComptimeRouteRepo) GetComptime(ctx context.Context, id int64) (*dom
 	return nil, nil
 }
 func (m *mockComptimeRouteRepo) GetComptimeByCustomerServiceMonth(ctx context.Context, customerID, serviceID int64, month time.Time) (*domain.Comptime, error) {
+	norm := domain.NormalizeMonth(month)
+	for _, r := range m.records {
+		if r.CustomerID == customerID && r.ServiceID == serviceID && domain.NormalizeMonth(r.Month).Equal(norm) {
+			return m.GetComptime(ctx, r.ID)
+		}
+	}
 	return nil, nil
 }
 func (m *mockComptimeRouteRepo) GetPreviousComptime(ctx context.Context, customerID, serviceID int64, month time.Time) (*domain.Comptime, error) {
@@ -1393,12 +1417,22 @@ func (m *mockComptimeRouteRepo) GetSubsequentComptimes(ctx context.Context, cust
 	return nil, nil
 }
 func (m *mockComptimeRouteRepo) SaveComptime(ctx context.Context, comptime *domain.Comptime) error {
+	for i := range m.records {
+		if m.records[i].ID == comptime.ID {
+			m.records[i].InvoicedMinutes = comptime.InvoicedMinutes
+			m.records[i].ConsumedMinutes = comptime.ConsumedMinutes
+			m.records[i].AdjustedMinutes = comptime.AdjustedMinutes
+			m.records[i].MonthBalance = comptime.MonthBalance()
+			m.records[i].Balance = comptime.Balance
+			m.records[i].UpdatedAt = comptime.UpdatedAt
+		}
+	}
 	return nil
 }
 func (m *mockComptimeRouteRepo) ListComptime(ctx context.Context, filter port.ComptimeFilter) ([]port.ComptimeView, int64, error) {
 	for i := range m.records {
-		if m.records[i].MonthBalance == 0 && (m.records[i].InvoicedMinutes != 0 || m.records[i].ConsumedMinutes != 0) {
-			m.records[i].MonthBalance = m.records[i].InvoicedMinutes - m.records[i].ConsumedMinutes
+		if m.records[i].MonthBalance == 0 && (m.records[i].InvoicedMinutes != 0 || m.records[i].ConsumedMinutes != 0 || m.records[i].AdjustedMinutes != 0) {
+			m.records[i].MonthBalance = m.records[i].InvoicedMinutes - m.records[i].ConsumedMinutes + m.records[i].AdjustedMinutes
 		}
 	}
 	return m.records, int64(len(m.records)), nil
@@ -1424,10 +1458,41 @@ func (m *mockComptimeRouteRepo) SaveComptimeInvoiceItem(ctx context.Context, cii
 func (m *mockComptimeRouteRepo) DeleteComptimeInvoiceItem(ctx context.Context, invoiceItemID int64) error {
 	return nil
 }
-func (m *mockComptimeRouteRepo) SaveComptimeExtra(ctx context.Context, ce *domain.ComptimeExtra) error {
+func (m *mockComptimeRouteRepo) FindComptimeAdjustByComptimeID(ctx context.Context, comptimeID int64) (*domain.ComptimeAdjust, error) {
+	if m.adjustments != nil {
+		if adj, ok := m.adjustments[comptimeID]; ok && adj.DeletedAt == nil {
+			return adj, nil
+		}
+	}
+	return nil, nil
+}
+func (m *mockComptimeRouteRepo) SaveComptimeAdjust(ctx context.Context, ca *domain.ComptimeAdjust) error {
+	if m.adjustments == nil {
+		m.adjustments = make(map[int64]*domain.ComptimeAdjust)
+	}
+	if ca.ID == 0 {
+		ca.ID = 1
+	}
+	m.adjustments[ca.ComptimeID] = ca
+	for i := range m.records {
+		if m.records[i].ID == ca.ComptimeID {
+			m.records[i].AdjustDescription = ca.Description
+		}
+	}
 	return nil
 }
-func (m *mockComptimeRouteRepo) DeleteComptimeExtra(ctx context.Context, id int64) error {
+func (m *mockComptimeRouteRepo) DeleteComptimeAdjustByComptimeID(ctx context.Context, comptimeID int64) error {
+	if m.adjustments != nil {
+		if adj, ok := m.adjustments[comptimeID]; ok {
+			now := time.Now()
+			adj.DeletedAt = &now
+		}
+	}
+	for i := range m.records {
+		if m.records[i].ID == comptimeID {
+			m.records[i].AdjustDescription = ""
+		}
+	}
 	return nil
 }
 func (m *mockComptimeRouteRepo) FindActiveSessionsForComptime(ctx context.Context, vendorID int64, startDate, endDate time.Time, customerID, serviceID *int64) ([]domain.Session, error) {
@@ -1540,11 +1605,20 @@ func TestHTMLComptimeRoutes(t *testing.T) {
 	if !strings.Contains(bodyPage, "REALIZADOS") {
 		t.Errorf("expected body to contain 'REALIZADOS'")
 	}
+	if !strings.Contains(bodyPage, "AJUSTADOS") {
+		t.Errorf("expected body to contain 'AJUSTADOS'")
+	}
 	if !strings.Contains(bodyPage, "SALDO MÊS") {
 		t.Errorf("expected body to contain 'SALDO MÊS'")
 	}
 	if !strings.Contains(bodyPage, "SALDO TOTAL") {
 		t.Errorf("expected body to contain 'SALDO TOTAL'")
+	}
+	if strings.Contains(bodyPage, "deletar-aviso") {
+		t.Errorf("expected delete action to be removed from comptime HTML")
+	}
+	if !strings.Contains(bodyPage, "/html/comptime/ajustar-modal?id=1") {
+		t.Errorf("expected ajustar-modal action button in comptime HTML")
 	}
 	if !strings.Contains(bodyPage, "240 min") {
 		t.Errorf("expected body to contain '240 min'")
@@ -1658,36 +1732,55 @@ func TestHTMLComptimeRoutes(t *testing.T) {
 		t.Errorf("expected resync with nickname to show customer name 'cli_alpha - Alpha Corp', got: %s", bodyResyncNick)
 	}
 
-	// 5. Test GET /comptime/deletar-aviso?id=1
-	reqDelAviso := httptest.NewRequest(http.MethodGet, "/comptime/deletar-aviso?id=1", nil)
-	recDelAviso := httptest.NewRecorder()
-	mux.ServeHTTP(recDelAviso, reqDelAviso)
-	if recDelAviso.Code != http.StatusOK {
-		t.Fatalf("expected 200 on /comptime/deletar-aviso, got %d", recDelAviso.Code)
+	// 5. Test GET /comptime/ajustar-modal?id=1
+	reqAdjModal := httptest.NewRequest(http.MethodGet, "/comptime/ajustar-modal?id=1", nil)
+	recAdjModal := httptest.NewRecorder()
+	mux.ServeHTTP(recAdjModal, reqAdjModal)
+	if recAdjModal.Code != http.StatusOK {
+		t.Fatalf("expected 200 on /comptime/ajustar-modal, got %d", recAdjModal.Code)
 	}
-	bodyDelAviso := recDelAviso.Body.String()
-	if !strings.Contains(bodyDelAviso, "Deseja realmente apagar o banco de horas") {
-		t.Errorf("expected delete warning banner in response, got: %s", bodyDelAviso)
+	bodyAdjModal := recAdjModal.Body.String()
+	if !strings.Contains(bodyAdjModal, "Ajustar Horas do Mês") {
+		t.Errorf("expected adjust modal title in response, got: %s", bodyAdjModal)
 	}
-
-	// 6. Test GET /comptime/cancelar-delete?id=1
-	reqCancelDel := httptest.NewRequest(http.MethodGet, "/comptime/cancelar-delete?id=1", nil)
-	recCancelDel := httptest.NewRecorder()
-	mux.ServeHTTP(recCancelDel, reqCancelDel)
-	if recCancelDel.Code != http.StatusOK {
-		t.Fatalf("expected 200 on /comptime/cancelar-delete, got %d", recCancelDel.Code)
-	}
-	bodyCancelDel := recCancelDel.Body.String()
-	if !strings.Contains(bodyCancelDel, "linha-comptime-1") {
-		t.Errorf("expected restored row in response, got: %s", bodyCancelDel)
+	if !strings.Contains(bodyAdjModal, `name="adjusted_minutes"`) || !strings.Contains(bodyAdjModal, `name="description"`) {
+		t.Errorf("expected adjusted_minutes and description inputs in modal")
 	}
 
-	// 7. Test POST /comptime/deletar?id=1
-	reqDoDel := httptest.NewRequest(http.MethodPost, "/comptime/deletar?id=1", nil)
-	recDoDel := httptest.NewRecorder()
-	mux.ServeHTTP(recDoDel, reqDoDel)
-	if recDoDel.Code != http.StatusOK {
-		t.Fatalf("expected 200 on /comptime/deletar, got %d", recDoDel.Code)
+	// 6. Test POST /comptime/ajustar (adding +30 min with justification)
+	adjForm := url.Values{
+		"id":               {"1"},
+		"adjusted_minutes": {"30"},
+		"description":      {"Reposicao feriado"},
+	}
+	reqDoAdj := httptest.NewRequest(http.MethodPost, "/comptime/ajustar", strings.NewReader(adjForm.Encode()))
+	reqDoAdj.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	recDoAdj := httptest.NewRecorder()
+	mux.ServeHTTP(recDoAdj, reqDoAdj)
+	if recDoAdj.Code != http.StatusOK {
+		t.Fatalf("expected 200 on /comptime/ajustar, got %d: %s", recDoAdj.Code, recDoAdj.Body.String())
+	}
+	bodyAfterAdj := recDoAdj.Body.String()
+	if !strings.Contains(bodyAfterAdj, "+30 min") {
+		t.Errorf("expected table to contain '+30 min' after adjustment, got: %s", bodyAfterAdj)
+	}
+	if !strings.Contains(bodyAfterAdj, `title="Reposicao feriado"`) {
+		t.Errorf("expected mouseover title with justification 'Reposicao feriado', got: %s", bodyAfterAdj)
+	}
+	if !strings.Contains(bodyAfterAdj, "+90 min") {
+		t.Errorf("expected updated balance '+90 min' (240 - 180 + 30), got: %s", bodyAfterAdj)
+	}
+
+	// 7. Test POST /comptime/ajustar/deletar?id=1 (zeroing/removing adjustment)
+	reqDelAdj := httptest.NewRequest(http.MethodPost, "/comptime/ajustar/deletar?id=1", nil)
+	recDelAdj := httptest.NewRecorder()
+	mux.ServeHTTP(recDelAdj, reqDelAdj)
+	if recDelAdj.Code != http.StatusOK {
+		t.Fatalf("expected 200 on /comptime/ajustar/deletar, got %d: %s", recDelAdj.Code, recDelAdj.Body.String())
+	}
+	bodyAfterDelAdj := recDelAdj.Body.String()
+	if strings.Contains(bodyAfterDelAdj, `title="Reposicao feriado"`) {
+		t.Errorf("expected justification tooltip to be removed after deleting adjustment")
 	}
 }
 
@@ -1695,14 +1788,50 @@ func TestAPIComptimeRoutes(t *testing.T) {
 	mockRepo := &mockComptimeRouteRepo{
 		records: []port.ComptimeView{
 			{
-				ID:       1,
-				VendorID: 1,
+				ID:              1,
+				VendorID:        1,
+				CustomerID:      10,
+				ServiceID:       20,
+				Month:           time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC),
+				InvoicedMinutes: 120,
+				ConsumedMinutes: 60,
+				Balance:         60,
 			},
 		},
 	}
 	mux := NewAPIRoutes(mockRepo, &dummyLogger{})
 
-	// 1. DELETE /comptime/delete?id=1
+	// 1. POST /comptime/adjust (create adjustment)
+	reqAdj := httptest.NewRequest(http.MethodPost, "/comptime/adjust", strings.NewReader(`{"comptime_id": 1, "adjusted_minutes": -30, "description": "Desconto manual"}`))
+	recAdj := httptest.NewRecorder()
+	mux.ServeHTTP(recAdj, reqAdj)
+	if recAdj.Code != http.StatusOK {
+		t.Fatalf("expected 200 on /comptime/adjust, got %d: %s", recAdj.Code, recAdj.Body.String())
+	}
+	if mockRepo.records[0].AdjustedMinutes != -30 || mockRepo.records[0].Balance != 30 {
+		t.Errorf("expected adjusted_minutes=-30 and balance=30, got adj=%d bal=%d", mockRepo.records[0].AdjustedMinutes, mockRepo.records[0].Balance)
+	}
+
+	// 2. POST /comptime/adjust without description for non-zero minutes -> 400
+	reqAdjInvalid := httptest.NewRequest(http.MethodPost, "/comptime/adjust", strings.NewReader(`{"comptime_id": 1, "adjusted_minutes": 30, "description": ""}`))
+	recAdjInvalid := httptest.NewRecorder()
+	mux.ServeHTTP(recAdjInvalid, reqAdjInvalid)
+	if recAdjInvalid.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 on /comptime/adjust without description, got %d", recAdjInvalid.Code)
+	}
+
+	// 3. DELETE /comptime/adjust?id=1 (delete adjustment)
+	reqAdjDel := httptest.NewRequest(http.MethodDelete, "/comptime/adjust?id=1", nil)
+	recAdjDel := httptest.NewRecorder()
+	mux.ServeHTTP(recAdjDel, reqAdjDel)
+	if recAdjDel.Code != http.StatusOK {
+		t.Fatalf("expected 200 on DELETE /comptime/adjust, got %d: %s", recAdjDel.Code, recAdjDel.Body.String())
+	}
+	if mockRepo.records[0].AdjustedMinutes != 0 || mockRepo.records[0].Balance != 60 {
+		t.Errorf("expected adjusted_minutes=0 and balance=60 after delete, got adj=%d bal=%d", mockRepo.records[0].AdjustedMinutes, mockRepo.records[0].Balance)
+	}
+
+	// 4. DELETE /comptime/delete?id=1
 	reqDel := httptest.NewRequest(http.MethodDelete, "/comptime/delete?id=1", nil)
 	recDel := httptest.NewRecorder()
 	mux.ServeHTTP(recDel, reqDel)
@@ -1710,7 +1839,7 @@ func TestAPIComptimeRoutes(t *testing.T) {
 		t.Fatalf("expected 200 on /comptime/delete, got %d: %s", recDel.Code, recDel.Body.String())
 	}
 
-	// 2. POST /comptime/delete with JSON body
+	// 5. POST /comptime/delete with JSON body
 	reqDelJSON := httptest.NewRequest(http.MethodPost, "/comptime/delete", strings.NewReader(`{"id": 1}`))
 	recDelJSON := httptest.NewRecorder()
 	mux.ServeHTTP(recDelJSON, reqDelJSON)
@@ -1718,7 +1847,7 @@ func TestAPIComptimeRoutes(t *testing.T) {
 		t.Fatalf("expected 200 on /comptime/delete (JSON), got %d: %s", recDelJSON.Code, recDelJSON.Body.String())
 	}
 
-	// 3. Validation error on id <= 0
+	// 6. Validation error on id <= 0
 	reqDelInvalid := httptest.NewRequest(http.MethodDelete, "/comptime/delete?id=0", nil)
 	recDelInvalid := httptest.NewRecorder()
 	mux.ServeHTTP(recDelInvalid, reqDelInvalid)

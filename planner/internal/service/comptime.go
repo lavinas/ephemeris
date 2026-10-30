@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"planner/internal/domain"
@@ -395,50 +396,170 @@ func (s *ComptimeService) ProcessInvoiceDeleted(ctx context.Context, invoiceID i
 	return nil
 }
 
-// ProcessComptimeExtraCreated adds extra minutes to comptime and recalculates balance.
-func (s *ComptimeService) ProcessComptimeExtraCreated(ctx context.Context, extra *domain.ComptimeExtra) error {
-	comptime, err := s.repo.GetComptime(ctx, extra.ComptimeID)
+// SaveComptimeAdjust creates or updates the manual hour adjustment for a given vendor, customer, service and month,
+// recalculating the month's balance and propagating to all subsequent months.
+// If adjustedMinutes is 0, any existing adjustment for that month is removed/zeroed.
+func (s *ComptimeService) SaveComptimeAdjust(ctx context.Context, vendorID, customerID, serviceID int64, month time.Time, adjustedMinutes int, description string) (*domain.Comptime, *domain.ComptimeAdjust, error) {
+	if vendorID <= 0 {
+		vendorID = 1
+	}
+	if customerID <= 0 {
+		return nil, nil, fmt.Errorf("customer_id é obrigatório")
+	}
+	if serviceID <= 0 {
+		return nil, nil, fmt.Errorf("service_id é obrigatório")
+	}
+	if month.IsZero() {
+		return nil, nil, fmt.Errorf("mês é obrigatório")
+	}
+
+	normMonth := domain.NormalizeMonth(month)
+	_ = s.repo.LockCustomerService(ctx, customerID, serviceID)
+
+	comptime, err := s.repo.FindOrCreateComptime(ctx, vendorID, customerID, serviceID, normMonth)
 	if err != nil {
-		return fmt.Errorf("erro ao buscar comptime id %d: %w", extra.ComptimeID, err)
+		return nil, nil, fmt.Errorf("erro ao obter ou criar comptime para cliente %d serviço %d mês %v: %w",
+			customerID, serviceID, normMonth, err)
+	}
+
+	return s.applyComptimeAdjust(ctx, comptime, adjustedMinutes, description)
+}
+
+// SaveComptimeAdjustByID creates or updates the manual hour adjustment for an existing comptime record by ID,
+// recalculating the month's balance and propagating to all subsequent months.
+// If adjustedMinutes is 0, any existing adjustment is removed/zeroed.
+func (s *ComptimeService) SaveComptimeAdjustByID(ctx context.Context, comptimeID int64, adjustedMinutes int, description string) (*domain.Comptime, *domain.ComptimeAdjust, error) {
+	if comptimeID <= 0 {
+		return nil, nil, fmt.Errorf("id de banco de horas inválido")
+	}
+
+	comptime, err := s.repo.GetComptime(ctx, comptimeID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("erro ao buscar comptime id %d: %w", comptimeID, err)
 	}
 	if comptime == nil {
-		return fmt.Errorf("comptime %d não encontrado", extra.ComptimeID)
+		return nil, nil, fmt.Errorf("registro de banco de horas não encontrado")
 	}
 
 	_ = s.repo.LockCustomerService(ctx, comptime.CustomerID, comptime.ServiceID)
 
-	comptime.InvoicedMinutes += extra.InvoicedMinutes
-	comptime.ConsumedMinutes += extra.ConsumedMinutes
-
-	if err := s.repo.SaveComptimeExtra(ctx, extra); err != nil {
-		return fmt.Errorf("erro ao salvar comptime_extra: %w", err)
-	}
-
-	return s.recalculateAndPropagate(ctx, comptime)
+	return s.applyComptimeAdjust(ctx, comptime, adjustedMinutes, description)
 }
 
-// ProcessComptimeExtraUpdated updates an existing comptime_extra adjustment.
-func (s *ComptimeService) ProcessComptimeExtraUpdated(ctx context.Context, extra *domain.ComptimeExtra) error {
-	comptime, err := s.repo.GetComptime(ctx, extra.ComptimeID)
+func (s *ComptimeService) applyComptimeAdjust(ctx context.Context, comptime *domain.Comptime, adjustedMinutes int, description string) (*domain.Comptime, *domain.ComptimeAdjust, error) {
+	description = strings.TrimSpace(description)
+
+	if adjustedMinutes == 0 {
+		if err := s.repo.DeleteComptimeAdjustByComptimeID(ctx, comptime.ID); err != nil {
+			return nil, nil, fmt.Errorf("erro ao remover ajuste do comptime %d: %w", comptime.ID, err)
+		}
+		comptime.AdjustedMinutes = 0
+		if err := s.recalculateAndPropagate(ctx, comptime); err != nil {
+			return nil, nil, err
+		}
+		if s.logger != nil {
+			s.logger.IPrintf(2, "Comptime: ajuste manual zerado/removido no comptime %d (mês %s)",
+				comptime.ID, comptime.Month.Format("2006-01"))
+		}
+		return comptime, nil, nil
+	}
+
+	if description == "" {
+		return nil, nil, fmt.Errorf("justificativa/descrição do ajuste é obrigatória")
+	}
+	if len(description) > 250 {
+		return nil, nil, fmt.Errorf("descrição deve ter no máximo 250 caracteres")
+	}
+
+	existing, err := s.repo.FindComptimeAdjustByComptimeID(ctx, comptime.ID)
 	if err != nil {
-		return fmt.Errorf("erro ao buscar comptime id %d: %w", extra.ComptimeID, err)
+		return nil, nil, fmt.Errorf("erro ao buscar ajuste existente para comptime %d: %w", comptime.ID, err)
+	}
+
+	var adjust *domain.ComptimeAdjust
+	if existing != nil {
+		existing.AdjustedMinutes = adjustedMinutes
+		existing.Description = description
+		existing.Month = domain.NormalizeMonth(comptime.Month)
+		if err := s.repo.SaveComptimeAdjust(ctx, existing); err != nil {
+			return nil, nil, fmt.Errorf("erro ao atualizar comptime_adjust: %w", err)
+		}
+		adjust = existing
+	} else {
+		adjust = domain.NewComptimeAdjust(comptime.ID, comptime.Month, adjustedMinutes, description)
+		if err := s.repo.SaveComptimeAdjust(ctx, adjust); err != nil {
+			return nil, nil, fmt.Errorf("erro ao criar comptime_adjust: %w", err)
+		}
+	}
+
+	comptime.AdjustedMinutes = adjustedMinutes
+	if err := s.recalculateAndPropagate(ctx, comptime); err != nil {
+		return nil, nil, err
+	}
+
+	if s.logger != nil {
+		s.logger.IPrintf(2, "Comptime: ajuste manual de %d min aplicado no comptime %d (mês %s) - %s",
+			adjustedMinutes, comptime.ID, comptime.Month.Format("2006-01"), description)
+	}
+
+	return comptime, adjust, nil
+}
+
+// DeleteComptimeAdjust deletes/zeroes the manual adjustment for a customer, service and month,
+// recalculating the month's balance and propagating to all subsequent months.
+func (s *ComptimeService) DeleteComptimeAdjust(ctx context.Context, vendorID, customerID, serviceID int64, month time.Time) (*domain.Comptime, error) {
+	if customerID <= 0 || serviceID <= 0 || month.IsZero() {
+		return nil, fmt.Errorf("customer_id, service_id e mês são obrigatórios")
+	}
+	normMonth := domain.NormalizeMonth(month)
+	comptime, err := s.repo.GetComptimeByCustomerServiceMonth(ctx, customerID, serviceID, normMonth)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao buscar comptime: %w", err)
 	}
 	if comptime == nil {
-		return fmt.Errorf("comptime %d não encontrado", extra.ComptimeID)
+		return nil, fmt.Errorf("registro de banco de horas não encontrado")
+	}
+	return s.DeleteComptimeAdjustByID(ctx, comptime.ID)
+}
+
+// DeleteComptimeAdjustByID deletes/zeroes the manual adjustment for a comptime record by ID,
+// recalculating the month's balance and propagating to all subsequent months.
+func (s *ComptimeService) DeleteComptimeAdjustByID(ctx context.Context, comptimeID int64) (*domain.Comptime, error) {
+	if comptimeID <= 0 {
+		return nil, fmt.Errorf("id de banco de horas inválido")
+	}
+	comptime, err := s.repo.GetComptime(ctx, comptimeID)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao buscar comptime id %d: %w", comptimeID, err)
+	}
+	if comptime == nil {
+		return nil, fmt.Errorf("registro de banco de horas não encontrado")
 	}
 
 	_ = s.repo.LockCustomerService(ctx, comptime.CustomerID, comptime.ServiceID)
 
-	if err := s.repo.SaveComptimeExtra(ctx, extra); err != nil {
-		return fmt.Errorf("erro ao atualizar comptime_extra: %w", err)
+	if err := s.repo.DeleteComptimeAdjustByComptimeID(ctx, comptime.ID); err != nil {
+		return nil, fmt.Errorf("erro ao deletar ajuste do comptime %d: %w", comptime.ID, err)
 	}
 
-	return s.recalculateAndPropagate(ctx, comptime)
+	comptime.AdjustedMinutes = 0
+	if err := s.recalculateAndPropagate(ctx, comptime); err != nil {
+		return nil, err
+	}
+
+	if s.logger != nil {
+		s.logger.IPrintf(2, "Comptime: ajuste manual removido do comptime %d (mês %s)",
+			comptime.ID, comptime.Month.Format("2006-01"))
+	}
+	return comptime, nil
 }
 
-// ProcessComptimeExtraDeleted soft deletes extra adjustment and recalculates.
-func (s *ComptimeService) ProcessComptimeExtraDeleted(ctx context.Context, extraID int64) error {
-	return s.repo.DeleteComptimeExtra(ctx, extraID)
+// GetComptimeAdjust retrieves the active manual adjustment for a comptime record, if any.
+func (s *ComptimeService) GetComptimeAdjust(ctx context.Context, comptimeID int64) (*domain.ComptimeAdjust, error) {
+	if comptimeID <= 0 {
+		return nil, nil
+	}
+	return s.repo.FindComptimeAdjustByComptimeID(ctx, comptimeID)
 }
 
 // Resync executes full resynchronization of sessions and invoices within the given date period,
@@ -589,8 +710,14 @@ func (s *ComptimeService) enrichComptimeView(ctx context.Context, view *port.Com
 	}
 	view.ServiceMinutes = serviceMinutes
 
-	previousBalance := view.Balance - (view.InvoicedMinutes - view.ConsumedMinutes)
+	previousBalance := view.Balance - (view.InvoicedMinutes - view.ConsumedMinutes + view.AdjustedMinutes)
 	view.DoneMinutes = view.ConsumedMinutes
+
+	if view.AdjustedMinutes != 0 && view.AdjustDescription == "" && s.repo != nil && view.ID > 0 {
+		if ca, err := s.repo.FindComptimeAdjustByComptimeID(ctx, view.ID); err == nil && ca != nil {
+			view.AdjustDescription = ca.Description
+		}
+	}
 
 	viewMonth := domain.NormalizeMonth(view.Month)
 	if !view.Month.IsZero() && viewMonth.Year() == currentMonth.Year() && viewMonth.Month() == currentMonth.Month() {
@@ -627,11 +754,12 @@ func (s *ComptimeService) enrichComptimeView(ctx context.Context, view *port.Com
 		view.PredictMinutes = view.InvoicedMinutes
 	}
 
-	view.MonthBalance = view.PredictMinutes - view.DoneMinutes
+	view.MonthBalance = view.PredictMinutes - view.DoneMinutes + view.AdjustedMinutes
 	view.Balance = previousBalance + view.MonthBalance
 
 	view.PredictSessions = domain.CalculateSessionsFromMinutes(view.PredictMinutes, serviceMinutes)
 	view.DoneSessions = domain.CalculateSessionsFromMinutes(view.DoneMinutes, serviceMinutes)
+	view.AdjustedSessions = domain.CalculateSessionsFromMinutes(view.AdjustedMinutes, serviceMinutes)
 	view.MonthBalanceSessions = domain.CalculateSessionsFromMinutes(view.MonthBalance, serviceMinutes)
 	view.BalanceSessions = domain.CalculateSessionsFromMinutes(view.Balance, serviceMinutes)
 }

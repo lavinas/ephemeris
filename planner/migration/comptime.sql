@@ -9,6 +9,7 @@ create table comptime (
     month date not null,
     invoiced_minutes int not null default 0,
     consumed_minutes int not null default 0,
+    adjusted_minutes int not null default 0,
     balance int not null default 0,
     created_at timestamp not null,
     updated_at timestamp not null,
@@ -59,16 +60,16 @@ create unique index idx_comptime_invoice_item_unique_active on comptime_invoice_
 
 drop table if exists comptime_extra cascade;
 
-create table comptime_extra (
+create table comptime_adjust (
     id bigserial primary key,
     comptime_id bigint not null references comptime(id) on delete cascade,
     month date not null,
-    invoiced_minutes int not null default 0,
-    consumed_minutes int not null default 0,
+    adjusted_minutes int not null,
+    description varchar(250) not null,
     created_at timestamp not null,
     updated_at timestamp not null,
     deleted_at timestamp
 );
 
-create index idx_comptime_extra_comptime_id on comptime_extra(comptime_id);
-create index idx_comptime_extra_month on comptime_extra(month);
+create index idx_comptime_adjust_comptime_id on comptime_adjust(comptime_id);
+create index idx_comptime_adjust_month on comptime_adjust(month);

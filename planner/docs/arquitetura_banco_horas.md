@@ -33,7 +33,7 @@ erDiagram
     
     comptime ||--o{ comptime_session : "registra minutos consumidos"
     comptime ||--o{ comptime_invoice_item : "registra minutos faturados"
-    comptime ||--o{ comptime_extra : "registra ajustes avulsos"
+    comptime ||--o| comptime_adjust : "registra ajuste manual"
 
     session ||--o| comptime_session : "origina consumo"
     invoice_item ||--o| comptime_invoice_item : "origina faturamento"
@@ -48,6 +48,7 @@ Armazena o consolidado mensal do banco de horas por fornecedor, cliente e servi�
 - `month` (date, primeiro dia do mês correspondente: `YYYY-MM-01`)
 - `invoiced_minutes` (int, total faturado no mês)
 - `consumed_minutes` (int, total consumido no mês)
+- `adjusted_minutes` (int, total ajustado manualmente no mês, positivo ou negativo)
 - `balance` (int, saldo acumulado até o final deste mês)
 - `created_at`, `updated_at`, `deleted_at` (timestamps)
 - **Constraint de Unicidade**: `UNIQUE (vendor_id, customer_id, service_id, month)` onde `deleted_at IS NULL`.
@@ -72,13 +73,13 @@ Rastreia a alocação de cada item de fatura no banco de horas.
 - `created_at`, `updated_at`, `deleted_at` (timestamps)
 - **Constraint de Unicidade**: `UNIQUE (invoice_item_id)` onde `deleted_at IS NULL`.
 
-#### Tabela `comptime_extra`
-Permite ajustes manuais, concessão de horas bônus ou descontos administrativos.
+#### Tabela `comptime_adjust`
+Permite um ajuste manual (positivo ou negativo) por mês/cliente/serviço com justificativa.
 - `id` (bigserial, PK)
 - `comptime_id` (bigint, FK `comptime.id` ON DELETE CASCADE)
 - `month` (date)
-- `invoiced_minutes` (int, minutos adicionados ao crédito)
-- `consumed_minutes` (int, minutos debitados avulsos)
+- `adjusted_minutes` (int, minutos ajustados positivos ou negativos)
+- `description` (varchar(250), justificativa do ajuste)
 - `created_at`, `updated_at`, `deleted_at` (timestamps)
 
 ---
@@ -133,15 +134,15 @@ Todas as datas de referência são truncadas para o primeiro dia do mês (`YYYY-
    - Recalcula saldo e propaga.
 
 ### 3.4 Regra de Propagação em Cascata do Saldo (`balance`)
-O saldo de um mês $m$ é calculado a partir do saldo final do mês anterior $m-1$ somado aos créditos e subtraído dos consumos do mês atual:
+O saldo de um mês $m$ é calculado a partir do saldo final do mês anterior $m-1$ somado aos créditos, subtraído dos consumos e somado ao ajuste manual do mês atual:
 
-$$\text{balance}_m = \text{balance}_{m-1} + \text{invoiced\_minutes}_m - \text{consumed\_minutes}_m$$
+$$\text{balance}_m = \text{balance}_{m-1} + \text{invoiced\_minutes}_m - \text{consumed\_minutes}_m + \text{adjusted\_minutes}_m$$
 
 Quando ocorre qualquer mutação em um mês $M$:
 1. O saldo do mês $M$ é atualizado com base no mês anterior $M-1$ (se existir):
-   $$\text{balance}_M = (\text{balance}_{M-1} \text{ ou } 0) + \text{invoiced\_minutes}_M - \text{consumed\_minutes}_M$$
+   $$\text{balance}_M = (\text{balance}_{M-1} \text{ ou } 0) + \text{invoiced\_minutes}_M - \text{consumed\_minutes}_M + \text{adjusted\_minutes}_M$$
 2. Todos os registros `comptime` com mesmo `(customer_id, service_id)` com $\text{month} > M$, ordenados por $\text{month ASC}$, são recalculados sequencialmente:
-   $$\text{balance}_{k} = \text{balance}_{k-1} + \text{invoiced\_minutes}_{k} - \text{consumed\_minutes}_{k}$$
+   $$\text{balance}_{k} = \text{balance}_{k-1} + \text{invoiced\_minutes}_{k} - \text{consumed\_minutes}_{k} + \text{adjusted\_minutes}_{k}$$
 3. Desta forma, a consulta do saldo em qualquer mês é $O(1)$, sem agregação em tempo de leitura.
 
 ---
