@@ -49,15 +49,11 @@ func DistributeQuantityForService(items []domain.PlanItem, totalQty int, service
 	return serviceQty
 }
 
-// CalculateProportionalMinutes calculates the proportional minutes between startDate and currentDate
-// relative to the total interval [startDate, endDate], rounded to the nearest integer minute:
-// round( ((currentDate - startDate) / (endDate - startDate)) * (sessionsCount * serviceMinutes) ).
-func CalculateProportionalMinutes(startDate, endDate, currentDate time.Time, sessionsCount, serviceMinutes int) int {
-	if serviceMinutes <= 0 {
-		serviceMinutes = 60
-	}
-	totalMinutes := sessionsCount * serviceMinutes
-	if totalMinutes <= 0 {
+// CalculateProportionalSessions calculates the proportional number of sessions between startDate and currentDate
+// relative to the total interval [startDate, endDate], rounded to the nearest integer session:
+// round( ((currentDate - startDate) / (endDate - startDate)) * sessionsCount ).
+func CalculateProportionalSessions(startDate, endDate, currentDate time.Time, sessionsCount int) int {
+	if sessionsCount <= 0 {
 		return 0
 	}
 
@@ -69,17 +65,31 @@ func CalculateProportionalMinutes(startDate, endDate, currentDate time.Time, ses
 		return 0
 	}
 	if !endNorm.After(startNorm) {
-		return totalMinutes
+		return sessionsCount
 	}
 	if !currNorm.Before(endNorm) {
-		return totalMinutes
+		return sessionsCount
 	}
 
 	elapsedDays := currNorm.Sub(startNorm).Hours() / 24.0
 	totalDays := endNorm.Sub(startNorm).Hours() / 24.0
 	ratio := elapsedDays / totalDays
 
-	return int(math.Round(ratio * float64(totalMinutes)))
+	return int(math.Round(ratio * float64(sessionsCount)))
+}
+
+// CalculateProportionalMinutes calculates the proportional minutes between startDate and currentDate
+// by first calculating the estimated number of sessions rounded to an integer and then multiplying
+// by serviceMinutes: round( ((currentDate - startDate) / (endDate - startDate)) * sessionsCount ) * serviceMinutes.
+func CalculateProportionalMinutes(startDate, endDate, currentDate time.Time, sessionsCount, serviceMinutes int) int {
+	if serviceMinutes <= 0 {
+		serviceMinutes = 60
+	}
+	estimatedSessions := CalculateProportionalSessions(startDate, endDate, currentDate, sessionsCount)
+	if estimatedSessions <= 0 {
+		return 0
+	}
+	return estimatedSessions * serviceMinutes
 }
 
 // CalculatePredictedMinutes calculates the predicted minutes (PredictMinutes) for the current month

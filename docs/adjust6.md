@@ -11,3 +11,7 @@ No subprojeto planner:
 - Ainda para esta funcionalidade trazer também o números de sessões correspondentes aos mintudos retornados em previstos, realizados, saldo mês e saldo total, dividindo-se os minutos calculados  em cada linha pelo número de minutos do serviço correspondente.
 - Ajustar o htmx para mostrar Previsto e Realizado ao invés de Fatirado e Consumido, e também embaixo dos minutos previstos, realizados, saldo mes e saldo total apresentar o número de sessões fracionada (9.99) em caractere um pouco menor.
 - Manter as premissas de arquitetura e padrões de projeto existentes no subprojeto, bem como bosa praticas de codigo e arquitura hexagonal limpa, tentando ao maximo reaproveitar o conceito de dominio/invoicing para os calculos
+
+
+Para esta ultima atualização, existem alguns erros conceituais que foram colocados e precisam ser corrigidos: 
+- Para calculo dos valores previstos do mês corrente tanto da estratégia de pacotes e de agenda, calcular primeiro o número de sessões estimadas, arredondando para inteiro e depois calculando o número de minutos atraves da multiplicação do numero de sessões estimadas vezes o número de minutos

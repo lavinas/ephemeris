@@ -847,4 +847,69 @@ func TestComptimeService_ListComptime_CurrentMonthPredictions(t *testing.T) {
 			t.Errorf("unexpected session counts: %+v", v)
 		}
 	})
+
+	t.Run("package and agenda round estimated sessions to integer before multiplying by serviceMinutes", func(t *testing.T) {
+		// Oct 11 -> 10 days elapsed out of 30 days (ratio = 1/3)
+		oct11 := time.Date(2026, time.October, 11, 12, 0, 0, 0, time.UTC)
+		planEnd := time.Date(2026, time.October, 31, 0, 0, 0, 0, time.UTC)
+
+		// Package with 10 sessions of 60 min:
+		// 1/3 * 10 = 3.333... -> rounds to 3 sessions -> 3 * 60 = 180 min (not 200 min)
+		repoPkg := newMockComptimeRepo()
+		min60 := 60
+		repoPkg.services[20] = &domain.Service{ID: 20, SessionMinutes: &min60}
+		repoPkg.comptimes[1] = &domain.Comptime{
+			ID: 1, VendorID: 1, CustomerID: 10, ServiceID: 20, Month: octMonth,
+			InvoicedMinutes: 600, ConsumedMinutes: 120, Balance: 480,
+		}
+		repoPkg.plans = []*domain.Plan{
+			{
+				ID: 103, CustomerID: 10, PlanType: int(domain.PlanTypePackage),
+				PlanStart: time.Date(2026, time.October, 1, 0, 0, 0, 0, time.UTC),
+				PlanEnd:   &planEnd,
+				Package:   &domain.PlanPackage{Quantity: 10},
+				Items:     []domain.PlanItem{{ServiceID: 20, OrderIndex: 1}},
+			},
+		}
+		svcPkg := NewComptime(repoPkg, nil)
+		svcPkg.SetNowFunc(func() time.Time { return oct11 })
+		viewsPkg, _, err := svcPkg.ListComptime(ctx, port.ComptimeFilter{})
+		if err != nil || len(viewsPkg) != 1 {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if viewsPkg[0].PredictMinutes != 180 || viewsPkg[0].PredictSessions != 3.0 {
+			t.Errorf("expected Package PredictMinutes=180 (3 sessions * 60), got %d (%v sessions)", viewsPkg[0].PredictMinutes, viewsPkg[0].PredictSessions)
+		}
+
+		// Agenda with 4 sessions of 60 min:
+		// 1/3 * 4 = 1.333... -> rounds to 1 session -> 1 * 60 = 60 min (not 80 min)
+		limit := 4
+		repoAg := newMockComptimeRepo()
+		repoAg.services[20] = &domain.Service{ID: 20, SessionMinutes: &min60}
+		repoAg.comptimes[1] = &domain.Comptime{
+			ID: 1, VendorID: 1, CustomerID: 10, ServiceID: 20, Month: octMonth,
+			InvoicedMinutes: 240, ConsumedMinutes: 60, Balance: 180,
+		}
+		repoAg.plans = []*domain.Plan{
+			{
+				ID: 104, CustomerID: 10, PlanType: int(domain.PlanTypeAgenda),
+				PlanStart: time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC),
+				Agenda: &domain.PlanAgenda{
+					Recurrence:          int(domain.RecurrenceWeekly),
+					WeekDay:             5,
+					MonthlyServiceLimit: &limit,
+				},
+				Items: []domain.PlanItem{{ServiceID: 20, OrderIndex: 1}},
+			},
+		}
+		svcAg := NewComptime(repoAg, nil)
+		svcAg.SetNowFunc(func() time.Time { return oct11 })
+		viewsAg, _, err := svcAg.ListComptime(ctx, port.ComptimeFilter{})
+		if err != nil || len(viewsAg) != 1 {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if viewsAg[0].PredictMinutes != 60 || viewsAg[0].PredictSessions != 1.0 {
+			t.Errorf("expected Agenda PredictMinutes=60 (1 session * 60), got %d (%v sessions)", viewsAg[0].PredictMinutes, viewsAg[0].PredictSessions)
+		}
+	})
 }
