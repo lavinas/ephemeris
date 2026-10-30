@@ -18,6 +18,15 @@ func EffectiveSessionMinutes(minutes int, status string) int {
 	return minutes
 }
 
+// CalculateSessionsFromMinutes converts a minute count into a fractional number of sessions
+// based on the service's session duration in minutes (defaults to 60 if <= 0).
+func CalculateSessionsFromMinutes(minutes, serviceMinutes int) float64 {
+	if serviceMinutes <= 0 {
+		serviceMinutes = 60
+	}
+	return float64(minutes) / float64(serviceMinutes)
+}
+
 // Comptime represents the monthly consolidated hour bank (banco de horas)
 // for a specific vendor, customer and service.
 type Comptime struct {

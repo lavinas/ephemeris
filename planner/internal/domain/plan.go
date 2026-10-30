@@ -245,6 +245,19 @@ func (p *Plan) IsActiveAt(refDate time.Time) bool {
 	return true
 }
 
+// ContainsService checks whether the plan includes an active (non-deleted) item for the given serviceID.
+func (p *Plan) ContainsService(serviceID int64) bool {
+	if p == nil || serviceID <= 0 {
+		return false
+	}
+	for _, it := range p.Items {
+		if it.DeletedAt == nil && it.ServiceID == serviceID {
+			return true
+		}
+	}
+	return false
+}
+
 // ValidatePlanPrices checks the business rules for pricing on a plan and its items:
 // 1. Plan price and item prices are mutually exclusive (if plan price is non-null, item prices must be null, and vice-versa).
 // 2. Either the plan or the items must have a defined price (cannot both be null).

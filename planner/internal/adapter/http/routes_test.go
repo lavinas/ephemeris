@@ -1445,6 +1445,9 @@ func (m *mockComptimeRouteRepo) GetServiceByID(id int64) (*domain.Service, error
 func (m *mockComptimeRouteRepo) GetInvoiceItemByID(ctx context.Context, id int64) (*domain.InvoiceItem, error) {
 	return nil, nil
 }
+func (m *mockComptimeRouteRepo) FindActivePlanForCustomerService(ctx context.Context, customerID, serviceID int64, refDate time.Time) (*domain.Plan, error) {
+	return nil, nil
+}
 func (m *mockComptimeRouteRepo) DeleteComptime(ctx context.Context, id int64) error {
 	return nil
 }
@@ -1531,6 +1534,12 @@ func TestHTMLComptimeRoutes(t *testing.T) {
 	if !strings.Contains(bodyPage, "Atendimento Clínico Semanal") {
 		t.Errorf("expected body to contain 'Atendimento Clínico Semanal'")
 	}
+	if !strings.Contains(bodyPage, "PREVISTOS") {
+		t.Errorf("expected body to contain 'PREVISTOS'")
+	}
+	if !strings.Contains(bodyPage, "REALIZADOS") {
+		t.Errorf("expected body to contain 'REALIZADOS'")
+	}
 	if !strings.Contains(bodyPage, "SALDO MÊS") {
 		t.Errorf("expected body to contain 'SALDO MÊS'")
 	}
@@ -1539,6 +1548,15 @@ func TestHTMLComptimeRoutes(t *testing.T) {
 	}
 	if !strings.Contains(bodyPage, "240 min") {
 		t.Errorf("expected body to contain '240 min'")
+	}
+	if !strings.Contains(bodyPage, "4.00 sessões") {
+		t.Errorf("expected body to contain '4.00 sessões'")
+	}
+	if !strings.Contains(bodyPage, "3.00 sessões") {
+		t.Errorf("expected body to contain '3.00 sessões'")
+	}
+	if !strings.Contains(bodyPage, "+1.00 sessões") {
+		t.Errorf("expected body to contain '+1.00 sessões'")
 	}
 
 	// 2. Test POST /comptime/tabela (with ServiceDescription rendered)

@@ -173,6 +173,46 @@ func (s *AgendaStrategy) CalculateMonth(plan *domain.Plan, monthStart, refDate t
 	return invoice, nil
 }
 
+// CalculatePlannedSessionsForMonth calculates the predicted number of sessions for a specific service
+// in an agenda plan during the month of currentDate, along with the effective [effStart, effEnd] window in that month.
+func (s *AgendaStrategy) CalculatePlannedSessionsForMonth(plan *domain.Plan, serviceID int64, currentDate time.Time) (int, time.Time, time.Time) {
+	if plan == nil || plan.Agenda == nil {
+		return 0, time.Time{}, time.Time{}
+	}
+
+	monthStart := time.Date(currentDate.Year(), currentDate.Month(), 1, 0, 0, 0, 0, time.UTC)
+	monthEnd := monthStart.AddDate(0, 1, -1)
+
+	planStart := time.Date(plan.PlanStart.Year(), plan.PlanStart.Month(), plan.PlanStart.Day(), 0, 0, 0, 0, time.UTC)
+	effStart := monthStart
+	if effStart.Before(planStart) {
+		effStart = planStart
+	}
+
+	effEnd := monthEnd
+	if plan.PlanEnd != nil && !plan.PlanEnd.IsZero() {
+		planEnd := time.Date(plan.PlanEnd.Year(), plan.PlanEnd.Month(), plan.PlanEnd.Day(), 0, 0, 0, 0, time.UTC)
+		if effEnd.After(planEnd) {
+			effEnd = planEnd
+		}
+	}
+
+	if effStart.After(effEnd) {
+		return 0, effStart, effEnd
+	}
+
+	calculatedQty := s.CalculateSessionsCount(planStart, effStart, effEnd, plan.Agenda.Recurrence, plan.Agenda.WeekDay)
+
+	if plan.Agenda.MonthlyServiceLimit != nil && *plan.Agenda.MonthlyServiceLimit > 0 {
+		if calculatedQty > *plan.Agenda.MonthlyServiceLimit {
+			calculatedQty = *plan.Agenda.MonthlyServiceLimit
+		}
+	}
+
+	serviceQty := DistributeQuantityForService(plan.Items, calculatedQty, serviceID)
+	return serviceQty, effStart, effEnd
+}
+
 // CalculateSessionsCount calculates the number of sessions according to recurrence and weekday in [effStart, effEnd].
 func (s *AgendaStrategy) CalculateSessionsCount(planStart, effStart, effEnd time.Time, recurrence, weekDay int) int {
 	targetWeekday := time.Weekday((weekDay - 1) % 7) // 1: Sunday = 0, 2: Monday = 1 ...

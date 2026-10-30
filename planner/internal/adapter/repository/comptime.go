@@ -212,9 +212,12 @@ func (a *Repository) ListComptime(ctx context.Context, filter port.ComptimeFilte
 			planner.comptime.service_id,
 			COALESCE(planner.service.name, '') as service_name,
 			COALESCE(planner.service.description, '') as service_description,
+			COALESCE(planner.service.session_minutes, 60) as service_minutes,
 			planner.comptime.month,
 			planner.comptime.invoiced_minutes,
 			planner.comptime.consumed_minutes,
+			planner.comptime.invoiced_minutes as predict_minutes,
+			planner.comptime.consumed_minutes as done_minutes,
 			(planner.comptime.invoiced_minutes - planner.comptime.consumed_minutes) as month_balance,
 			planner.comptime.balance,
 			planner.comptime.updated_at
@@ -499,4 +502,39 @@ func (a *Repository) GetSessionByID(id int64) (*domain.Session, error) {
 		return nil, err
 	}
 	return &session, nil
+}
+
+// FindActivePlanForCustomerService retrieves the active plan for a customer and service at refDate.
+func (a *Repository) FindActivePlanForCustomerService(ctx context.Context, customerID, serviceID int64, refDate time.Time) (*domain.Plan, error) {
+	db := a.DB
+	if a.Tx != nil {
+		db = a.Tx
+	}
+	var plans []domain.Plan
+	err := db.WithContext(ctx).
+		Model(&domain.Plan{}).
+		Joins("JOIN planner.plan_item ON planner.plan_item.plan_id = planner.plan.id").
+		Where("planner.plan.customer_id = ? AND planner.plan.deleted_at IS NULL AND planner.plan_item.deleted_at IS NULL", customerID).
+		Where("planner.plan_item.service_id = ?", serviceID).
+		Distinct().
+		Preload("Customer").
+		Preload("Items", func(tx *gorm.DB) *gorm.DB {
+			return tx.Where("deleted_at IS NULL").Order("order_index asc")
+		}).
+		Preload("Items.Service").
+		Preload("Agenda").
+		Preload("Package").
+		Preload("Notebook").
+		Preload("PayPerView").
+		Order("planner.plan.plan_start desc, planner.plan.id desc").
+		Find(&plans).Error
+	if err != nil {
+		return nil, err
+	}
+	for i := range plans {
+		if plans[i].IsActiveAt(refDate) && plans[i].ContainsService(serviceID) {
+			return &plans[i], nil
+		}
+	}
+	return nil, nil
 }

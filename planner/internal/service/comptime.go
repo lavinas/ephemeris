@@ -6,20 +6,30 @@ import (
 	"time"
 
 	"planner/internal/domain"
+	"planner/internal/domain/invoicing"
 	"planner/internal/port"
 )
 
 // ComptimeService implements port.ComptimeService for managing banco de horas.
 type ComptimeService struct {
-	repo   port.ComptimeRepository
-	logger port.Logger
+	repo    port.ComptimeRepository
+	logger  port.Logger
+	nowFunc func() time.Time
 }
 
 // NewComptime creates a new ComptimeService instance.
 func NewComptime(repo port.ComptimeRepository, logger port.Logger) *ComptimeService {
 	return &ComptimeService{
-		repo:   repo,
-		logger: logger,
+		repo:    repo,
+		logger:  logger,
+		nowFunc: time.Now,
+	}
+}
+
+// SetNowFunc overrides the clock function used by ComptimeService (useful for deterministic testing).
+func (s *ComptimeService) SetNowFunc(fn func() time.Time) {
+	if fn != nil {
+		s.nowFunc = fn
 	}
 }
 
@@ -545,6 +555,62 @@ func (s *ComptimeService) GetComptimeByCustomerServiceMonth(ctx context.Context,
 }
 
 // ListComptime lists enriched comptime views according to the filter.
+// For previous months, PredictMinutes = InvoicedMinutes and DoneMinutes = ConsumedMinutes.
+// For the current month, PredictMinutes is calculated from the active plan for the customer and service,
+// and DoneMinutes = ConsumedMinutes. Also computes session counts for each minute metric.
 func (s *ComptimeService) ListComptime(ctx context.Context, filter port.ComptimeFilter) ([]port.ComptimeView, int64, error) {
-	return s.repo.ListComptime(ctx, filter)
+	views, total, err := s.repo.ListComptime(ctx, filter)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	now := time.Now()
+	if s.nowFunc != nil {
+		now = s.nowFunc()
+	}
+	currentMonth := domain.NormalizeMonth(now)
+
+	for i := range views {
+		s.enrichComptimeView(ctx, &views[i], now, currentMonth)
+	}
+
+	return views, total, nil
+}
+
+func (s *ComptimeService) enrichComptimeView(ctx context.Context, view *port.ComptimeView, now, currentMonth time.Time) {
+	serviceMinutes := view.ServiceMinutes
+	if serviceMinutes <= 0 && s.repo != nil && view.ServiceID > 0 {
+		if svc, err := s.repo.GetServiceByID(view.ServiceID); err == nil && svc != nil && svc.SessionMinutes != nil && *svc.SessionMinutes > 0 {
+			serviceMinutes = *svc.SessionMinutes
+		}
+	}
+	if serviceMinutes <= 0 {
+		serviceMinutes = 60
+	}
+	view.ServiceMinutes = serviceMinutes
+
+	previousBalance := view.Balance - (view.InvoicedMinutes - view.ConsumedMinutes)
+	view.DoneMinutes = view.ConsumedMinutes
+
+	viewMonth := domain.NormalizeMonth(view.Month)
+	if !view.Month.IsZero() && viewMonth.Year() == currentMonth.Year() && viewMonth.Month() == currentMonth.Month() {
+		var activePlan *domain.Plan
+		if s.repo != nil {
+			plan, err := s.repo.FindActivePlanForCustomerService(ctx, view.CustomerID, view.ServiceID, now)
+			if err == nil {
+				activePlan = plan
+			}
+		}
+		view.PredictMinutes = invoicing.CalculatePredictedMinutes(activePlan, view.ServiceID, serviceMinutes, view.DoneMinutes, now)
+	} else {
+		view.PredictMinutes = view.InvoicedMinutes
+	}
+
+	view.MonthBalance = view.PredictMinutes - view.DoneMinutes
+	view.Balance = previousBalance + view.MonthBalance
+
+	view.PredictSessions = domain.CalculateSessionsFromMinutes(view.PredictMinutes, serviceMinutes)
+	view.DoneSessions = domain.CalculateSessionsFromMinutes(view.DoneMinutes, serviceMinutes)
+	view.MonthBalanceSessions = domain.CalculateSessionsFromMinutes(view.MonthBalance, serviceMinutes)
+	view.BalanceSessions = domain.CalculateSessionsFromMinutes(view.Balance, serviceMinutes)
 }

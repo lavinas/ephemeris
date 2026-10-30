@@ -225,8 +225,8 @@
 		<div>MÊS</div>
 		<div>CLIENTE</div>
 		<div>SERVIÇO</div>
-		<div class="text-right">FATURADOS</div>
-		<div class="text-right">CONSUMIDOS</div>
+		<div class="text-right">PREVISTOS</div>
+		<div class="text-right">REALIZADOS</div>
 		<div class="text-right">SALDO MÊS</div>
 		<div class="text-right">SALDO TOTAL</div>
 		<div class="col-atualizacao text-right">ATUALIZADO</div>
@@ -302,20 +302,28 @@
 		{{if .ServiceDescription}}<span class="text-xs text-gray-400 truncate">{{.ServiceDescription}}</span>{{end}}
 	</div>
 	<div class="text-right font-mono font-bold text-indigo-400">
-		{{.InvoicedMinutes}} min
+		<div>{{.PredictMinutes}} min</div>
+		<div class="text-[11px] text-indigo-300/75 font-normal mt-0.5">{{.PredictSessionsFormatado}} sessões</div>
 	</div>
 	<div class="text-right font-mono font-bold text-amber-400">
-		{{.ConsumedMinutes}} min
+		<div>{{.DoneMinutes}} min</div>
+		<div class="text-[11px] text-amber-300/75 font-normal mt-0.5">{{.DoneSessionsFormatado}} sessões</div>
 	</div>
 	<div class="text-right font-mono font-bold">
-		<span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-mono font-bold {{if gt .MonthBalance 0}}saldo-positivo{{else if lt .MonthBalance 0}}saldo-negativo{{else}}saldo-neutro{{end}}" title="Saldo do mês: {{.InvoicedMinutes}} min - {{.ConsumedMinutes}} min">
-			{{if gt .MonthBalance 0}}+{{end}}{{.MonthBalance}} min
-		</span>
+		<div>
+			<span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-mono font-bold {{if gt .MonthBalance 0}}saldo-positivo{{else if lt .MonthBalance 0}}saldo-negativo{{else}}saldo-neutro{{end}}" title="Saldo do mês: {{.PredictMinutes}} min - {{.DoneMinutes}} min">
+				{{if gt .MonthBalance 0}}+{{end}}{{.MonthBalance}} min
+			</span>
+		</div>
+		<div class="text-[11px] text-gray-400 font-normal mt-1">{{if gt .MonthBalance 0}}+{{end}}{{.MonthBalanceSessionsFormatado}} sessões</div>
 	</div>
 	<div class="text-right font-mono font-bold">
-		<span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-mono font-bold {{if gt .Balance 0}}saldo-positivo{{else if lt .Balance 0}}saldo-negativo{{else}}saldo-neutro{{end}}" title="Saldo total acumulado">
-			{{if gt .Balance 0}}+{{end}}{{.Balance}} min
-		</span>
+		<div>
+			<span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-mono font-bold {{if gt .Balance 0}}saldo-positivo{{else if lt .Balance 0}}saldo-negativo{{else}}saldo-neutro{{end}}" title="Saldo total acumulado">
+				{{if gt .Balance 0}}+{{end}}{{.Balance}} min
+			</span>
+		</div>
+		<div class="text-[11px] text-gray-400 font-normal mt-1">{{if gt .Balance 0}}+{{end}}{{.BalanceSessionsFormatado}} sessões</div>
 	</div>
 	<div class="col-atualizacao text-right font-mono text-xs text-gray-400">
 		{{.UpdatedAtFormatado}}

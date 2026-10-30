@@ -13,22 +13,87 @@ import (
 )
 
 type comptimeRecordItem struct {
-	ID                 int64
-	VendorID           int64
-	CustomerID         int64
-	CustomerNickname   string
-	CustomerName       string
-	ServiceID          int64
-	ServiceName        string
-	ServiceDescription string
-	Month              time.Time
-	MonthFormatado     string
-	InvoicedMinutes    int
-	ConsumedMinutes    int
-	MonthBalance       int
-	Balance            int
-	UpdatedAt          time.Time
-	UpdatedAtFormatado string
+	ID                            int64
+	VendorID                      int64
+	CustomerID                    int64
+	CustomerNickname              string
+	CustomerName                  string
+	ServiceID                     int64
+	ServiceName                   string
+	ServiceDescription            string
+	ServiceMinutes                int
+	Month                         time.Time
+	MonthFormatado                string
+	InvoicedMinutes               int
+	ConsumedMinutes               int
+	PredictMinutes                int
+	DoneMinutes                   int
+	MonthBalance                  int
+	Balance                       int
+	PredictSessions               float64
+	DoneSessions                  float64
+	MonthBalanceSessions          float64
+	BalanceSessions               float64
+	PredictSessionsFormatado      string
+	DoneSessionsFormatado         string
+	MonthBalanceSessionsFormatado string
+	BalanceSessionsFormatado      string
+	UpdatedAt                     time.Time
+	UpdatedAtFormatado            string
+}
+
+func buildComptimeRecordItem(rec port.ComptimeView) comptimeRecordItem {
+	serviceMinutes := rec.ServiceMinutes
+	predictMinutes := rec.PredictMinutes
+	doneMinutes := rec.DoneMinutes
+	monthBalance := rec.MonthBalance
+	balance := rec.Balance
+	predictSessions := rec.PredictSessions
+	doneSessions := rec.DoneSessions
+	monthBalanceSessions := rec.MonthBalanceSessions
+	balanceSessions := rec.BalanceSessions
+
+	// Fallback caso a view venha diretamente de um repositório sem passar pelo ComptimeService
+	if serviceMinutes <= 0 {
+		serviceMinutes = 60
+		predictMinutes = rec.InvoicedMinutes
+		doneMinutes = rec.ConsumedMinutes
+		monthBalance = predictMinutes - doneMinutes
+		predictSessions = domain.CalculateSessionsFromMinutes(predictMinutes, serviceMinutes)
+		doneSessions = domain.CalculateSessionsFromMinutes(doneMinutes, serviceMinutes)
+		monthBalanceSessions = domain.CalculateSessionsFromMinutes(monthBalance, serviceMinutes)
+		balanceSessions = domain.CalculateSessionsFromMinutes(balance, serviceMinutes)
+	}
+
+	return comptimeRecordItem{
+		ID:                            rec.ID,
+		VendorID:                      rec.VendorID,
+		CustomerID:                    rec.CustomerID,
+		CustomerNickname:              rec.CustomerNickname,
+		CustomerName:                  rec.CustomerName,
+		ServiceID:                     rec.ServiceID,
+		ServiceName:                   rec.ServiceName,
+		ServiceDescription:            rec.ServiceDescription,
+		ServiceMinutes:                serviceMinutes,
+		Month:                         rec.Month,
+		MonthFormatado:                rec.Month.Format("2006-01"),
+		InvoicedMinutes:               rec.InvoicedMinutes,
+		ConsumedMinutes:               rec.ConsumedMinutes,
+		PredictMinutes:                predictMinutes,
+		DoneMinutes:                   doneMinutes,
+		MonthBalance:                  monthBalance,
+		Balance:                       balance,
+		PredictSessions:               predictSessions,
+		DoneSessions:                  doneSessions,
+		MonthBalanceSessions:          monthBalanceSessions,
+		BalanceSessions:               balanceSessions,
+		PredictSessionsFormatado:      fmt.Sprintf("%.2f", predictSessions),
+		DoneSessionsFormatado:         fmt.Sprintf("%.2f", doneSessions),
+		MonthBalanceSessionsFormatado: fmt.Sprintf("%.2f", monthBalanceSessions),
+		BalanceSessionsFormatado:      fmt.Sprintf("%.2f", balanceSessions),
+		UpdatedAt:                     rec.UpdatedAt,
+		UpdatedAtFormatado:            rec.UpdatedAt.Format("02/01/2006 15:04"),
+	}
 }
 
 // ComptimeHTML renders the Banco de Horas HTML view (full index or HTMX fragment).
@@ -325,28 +390,7 @@ func (h *HandlerHtml) buildComptimePageData(r *http.Request) map[string]interfac
 	items := make([]comptimeRecordItem, len(records))
 
 	for i, rec := range records {
-		monthBalance := rec.MonthBalance
-		if monthBalance == 0 && (rec.InvoicedMinutes != 0 || rec.ConsumedMinutes != 0) {
-			monthBalance = rec.InvoicedMinutes - rec.ConsumedMinutes
-		}
-		items[i] = comptimeRecordItem{
-			ID:                 rec.ID,
-			VendorID:           rec.VendorID,
-			CustomerID:         rec.CustomerID,
-			CustomerNickname:   rec.CustomerNickname,
-			CustomerName:       rec.CustomerName,
-			ServiceID:          rec.ServiceID,
-			ServiceName:        rec.ServiceName,
-			ServiceDescription: rec.ServiceDescription,
-			Month:              rec.Month,
-			MonthFormatado:     rec.Month.Format("2006-01"),
-			InvoicedMinutes:    rec.InvoicedMinutes,
-			ConsumedMinutes:    rec.ConsumedMinutes,
-			MonthBalance:       monthBalance,
-			Balance:            rec.Balance,
-			UpdatedAt:          rec.UpdatedAt,
-			UpdatedAtFormatado: rec.UpdatedAt.Format("02/01/2006 15:04"),
-		}
+		items[i] = buildComptimeRecordItem(rec)
 	}
 
 	totalPages := int(math.Ceil(float64(totalRegistros) / float64(pageSize)))
@@ -405,51 +449,15 @@ func (h *HandlerHtml) ComptimeDeleteWarning(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	cr, ok := h.repo.(port.ComptimeRepository)
-	if !ok {
+	if _, ok := h.repo.(port.ComptimeRepository); !ok {
 		http.Error(w, "Repository não disponível", http.StatusInternalServerError)
 		return
 	}
 
-	comptime, err := cr.GetComptime(r.Context(), id)
-	if err != nil || comptime == nil {
+	item, ok := h.findSingleComptimeRecordItem(r, id)
+	if !ok {
 		http.Error(w, "Registro não encontrado", http.StatusNotFound)
 		return
-	}
-
-	customerName := fmt.Sprintf("Cliente #%d", comptime.CustomerID)
-	customerNickname := ""
-	if cust, err := h.repo.GetCustomerByID(comptime.CustomerID); err == nil && cust != nil {
-		customerName = cust.Name
-		customerNickname = cust.Nickname
-	}
-
-	serviceName := fmt.Sprintf("Serviço #%d", comptime.ServiceID)
-	serviceDescription := ""
-	if svc, err := h.repo.GetServiceByID(comptime.ServiceID); err == nil && svc != nil {
-		serviceName = svc.Name
-		if svc.Description != nil {
-			serviceDescription = *svc.Description
-		}
-	}
-
-	item := comptimeRecordItem{
-		ID:                 comptime.ID,
-		VendorID:           comptime.VendorID,
-		CustomerID:         comptime.CustomerID,
-		CustomerNickname:   customerNickname,
-		CustomerName:       customerName,
-		ServiceID:          comptime.ServiceID,
-		ServiceName:        serviceName,
-		ServiceDescription: serviceDescription,
-		Month:              comptime.Month,
-		MonthFormatado:     comptime.Month.Format("2006-01"),
-		InvoicedMinutes:    comptime.InvoicedMinutes,
-		ConsumedMinutes:    comptime.ConsumedMinutes,
-		MonthBalance:       comptime.MonthBalance(),
-		Balance:            comptime.Balance,
-		UpdatedAt:          comptime.UpdatedAt,
-		UpdatedAtFormatado: comptime.UpdatedAt.Format("02/01/2006 15:04"),
 	}
 
 	h.tmplComptime.ExecuteTemplate(w, "linha_comptime_deletar_aviso", item)
@@ -464,16 +472,47 @@ func (h *HandlerHtml) ComptimeCancelDelete(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	cr, ok := h.repo.(port.ComptimeRepository)
-	if !ok {
+	if _, ok := h.repo.(port.ComptimeRepository); !ok {
 		http.Error(w, "Repository não disponível", http.StatusInternalServerError)
 		return
 	}
 
-	comptime, err := cr.GetComptime(r.Context(), id)
-	if err != nil || comptime == nil {
+	item, ok := h.findSingleComptimeRecordItem(r, id)
+	if !ok {
 		http.Error(w, "Registro não encontrado", http.StatusNotFound)
 		return
+	}
+
+	h.tmplComptime.ExecuteTemplate(w, "linha_comptime", item)
+}
+
+func (h *HandlerHtml) findSingleComptimeRecordItem(r *http.Request, id int64) (comptimeRecordItem, bool) {
+	cr, ok := h.repo.(port.ComptimeRepository)
+	if !ok {
+		return comptimeRecordItem{}, false
+	}
+
+	comptime, err := cr.GetComptime(r.Context(), id)
+	if err != nil || comptime == nil {
+		return comptimeRecordItem{}, false
+	}
+
+	if comptimeSvc := h.getComptimeService(); comptimeSvc != nil {
+		m := domain.NormalizeMonth(comptime.Month)
+		views, _, errList := comptimeSvc.ListComptime(r.Context(), port.ComptimeFilter{
+			VendorID:   comptime.VendorID,
+			CustomerID: &comptime.CustomerID,
+			ServiceID:  &comptime.ServiceID,
+			StartMonth: &m,
+			EndMonth:   &m,
+		})
+		if errList == nil {
+			for _, v := range views {
+				if v.ID == id {
+					return buildComptimeRecordItem(v), true
+				}
+			}
+		}
 	}
 
 	customerName := fmt.Sprintf("Cliente #%d", comptime.CustomerID)
@@ -485,14 +524,18 @@ func (h *HandlerHtml) ComptimeCancelDelete(w http.ResponseWriter, r *http.Reques
 
 	serviceName := fmt.Sprintf("Serviço #%d", comptime.ServiceID)
 	serviceDescription := ""
+	serviceMinutes := 60
 	if svc, err := h.repo.GetServiceByID(comptime.ServiceID); err == nil && svc != nil {
 		serviceName = svc.Name
 		if svc.Description != nil {
 			serviceDescription = *svc.Description
 		}
+		if svc.SessionMinutes != nil && *svc.SessionMinutes > 0 {
+			serviceMinutes = *svc.SessionMinutes
+		}
 	}
 
-	item := comptimeRecordItem{
+	return buildComptimeRecordItem(port.ComptimeView{
 		ID:                 comptime.ID,
 		VendorID:           comptime.VendorID,
 		CustomerID:         comptime.CustomerID,
@@ -501,17 +544,20 @@ func (h *HandlerHtml) ComptimeCancelDelete(w http.ResponseWriter, r *http.Reques
 		ServiceID:          comptime.ServiceID,
 		ServiceName:        serviceName,
 		ServiceDescription: serviceDescription,
+		ServiceMinutes:     serviceMinutes,
 		Month:              comptime.Month,
-		MonthFormatado:     comptime.Month.Format("2006-01"),
 		InvoicedMinutes:    comptime.InvoicedMinutes,
 		ConsumedMinutes:    comptime.ConsumedMinutes,
+		PredictMinutes:     comptime.InvoicedMinutes,
+		DoneMinutes:        comptime.ConsumedMinutes,
 		MonthBalance:       comptime.MonthBalance(),
 		Balance:            comptime.Balance,
+		PredictSessions:    domain.CalculateSessionsFromMinutes(comptime.InvoicedMinutes, serviceMinutes),
+		DoneSessions:       domain.CalculateSessionsFromMinutes(comptime.ConsumedMinutes, serviceMinutes),
+		MonthBalanceSessions: domain.CalculateSessionsFromMinutes(comptime.MonthBalance(), serviceMinutes),
+		BalanceSessions:    domain.CalculateSessionsFromMinutes(comptime.Balance, serviceMinutes),
 		UpdatedAt:          comptime.UpdatedAt,
-		UpdatedAtFormatado: comptime.UpdatedAt.Format("02/01/2006 15:04"),
-	}
-
-	h.tmplComptime.ExecuteTemplate(w, "linha_comptime", item)
+	}), true
 }
 
 // ComptimeDelete handles deleting a comptime record and re-rendering the updated table.

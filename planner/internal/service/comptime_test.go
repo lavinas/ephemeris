@@ -16,6 +16,8 @@ type mockComptimeRepo struct {
 	comptimeSessions map[int64]*domain.ComptimeSession
 	comptimeItems    map[int64]*domain.ComptimeInvoiceItem
 	comptimeExtras   map[int64]*domain.ComptimeExtra
+	plans            []*domain.Plan
+	services         map[int64]*domain.Service
 	idCounter        int64
 }
 
@@ -27,6 +29,7 @@ func newMockComptimeRepo() *mockComptimeRepo {
 		comptimeSessions: make(map[int64]*domain.ComptimeSession),
 		comptimeItems:    make(map[int64]*domain.ComptimeInvoiceItem),
 		comptimeExtras:   make(map[int64]*domain.ComptimeExtra),
+		services:         make(map[int64]*domain.Service),
 		idCounter:        1,
 	}
 }
@@ -270,6 +273,9 @@ func (m *mockComptimeRepo) GetSessionByID(id int64) (*domain.Session, error) {
 }
 
 func (m *mockComptimeRepo) GetServiceByID(id int64) (*domain.Service, error) {
+	if svc, ok := m.services[id]; ok {
+		return svc, nil
+	}
 	min := 50
 	return &domain.Service{ID: id, SessionMinutes: &min}, nil
 }
@@ -280,6 +286,15 @@ func (m *mockComptimeRepo) GetInvoiceByID(id int64) (*domain.Invoice, error) {
 
 func (m *mockComptimeRepo) GetInvoiceItemByID(ctx context.Context, id int64) (*domain.InvoiceItem, error) {
 	return m.invoiceItems[id], nil
+}
+
+func (m *mockComptimeRepo) FindActivePlanForCustomerService(ctx context.Context, customerID, serviceID int64, refDate time.Time) (*domain.Plan, error) {
+	for _, p := range m.plans {
+		if p != nil && p.CustomerID == customerID && p.IsActiveAt(refDate) && p.ContainsService(serviceID) {
+			return p, nil
+		}
+	}
+	return nil, nil
 }
 
 // Tests
@@ -629,4 +644,207 @@ func TestComptimeService_MonthBalanceAndQueries(t *testing.T) {
 	if views[0].Balance != 50 {
 		t.Errorf("expected views[0].Balance = 50, got %d", views[0].Balance)
 	}
+	if views[0].PredictMinutes != 200 || views[0].DoneMinutes != 150 {
+		t.Errorf("expected PredictMinutes=200 DoneMinutes=150 for past month, got %d / %d", views[0].PredictMinutes, views[0].DoneMinutes)
+	}
+	if views[0].PredictSessions != 4.0 || views[0].DoneSessions != 3.0 || views[0].MonthBalanceSessions != 1.0 || views[0].BalanceSessions != 1.0 {
+		t.Errorf("unexpected session counts for past month (50 min/session): %+v", views[0])
+	}
+}
+
+func TestComptimeService_ListComptime_CurrentMonthPredictions(t *testing.T) {
+	ctx := context.Background()
+	// Reference "today": 2026-10-16 (halfway through a 30-day interval from Oct 1 to Oct 31)
+	now := time.Date(2026, time.October, 16, 12, 0, 0, 0, time.UTC)
+	octMonth := time.Date(2026, time.October, 1, 0, 0, 0, 0, time.UTC)
+
+	t.Run("no active plan sets PredictMinutes to 0 and adjusts Balance", func(t *testing.T) {
+		repo := newMockComptimeRepo()
+		min60 := 60
+		repo.services[20] = &domain.Service{ID: 20, SessionMinutes: &min60}
+		// Previous month balance was +60. In current month, Invoiced=240, Consumed=120 -> DB Balance = 60 + 240 - 120 = 180.
+		repo.comptimes[1] = &domain.Comptime{
+			ID:              1,
+			VendorID:        1,
+			CustomerID:      10,
+			ServiceID:       20,
+			Month:           octMonth,
+			InvoicedMinutes: 240,
+			ConsumedMinutes: 120,
+			Balance:         180,
+		}
+
+		svc := NewComptime(repo, nil)
+		svc.SetNowFunc(func() time.Time { return now })
+
+		views, _, err := svc.ListComptime(ctx, port.ComptimeFilter{})
+		if err != nil || len(views) != 1 {
+			t.Fatalf("unexpected error or count: %v, %d", err, len(views))
+		}
+		v := views[0]
+		if v.PredictMinutes != 0 {
+			t.Errorf("expected PredictMinutes = 0 when no active plan, got %d", v.PredictMinutes)
+		}
+		if v.DoneMinutes != 120 {
+			t.Errorf("expected DoneMinutes = 120, got %d", v.DoneMinutes)
+		}
+		if v.MonthBalance != -120 {
+			t.Errorf("expected MonthBalance = -120, got %d", v.MonthBalance)
+		}
+		// previousBalance (60) + MonthBalance (-120) = -60
+		if v.Balance != -60 {
+			t.Errorf("expected Balance = -60, got %d", v.Balance)
+		}
+		if v.PredictSessions != 0 || v.DoneSessions != 2.0 || v.MonthBalanceSessions != -2.0 || v.BalanceSessions != -1.0 {
+			t.Errorf("unexpected session counts: %+v", v)
+		}
+	})
+
+	t.Run("notebook and payperview plans set PredictMinutes equal to DoneMinutes", func(t *testing.T) {
+		for _, planType := range []domain.PlanType{domain.PlanTypeNotebook, domain.PlanTypePayPerView} {
+			repo := newMockComptimeRepo()
+			min60 := 60
+			repo.services[20] = &domain.Service{ID: 20, SessionMinutes: &min60}
+			repo.comptimes[1] = &domain.Comptime{
+				ID:              1,
+				VendorID:        1,
+				CustomerID:      10,
+				ServiceID:       20,
+				Month:           octMonth,
+				InvoicedMinutes: 0,
+				ConsumedMinutes: 180,
+				Balance:         -180,
+			}
+			repo.plans = []*domain.Plan{
+				{
+					ID:         100,
+					CustomerID: 10,
+					PlanType:   int(planType),
+					PlanStart:  time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC),
+					Items:      []domain.PlanItem{{ServiceID: 20, OrderIndex: 1}},
+				},
+			}
+
+			svc := NewComptime(repo, nil)
+			svc.SetNowFunc(func() time.Time { return now })
+
+			views, _, err := svc.ListComptime(ctx, port.ComptimeFilter{})
+			if err != nil || len(views) != 1 {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			v := views[0]
+			if v.PredictMinutes != 180 || v.DoneMinutes != 180 || v.MonthBalance != 0 || v.Balance != 0 {
+				t.Errorf("planType %d: expected Predict=180 Done=180 MonthBal=0 Bal=0, got %+v", planType, v)
+			}
+			if v.PredictSessions != 3.0 || v.DoneSessions != 3.0 {
+				t.Errorf("planType %d: expected 3.0 sessions, got %+v", planType, v)
+			}
+		}
+	})
+
+	t.Run("package plan calculates proportional minutes between plan_start and plan_end", func(t *testing.T) {
+		repo := newMockComptimeRepo()
+		min60 := 60
+		repo.services[20] = &domain.Service{ID: 20, SessionMinutes: &min60}
+		repo.comptimes[1] = &domain.Comptime{
+			ID:              1,
+			VendorID:        1,
+			CustomerID:      10,
+			ServiceID:       20,
+			Month:           octMonth,
+			InvoicedMinutes: 600,
+			ConsumedMinutes: 180,
+			Balance:         420,
+		}
+		// Plan from Oct 1 to Oct 31 (30 days span), today is Oct 16 (15 days elapsed -> ratio 0.5)
+		// Package quantity = 10 sessions * 60 min = 600 min -> 0.5 * 600 = 300 min predicted
+		planEnd := time.Date(2026, time.October, 31, 0, 0, 0, 0, time.UTC)
+		repo.plans = []*domain.Plan{
+			{
+				ID:         101,
+				CustomerID: 10,
+				PlanType:   int(domain.PlanTypePackage),
+				PlanStart:  time.Date(2026, time.October, 1, 0, 0, 0, 0, time.UTC),
+				PlanEnd:    &planEnd,
+				Package:    &domain.PlanPackage{Quantity: 10},
+				Items:      []domain.PlanItem{{ServiceID: 20, OrderIndex: 1}},
+			},
+		}
+
+		svc := NewComptime(repo, nil)
+		svc.SetNowFunc(func() time.Time { return now })
+
+		views, _, err := svc.ListComptime(ctx, port.ComptimeFilter{})
+		if err != nil || len(views) != 1 {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		v := views[0]
+		if v.PredictMinutes != 300 {
+			t.Errorf("expected PredictMinutes = 300, got %d", v.PredictMinutes)
+		}
+		if v.DoneMinutes != 180 {
+			t.Errorf("expected DoneMinutes = 180, got %d", v.DoneMinutes)
+		}
+		if v.MonthBalance != 120 || v.Balance != 120 {
+			t.Errorf("expected MonthBalance=120 Balance=120, got %d / %d", v.MonthBalance, v.Balance)
+		}
+		if v.PredictSessions != 5.0 || v.DoneSessions != 3.0 || v.MonthBalanceSessions != 2.0 {
+			t.Errorf("unexpected session counts: %+v", v)
+		}
+	})
+
+	t.Run("agenda plan calculates monthly sessions and proportional minutes", func(t *testing.T) {
+		repo := newMockComptimeRepo()
+		min60 := 60
+		repo.services[20] = &domain.Service{ID: 20, SessionMinutes: &min60}
+		repo.comptimes[1] = &domain.Comptime{
+			ID:              1,
+			VendorID:        1,
+			CustomerID:      10,
+			ServiceID:       20,
+			Month:           octMonth,
+			InvoicedMinutes: 240,
+			ConsumedMinutes: 90,
+			Balance:         150,
+		}
+		// October 2026: Oct 1 is Thursday (WeekDay=5). Thursdays in Oct 2026: 1, 8, 15, 22, 29 (5 Thursdays).
+		// With MonthlyServiceLimit = 4 -> 4 sessions * 60 min = 240 min.
+		// effStart = Oct 1, effEnd = Oct 31 (30 days), today = Oct 16 (15 days -> 0.5) -> 120 min predicted.
+		limit := 4
+		repo.plans = []*domain.Plan{
+			{
+				ID:         102,
+				CustomerID: 10,
+				PlanType:   int(domain.PlanTypeAgenda),
+				PlanStart:  time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC),
+				Agenda: &domain.PlanAgenda{
+					Recurrence:          int(domain.RecurrenceWeekly),
+					WeekDay:             5, // Thursday
+					MonthlyServiceLimit: &limit,
+				},
+				Items: []domain.PlanItem{{ServiceID: 20, OrderIndex: 1}},
+			},
+		}
+
+		svc := NewComptime(repo, nil)
+		svc.SetNowFunc(func() time.Time { return now })
+
+		views, _, err := svc.ListComptime(ctx, port.ComptimeFilter{})
+		if err != nil || len(views) != 1 {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		v := views[0]
+		if v.PredictMinutes != 120 {
+			t.Errorf("expected PredictMinutes = 120, got %d", v.PredictMinutes)
+		}
+		if v.DoneMinutes != 90 {
+			t.Errorf("expected DoneMinutes = 90, got %d", v.DoneMinutes)
+		}
+		if v.MonthBalance != 30 || v.Balance != 30 {
+			t.Errorf("expected MonthBalance=30 Balance=30, got %d / %d", v.MonthBalance, v.Balance)
+		}
+		if v.PredictSessions != 2.0 || v.DoneSessions != 1.5 || v.MonthBalanceSessions != 0.5 || v.BalanceSessions != 0.5 {
+			t.Errorf("unexpected session counts: %+v", v)
+		}
+	})
 }

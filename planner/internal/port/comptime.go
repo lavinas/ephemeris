@@ -21,20 +21,27 @@ type ComptimeFilter struct {
 
 // ComptimeView represents an enriched monthly comptime record for display.
 type ComptimeView struct {
-	ID                 int64     `json:"id"`
-	VendorID           int64     `json:"vendor_id"`
-	CustomerID         int64     `json:"customer_id"`
-	CustomerNickname   string    `json:"customer_nickname"`
-	CustomerName       string    `json:"customer_name"`
-	ServiceID          int64     `json:"service_id"`
-	ServiceName        string    `json:"service_name"`
-	ServiceDescription string    `json:"service_description"`
-	Month              time.Time `json:"month"`
-	InvoicedMinutes    int       `json:"invoiced_minutes"`
-	ConsumedMinutes    int       `json:"consumed_minutes"`
-	MonthBalance       int       `json:"month_balance"`
-	Balance            int       `json:"balance"`
-	UpdatedAt          time.Time `json:"updated_at"`
+	ID                   int64     `json:"id"`
+	VendorID             int64     `json:"vendor_id"`
+	CustomerID           int64     `json:"customer_id"`
+	CustomerNickname     string    `json:"customer_nickname"`
+	CustomerName         string    `json:"customer_name"`
+	ServiceID            int64     `json:"service_id"`
+	ServiceName          string    `json:"service_name"`
+	ServiceDescription   string    `json:"service_description"`
+	ServiceMinutes       int       `json:"service_minutes"`
+	Month                time.Time `json:"month"`
+	InvoicedMinutes      int       `json:"invoiced_minutes"`
+	ConsumedMinutes      int       `json:"consumed_minutes"`
+	PredictMinutes       int       `json:"predict_minutes"`
+	DoneMinutes          int       `json:"done_minutes"`
+	MonthBalance         int       `json:"month_balance"`
+	Balance              int       `json:"balance"`
+	PredictSessions      float64   `json:"predict_sessions"`
+	DoneSessions         float64   `json:"done_sessions"`
+	MonthBalanceSessions float64   `json:"month_balance_sessions"`
+	BalanceSessions      float64   `json:"balance_sessions"`
+	UpdatedAt            time.Time `json:"updated_at"`
 }
 
 // ComptimeRepository defines data access methods for banco de horas (comptime).
@@ -74,6 +81,7 @@ type ComptimeRepository interface {
 	GetServiceByID(id int64) (*domain.Service, error)
 	GetInvoiceByID(id int64) (*domain.Invoice, error)
 	GetInvoiceItemByID(ctx context.Context, id int64) (*domain.InvoiceItem, error)
+	FindActivePlanForCustomerService(ctx context.Context, customerID, serviceID int64, refDate time.Time) (*domain.Plan, error)
 }
 
 // ComptimeService defines business operations for managing comptime.
