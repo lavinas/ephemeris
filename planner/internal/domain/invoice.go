@@ -45,6 +45,19 @@ func NewInvoice(planID int64, invoicingDate, dueDate, periodStart, periodEnd tim
 	}
 }
 
+// IsActiveInPeriod checks whether the invoice period [PeriodStart, PeriodEnd] overlaps with [startDate, endDate].
+// Active invoices for a month are determined by PeriodStart and PeriodEnd rather than InvoicingDate.
+func (inv *Invoice) IsActiveInPeriod(startDate, endDate time.Time) bool {
+	if inv == nil || inv.DeletedAt != nil || inv.PeriodStart.IsZero() || inv.PeriodEnd.IsZero() {
+		return false
+	}
+	s := time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 0, 0, 0, 0, time.UTC)
+	e := time.Date(endDate.Year(), endDate.Month(), endDate.Day(), 0, 0, 0, 0, time.UTC)
+	pStart := time.Date(inv.PeriodStart.Year(), inv.PeriodStart.Month(), inv.PeriodStart.Day(), 0, 0, 0, 0, time.UTC)
+	pEnd := time.Date(inv.PeriodEnd.Year(), inv.PeriodEnd.Month(), inv.PeriodEnd.Day(), 0, 0, 0, 0, time.UTC)
+	return !pStart.After(e) && !pEnd.Before(s)
+}
+
 // InvoiceItem represents an individual line item within an invoice.
 type InvoiceItem struct {
 	ID               int64                `gorm:"primaryKey;autoIncrement"`

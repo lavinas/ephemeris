@@ -262,6 +262,11 @@ func (m *mockComptimeRepo) FindActiveInvoiceItemsForComptime(ctx context.Context
 			if serviceID != nil && *serviceID > 0 && it.ServiceID != *serviceID {
 				continue
 			}
+			if !startDate.IsZero() && !endDate.IsZero() && it.Invoice != nil && !it.Invoice.PeriodStart.IsZero() && !it.Invoice.PeriodEnd.IsZero() {
+				if !it.Invoice.IsActiveInPeriod(startDate, endDate) {
+					continue
+				}
+			}
 			list = append(list, *it)
 		}
 	}
@@ -910,6 +915,78 @@ func TestComptimeService_ListComptime_CurrentMonthPredictions(t *testing.T) {
 		}
 		if viewsAg[0].PredictMinutes != 60 || viewsAg[0].PredictSessions != 1.0 {
 			t.Errorf("expected Agenda PredictMinutes=60 (1 session * 60), got %d (%v sessions)", viewsAg[0].PredictMinutes, viewsAg[0].PredictSessions)
+		}
+	})
+
+	t.Run("agenda plan caps estimated sessions at invoiced sessions when invoice exists for current period", func(t *testing.T) {
+		// Oct 26 -> 25 days elapsed out of 30 days (ratio = 25/30)
+		// 4 planned sessions * 25/30 = 3.33 -> 3 estimated sessions.
+		// However, an invoice for the current period has only 2 invoiced sessions (120 min).
+		// min(invoiced=2, estimated=3) = 2 sessions -> 120 min predicted.
+		oct26 := time.Date(2026, time.October, 26, 12, 0, 0, 0, time.UTC)
+		limit := 4
+		min60 := 60
+
+		repo := newMockComptimeRepo()
+		repo.services[20] = &domain.Service{ID: 20, SessionMinutes: &min60}
+		repo.comptimes[1] = &domain.Comptime{
+			ID: 1, VendorID: 1, CustomerID: 10, ServiceID: 20, Month: octMonth,
+			InvoicedMinutes: 120, ConsumedMinutes: 60, Balance: 60,
+		}
+		plan := &domain.Plan{
+			ID: 105, CustomerID: 10, PlanType: int(domain.PlanTypeAgenda),
+			PlanStart: time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC),
+			Agenda: &domain.PlanAgenda{
+				Recurrence:          int(domain.RecurrenceWeekly),
+				WeekDay:             5,
+				MonthlyServiceLimit: &limit,
+			},
+			Items: []domain.PlanItem{{ServiceID: 20, OrderIndex: 1}},
+		}
+		repo.plans = []*domain.Plan{plan}
+		octEnd := time.Date(2026, time.October, 31, 0, 0, 0, 0, time.UTC)
+		// Invoice 1: active in October by [PeriodStart, PeriodEnd] even if InvoicingDate was in September
+		repo.invoiceItems[1] = &domain.InvoiceItem{
+			ID:        1,
+			ServiceID: 20,
+			Quantity:  2,
+			Invoice: &domain.Invoice{
+				ID:            1,
+				PlanID:        plan.ID,
+				Plan:          plan,
+				InvoicingDate: time.Date(2026, time.September, 28, 0, 0, 0, 0, time.UTC),
+				PeriodStart:   octMonth,
+				PeriodEnd:     octEnd,
+			},
+		}
+		// Invoice 2: InvoicingDate is in October (post-paid), but [PeriodStart, PeriodEnd] is in September -> must be ignored!
+		repo.invoiceItems[2] = &domain.InvoiceItem{
+			ID:        2,
+			ServiceID: 20,
+			Quantity:  1,
+			Invoice: &domain.Invoice{
+				ID:            2,
+				PlanID:        plan.ID,
+				Plan:          plan,
+				InvoicingDate: time.Date(2026, time.October, 5, 0, 0, 0, 0, time.UTC),
+				PeriodStart:   time.Date(2026, time.September, 1, 0, 0, 0, 0, time.UTC),
+				PeriodEnd:     time.Date(2026, time.September, 30, 0, 0, 0, 0, time.UTC),
+			},
+		}
+
+		svc := NewComptime(repo, nil)
+		svc.SetNowFunc(func() time.Time { return oct26 })
+
+		views, _, err := svc.ListComptime(ctx, port.ComptimeFilter{})
+		if err != nil || len(views) != 1 {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		v := views[0]
+		if v.PredictMinutes != 120 || v.PredictSessions != 2.0 {
+			t.Errorf("expected PredictMinutes=120 (capped at 2 invoiced sessions), got %d (%v sessions)", v.PredictMinutes, v.PredictSessions)
+		}
+		if v.MonthBalance != 60 || v.Balance != 60 {
+			t.Errorf("expected MonthBalance=60 Balance=60, got %d / %d", v.MonthBalance, v.Balance)
 		}
 	})
 }

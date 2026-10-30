@@ -94,7 +94,9 @@ func CalculateProportionalMinutes(startDate, endDate, currentDate time.Time, ses
 
 // CalculatePredictedMinutes calculates the predicted minutes (PredictMinutes) for the current month
 // based on the customer's active plan for the service.
-func CalculatePredictedMinutes(plan *domain.Plan, serviceID int64, serviceMinutes int, doneMinutes int, currentDate time.Time) int {
+// For agenda plans, if an invoice already exists for the current period (invoicedSessions != nil),
+// the estimated session count is capped at min(invoicedSessions, estimatedSessions) before multiplying by serviceMinutes.
+func CalculatePredictedMinutes(plan *domain.Plan, serviceID int64, serviceMinutes int, doneMinutes int, currentDate time.Time, invoicedSessions *int) int {
 	if plan == nil || !plan.IsActiveAt(currentDate) {
 		return 0
 	}
@@ -122,7 +124,14 @@ func CalculatePredictedMinutes(plan *domain.Plan, serviceID int64, serviceMinute
 		if sessionsCount <= 0 {
 			return 0
 		}
-		return CalculateProportionalMinutes(effStart, effEnd, currentDate, sessionsCount, serviceMinutes)
+		estimatedSessions := CalculateProportionalSessions(effStart, effEnd, currentDate, sessionsCount)
+		if invoicedSessions != nil && *invoicedSessions < estimatedSessions {
+			estimatedSessions = *invoicedSessions
+		}
+		if estimatedSessions <= 0 {
+			return 0
+		}
+		return estimatedSessions * serviceMinutes
 
 	default:
 		return 0

@@ -595,13 +595,34 @@ func (s *ComptimeService) enrichComptimeView(ctx context.Context, view *port.Com
 	viewMonth := domain.NormalizeMonth(view.Month)
 	if !view.Month.IsZero() && viewMonth.Year() == currentMonth.Year() && viewMonth.Month() == currentMonth.Month() {
 		var activePlan *domain.Plan
+		var invoicedSessions *int
 		if s.repo != nil {
 			plan, err := s.repo.FindActivePlanForCustomerService(ctx, view.CustomerID, view.ServiceID, now)
 			if err == nil {
 				activePlan = plan
 			}
+			monthEnd := currentMonth.AddDate(0, 1, -1)
+			invItems, errInv := s.repo.FindActiveInvoiceItemsForComptime(ctx, view.VendorID, currentMonth, monthEnd, &view.CustomerID, &view.ServiceID)
+			if errInv == nil && len(invItems) > 0 {
+				totalQty := 0
+				matchedPeriod := false
+				for _, it := range invItems {
+					if it.Invoice != nil && !it.Invoice.IsActiveInPeriod(currentMonth, monthEnd) {
+						continue
+					}
+					q := it.Quantity
+					if q == 0 && it.InvoicedQuantity > 0 {
+						q = it.InvoicedQuantity
+					}
+					totalQty += q
+					matchedPeriod = true
+				}
+				if matchedPeriod {
+					invoicedSessions = &totalQty
+				}
+			}
 		}
-		view.PredictMinutes = invoicing.CalculatePredictedMinutes(activePlan, view.ServiceID, serviceMinutes, view.DoneMinutes, now)
+		view.PredictMinutes = invoicing.CalculatePredictedMinutes(activePlan, view.ServiceID, serviceMinutes, view.DoneMinutes, now, invoicedSessions)
 	} else {
 		view.PredictMinutes = view.InvoicedMinutes
 	}
