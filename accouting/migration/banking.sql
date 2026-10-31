@@ -25,8 +25,32 @@ create table vendor (
     constraint unique_vendor_nickname unique(nickname)
 );
 
-create table statement (
+create table account (
     id bigserial primary key,
     vendor_id bigint not null,
+    bank_name varchar(255) not null,
+    bank_code varchar(10) not null,
+    account_number varchar(50) not null,
+    account_agency varchar(20) not null,
+    pix_key varchar(50),
+    created_at timestamp not null,
+    updated_at timestamp not null,
+    deleted_at timestamp,
+    CONSTRAINT fk_account_vendor foreign key (vendor_id) references vendor(id),
+    CONSTRAINT uk_account_vendor_agency_number unique(vendor_id, account_agency, account_number)
+);
+
+create index idx_account_vendor_id on account(vendor_id);
+
+
+create table statement (
+    id bigserial primary key,
+    account_id bigint not null,
+    
+    
+
+
+
+
     
 )
