@@ -654,10 +654,10 @@
 							<input type="text" name="item_descricao[]" value="{{$item.Description}}" placeholder="Descrição do item ou serviço..." required class="input-inline-tabela text-xs">
 						</div>
 						<div class="col-span-2">
-							<input type="number" name="item_quantidade[]" value="{{$item.Quantity}}" min="1" placeholder="Qtd" required class="input-inline-tabela text-xs text-center" oninput="calcularTotalForm()">
+							<input type="number" name="item_quantidade[]" value="{{$item.Quantity}}" min="0" placeholder="Qtd" required class="input-inline-tabela text-xs text-center" oninput="calcularTotalForm()">
 						</div>
 						<div class="col-span-3">
-							<input type="number" name="item_preco[]" value="{{$item.Price}}" step="0.01" min="0.01" placeholder="Preço (R$)" required class="input-inline-tabela text-xs text-right" oninput="calcularTotalForm()">
+							<input type="number" name="item_preco[]" value="{{$item.Price}}" step="0.01" placeholder="Preço (R$)" required class="input-inline-tabela text-xs text-right" oninput="calcularTotalForm()">
 						</div>
 						<div class="col-span-1 text-center">
 							<button type="button" onclick="removerLinhaItem(this)" class="text-rose-400 hover:text-rose-300 font-bold text-sm px-2 py-1 rounded hover:bg-rose-950/50 cursor-pointer" title="Remover item">✕</button>
@@ -670,10 +670,10 @@
 							<input type="text" name="item_descricao[]" placeholder="Descrição do item ou serviço..." required class="input-inline-tabela text-xs">
 						</div>
 						<div class="col-span-2">
-							<input type="number" name="item_quantidade[]" value="1" min="1" placeholder="Qtd" required class="input-inline-tabela text-xs text-center" oninput="calcularTotalForm()">
+							<input type="number" name="item_quantidade[]" value="1" min="0" placeholder="Qtd" required class="input-inline-tabela text-xs text-center" oninput="calcularTotalForm()">
 						</div>
 						<div class="col-span-3">
-							<input type="number" name="item_preco[]" step="0.01" min="0.01" placeholder="Preço (R$)" required class="input-inline-tabela text-xs text-right" oninput="calcularTotalForm()">
+							<input type="number" name="item_preco[]" step="0.01" placeholder="Preço (R$)" required class="input-inline-tabela text-xs text-right" oninput="calcularTotalForm()">
 						</div>
 						<div class="col-span-1 text-center">
 							<button type="button" onclick="removerLinhaItem(this)" class="text-rose-400 hover:text-rose-300 font-bold text-sm px-2 py-1 rounded hover:bg-rose-950/50 cursor-pointer" title="Remover item">✕</button>
@@ -681,9 +681,15 @@
 					</div>
 				{{end}}
 			</div>
-			<div class="flex justify-end mt-3 pt-2 border-t border-gray-800 text-xs text-gray-300 font-bold">
-				<span class="mr-2">Total Calculado:</span>
-				<span id="label-total-form" class="font-mono text-indigo-400 text-sm">R$ 0,00</span>
+			<div class="flex flex-wrap items-center justify-end gap-4 mt-3 pt-3 border-t border-gray-800 text-xs text-gray-300 font-bold">
+				<div>
+					<span class="mr-2">Total Calculado:</span>
+					<span id="label-total-form" class="font-mono text-indigo-400 text-sm">R$ 0,00</span>
+				</div>
+				<div class="flex items-center gap-2">
+					<label class="text-xs font-bold text-gray-300 uppercase whitespace-nowrap">Valor Total (opcional):</label>
+					<input type="number" name="add_amount" value="{{.Amount}}" step="0.01" placeholder="Sobrescrever total (R$)" class="input-inline-tabela text-xs text-right font-mono" style="width: 170px !important;">
+				</div>
 			</div>
 		</div>
 
@@ -703,10 +709,10 @@
 					<input type="text" name="item_descricao[]" placeholder="Descrição do item ou serviço..." required class="input-inline-tabela text-xs">
 				</div>
 				<div class="col-span-2">
-					<input type="number" name="item_quantidade[]" value="1" min="1" placeholder="Qtd" required class="input-inline-tabela text-xs text-center" oninput="calcularTotalForm()">
+					<input type="number" name="item_quantidade[]" value="1" min="0" placeholder="Qtd" required class="input-inline-tabela text-xs text-center" oninput="calcularTotalForm()">
 				</div>
 				<div class="col-span-3">
-					<input type="number" name="item_preco[]" step="0.01" min="0.01" placeholder="Preço (R$)" required class="input-inline-tabela text-xs text-right" oninput="calcularTotalForm()">
+					<input type="number" name="item_preco[]" step="0.01" placeholder="Preço (R$)" required class="input-inline-tabela text-xs text-right" oninput="calcularTotalForm()">
 				</div>
 				<div class="col-span-1 text-center">
 					<button type="button" onclick="removerLinhaItem(this)" class="text-rose-400 hover:text-rose-300 font-bold text-sm px-2 py-1 rounded hover:bg-rose-950/50 cursor-pointer" title="Remover item">✕</button>
@@ -855,7 +861,7 @@
 			{{if .Items}}
 				<div class="text-xs text-gray-300 space-y-0.5" style="min-width: 0;">
 					{{range .Items}}
-						<div style="word-break: break-word; overflow-wrap: anywhere; white-space: normal; line-height: 1.35;">• {{.Quantity}}x {{.Description}} ({{.PrecoFormatado}})</div>
+						<div style="word-break: break-word; overflow-wrap: anywhere; white-space: normal; line-height: 1.35;">• {{.Quantity}}x {{.Description}}{{if .Price}} ({{.PrecoFormatado}}){{end}}</div>
 					{{end}}
 				</div>
 			{{end}}
@@ -1029,7 +1035,8 @@
 			<input type="date" name="edit_tax" value="{{.TaxDateRaw}}" class="input-inline-tabela">
 		</div>
 		<div>
-			<div class="font-mono font-bold text-indigo-400 text-xs mb-1">{{.ValorFormatado}}</div>
+			<label class="block text-2xs font-bold text-gray-400 uppercase">Valor Total (R$)</label>
+			<input type="number" name="edit_amount" value="{{.ValorTotalInput}}" step="0.01" placeholder="Calc. pelos itens" class="input-inline-tabela font-mono text-xs mb-1">
 			<div class="text-xs text-gray-400 italic">Itens não editáveis após emissão</div>
 		</div>
 		<div class="flex gap-1.5 justify-end w-full" style="justify-content: flex-end !important; align-items: start !important; padding-top: 10px;">

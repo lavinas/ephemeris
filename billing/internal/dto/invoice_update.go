@@ -15,6 +15,7 @@ type InvoiceUpdateRequest struct {
 	Vendor           string          `json:"vendor" validate:"required"`
 	vendorID         int64           `json:"-" validate:"-"`
 	ID               int64           `json:"id" validate:"required"`
+	Amount           *float64        `json:"amount,omitempty"`
 	InvoiceDate      *string         `json:"invoicing,omitempty"`
 	DueDate          *string         `json:"due,omitempty"`
 	PaymentDate      *string         `json:"payment,omitempty"`
@@ -239,7 +240,7 @@ func (r *InvoiceUpdateRequest) validateExternalCode(repo port.Repository) error 
 
 // validateOneOfFields checks if at least one field is provided for update.
 func (r *InvoiceUpdateRequest) validateOneOfFields() error {
-	if r.InvoiceDate == nil && r.DueDate == nil && r.PaymentDate == nil &&
+	if r.Amount == nil && r.InvoiceDate == nil && r.DueDate == nil && r.PaymentDate == nil &&
 		r.SentDate == nil && r.ReceiptDate == nil &&
 		r.TaxDate == nil && r.CancellationDate == nil &&
 		r.Notes == nil && r.ExternalCode == nil {
@@ -252,6 +253,11 @@ func (r *InvoiceUpdateRequest) validateOneOfFields() error {
 func (r *InvoiceUpdateRequest) GetDomain() interface{} {
 	if r.invoice == nil {
 		return nil
+	}
+	if r.Amount != nil {
+		r.invoice.Amount = *r.Amount
+	} else {
+		r.invoice.CalculateTotalAmount()
 	}
 	if r.InvoiceDate != nil {
 		dt, _ := time.Parse("2006-01-02", *r.InvoiceDate)
@@ -296,6 +302,7 @@ func (r *InvoiceUpdateRequest) Reset() {
 	r.Vendor = ""
 	r.vendorID = 0
 	r.ID = 0
+	r.Amount = nil
 	r.InvoiceDate = nil
 	r.DueDate = nil
 	r.PaymentDate = nil

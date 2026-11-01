@@ -348,6 +348,9 @@ func (s *Bill) getReceiptItems(invoice *domain.Invoice) ([]dto.ReceiptItem, floa
 		})
 		totalAmount += total
 	}
+	if invoice.Amount != 0 {
+		totalAmount = invoice.Amount
+	}
 	return items, totalAmount
 }
 

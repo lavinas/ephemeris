@@ -13,6 +13,7 @@ type BillingItemInput struct {
 type BillingInvoiceInput struct {
 	Vendor       string             `json:"vendor"`
 	Customer     string             `json:"customer"`
+	Amount       float64            `json:"amount"`
 	Invoicing    string             `json:"invoicing"`
 	Due          string             `json:"due"`
 	ExternalCode *string            `json:"external_code,omitempty"`

@@ -25,6 +25,7 @@ type InvoiceCreate struct {
 	vendorID         int64                `json:"-"`
 	Customer         string               `json:"customer" validate:"required"`
 	customerID       int64                `json:"-"`
+	Amount           *float64             `json:"amount,omitempty"`
 	InvoiceDate      string               `json:"invoicing" validate:"required"`
 	DueDate          string               `json:"due" validate:"required"`
 	PaymentDate      *string              `json:"payment,omitempty"`
@@ -37,8 +38,8 @@ type InvoiceCreate struct {
 // InvoiceCreateItemDTO represents an item in the invoice with description, quantity, and unit price.
 type InvoiceCreateItem struct {
 	Description string  `json:"description" validate:"required"`
-	Quantity    int     `json:"quantity" validate:"required,gt=0"`
-	Price       float64 `json:"price" validate:"required,gt=0"`
+	Quantity    int     `json:"quantity" validate:"gte=0"`
+	Price       float64 `json:"price"`
 }
 
 // InvoiceCreateResponse represents the data transfer object for the response
@@ -245,11 +246,8 @@ func (i *InvoiceCreateItem) Validate() error {
 	if i.Description == "" {
 		errs = append(errs, fmt.Errorf("description is required"))
 	}
-	if i.Quantity <= 0 {
-		errs = append(errs, fmt.Errorf("quantity must be greater than 0"))
-	}
-	if i.Price <= 0 {
-		errs = append(errs, fmt.Errorf("price must be greater than 0"))
+	if i.Quantity < 0 {
+		errs = append(errs, fmt.Errorf("quantity must be greater than or equal to 0"))
 	}
 	if len(errs) != 0 {
 		err := errors.Join(errs...)
@@ -287,7 +285,7 @@ func (r *InvoiceCreate) GetDomain() *domain.Invoice {
 			cDate = &parsedDate
 		}
 	}
-	return domain.NewInvoice(r.vendorID, r.customerID, iDate, dDate, pDate, cDate, r.Notes, r.ExternalCode, invoiceItems)
+	return domain.NewInvoice(r.vendorID, r.customerID, iDate, dDate, pDate, cDate, r.Notes, r.ExternalCode, invoiceItems, r.Amount)
 }
 
 // GetDomain converts the InvoiceCreateItem to a domain.InvoiceItem entity.

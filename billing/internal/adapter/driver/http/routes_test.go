@@ -264,6 +264,20 @@ func TestBillingRoutes(t *testing.T) {
 			"item_quantidade[]": {"1"},
 			"item_preco[]":      {"150.00"},
 		}, wantStatus: http.StatusOK},
+		{name: "POST /html/invoices/salvar with override amount and zero/negative items", method: http.MethodPost, url: "/html/invoices/salvar", body: url.Values{
+			"add_customer":      {"cliente_teste"},
+			"add_invoicing":     {"2026-09-28"},
+			"add_due":           {"2026-10-15"},
+			"add_amount":        {"450.00"},
+			"item_descricao[]":  {"Pacote", "Desconto"},
+			"item_quantidade[]": {"0", "1"},
+			"item_preco[]":      {"0", "-50.00"},
+		}, wantStatus: http.StatusOK},
+		{name: "POST /html/invoices/atualizar with edit_amount", method: http.MethodPost, url: "/html/invoices/atualizar?id=1", body: url.Values{
+			"edit_invoicing": {"2026-09-01"},
+			"edit_due":       {"2026-09-15"},
+			"edit_amount":    {"500.00"},
+		}, wantStatus: http.StatusOK},
 		{name: "GET /html/invoices/download doc=0 (invoice)", method: http.MethodGet, url: "/html/invoices/download?id=10&doc=0", wantStatus: http.StatusOK},
 		{name: "GET /html/invoices/download doc=1 (receipt)", method: http.MethodGet, url: "/html/invoices/download?id=2&doc=1", wantStatus: http.StatusOK},
 	}

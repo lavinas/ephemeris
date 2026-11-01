@@ -52,6 +52,7 @@ type billingItemPayload struct {
 type billingInvoicePayload struct {
 	Vendor       string               `json:"vendor"`
 	Customer     string               `json:"customer"`
+	Amount       float64              `json:"amount"`
 	InvoiceDate  string               `json:"invoicing"`
 	DueDate      string               `json:"due"`
 	ExternalCode *string              `json:"external_code,omitempty"`
@@ -91,8 +92,8 @@ func (c *Client) CreateInvoice(ctx context.Context, input port.BillingInvoiceInp
 	itemsPayload := make([]billingItemPayload, len(input.Items))
 	for i, it := range input.Items {
 		qty := it.Quantity
-		if qty <= 0 {
-			qty = 1
+		if qty < 0 {
+			qty = 0
 		}
 		itemsPayload[i] = billingItemPayload{
 			Description: it.Description,
@@ -106,6 +107,7 @@ func (c *Client) CreateInvoice(ctx context.Context, input port.BillingInvoiceInp
 			{
 				Vendor:       input.Vendor,
 				Customer:     input.Customer,
+				Amount:       input.Amount,
 				InvoiceDate:  input.Invoicing,
 				DueDate:      input.Due,
 				ExternalCode: input.ExternalCode,

@@ -199,3 +199,84 @@ func TestInvoiceCreateResponse_IDs(t *testing.T) {
 		t.Errorf("expected IDs to be [42, 43], got %v", resp.IDs)
 	}
 }
+
+func TestInvoiceCreate_AmountOverrideAndItemValidation(t *testing.T) {
+	vendor := &domain.Vendor{ID: 10, Nickname: "estudio_amelia"}
+	customer := &domain.Customer{ID: 20, VendorID: 10, Nickname: "cliente_1"}
+	repo := &invoiceCreateMockRepo{
+		vendor:   vendor,
+		customer: customer,
+	}
+
+	// Case 1: Amount not provided -> calculated from items (including 0 qty, 0 price, negative price)
+	reqCalc := &InvoiceCreateRequest{
+		Items: []*InvoiceCreate{
+			{
+				Vendor:      "estudio_amelia",
+				Customer:    "cliente_1",
+				InvoiceDate: "2026-10-10",
+				DueDate:     "2026-10-25",
+				InvoiceItems: []*InvoiceCreateItem{
+					{Description: "Pacote Base", Quantity: 2, Price: 150.0},
+					{Description: "Desconto", Quantity: 1, Price: -50.0},
+					{Description: "Bonificado", Quantity: 0, Price: 0.0},
+				},
+			},
+		},
+	}
+	if err := reqCalc.Validate(repo); err != nil {
+		t.Fatalf("unexpected validation error for valid items (qty>=0, price any): %v", err)
+	}
+	invsCalc, err := reqCalc.GetDomain()
+	if err != nil {
+		t.Fatalf("unexpected GetDomain error: %v", err)
+	}
+	if invsCalc[0].Amount != 250.0 {
+		t.Errorf("expected calculated Amount 250.0, got %.2f", invsCalc[0].Amount)
+	}
+
+	// Case 2: Amount provided -> overrides calculated value from items
+	overrideAmount := 500.0
+	reqOverride := &InvoiceCreateRequest{
+		Items: []*InvoiceCreate{
+			{
+				Vendor:      "estudio_amelia",
+				Customer:    "cliente_1",
+				Amount:      &overrideAmount,
+				InvoiceDate: "2026-10-10",
+				DueDate:     "2026-10-25",
+				InvoiceItems: []*InvoiceCreateItem{
+					{Description: "Aula Pacote", Quantity: 4, Price: 0.0},
+				},
+			},
+		},
+	}
+	if err := reqOverride.Validate(repo); err != nil {
+		t.Fatalf("unexpected validation error: %v", err)
+	}
+	invsOverride, err := reqOverride.GetDomain()
+	if err != nil {
+		t.Fatalf("unexpected GetDomain error: %v", err)
+	}
+	if invsOverride[0].Amount != 500.0 {
+		t.Errorf("expected overridden Amount 500.0, got %.2f", invsOverride[0].Amount)
+	}
+
+	// Case 3: Negative quantity -> fails validation
+	reqNegQty := &InvoiceCreateRequest{
+		Items: []*InvoiceCreate{
+			{
+				Vendor:      "estudio_amelia",
+				Customer:    "cliente_1",
+				InvoiceDate: "2026-10-10",
+				DueDate:     "2026-10-25",
+				InvoiceItems: []*InvoiceCreateItem{
+					{Description: "Item invalido", Quantity: -1, Price: 100.0},
+				},
+			},
+		},
+	}
+	if err := reqNegQty.Validate(repo); err == nil {
+		t.Fatalf("expected error for negative quantity, got nil")
+	}
+}

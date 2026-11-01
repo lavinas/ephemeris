@@ -130,6 +130,9 @@ func TestInvoiceBill_Success(t *testing.T) {
 	if sent.Vendor != "vendedor_teste" || sent.Customer != "cliente_teste" {
 		t.Errorf("unexpected vendor/customer sent: %s / %s", sent.Vendor, sent.Customer)
 	}
+	if sent.Amount != 200.0 {
+		t.Errorf("expected amount 200.0, got %.2f", sent.Amount)
+	}
 	if sent.Invoicing != "2026-10-15" || sent.Due != "2026-10-25" {
 		t.Errorf("unexpected dates: %s / %s", sent.Invoicing, sent.Due)
 	}

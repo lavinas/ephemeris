@@ -26,7 +26,7 @@ type Invoice struct {
 
 // NewInvoice creates a new Invoice instance with the details and calculates the total amount.
 func NewInvoice(vendorID, customerID int64, invoiceDate, dueDate time.Time, paymentDate, cancellationDate *time.Time,
-	notes, externalCode *string, items []InvoiceItem) *Invoice {
+	notes, externalCode *string, items []InvoiceItem, amount ...*float64) *Invoice {
 	invoice := &Invoice{
 		VendorID:         vendorID,
 		CustomerID:       customerID,
@@ -40,7 +40,11 @@ func NewInvoice(vendorID, customerID int64, invoiceDate, dueDate time.Time, paym
 		CreatedAt:        time.Now(),
 		UpdatedAt:        time.Now(),
 	}
-	invoice.CalculateTotalAmount()
+	if len(amount) > 0 && amount[0] != nil {
+		invoice.Amount = *amount[0]
+	} else {
+		invoice.CalculateTotalAmount()
+	}
 	return invoice
 }
 

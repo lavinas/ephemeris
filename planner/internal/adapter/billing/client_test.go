@@ -26,7 +26,7 @@ func TestClient_CreateInvoice_Success(t *testing.T) {
 		if len(req.Items) != 1 {
 			t.Fatalf("expected 1 item, got %d", len(req.Items))
 		}
-		if req.Items[0].Customer != "cliente1" || req.Items[0].Vendor != "vendedor1" {
+		if req.Items[0].Customer != "cliente1" || req.Items[0].Vendor != "vendedor1" || req.Items[0].Amount != 350.0 {
 			t.Errorf("unexpected payload: %+v", req.Items[0])
 		}
 
@@ -48,6 +48,7 @@ func TestClient_CreateInvoice_Success(t *testing.T) {
 	id, err := client.CreateInvoice(context.Background(), port.BillingInvoiceInput{
 		Vendor:       "vendedor1",
 		Customer:     "cliente1",
+		Amount:       350.0,
 		Invoicing:    "2026-10-17",
 		Due:          "2026-10-25",
 		ExternalCode: &extCode,

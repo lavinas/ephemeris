@@ -124,6 +124,7 @@ func (h *HandlerHtml) InvoicesCreate(w http.ResponseWriter, r *http.Request) {
 		"InvoiceDate":  hoje,
 		"DueDate":      dueDate,
 		"ExternalCode": "",
+		"Amount":       "",
 		"Nicknames":    h.getCustomersNicknames(),
 		"Items": []map[string]interface{}{
 			{
@@ -157,6 +158,10 @@ func (h *HandlerHtml) InvoicesSave(w http.ResponseWriter, r *http.Request) {
 		externalCode = strings.TrimSpace(r.FormValue("external_code"))
 	}
 	notes := strings.TrimSpace(r.FormValue("add_notes"))
+	amountStr := strings.TrimSpace(r.FormValue("add_amount"))
+	if amountStr == "" {
+		amountStr = strings.TrimSpace(r.FormValue("amount"))
+	}
 
 	// Extract multiple items
 	itemDescriptions := r.Form["item_descricao[]"]
@@ -179,17 +184,17 @@ func (h *HandlerHtml) InvoicesSave(w http.ResponseWriter, r *http.Request) {
 		desc := strings.TrimSpace(itemDescriptions[i])
 		qty := 1
 		if i < len(itemQuantities) {
-			qty, _ = strconv.Atoi(itemQuantities[i])
-			if qty <= 0 {
-				qty = 1
+			qStr := strings.TrimSpace(itemQuantities[i])
+			if qStr != "" {
+				qty, _ = strconv.Atoi(qStr)
 			}
 		}
 		var price float64
 		if i < len(itemPrices) {
-			priceStr := strings.ReplaceAll(itemPrices[i], ",", ".")
+			priceStr := strings.ReplaceAll(strings.TrimSpace(itemPrices[i]), ",", ".")
 			price, _ = strconv.ParseFloat(priceStr, 64)
 		}
-		if desc != "" || price > 0 {
+		if desc != "" || price != 0 {
 			createItems = append(createItems, &dto.InvoiceCreateItem{
 				Description: desc,
 				Quantity:    qty,
@@ -215,11 +220,19 @@ func (h *HandlerHtml) InvoicesSave(w http.ResponseWriter, r *http.Request) {
 	if externalCode != "" {
 		extCodePtr = &externalCode
 	}
+	var amountPtr *float64
+	if amountStr != "" {
+		cleanAmount := strings.ReplaceAll(amountStr, ",", ".")
+		if parsedAmount, err := strconv.ParseFloat(cleanAmount, 64); err == nil {
+			amountPtr = &parsedAmount
+		}
+	}
 
 	vendorNick := h.getVendorNickname()
 	invoiceCreate := &dto.InvoiceCreate{
 		Vendor:       vendorNick,
 		Customer:     customer,
+		Amount:       amountPtr,
 		InvoiceDate:  invoiceDate,
 		DueDate:      dueDate,
 		PaymentDate:  pDate,
@@ -263,6 +276,7 @@ func (h *HandlerHtml) InvoicesSave(w http.ResponseWriter, r *http.Request) {
 
 		dadosForm := map[string]interface{}{
 			"Customer":         customer,
+			"Amount":           amountStr,
 			"InvoiceDate":      invoiceDate,
 			"DueDate":          dueDate,
 			"PaymentDate":      paymentDate,
@@ -417,6 +431,16 @@ func (h *HandlerHtml) InvoicesUpdate(w http.ResponseWriter, r *http.Request) {
 	extCode := strings.TrimSpace(r.FormValue("edit_external_code"))
 	if extCode != "" {
 		req.ExternalCode = &extCode
+	}
+	amountStr := strings.TrimSpace(r.FormValue("edit_amount"))
+	if amountStr == "" {
+		amountStr = strings.TrimSpace(r.FormValue("amount"))
+	}
+	if amountStr != "" {
+		cleanAmount := strings.ReplaceAll(amountStr, ",", ".")
+		if parsedAmount, err := strconv.ParseFloat(cleanAmount, 64); err == nil {
+			req.Amount = &parsedAmount
+		}
 	}
 
 	svc := service.NewInvoiceUpdate(h.repo, h.logger)
@@ -975,6 +999,7 @@ func (h *HandlerHtml) mapSingleInvoiceData(inv domain.Invoice) map[string]interf
 		"CanTax":                    inv.CanTax(),
 		"IsExternal":                isExternal,
 		"ValorTotal":                inv.Amount,
+		"ValorTotalInput":           fmt.Sprintf("%.2f", inv.Amount),
 		"ValorFormatado":            formatMoney(inv.Amount),
 		"Notes":                     notesStr,
 		"Items":                     itemsView,
@@ -1024,6 +1049,11 @@ func formatDate(dateStr string) string {
 }
 
 func formatMoney(amount float64) string {
+	sign := ""
+	if amount < 0 {
+		sign = "-"
+		amount = -amount
+	}
 	s := fmt.Sprintf("%.2f", amount)
 	parts := strings.Split(s, ".")
 	intPart := parts[0]
@@ -1036,7 +1066,7 @@ func formatMoney(amount float64) string {
 		}
 		result = append(result, string(c))
 	}
-	return "R$ " + reverse(strings.Join(result, "")) + "," + decPart
+	return "R$ " + sign + reverse(strings.Join(result, "")) + "," + decPart
 }
 
 func reverse(s string) string {

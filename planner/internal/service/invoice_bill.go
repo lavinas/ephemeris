@@ -167,8 +167,11 @@ func (s *InvoiceBill) billSingleInvoice(ctx context.Context, inv domain.Invoice)
 		}
 
 		qty := it.InvoicedQuantity
-		if qty <= 0 {
-			qty = 1
+		if qty == 0 && it.Quantity != 0 {
+			qty = it.Quantity
+		}
+		if qty < 0 {
+			qty = 0
 		}
 
 		items[i] = port.BillingItemInput{
@@ -182,6 +185,7 @@ func (s *InvoiceBill) billSingleInvoice(ctx context.Context, inv domain.Invoice)
 	billingInput := port.BillingInvoiceInput{
 		Vendor:       vendorNickname,
 		Customer:     customerNickname,
+		Amount:       inv.Amount,
 		Invoicing:    inv.InvoicingDate.Format("2006-01-02"),
 		Due:          inv.DueDate.Format("2006-01-02"),
 		ExternalCode: &extCode,
