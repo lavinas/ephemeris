@@ -25,7 +25,7 @@ create table vendor (
     constraint unique_vendor_nickname unique(nickname)
 );
 
-create table banking_account (
+create table account (
     id bigserial primary key,
     vendor_id bigint not null,
     bank_name varchar(255) not null,
@@ -42,23 +42,15 @@ create table banking_account (
 
 create index idx_account_vendor_id on account(vendor_id);
 
-create table banking_statement (
+create table statement (
     id bigserial primary key,
     account_id bigint not null,
-    transaction_date date,
-    transaction_sign varchar(1) not null, -- 'D' - Debit, 'C' - Credict
-    transaction_amount numeric(10,2) not null,
-    transaction_name varchar(100) not null,
-    transaction_memo varchar(250) not null,
-    transaction_id varchar(100) not null,
-    
-
-
-    transaction_date date not null,
+    date date,
+    sign varchar(1) not null, -- 'D' - Debit, 'C' - Credict
     amount numeric(10,2) not null,
-    name varchar(250) not null,
-    historic varchar(250) not null,
-    document_number varchar(50) not null,
+    name varchar(100) not null,
+    memo varchar(250) not null,
+    number varchar(100) not null,
     checksum varchar(250) not null,
     created_at timestamp not null,
     updated_at timestamp not null,
