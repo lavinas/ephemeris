@@ -11,8 +11,6 @@ create table invoice (
     plan_id bigint null references plan(id) on delete cascade,
     invoicing_date date not null,
     due_date date not null,
-    period_start date not null,
-    period_end date not null,
     amount numeric(15, 2) not null,
     reference_invoice_id bigint null,
     created_at timestamp not null,
@@ -35,8 +33,8 @@ create table invoice_item (
     price numeric(15, 2) not null,
     description varchar(255) null,
     quantity int not null, -- new
-    -- invoiced_quantity int not null, -- old
-    -- realized_quantity int not null, -- old
+    period_start date not null,
+    period_end date not null,
     created_at timestamp not null,
     updated_at timestamp not null,
     deleted_at timestamp
