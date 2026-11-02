@@ -101,11 +101,7 @@ func (s *InvoiceItemDelete) Run(input port.InDTO) port.OutDTO {
 	totalAmount := 0.0
 	for _, it := range invoice.Items {
 		if it.DeletedAt == nil {
-			qty := it.InvoicedQuantity
-			if qty == 0 && it.Quantity > 0 {
-				qty = it.Quantity
-			}
-			totalAmount += it.Price * float64(qty)
+			totalAmount += it.Price * float64(it.Quantity)
 		}
 	}
 	invoice.Amount = totalAmount

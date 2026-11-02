@@ -63,8 +63,8 @@ func TestInvoiceUpdate_Success(t *testing.T) {
 		InvoicingDate: time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC),
 		Amount:        250.0,
 		Items: []domain.InvoiceItem{
-			{ID: 10, InvoiceID: 1, ServiceID: 100, Description: &desc1, Price: 100.0, InvoicedQuantity: 1, RealizedQuantity: 1},
-			{ID: 20, InvoiceID: 1, ServiceID: 200, Description: &desc2, Price: 75.0, InvoicedQuantity: 2, RealizedQuantity: 2},
+			{ID: 10, InvoiceID: 1, ServiceID: 100, Description: &desc1, Price: 100.0, Quantity: 1},
+			{ID: 20, InvoiceID: 1, ServiceID: 200, Description: &desc2, Price: 75.0, Quantity: 2},
 		},
 	}
 	repo.invoices[1] = inv
@@ -74,8 +74,8 @@ func TestInvoiceUpdate_Success(t *testing.T) {
 		InvoiceID: 1,
 		DueDate:   "2026-11-05",
 		Items: []dto.InvoiceItemUpdateRequest{
-			{ID: 10, InvoicedQuantity: 3}, // 3 * 100 = 300
-			{ID: 20, InvoicedQuantity: 1}, // 1 * 75 = 75
+			{ID: 10, Quantity: 3}, // 3 * 100 = 300
+			{ID: 20, Quantity: 1}, // 1 * 75 = 75
 		},
 	}
 
@@ -109,11 +109,11 @@ func TestInvoiceUpdate_Success(t *testing.T) {
 	if repo.updatedInvoice.DueDate.Format("2006-01-02") != "2026-11-05" {
 		t.Errorf("repo invoice due date expected 2026-11-05, got %s", repo.updatedInvoice.DueDate.Format("2006-01-02"))
 	}
-	if repo.updatedInvoice.Items[0].InvoicedQuantity != 3 {
-		t.Errorf("item 10 quantity expected 3, got %d", repo.updatedInvoice.Items[0].InvoicedQuantity)
+	if repo.updatedInvoice.Items[0].Quantity != 3 {
+		t.Errorf("item 10 quantity expected 3, got %d", repo.updatedInvoice.Items[0].Quantity)
 	}
-	if repo.updatedInvoice.Items[1].InvoicedQuantity != 1 {
-		t.Errorf("item 20 quantity expected 1, got %d", repo.updatedInvoice.Items[1].InvoicedQuantity)
+	if repo.updatedInvoice.Items[1].Quantity != 1 {
+		t.Errorf("item 20 quantity expected 1, got %d", repo.updatedInvoice.Items[1].Quantity)
 	}
 }
 
@@ -172,7 +172,7 @@ func TestInvoiceUpdate_AlreadyInvoiced(t *testing.T) {
 			PlanID:             1,
 			Plan:               plan,
 			Items: []domain.InvoiceItem{
-				{ID: 10, InvoiceID: 1, ServiceID: 100, Description: &desc1, Price: 100.0, InvoicedQuantity: 1, RealizedQuantity: 1},
+				{ID: 10, InvoiceID: 1, ServiceID: 100, Description: &desc1, Price: 100.0, Quantity: 1},
 			},
 		}
 
@@ -181,7 +181,7 @@ func TestInvoiceUpdate_AlreadyInvoiced(t *testing.T) {
 			InvoiceID: 1,
 			DueDate:   "2026-11-05",
 			Items: []dto.InvoiceItemUpdateRequest{
-				{ID: 10, InvoicedQuantity: 2},
+				{ID: 10, Quantity: 2},
 			},
 		}
 

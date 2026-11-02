@@ -682,9 +682,6 @@ func (a *Repository) SaveInvoice(invoice *domain.Invoice) error {
 		invoice.Items[i].InvoiceID = invoice.ID
 		invoice.Items[i].CreatedAt = now
 		invoice.Items[i].UpdatedAt = now
-		if invoice.Items[i].Quantity == 0 && invoice.Items[i].InvoicedQuantity > 0 {
-			invoice.Items[i].Quantity = invoice.Items[i].InvoicedQuantity
-		}
 		if err := tx.Omit("Service", "Invoice").Create(&invoice.Items[i]).Error; err != nil {
 			tx.Rollback()
 			return err
@@ -874,12 +871,6 @@ func (a *Repository) UpdateInvoice(invoice *domain.Invoice) error {
 			it.InvoiceID = invoice.ID
 			it.CreatedAt = now
 			it.UpdatedAt = now
-			if it.Quantity == 0 && it.InvoicedQuantity > 0 {
-				it.Quantity = it.InvoicedQuantity
-			}
-			if it.InvoicedQuantity == 0 && it.Quantity > 0 {
-				it.InvoicedQuantity = it.Quantity
-			}
 			if err := tx.Omit("Service", "Invoice").Create(it).Error; err != nil {
 				tx.Rollback()
 				return err
@@ -898,12 +889,8 @@ func (a *Repository) UpdateInvoice(invoice *domain.Invoice) error {
 			continue
 		}
 
-		qty := it.Quantity
-		if it.InvoicedQuantity > 0 && (it.Quantity == 0 || it.InvoicedQuantity != it.Quantity) {
-			qty = it.InvoicedQuantity
-		}
 		if err := tx.Model(&domain.InvoiceItem{}).Where("id = ? AND invoice_id = ? AND deleted_at IS NULL", it.ID, invoice.ID).Updates(map[string]interface{}{
-			"quantity":   qty,
+			"quantity":   it.Quantity,
 			"updated_at": now,
 		}).Error; err != nil {
 			tx.Rollback()
@@ -1024,9 +1011,10 @@ func (a *Repository) GetInvoiceForSession(sessionID int64) (*domain.Invoice, err
 	}
 	var invoice domain.Invoice
 	err := db.Model(&domain.Invoice{}).
+		Joins("JOIN planner.plan ON planner.plan.id = planner.invoice.plan_id").
 		Joins("JOIN planner.invoice_item ON planner.invoice_item.invoice_id = planner.invoice.id").
-		Joins("JOIN planner.invoice_item_session ON planner.invoice_item_session.invoice_item_id = planner.invoice_item.id").
-		Where("planner.invoice_item_session.session_id = ? AND planner.invoice.deleted_at IS NULL AND planner.invoice_item.deleted_at IS NULL", sessionID).
+		Joins("JOIN planner.session ON planner.session.customer_id = planner.plan.customer_id AND planner.session.service_id = planner.invoice_item.service_id AND planner.session.session_date = planner.invoice_item.period_start").
+		Where("planner.session.id = ? AND planner.invoice.deleted_at IS NULL AND planner.invoice_item.deleted_at IS NULL", sessionID).
 		Preload("Items", func(tx *gorm.DB) *gorm.DB {
 			return tx.Where("deleted_at IS NULL")
 		}).
@@ -1080,9 +1068,6 @@ func (a *Repository) SaveInvoices(invoices []*domain.Invoice) error {
 			invoice.Items[i].InvoiceID = invoice.ID
 			invoice.Items[i].CreatedAt = now
 			invoice.Items[i].UpdatedAt = now
-			if invoice.Items[i].Quantity == 0 && invoice.Items[i].InvoicedQuantity > 0 {
-				invoice.Items[i].Quantity = invoice.Items[i].InvoicedQuantity
-			}
 			if err := tx.Omit("Service", "Invoice").Create(&invoice.Items[i]).Error; err != nil {
 				if !useExistingTx {
 					tx.Rollback()

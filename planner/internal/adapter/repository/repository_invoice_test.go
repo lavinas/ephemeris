@@ -81,15 +81,14 @@ func TestInvoiceRepository_Integration(t *testing.T) {
 		UpdatedAt:     now,
 		Items: []domain.InvoiceItem{
 			{
-				ServiceID:        firstPlan.Items[0].ServiceID,
-				Price:            150.00,
-				Description:      &desc,
-				InvoicedQuantity: 1,
-				RealizedQuantity: 1,
-				PeriodStart:      time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC),
-				PeriodEnd:        time.Date(2026, 9, 30, 0, 0, 0, 0, time.UTC),
-				CreatedAt:        now,
-				UpdatedAt:        now,
+				ServiceID:   firstPlan.Items[0].ServiceID,
+				Price:       150.00,
+				Description: &desc,
+				Quantity:    1,
+				PeriodStart: time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC),
+				PeriodEnd:   time.Date(2026, 9, 30, 0, 0, 0, 0, time.UTC),
+				CreatedAt:   now,
+				UpdatedAt:   now,
 			},
 		},
 	}
@@ -139,7 +138,7 @@ func TestInvoiceRepository_Integration(t *testing.T) {
 	newDueDate := time.Date(2026, 11, 20, 0, 0, 0, 0, time.UTC)
 	testInvoice.DueDate = newDueDate
 	if len(testInvoice.Items) > 0 {
-		testInvoice.Items[0].InvoicedQuantity = 7
+		testInvoice.Items[0].Quantity = 7
 		testInvoice.Amount = testInvoice.Items[0].Price * 7
 	}
 	if err := repo.UpdateInvoice(testInvoice); err != nil {
@@ -156,8 +155,8 @@ func TestInvoiceRepository_Integration(t *testing.T) {
 	if !updatedInv.DueDate.Equal(newDueDate) {
 		t.Errorf("expected DueDate %v, got %v", newDueDate, updatedInv.DueDate)
 	}
-	if len(updatedInv.Items) > 0 && updatedInv.Items[0].InvoicedQuantity != 7 {
-		t.Errorf("expected InvoicedQuantity 7, got %d", updatedInv.Items[0].InvoicedQuantity)
+	if len(updatedInv.Items) > 0 && updatedInv.Items[0].Quantity != 7 {
+		t.Errorf("expected Quantity 7, got %d", updatedInv.Items[0].Quantity)
 	}
 
 	// 6. Test DeleteInvoicesByIDs (soft delete in batch)
@@ -168,12 +167,11 @@ func TestInvoiceRepository_Integration(t *testing.T) {
 		Amount:        90.0,
 		Items: []domain.InvoiceItem{
 			{
-				ServiceID:        firstPlan.Items[0].ServiceID,
-				Price:            90.0,
-				InvoicedQuantity: 1,
-				RealizedQuantity: 0,
-				PeriodStart:      time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC),
-				PeriodEnd:        time.Date(2026, 10, 31, 0, 0, 0, 0, time.UTC),
+				ServiceID:   firstPlan.Items[0].ServiceID,
+				Price:       90.0,
+				Quantity:    1,
+				PeriodStart: time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC),
+				PeriodEnd:   time.Date(2026, 10, 31, 0, 0, 0, 0, time.UTC),
 			},
 		},
 	}

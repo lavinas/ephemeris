@@ -97,7 +97,7 @@ func TestInvoiceBill_Success(t *testing.T) {
 		DueDate:       time.Date(2026, 10, 25, 0, 0, 0, 0, time.UTC),
 		Amount:        200.0,
 		Items: []domain.InvoiceItem{
-			{ID: 1, Description: &desc, Price: 100.0, InvoicedQuantity: 2},
+			{ID: 1, Description: &desc, Price: 100.0, Quantity: 2},
 		},
 	}
 
@@ -187,7 +187,7 @@ func TestInvoiceBill_DuplicateRecovery(t *testing.T) {
 		DueDate:       time.Date(2026, 10, 25, 0, 0, 0, 0, time.UTC),
 		Amount:        100.0,
 		Items: []domain.InvoiceItem{
-			{ID: 1, Price: 100.0, InvoicedQuantity: 1},
+			{ID: 1, Price: 100.0, Quantity: 1},
 		},
 	}
 

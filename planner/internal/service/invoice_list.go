@@ -180,15 +180,14 @@ func (s *InvoiceList) mapInvoicesToDTO(invoices []domain.Invoice) []dto.InvoiceD
 			}
 
 			items[j] = dto.InvoiceItemDTO{
-				ID:               it.ID,
-				ServiceID:        it.ServiceID,
-				ServiceName:      svcName,
-				Description:      desc,
-				Price:            it.Price,
-				InvoicedQuantity: it.InvoicedQuantity,
-				RealizedQuantity: it.RealizedQuantity,
-				PeriodStart:      itStartStr,
-				PeriodEnd:        itEndStr,
+				ID:          it.ID,
+				ServiceID:   it.ServiceID,
+				ServiceName: svcName,
+				Description: desc,
+				Price:       it.Price,
+				Quantity:    it.Quantity,
+				PeriodStart: itStartStr,
+				PeriodEnd:   itEndStr,
 			}
 		}
 

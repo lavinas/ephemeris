@@ -11,10 +11,10 @@ import (
 	"planner/internal/port"
 )
 
-// InvoiceItemUpdateRequest represents a request to update an item's invoiced quantity.
+// InvoiceItemUpdateRequest represents a request to update an item's quantity.
 type InvoiceItemUpdateRequest struct {
-	ID               int64 `json:"id"`
-	InvoicedQuantity int   `json:"invoiced_quantity"`
+	ID       int64 `json:"id"`
+	Quantity int   `json:"quantity"`
 }
 
 // InvoiceUpdateRequest represents a request to update an invoice's due date and items' invoiced quantities.
@@ -82,16 +82,19 @@ func (r *InvoiceUpdateRequest) UnmarshalJSON(data []byte) error {
 						item.ID, _ = strconv.ParseInt(v, 10, 64)
 					}
 				}
-				if qtyVal, ok := itemMap["invoiced_quantity"]; ok && qtyVal != nil {
-					switch v := qtyVal.(type) {
-					case float64:
-						item.InvoicedQuantity = int(v)
-					case int:
-						item.InvoicedQuantity = v
-					case int64:
-						item.InvoicedQuantity = int(v)
-					case string:
-						item.InvoicedQuantity, _ = strconv.Atoi(v)
+				for _, qtyKey := range []string{"quantity", "invoiced_quantity", "quantidade"} {
+					if qtyVal, ok := itemMap[qtyKey]; ok && qtyVal != nil {
+						switch v := qtyVal.(type) {
+						case float64:
+							item.Quantity = int(v)
+						case int:
+							item.Quantity = v
+						case int64:
+							item.Quantity = int(v)
+						case string:
+							item.Quantity, _ = strconv.Atoi(v)
+						}
+						break
 					}
 				}
 				r.Items = append(r.Items, item)
@@ -157,7 +160,7 @@ func (r *InvoiceUpdateRequest) Validate(repo port.Repository) error {
 			if !itemMap[itemReq.ID] {
 				return fmt.Errorf("item #%d não pertence a esta pré-fatura", itemReq.ID)
 			}
-			if itemReq.InvoicedQuantity < 0 {
+			if itemReq.Quantity < 0 {
 				return fmt.Errorf("quantidade faturada do item #%d não pode ser negativa", itemReq.ID)
 			}
 		}

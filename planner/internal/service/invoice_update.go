@@ -73,26 +73,25 @@ func (s *InvoiceUpdate) Run(input port.InDTO) port.OutDTO {
 	}
 	invoice.DueDate = parsedDueDate
 
-	// Update items invoiced quantities
+	// Update items quantities
 	if len(req.Items) > 0 {
 		itemQtyMap := make(map[int64]int)
 		for _, itReq := range req.Items {
-			itemQtyMap[itReq.ID] = itReq.InvoicedQuantity
+			itemQtyMap[itReq.ID] = itReq.Quantity
 		}
 
 		for i := range invoice.Items {
 			if newQty, exists := itemQtyMap[invoice.Items[i].ID]; exists {
-				invoice.Items[i].InvoicedQuantity = newQty
 				invoice.Items[i].Quantity = newQty
 			}
 		}
 	}
 
-	// Recalculate total amount strictly based on items (Price * InvoicedQuantity)
+	// Recalculate total amount strictly based on items (Price * Quantity)
 	totalAmount := 0.0
 	for _, it := range invoice.Items {
 		if it.DeletedAt == nil {
-			totalAmount += it.Price * float64(it.InvoicedQuantity)
+			totalAmount += it.Price * float64(it.Quantity)
 		}
 	}
 	invoice.Amount = totalAmount
@@ -145,7 +144,7 @@ func (s *InvoiceUpdate) Run(input port.InDTO) port.OutDTO {
 					desc = fmt.Sprintf("Serviço #%d", it.ServiceID)
 				}
 
-				qty := it.InvoicedQuantity
+				qty := it.Quantity
 				if qty <= 0 {
 					qty = 1
 				}
@@ -274,15 +273,14 @@ func (s *InvoiceUpdate) mapInvoiceToDTO(inv *domain.Invoice) *dto.InvoiceDTO {
 		}
 
 		items = append(items, dto.InvoiceItemDTO{
-			ID:               it.ID,
-			ServiceID:        it.ServiceID,
-			ServiceName:      svcName,
-			Description:      desc,
-			Price:            it.Price,
-			InvoicedQuantity: it.InvoicedQuantity,
-			RealizedQuantity: it.RealizedQuantity,
-			PeriodStart:      itStartStr,
-			PeriodEnd:        itEndStr,
+			ID:          it.ID,
+			ServiceID:   it.ServiceID,
+			ServiceName: svcName,
+			Description: desc,
+			Price:       it.Price,
+			Quantity:    it.Quantity,
+			PeriodStart: itStartStr,
+			PeriodEnd:   itEndStr,
 		})
 	}
 

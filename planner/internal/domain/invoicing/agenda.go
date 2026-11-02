@@ -123,17 +123,15 @@ func (s *AgendaStrategy) CalculateMonth(plan *domain.Plan, monthStart, refDate t
 		}
 
 		invoiceItems[i] = domain.InvoiceItem{
-			ServiceID:        item.ServiceID,
-			Price:            price,
-			Description:      desc,
-			Quantity:         invoicedQty,
-			PeriodStart:      targetStart,
-			PeriodEnd:        targetEnd,
-			InvoicedQuantity: invoicedQty,
-			RealizedQuantity: 0,
-			CreatedAt:        refDate,
-			UpdatedAt:        refDate,
-			DeletedAt:        nil,
+			ServiceID:   item.ServiceID,
+			Price:       price,
+			Description: desc,
+			Quantity:    invoicedQty,
+			PeriodStart: targetStart,
+			PeriodEnd:   targetEnd,
+			CreatedAt:   refDate,
+			UpdatedAt:   refDate,
+			DeletedAt:   nil,
 		}
 
 		itemsTotalAmount += price * float64(invoicedQty)

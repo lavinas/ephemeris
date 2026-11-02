@@ -527,7 +527,7 @@ func (m *mockInvoiceRouteRepo) GetInvoiceByID(id int64) (*domain.Invoice, error)
 		Amount:             150.0,
 		ReferenceInvoiceID: refID,
 		Items: []domain.InvoiceItem{
-			{ID: 1, InvoiceID: id, ServiceID: 10, Price: 50.0, InvoicedQuantity: 3},
+			{ID: 1, InvoiceID: id, ServiceID: 10, Price: 50.0, Quantity: 3},
 		},
 	}, nil
 }
@@ -557,7 +557,7 @@ func (m *mockInvoiceRouteRepo) FindInvoices(conditions map[string]interface{}, o
 			DueDate:       time.Now().AddDate(0, 0, 5),
 			Amount:        150.0,
 			Items: []domain.InvoiceItem{
-				{ID: 1, InvoiceID: 1, ServiceID: 10, Price: 50.0, InvoicedQuantity: 3},
+				{ID: 1, InvoiceID: 1, ServiceID: 10, Price: 50.0, Quantity: 3},
 			},
 		},
 	}, nil
@@ -1312,15 +1312,14 @@ func TestHTMLInvoicingReconciliationButton(t *testing.T) {
 				Amount:        200.0,
 				Items: []domain.InvoiceItem{
 					{
-						ID:               1,
-						InvoiceID:        5,
-						ServiceID:        10,
-						Price:            100.0,
-						Description:      &desc,
-						InvoicedQuantity: 2,
-						RealizedQuantity: 1,
-						PeriodStart:      now.AddDate(0, -1, 0),
-						PeriodEnd:        now,
+						ID:          1,
+						InvoiceID:   5,
+						ServiceID:   10,
+						Price:       100.0,
+						Description: &desc,
+						Quantity:    2,
+						PeriodStart: now.AddDate(0, -1, 0),
+						PeriodEnd:   now,
 					},
 				},
 			},

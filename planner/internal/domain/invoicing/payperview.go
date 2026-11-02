@@ -45,24 +45,16 @@ func (s *PayPerViewStrategy) CalculateSession(
 		desc = &descCopy
 	}
 
-	itemSession := domain.InvoiceItemSession{
-		SessionID: session.ID,
-		CreatedAt: refDate,
-	}
-
 	invItem := domain.InvoiceItem{
-		ServiceID:        item.ServiceID,
-		Price:            price,
-		Description:      desc,
-		Quantity:         1,
-		PeriodStart:      session.SessionDate,
-		PeriodEnd:        session.SessionDate,
-		InvoicedQuantity: 1,
-		RealizedQuantity: 1,
-		CreatedAt:        refDate,
-		UpdatedAt:        refDate,
-		DeletedAt:        nil,
-		ItemSessions:     []domain.InvoiceItemSession{itemSession},
+		ServiceID:   item.ServiceID,
+		Price:       price,
+		Description: desc,
+		Quantity:    1,
+		PeriodStart: session.SessionDate,
+		PeriodEnd:   session.SessionDate,
+		CreatedAt:   refDate,
+		UpdatedAt:   refDate,
+		DeletedAt:   nil,
 	}
 
 	amount := price

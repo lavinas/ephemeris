@@ -64,14 +64,14 @@ func TestPackageStrategy_Calculate(t *testing.T) {
 	}
 
 	// 10 distributed among 3 items: 4, 3, 3
-	if inv.Items[0].InvoicedQuantity != 4 {
-		t.Errorf("expected item 1 quantity 4, got %d", inv.Items[0].InvoicedQuantity)
+	if inv.Items[0].Quantity != 4 {
+		t.Errorf("expected item 1 quantity 4, got %d", inv.Items[0].Quantity)
 	}
-	if inv.Items[1].InvoicedQuantity != 3 {
-		t.Errorf("expected item 2 quantity 3, got %d", inv.Items[1].InvoicedQuantity)
+	if inv.Items[1].Quantity != 3 {
+		t.Errorf("expected item 2 quantity 3, got %d", inv.Items[1].Quantity)
 	}
-	if inv.Items[2].InvoicedQuantity != 3 {
-		t.Errorf("expected item 3 quantity 3, got %d", inv.Items[2].InvoicedQuantity)
+	if inv.Items[2].Quantity != 3 {
+		t.Errorf("expected item 3 quantity 3, got %d", inv.Items[2].Quantity)
 	}
 
 	// Amount: 4*50 + 3*60 + 3*40 = 500

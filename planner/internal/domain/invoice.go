@@ -2,8 +2,6 @@ package domain
 
 import (
 	"time"
-
-	"gorm.io/gorm"
 )
 
 // Invoice represents a billing invoice generated from a plan.
@@ -57,22 +55,19 @@ func (inv *Invoice) IsActiveInPeriod(startDate, endDate time.Time) bool {
 
 // InvoiceItem represents an individual line item within an invoice.
 type InvoiceItem struct {
-	ID               int64                `gorm:"primaryKey;autoIncrement"`
-	InvoiceID        int64                `gorm:"column:invoice_id;not null;index"`
-	Invoice          *Invoice             `gorm:"foreignKey:InvoiceID;references:ID"`
-	ServiceID        int64                `gorm:"column:service_id;not null;index"`
-	Service          *Service             `gorm:"foreignKey:ServiceID;references:ID"`
-	Price            float64              `gorm:"type:numeric(15,2);column:price;not null"`
-	Description      *string              `gorm:"type:varchar(255);column:description"`
-	Quantity         int                  `gorm:"column:quantity;not null"`
-	PeriodStart      time.Time            `gorm:"type:date;column:period_start;not null"`
-	PeriodEnd        time.Time            `gorm:"type:date;column:period_end;not null"`
-	InvoicedQuantity int                  `gorm:"-"`
-	RealizedQuantity int                  `gorm:"-"`
-	CreatedAt        time.Time            `gorm:"column:created_at;not null"`
-	UpdatedAt        time.Time            `gorm:"column:updated_at;not null"`
-	DeletedAt        *time.Time           `gorm:"column:deleted_at;index"`
-	ItemSessions     []InvoiceItemSession `gorm:"-"`
+	ID          int64      `gorm:"primaryKey;autoIncrement"`
+	InvoiceID   int64      `gorm:"column:invoice_id;not null;index"`
+	Invoice     *Invoice   `gorm:"foreignKey:InvoiceID;references:ID"`
+	ServiceID   int64      `gorm:"column:service_id;not null;index"`
+	Service     *Service   `gorm:"foreignKey:ServiceID;references:ID"`
+	Price       float64    `gorm:"type:numeric(15,2);column:price;not null"`
+	Description *string    `gorm:"type:varchar(255);column:description"`
+	Quantity    int        `gorm:"column:quantity;not null"`
+	PeriodStart time.Time  `gorm:"type:date;column:period_start;not null"`
+	PeriodEnd   time.Time  `gorm:"type:date;column:period_end;not null"`
+	CreatedAt   time.Time  `gorm:"column:created_at;not null"`
+	UpdatedAt   time.Time  `gorm:"column:updated_at;not null"`
+	DeletedAt   *time.Time `gorm:"column:deleted_at;index"`
 }
 
 // TableName specifies table name for InvoiceItem.
@@ -80,28 +75,20 @@ func (InvoiceItem) TableName() string {
 	return "invoice_item"
 }
 
-// AfterFind synchronizes InvoicedQuantity from Quantity for backward compatibility.
-func (i *InvoiceItem) AfterFind(tx *gorm.DB) (err error) {
-	i.InvoicedQuantity = i.Quantity
-	return nil
-}
-
 // NewInvoiceItem creates a new InvoiceItem instance.
-func NewInvoiceItem(invoiceID, serviceID int64, price float64, description *string, invoicedQty, realizedQty int, periodStart, periodEnd time.Time) *InvoiceItem {
+func NewInvoiceItem(invoiceID, serviceID int64, price float64, description *string, quantity int, periodStart, periodEnd time.Time) *InvoiceItem {
 	now := time.Now()
 	return &InvoiceItem{
-		InvoiceID:        invoiceID,
-		ServiceID:        serviceID,
-		Price:            price,
-		Description:      description,
-		Quantity:         invoicedQty,
-		PeriodStart:      periodStart,
-		PeriodEnd:        periodEnd,
-		InvoicedQuantity: invoicedQty,
-		RealizedQuantity: realizedQty,
-		CreatedAt:        now,
-		UpdatedAt:        now,
-		DeletedAt:        nil,
+		InvoiceID:   invoiceID,
+		ServiceID:   serviceID,
+		Price:       price,
+		Description: description,
+		Quantity:    quantity,
+		PeriodStart: periodStart,
+		PeriodEnd:   periodEnd,
+		CreatedAt:   now,
+		UpdatedAt:   now,
+		DeletedAt:   nil,
 	}
 }
 
@@ -118,58 +105,4 @@ func (i *InvoiceItem) IsActiveInPeriod(startDate, endDate time.Time) bool {
 	pStart := time.Date(i.PeriodStart.Year(), i.PeriodStart.Month(), i.PeriodStart.Day(), 0, 0, 0, 0, time.UTC)
 	pEnd := time.Date(i.PeriodEnd.Year(), i.PeriodEnd.Month(), i.PeriodEnd.Day(), 0, 0, 0, 0, time.UTC)
 	return !pStart.After(e) && !pEnd.Before(s)
-}
-
-// AssociateSession links a session to this invoice item and increments RealizedQuantity.
-func (i *InvoiceItem) AssociateSession(sessionID int64) *InvoiceItemSession {
-	i.RealizedQuantity++
-	i.UpdatedAt = time.Now()
-	assoc := NewInvoiceItemSession(i.ID, sessionID)
-	i.ItemSessions = append(i.ItemSessions, *assoc)
-	return assoc
-}
-
-// DissociateSession unlinks a session from this invoice item and decrements RealizedQuantity.
-func (i *InvoiceItem) DissociateSession(sessionID int64) bool {
-	found := false
-	var remaining []InvoiceItemSession
-	for _, s := range i.ItemSessions {
-		if s.SessionID == sessionID {
-			found = true
-			continue
-		}
-		remaining = append(remaining, s)
-	}
-	if found {
-		i.ItemSessions = remaining
-		if i.RealizedQuantity > 0 {
-			i.RealizedQuantity--
-		}
-		i.UpdatedAt = time.Now()
-	}
-	return found
-}
-
-// InvoiceItemSession represents a link between an invoice item and a session.
-type InvoiceItemSession struct {
-	ID            int64        `gorm:"primaryKey;autoIncrement"`
-	InvoiceItemID int64        `gorm:"column:invoice_item_id;not null;index"`
-	InvoiceItem   *InvoiceItem `gorm:"foreignKey:InvoiceItemID;references:ID"`
-	SessionID     int64        `gorm:"column:session_id;not null;index"`
-	Session       *Session     `gorm:"foreignKey:SessionID;references:ID"`
-	CreatedAt     time.Time    `gorm:"column:created_at;not null"`
-}
-
-// TableName specifies table name for InvoiceItemSession.
-func (InvoiceItemSession) TableName() string {
-	return "invoice_item_session"
-}
-
-// NewInvoiceItemSession creates a new InvoiceItemSession instance.
-func NewInvoiceItemSession(invoiceItemID, sessionID int64) *InvoiceItemSession {
-	return &InvoiceItemSession{
-		InvoiceItemID: invoiceItemID,
-		SessionID:     sessionID,
-		CreatedAt:     time.Now(),
-	}
 }

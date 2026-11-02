@@ -85,7 +85,6 @@ func (m *mockStandaloneInvoiceRepo) UpdateInvoice(invoice *domain.Invoice) error
 		} else if it.ID > 0 {
 			if existing, ok := m.mockComptimeRepo.invoiceItems[it.ID]; ok {
 				existing.Quantity = it.Quantity
-				existing.InvoicedQuantity = it.InvoicedQuantity
 			}
 		}
 	}
@@ -148,17 +147,15 @@ func TestInvoiceItemAddAndDelete_WithComptimeAndBilling(t *testing.T) {
 		ReferenceInvoiceID: &refID,
 		Items: []domain.InvoiceItem{
 			{
-				ID:               101,
-				InvoiceID:        1,
-				ServiceID:        10,
-				Service:          svcEntity,
-				Price:            150.0,
-				Description:      &baseDesc,
-				Quantity:         4,
-				InvoicedQuantity: 4,
-				RealizedQuantity: 4,
-				PeriodStart:      octStart,
-				PeriodEnd:        octEnd,
+				ID:          101,
+				InvoiceID:   1,
+				ServiceID:   10,
+				Service:     svcEntity,
+				Price:       150.0,
+				Description: &baseDesc,
+				Quantity:    4,
+				PeriodStart: octStart,
+				PeriodEnd:   octEnd,
 			},
 		},
 	}

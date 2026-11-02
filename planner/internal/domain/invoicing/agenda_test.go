@@ -67,8 +67,8 @@ func TestAgendaStrategy_CalculateMonth(t *testing.T) {
 		t.Fatalf("expected 1 item, got %d", len(inv.Items))
 	}
 	// Sept 2026 has 5 Tuesdays, but limit is 4
-	if inv.Items[0].InvoicedQuantity != 4 {
-		t.Errorf("expected InvoicedQuantity 4, got %d", inv.Items[0].InvoicedQuantity)
+	if inv.Items[0].Quantity != 4 {
+		t.Errorf("expected Quantity 4, got %d", inv.Items[0].Quantity)
 	}
 	if inv.Amount != 300.0 {
 		t.Errorf("expected Amount 300.0, got %.2f", inv.Amount)
@@ -118,8 +118,8 @@ func TestAgendaStrategy_PostPaid(t *testing.T) {
 		t.Errorf("expected PeriodEnd %v, got %v", expectedPeriodEnd, inv.Items[0].PeriodEnd)
 	}
 
-	if inv.Items[0].InvoicedQuantity != 5 {
-		t.Errorf("expected InvoicedQuantity 5, got %d", inv.Items[0].InvoicedQuantity)
+	if inv.Items[0].Quantity != 5 {
+		t.Errorf("expected Quantity 5, got %d", inv.Items[0].Quantity)
 	}
 	if inv.Amount != 500.0 {
 		t.Errorf("expected Amount 500.0, got %.2f", inv.Amount)
@@ -223,8 +223,8 @@ func TestAgendaStrategy_InvoicingDateRule(t *testing.T) {
 		if invOct == nil {
 			t.Fatal("expected invoice in October for September sessions, got nil")
 		}
-		if invOct.Items[0].InvoicedQuantity != 2 {
-			t.Errorf("expected 2 invoiced sessions, got %d", invOct.Items[0].InvoicedQuantity)
+		if invOct.Items[0].Quantity != 2 {
+			t.Errorf("expected 2 invoiced sessions, got %d", invOct.Items[0].Quantity)
 		}
 		expectedDate := time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC)
 		if !invOct.InvoicingDate.Equal(expectedDate) {
@@ -284,8 +284,8 @@ func TestAgendaStrategy_InvoicingDateRule(t *testing.T) {
 		if invMar == nil {
 			t.Fatal("expected invoice in March for February session, got nil")
 		}
-		if invMar.Items[0].InvoicedQuantity != 1 {
-			t.Errorf("expected 1 invoiced session (01/02/2027), got %d", invMar.Items[0].InvoicedQuantity)
+		if invMar.Items[0].Quantity != 1 {
+			t.Errorf("expected 1 invoiced session (01/02/2027), got %d", invMar.Items[0].Quantity)
 		}
 		if invMar.Amount != 100.0 {
 			t.Errorf("expected Amount 100.0, got %.2f", invMar.Amount)

@@ -51,14 +51,8 @@ func TestNotebookStrategy_CalculateMonth(t *testing.T) {
 	}
 
 	item := inv.Items[0]
-	if item.InvoicedQuantity != 3 {
-		t.Errorf("expected InvoicedQuantity 3, got %d", item.InvoicedQuantity)
-	}
-	if item.RealizedQuantity != 3 {
-		t.Errorf("expected RealizedQuantity 3, got %d", item.RealizedQuantity)
-	}
-	if len(item.ItemSessions) != 3 {
-		t.Errorf("expected 3 session links, got %d", len(item.ItemSessions))
+	if item.Quantity != 3 {
+		t.Errorf("expected Quantity 3, got %d", item.Quantity)
 	}
 	expectedPeriodStart := time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC)
 	if !item.PeriodStart.Equal(expectedPeriodStart) {
@@ -140,17 +134,8 @@ func TestNotebookStrategy_DisregardsCancelledNotChargeSessions(t *testing.T) {
 	}
 
 	item := inv.Items[0]
-	if item.InvoicedQuantity != 2 {
-		t.Errorf("expected InvoicedQuantity 2 (excluding cancelada_nao_cobrar), got %d", item.InvoicedQuantity)
-	}
-	if item.RealizedQuantity != 2 {
-		t.Errorf("expected RealizedQuantity 2, got %d", item.RealizedQuantity)
-	}
-	if len(item.ItemSessions) != 2 {
-		t.Fatalf("expected 2 session links, got %d", len(item.ItemSessions))
-	}
-	if item.ItemSessions[0].SessionID != 101 || item.ItemSessions[1].SessionID != 102 {
-		t.Errorf("expected session IDs 101 and 102, got %d and %d", item.ItemSessions[0].SessionID, item.ItemSessions[1].SessionID)
+	if item.Quantity != 2 {
+		t.Errorf("expected Quantity 2 (excluding cancelada_nao_cobrar), got %d", item.Quantity)
 	}
 	if inv.Amount != 160.0 {
 		t.Errorf("expected Amount 160.0 (2 * 80.0), got %.2f", inv.Amount)
@@ -214,8 +199,8 @@ func TestNotebookStrategy_AllSessionsCancelledNotCharge(t *testing.T) {
 	if invFixed.Amount != 200.0 {
 		t.Errorf("expected Amount 200.0, got %.2f", invFixed.Amount)
 	}
-	if invFixed.Items[0].InvoicedQuantity != 0 {
-		t.Errorf("expected InvoicedQuantity 0, got %d", invFixed.Items[0].InvoicedQuantity)
+	if invFixed.Items[0].Quantity != 0 {
+		t.Errorf("expected Quantity 0, got %d", invFixed.Items[0].Quantity)
 	}
 }
 

@@ -269,8 +269,8 @@ func (h *HandlerHtml) InvoicingUpdate(w http.ResponseWriter, r *http.Request) {
 			if itemID > 0 && len(v) > 0 {
 				qty, _ := strconv.Atoi(v[0])
 				items = append(items, dto.InvoiceItemUpdateRequest{
-					ID:               itemID,
-					InvoicedQuantity: qty,
+					ID:       itemID,
+					Quantity: qty,
 				})
 			}
 		}
@@ -741,7 +741,7 @@ func (h *HandlerHtml) getInvoiceData(response *dto.InvoiceListResponse) []map[st
 
 		itemsData := make([]map[string]interface{}, 0, len(inv.Items))
 		for _, it := range inv.Items {
-			subtotal := it.Price * float64(it.InvoicedQuantity)
+			subtotal := it.Price * float64(it.Quantity)
 			itPeriodStartFmt := it.PeriodStart
 			if t, err := time.Parse("2006-01-02", it.PeriodStart); err == nil {
 				itPeriodStartFmt = t.Format("02/01/2006")
@@ -758,8 +758,7 @@ func (h *HandlerHtml) getInvoiceData(response *dto.InvoiceListResponse) []map[st
 				"Description":          it.Description,
 				"Price":                it.Price,
 				"PrecoFormatado":       fmt.Sprintf("%.2f", it.Price),
-				"InvoicedQuantity":     it.InvoicedQuantity,
-				"RealizedQuantity":     it.RealizedQuantity,
+				"Quantity":             it.Quantity,
 				"SubtotalFormatado":    fmt.Sprintf("%.2f", subtotal),
 				"PeriodStart":          it.PeriodStart,
 				"PeriodStartFormatada": itPeriodStartFmt,

@@ -222,15 +222,23 @@ func (m *mockInvoicingRepoForService) FindBillableSessions(customerID int64, ser
 }
 
 func (m *mockInvoicingRepoForService) GetInvoiceForSession(sessionID int64) (*domain.Invoice, error) {
+	var target *domain.Session
+	for i := range m.sessions {
+		if m.sessions[i].ID == sessionID {
+			target = &m.sessions[i]
+			break
+		}
+	}
+	if target == nil {
+		return nil, nil
+	}
 	for _, inv := range m.invoices {
 		if inv.DeletedAt != nil {
 			continue
 		}
 		for _, item := range inv.Items {
-			for _, sessLink := range item.ItemSessions {
-				if sessLink.SessionID == sessionID {
-					return &inv, nil
-				}
+			if item.ServiceID == target.ServiceID && item.PeriodStart.Equal(target.SessionDate) {
+				return &inv, nil
 			}
 		}
 	}
@@ -477,7 +485,7 @@ func TestInvoicingService_Run(t *testing.T) {
 		if inv.Amount != 100.0 {
 			t.Errorf("expected Amount 100.0, got %.2f", inv.Amount)
 		}
-		if len(inv.Items) != 1 || inv.Items[0].InvoicedQuantity != 1 {
+		if len(inv.Items) != 1 || inv.Items[0].Quantity != 1 {
 			t.Errorf("expected 1 invoiced item with quantity 1, got %+v", inv.Items)
 		}
 
@@ -574,8 +582,8 @@ func TestInvoicingService_Run(t *testing.T) {
 		if len(inv.Items) != 1 {
 			t.Fatalf("expected 1 item, got %d", len(inv.Items))
 		}
-		if inv.Items[0].InvoicedQuantity != 1 {
-			t.Errorf("expected InvoicedQuantity 1, got %d", inv.Items[0].InvoicedQuantity)
+		if inv.Items[0].Quantity != 1 {
+			t.Errorf("expected Quantity 1, got %d", inv.Items[0].Quantity)
 		}
 		if inv.Amount != 70.0 {
 			t.Errorf("expected Amount 70.0, got %.2f", inv.Amount)

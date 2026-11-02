@@ -86,27 +86,16 @@ func (s *NotebookStrategy) CalculateMonth(
 			desc = &descCopy
 		}
 
-		itemSessions := make([]domain.InvoiceItemSession, invoicedQty)
-		for idx, sess := range billableSessions {
-			itemSessions[idx] = domain.InvoiceItemSession{
-				SessionID: sess.ID,
-				CreatedAt: refDate,
-			}
-		}
-
 		invItem := domain.InvoiceItem{
-			ServiceID:        item.ServiceID,
-			Price:            price,
-			Description:      desc,
-			Quantity:         invoicedQty,
-			PeriodStart:      prevMonthStart,
-			PeriodEnd:        prevMonthEnd,
-			InvoicedQuantity: invoicedQty,
-			RealizedQuantity: invoicedQty,
-			CreatedAt:        refDate,
-			UpdatedAt:        refDate,
-			DeletedAt:        nil,
-			ItemSessions:     itemSessions,
+			ServiceID:   item.ServiceID,
+			Price:       price,
+			Description: desc,
+			Quantity:    invoicedQty,
+			PeriodStart: prevMonthStart,
+			PeriodEnd:   prevMonthEnd,
+			CreatedAt:   refDate,
+			UpdatedAt:   refDate,
+			DeletedAt:   nil,
 		}
 
 		itemsTotalAmount += price * float64(invoicedQty)

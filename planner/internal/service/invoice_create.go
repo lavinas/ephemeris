@@ -119,13 +119,12 @@ func (s *InvoiceCreate) Run(input port.InDTO) port.OutDTO {
 			}
 		}
 		items[i] = domain.InvoiceItem{
-			ServiceID:        it.ServiceID,
-			Price:            it.Price,
-			Description:      desc,
-			Quantity:         it.Quantity,
-			InvoicedQuantity: it.Quantity,
-			PeriodStart:      itemStart,
-			PeriodEnd:        itemEnd,
+			ServiceID:   it.ServiceID,
+			Price:       it.Price,
+			Description: desc,
+			Quantity:    it.Quantity,
+			PeriodStart: itemStart,
+			PeriodEnd:   itemEnd,
 		}
 	}
 
@@ -212,14 +211,13 @@ func (s *InvoiceCreate) mapInvoiceToDTO(inv *domain.Invoice, customerNickname st
 			}
 		}
 		itemsDTO = append(itemsDTO, dto.InvoiceItemDTO{
-			ID:               it.ID,
-			ServiceID:        it.ServiceID,
-			Description:      desc,
-			Price:            it.Price,
-			InvoicedQuantity: it.Quantity,
-			RealizedQuantity: it.Quantity,
-			PeriodStart:      itStart,
-			PeriodEnd:        itEnd,
+			ID:          it.ID,
+			ServiceID:   it.ServiceID,
+			Description: desc,
+			Price:       it.Price,
+			Quantity:    it.Quantity,
+			PeriodStart: itStart,
+			PeriodEnd:   itEnd,
 		})
 	}
 

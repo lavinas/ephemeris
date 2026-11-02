@@ -57,12 +57,11 @@ func TestInvoiceList_Success(t *testing.T) {
 			},
 			Items: []domain.InvoiceItem{
 				{
-					ID:               1,
-					ServiceID:        2,
-					Price:            125.00,
-					Description:      &itemDesc,
-					InvoicedQuantity: 2,
-					RealizedQuantity: 1,
+					ID:          1,
+					ServiceID:   2,
+					Price:       125.00,
+					Description: &itemDesc,
+					Quantity:    2,
 				},
 			},
 		},
@@ -108,7 +107,7 @@ func TestInvoiceList_Success(t *testing.T) {
 	}
 
 	item := inv.Items[0]
-	if item.ID != 1 || item.ServiceID != 2 || item.Description != "Sessão de Fisioterapia" || item.Price != 125.00 || item.InvoicedQuantity != 2 || item.RealizedQuantity != 1 {
+	if item.ID != 1 || item.ServiceID != 2 || item.Description != "Sessão de Fisioterapia" || item.Price != 125.00 || item.Quantity != 2 {
 		t.Errorf("item fields mismatch: %+v", item)
 	}
 }

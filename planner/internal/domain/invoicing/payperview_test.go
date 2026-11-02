@@ -47,12 +47,8 @@ func TestPayPerViewStrategy_CalculateSession(t *testing.T) {
 	if len(inv.Items) != 1 {
 		t.Fatalf("expected 1 item, got %d", len(inv.Items))
 	}
-	if inv.Items[0].InvoicedQuantity != 1 || inv.Items[0].RealizedQuantity != 1 {
-		t.Errorf("expected quantities 1, got inv=%d, real=%d",
-			inv.Items[0].InvoicedQuantity, inv.Items[0].RealizedQuantity)
-	}
-	if len(inv.Items[0].ItemSessions) != 1 || inv.Items[0].ItemSessions[0].SessionID != 201 {
-		t.Errorf("expected session link to 201, got %v", inv.Items[0].ItemSessions)
+	if inv.Items[0].Quantity != 1 {
+		t.Errorf("expected quantity 1, got %d", inv.Items[0].Quantity)
 	}
 
 	// Due date: 2026-09-10 + 5 days = 2026-09-15

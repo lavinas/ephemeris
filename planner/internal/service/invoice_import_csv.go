@@ -114,13 +114,12 @@ func (s *InvoiceImportCSV) Run(input port.InDTO) port.OutDTO {
 				itEnd = group.PeriodEnd
 			}
 			items[i] = domain.InvoiceItem{
-				ServiceID:        it.ServiceID,
-				Price:            it.Price,
-				Description:      desc,
-				Quantity:         it.Quantity,
-				InvoicedQuantity: it.Quantity,
-				PeriodStart:      itStart,
-				PeriodEnd:        itEnd,
+				ServiceID:   it.ServiceID,
+				Price:       it.Price,
+				Description: desc,
+				Quantity:    it.Quantity,
+				PeriodStart: itStart,
+				PeriodEnd:   itEnd,
 			}
 		}
 

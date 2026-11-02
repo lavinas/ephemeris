@@ -146,15 +146,14 @@ type InvoiceDTO struct {
 
 // InvoiceItemDTO represents an item contained within an invoice.
 type InvoiceItemDTO struct {
-	ID               int64   `json:"id"`
-	ServiceID        int64   `json:"service_id"`
-	ServiceName      string  `json:"service_name,omitempty"`
-	Description      string  `json:"description"`
-	Price            float64 `json:"price"`
-	InvoicedQuantity int     `json:"invoiced_quantity"`
-	RealizedQuantity int     `json:"realized_quantity"`
-	PeriodStart      string  `json:"period_start"`
-	PeriodEnd        string  `json:"period_end"`
+	ID          int64   `json:"id"`
+	ServiceID   int64   `json:"service_id"`
+	ServiceName string  `json:"service_name,omitempty"`
+	Description string  `json:"description"`
+	Price       float64 `json:"price"`
+	Quantity    int     `json:"quantity"`
+	PeriodStart string  `json:"period_start"`
+	PeriodEnd   string  `json:"period_end"`
 }
 
 // NewInvoiceListResponse creates a new instance of InvoiceListResponse.

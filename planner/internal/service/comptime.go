@@ -262,9 +262,6 @@ func (s *ComptimeService) ProcessInvoiceItemCreated(ctx context.Context, invoice
 	}
 
 	qty := item.Quantity
-	if qty == 0 && item.InvoicedQuantity > 0 {
-		qty = item.InvoicedQuantity
-	}
 	if item.Price < 0 && qty > 0 {
 		qty = -qty
 	}
@@ -373,9 +370,6 @@ func (s *ComptimeService) ProcessInvoiceItemUpdated(ctx context.Context, invoice
 	}
 
 	qty := item.Quantity
-	if qty == 0 && item.InvoicedQuantity > 0 {
-		qty = item.InvoicedQuantity
-	}
 	if item.Price < 0 && qty > 0 {
 		qty = -qty
 	}
@@ -751,9 +745,6 @@ func (s *ComptimeService) enrichComptimeView(ctx context.Context, view *port.Com
 						continue
 					}
 					q := it.Quantity
-					if q == 0 && it.InvoicedQuantity > 0 {
-						q = it.InvoicedQuantity
-					}
 					if it.Price < 0 && q > 0 {
 						q = -q
 					}

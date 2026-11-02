@@ -166,10 +166,7 @@ func (s *InvoiceBill) billSingleInvoice(ctx context.Context, inv domain.Invoice)
 			desc = fmt.Sprintf("Serviço #%d", it.ServiceID)
 		}
 
-		qty := it.InvoicedQuantity
-		if qty == 0 && it.Quantity != 0 {
-			qty = it.Quantity
-		}
+		qty := it.Quantity
 		if qty < 0 {
 			qty = 0
 		}

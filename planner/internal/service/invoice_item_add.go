@@ -121,11 +121,9 @@ func (s *InvoiceItemAdd) Run(input port.InDTO) port.OutDTO {
 		req.Price,
 		&descStr,
 		req.Quantity,
-		req.Quantity,
 		pStart,
 		pEnd,
 	)
-	newItem.Quantity = req.Quantity
 	newItem.Service = svc
 
 	invoice.Items = append(invoice.Items, *newItem)
@@ -134,11 +132,7 @@ func (s *InvoiceItemAdd) Run(input port.InDTO) port.OutDTO {
 	totalAmount := 0.0
 	for _, it := range invoice.Items {
 		if it.DeletedAt == nil {
-			qty := it.InvoicedQuantity
-			if qty == 0 && it.Quantity > 0 {
-				qty = it.Quantity
-			}
-			totalAmount += it.Price * float64(qty)
+			totalAmount += it.Price * float64(it.Quantity)
 		}
 	}
 	invoice.Amount = totalAmount
@@ -220,10 +214,7 @@ func syncUpdatedInvoiceWithBilling(repo port.Repository, billingClient port.Bill
 			desc = fmt.Sprintf("Serviço #%d", it.ServiceID)
 		}
 
-		qty := it.InvoicedQuantity
-		if qty <= 0 && it.Quantity > 0 {
-			qty = it.Quantity
-		}
+		qty := it.Quantity
 		if qty <= 0 {
 			qty = 1
 		}

@@ -95,17 +95,15 @@ func (s *PackageStrategy) Calculate(plan *domain.Plan, refDate time.Time) (*doma
 		}
 
 		invoiceItems[i] = domain.InvoiceItem{
-			ServiceID:        item.ServiceID,
-			Price:            price,
-			Description:      desc,
-			Quantity:         invoicedQty,
-			PeriodStart:      periodStart,
-			PeriodEnd:        periodEnd,
-			InvoicedQuantity: invoicedQty,
-			RealizedQuantity: 0,
-			CreatedAt:        refDate,
-			UpdatedAt:        refDate,
-			DeletedAt:        nil,
+			ServiceID:   item.ServiceID,
+			Price:       price,
+			Description: desc,
+			Quantity:    invoicedQty,
+			PeriodStart: periodStart,
+			PeriodEnd:   periodEnd,
+			CreatedAt:   refDate,
+			UpdatedAt:   refDate,
+			DeletedAt:   nil,
 		}
 
 		itemsTotalAmount += price * float64(invoicedQty)

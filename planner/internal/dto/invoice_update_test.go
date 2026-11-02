@@ -25,8 +25,8 @@ func TestInvoiceUpdateRequest_UnmarshalJSON(t *testing.T) {
 		"id": 10,
 		"due_date": "2026-11-15",
 		"items": [
-			{"id": 101, "invoiced_quantity": 4},
-			{"id": 102, "invoiced_quantity": 2}
+			{"id": 101, "quantity": 4},
+			{"id": 102, "quantity": 2}
 		]
 	}`
 	var req InvoiceUpdateRequest
@@ -36,7 +36,7 @@ func TestInvoiceUpdateRequest_UnmarshalJSON(t *testing.T) {
 	if req.InvoiceID != 10 || req.DueDate != "2026-11-15" || len(req.Items) != 2 {
 		t.Fatalf("unexpected unmarshal values: %+v", req)
 	}
-	if req.Items[0].ID != 101 || req.Items[0].InvoicedQuantity != 4 {
+	if req.Items[0].ID != 101 || req.Items[0].Quantity != 4 {
 		t.Errorf("unexpected item[0]: %+v", req.Items[0])
 	}
 }
@@ -46,8 +46,8 @@ func TestInvoiceUpdateRequest_Validation(t *testing.T) {
 		ID:      10,
 		DueDate: time.Now(),
 		Items: []domain.InvoiceItem{
-			{ID: 101, InvoicedQuantity: 2, Price: 50.0},
-			{ID: 102, InvoicedQuantity: 1, Price: 100.0},
+			{ID: 101, Quantity: 2, Price: 50.0},
+			{ID: 102, Quantity: 1, Price: 100.0},
 		},
 	}
 	repo := &mockInvoiceUpdateRepo{invoice: sampleInvoice}
@@ -57,7 +57,7 @@ func TestInvoiceUpdateRequest_Validation(t *testing.T) {
 			InvoiceID: 10,
 			DueDate:   "2026-11-20",
 			Items: []InvoiceItemUpdateRequest{
-				{ID: 101, InvoicedQuantity: 5},
+				{ID: 101, Quantity: 5},
 			},
 		}
 		if err := req.Validate(repo); err != nil {
@@ -110,7 +110,7 @@ func TestInvoiceUpdateRequest_Validation(t *testing.T) {
 			InvoiceID: 10,
 			DueDate:   "2026-11-20",
 			Items: []InvoiceItemUpdateRequest{
-				{ID: 999, InvoicedQuantity: 1},
+				{ID: 999, Quantity: 1},
 			},
 		}
 		if err := req.Validate(repo); err == nil {
@@ -123,7 +123,7 @@ func TestInvoiceUpdateRequest_Validation(t *testing.T) {
 			InvoiceID: 10,
 			DueDate:   "2026-11-20",
 			Items: []InvoiceItemUpdateRequest{
-				{ID: 101, InvoicedQuantity: -1},
+				{ID: 101, Quantity: -1},
 			},
 		}
 		if err := req.Validate(repo); err == nil {
