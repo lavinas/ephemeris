@@ -120,9 +120,10 @@ cliente_b,15/05/2026,20/05/2026,aula,01/05/2026,15/05/2026,item b2,"150,00",1,`
 	// Verify plan for cliente_a: 2026-01-10 to 2026-02-20
 	var planA, planB *domain.Plan
 	for _, p := range repo.plans {
-		if p.CustomerID == 101 {
+		switch p.CustomerID {
+		case 101:
 			planA = p
-		} else if p.CustomerID == 102 {
+		case 102:
 			planB = p
 		}
 	}

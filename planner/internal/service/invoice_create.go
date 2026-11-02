@@ -106,15 +106,30 @@ func (s *InvoiceCreate) Run(input port.InDTO) port.OutDTO {
 			d := strings.TrimSpace(it.Description)
 			desc = &d
 		}
+		itemStart := periodStart
+		if strings.TrimSpace(it.PeriodStart) != "" {
+			if parsed, err := dto.ParseFlexibleDate(it.PeriodStart); err == nil {
+				itemStart = parsed
+			}
+		}
+		itemEnd := periodEnd
+		if strings.TrimSpace(it.PeriodEnd) != "" {
+			if parsed, err := dto.ParseFlexibleDate(it.PeriodEnd); err == nil {
+				itemEnd = parsed
+			}
+		}
 		items[i] = domain.InvoiceItem{
-			ServiceID:   it.ServiceID,
-			Price:       it.Price,
-			Description: desc,
-			Quantity:    it.Quantity,
+			ServiceID:        it.ServiceID,
+			Price:            it.Price,
+			Description:      desc,
+			Quantity:         it.Quantity,
+			InvoicedQuantity: it.Quantity,
+			PeriodStart:      itemStart,
+			PeriodEnd:        itemEnd,
 		}
 	}
 
-	invoice := domain.NewInvoice(planID, invoiceDate, dueDate, periodStart, periodEnd, totalAmount, req.ReferenceInvoiceID)
+	invoice := domain.NewInvoice(planID, invoiceDate, dueDate, totalAmount, req.ReferenceInvoiceID)
 	invoice.Items = items
 
 	if err := s.repo.SaveInvoice(invoice); err != nil {
@@ -175,10 +190,26 @@ func (s *InvoiceCreate) mapInvoiceToDTO(inv *domain.Invoice, customerNickname st
 		return nil
 	}
 	itemsDTO := make([]dto.InvoiceItemDTO, 0, len(inv.Items))
+	periodStartStr := ""
+	periodEndStr := ""
 	for _, it := range inv.Items {
 		desc := ""
 		if it.Description != nil {
 			desc = *it.Description
+		}
+		itStart := ""
+		if !it.PeriodStart.IsZero() {
+			itStart = it.PeriodStart.Format("2006-01-02")
+			if periodStartStr == "" || itStart < periodStartStr {
+				periodStartStr = itStart
+			}
+		}
+		itEnd := ""
+		if !it.PeriodEnd.IsZero() {
+			itEnd = it.PeriodEnd.Format("2006-01-02")
+			if periodEndStr == "" || itEnd > periodEndStr {
+				periodEndStr = itEnd
+			}
 		}
 		itemsDTO = append(itemsDTO, dto.InvoiceItemDTO{
 			ID:               it.ID,
@@ -187,6 +218,8 @@ func (s *InvoiceCreate) mapInvoiceToDTO(inv *domain.Invoice, customerNickname st
 			Price:            it.Price,
 			InvoicedQuantity: it.Quantity,
 			RealizedQuantity: it.Quantity,
+			PeriodStart:      itStart,
+			PeriodEnd:        itEnd,
 		})
 	}
 
@@ -194,8 +227,8 @@ func (s *InvoiceCreate) mapInvoiceToDTO(inv *domain.Invoice, customerNickname st
 		ID:                 inv.ID,
 		InvoiceDate:        inv.InvoicingDate.Format("2006-01-02"),
 		DueDate:            inv.DueDate.Format("2006-01-02"),
-		PeriodStart:        inv.PeriodStart.Format("2006-01-02"),
-		PeriodEnd:          inv.PeriodEnd.Format("2006-01-02"),
+		PeriodStart:        periodStartStr,
+		PeriodEnd:          periodEndStr,
 		Nickname:           customerNickname,
 		Amount:             inv.Amount,
 		ReferenceInvoiceID: inv.ReferenceInvoiceID,

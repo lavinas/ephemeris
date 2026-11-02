@@ -1309,8 +1309,6 @@ func TestHTMLInvoicingReconciliationButton(t *testing.T) {
 				Plan:          &domain.Plan{CustomerID: 10, Customer: &domain.Customer{ID: 10, Nickname: "cliente_teste"}},
 				InvoicingDate: now,
 				DueDate:       now.AddDate(0, 0, 5),
-				PeriodStart:   now.AddDate(0, -1, 0),
-				PeriodEnd:     now,
 				Amount:        200.0,
 				Items: []domain.InvoiceItem{
 					{
@@ -1321,6 +1319,8 @@ func TestHTMLInvoicingReconciliationButton(t *testing.T) {
 						Description:      &desc,
 						InvoicedQuantity: 2,
 						RealizedQuantity: 1,
+						PeriodStart:      now.AddDate(0, -1, 0),
+						PeriodEnd:        now,
 					},
 				},
 			},
@@ -1351,6 +1351,20 @@ func TestHTMLInvoicingReconciliationButton(t *testing.T) {
 	}
 	if strings.Contains(body, "Qtd Real.") {
 		t.Errorf("expected invoicing table NOT to contain Qtd Real. column")
+	}
+
+	// Verify standalone item modal renders all fields, services list and submit button
+	reqModal := httptest.NewRequest(http.MethodGet, "/invoicing/item-avulso/novo?invoice_id=5", nil)
+	recModal := httptest.NewRecorder()
+	mux.ServeHTTP(recModal, reqModal)
+	if recModal.Code != http.StatusOK {
+		t.Fatalf("expected 200 on /invoicing/item-avulso/novo, got %d: %s", recModal.Code, recModal.Body.String())
+	}
+	modalBody := recModal.Body.String()
+	for _, expected := range []string{"Operação *", "Serviço *", "Período Inicial *", "Período Final *", "Preço Unitário (R$) *", "Quantidade *", "Descrição (Opcional)", "Salvar Item"} {
+		if !strings.Contains(modalBody, expected) {
+			t.Errorf("expected modal body to contain %q, got: %s", expected, modalBody)
+		}
 	}
 }
 
@@ -1599,14 +1613,14 @@ func TestHTMLComptimeRoutes(t *testing.T) {
 	if !strings.Contains(bodyPage, "Atendimento Clínico Semanal") {
 		t.Errorf("expected body to contain 'Atendimento Clínico Semanal'")
 	}
-	if !strings.Contains(bodyPage, "PREVISTOS") {
-		t.Errorf("expected body to contain 'PREVISTOS'")
+	if !strings.Contains(bodyPage, "PREVISTO") {
+		t.Errorf("expected body to contain 'PREVISTO'")
 	}
-	if !strings.Contains(bodyPage, "REALIZADOS") {
-		t.Errorf("expected body to contain 'REALIZADOS'")
+	if !strings.Contains(bodyPage, "REALIZADO") {
+		t.Errorf("expected body to contain 'REALIZADO'")
 	}
-	if !strings.Contains(bodyPage, "AJUSTADOS") {
-		t.Errorf("expected body to contain 'AJUSTADOS'")
+	if !strings.Contains(bodyPage, "AJUSTADO") {
+		t.Errorf("expected body to contain 'AJUSTADO'")
 	}
 	if !strings.Contains(bodyPage, "SALDO MÊS") {
 		t.Errorf("expected body to contain 'SALDO MÊS'")

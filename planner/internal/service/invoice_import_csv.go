@@ -105,15 +105,26 @@ func (s *InvoiceImportCSV) Run(input port.InDTO) port.OutDTO {
 				d := strings.TrimSpace(it.Description)
 				desc = &d
 			}
+			itStart := it.PeriodStart
+			if itStart.IsZero() {
+				itStart = group.PeriodStart
+			}
+			itEnd := it.PeriodEnd
+			if itEnd.IsZero() {
+				itEnd = group.PeriodEnd
+			}
 			items[i] = domain.InvoiceItem{
-				ServiceID:   it.ServiceID,
-				Price:       it.Price,
-				Description: desc,
-				Quantity:    it.Quantity,
+				ServiceID:        it.ServiceID,
+				Price:            it.Price,
+				Description:      desc,
+				Quantity:         it.Quantity,
+				InvoicedQuantity: it.Quantity,
+				PeriodStart:      itStart,
+				PeriodEnd:        itEnd,
 			}
 		}
 
-		inv := domain.NewInvoice(planID, group.InvoiceDate, group.DueDate, group.PeriodStart, group.PeriodEnd, invTotal, group.ReferenceInvoiceID)
+		inv := domain.NewInvoice(planID, group.InvoiceDate, group.DueDate, invTotal, group.ReferenceInvoiceID)
 		inv.Items = items
 
 		invoicesToSave = append(invoicesToSave, inv)

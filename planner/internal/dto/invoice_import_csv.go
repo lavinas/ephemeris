@@ -23,6 +23,8 @@ type CSVInvoiceItem struct {
 	Description string
 	Price       float64
 	Quantity    int
+	PeriodStart time.Time
+	PeriodEnd   time.Time
 }
 
 // CSVGroupedInvoice represents an invoice grouped by (cliente, faturamento, inicio, fim).
@@ -361,6 +363,8 @@ func (r *InvoiceImportCSVRequest) Validate(repo port.Repository) error {
 			Description: descricao,
 			Price:       preco,
 			Quantity:    qtd,
+			PeriodStart: inicioDate,
+			PeriodEnd:   fimDate,
 		})
 	}
 

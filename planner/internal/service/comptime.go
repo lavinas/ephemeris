@@ -261,8 +261,20 @@ func (s *ComptimeService) ProcessInvoiceItemCreated(ctx context.Context, invoice
 		sessionMinutes = *item.Service.SessionMinutes
 	}
 
-	invoicedMinutes := item.Quantity * sessionMinutes
-	month := domain.NormalizeMonth(item.Invoice.PeriodStart)
+	qty := item.Quantity
+	if qty == 0 && item.InvoicedQuantity > 0 {
+		qty = item.InvoicedQuantity
+	}
+	if item.Price < 0 && qty > 0 {
+		qty = -qty
+	}
+	invoicedMinutes := qty * sessionMinutes
+
+	pStart := item.PeriodStart
+	if pStart.IsZero() && item.Invoice != nil {
+		pStart = item.Invoice.InvoicingDate
+	}
+	month := domain.NormalizeMonth(pStart)
 
 	comptime, err := s.repo.FindOrCreateComptime(ctx, vendorID, customerID, serviceID, month)
 	if err != nil {
@@ -308,9 +320,6 @@ func (s *ComptimeService) ProcessInvoiceItemDeleted(ctx context.Context, invoice
 	_ = s.repo.LockCustomerService(ctx, comptime.CustomerID, comptime.ServiceID)
 
 	comptime.InvoicedMinutes -= cii.InvoicedMinutes
-	if comptime.InvoicedMinutes < 0 {
-		comptime.InvoicedMinutes = 0
-	}
 
 	if err := s.repo.DeleteComptimeInvoiceItem(ctx, invoiceItemID); err != nil {
 		return fmt.Errorf("erro ao deletar comptime_invoice_item %d: %w", invoiceItemID, err)
@@ -363,13 +372,17 @@ func (s *ComptimeService) ProcessInvoiceItemUpdated(ctx context.Context, invoice
 		sessionMinutes = *item.Service.SessionMinutes
 	}
 
-	newInvoicedMinutes := item.Quantity * sessionMinutes
+	qty := item.Quantity
+	if qty == 0 && item.InvoicedQuantity > 0 {
+		qty = item.InvoicedQuantity
+	}
+	if item.Price < 0 && qty > 0 {
+		qty = -qty
+	}
+	newInvoicedMinutes := qty * sessionMinutes
 	delta := newInvoicedMinutes - cii.InvoicedMinutes
 
 	comptime.InvoicedMinutes += delta
-	if comptime.InvoicedMinutes < 0 {
-		comptime.InvoicedMinutes = 0
-	}
 
 	cii.InvoicedMinutes = newInvoicedMinutes
 	if err := s.repo.SaveComptimeInvoiceItem(ctx, cii); err != nil {
@@ -621,9 +634,9 @@ func (s *ComptimeService) Resync(ctx context.Context, vendorID int64, startDate,
 				if it.Invoice != nil && it.Invoice.Plan != nil {
 					cID = it.Invoice.Plan.CustomerID
 				}
-				pStart := time.Time{}
-				if it.Invoice != nil {
-					pStart = it.Invoice.PeriodStart
+				pStart := it.PeriodStart
+				if pStart.IsZero() && it.Invoice != nil {
+					pStart = it.Invoice.InvoicingDate
 				}
 				key := fmt.Sprintf("%d_%d_%s", cID, it.ServiceID, domain.NormalizeMonth(pStart).Format("2006-01"))
 				affectedComptimes[key] = true
@@ -734,12 +747,15 @@ func (s *ComptimeService) enrichComptimeView(ctx context.Context, view *port.Com
 				totalQty := 0
 				matchedPeriod := false
 				for _, it := range invItems {
-					if it.Invoice != nil && !it.Invoice.IsActiveInPeriod(currentMonth, monthEnd) {
+					if !it.IsActiveInPeriod(currentMonth, monthEnd) {
 						continue
 					}
 					q := it.Quantity
 					if q == 0 && it.InvoicedQuantity > 0 {
 						q = it.InvoicedQuantity
+					}
+					if it.Price < 0 && q > 0 {
+						q = -q
 					}
 					totalQty += q
 					matchedPeriod = true

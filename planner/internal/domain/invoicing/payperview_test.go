@@ -61,11 +61,11 @@ func TestPayPerViewStrategy_CalculateSession(t *testing.T) {
 		t.Errorf("expected DueDate %v, got %v", expectedDueDate, inv.DueDate)
 	}
 
-	if !inv.PeriodStart.Equal(sessDate) {
-		t.Errorf("expected PeriodStart %v, got %v", sessDate, inv.PeriodStart)
+	if !inv.Items[0].PeriodStart.Equal(sessDate) {
+		t.Errorf("expected PeriodStart %v, got %v", sessDate, inv.Items[0].PeriodStart)
 	}
-	if !inv.PeriodEnd.Equal(sessDate) {
-		t.Errorf("expected PeriodEnd %v, got %v", sessDate, inv.PeriodEnd)
+	if !inv.Items[0].PeriodEnd.Equal(sessDate) {
+		t.Errorf("expected PeriodEnd %v, got %v", sessDate, inv.Items[0].PeriodEnd)
 	}
 
 	expectedDesc := "10/09/2026"

@@ -55,12 +55,12 @@ func TestAgendaStrategy_CalculateMonth(t *testing.T) {
 	}
 
 	expectedPeriodStart := time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)
-	if !inv.PeriodStart.Equal(expectedPeriodStart) {
-		t.Errorf("expected PeriodStart %v, got %v", expectedPeriodStart, inv.PeriodStart)
+	if !inv.Items[0].PeriodStart.Equal(expectedPeriodStart) {
+		t.Errorf("expected PeriodStart %v, got %v", expectedPeriodStart, inv.Items[0].PeriodStart)
 	}
 	expectedPeriodEnd := time.Date(2026, 9, 30, 0, 0, 0, 0, time.UTC)
-	if !inv.PeriodEnd.Equal(expectedPeriodEnd) {
-		t.Errorf("expected PeriodEnd %v, got %v", expectedPeriodEnd, inv.PeriodEnd)
+	if !inv.Items[0].PeriodEnd.Equal(expectedPeriodEnd) {
+		t.Errorf("expected PeriodEnd %v, got %v", expectedPeriodEnd, inv.Items[0].PeriodEnd)
 	}
 
 	if len(inv.Items) != 1 {
@@ -110,12 +110,12 @@ func TestAgendaStrategy_PostPaid(t *testing.T) {
 	}
 
 	expectedPeriodStart := time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC)
-	if !inv.PeriodStart.Equal(expectedPeriodStart) {
-		t.Errorf("expected PeriodStart %v, got %v", expectedPeriodStart, inv.PeriodStart)
+	if !inv.Items[0].PeriodStart.Equal(expectedPeriodStart) {
+		t.Errorf("expected PeriodStart %v, got %v", expectedPeriodStart, inv.Items[0].PeriodStart)
 	}
 	expectedPeriodEnd := time.Date(2026, 8, 31, 0, 0, 0, 0, time.UTC)
-	if !inv.PeriodEnd.Equal(expectedPeriodEnd) {
-		t.Errorf("expected PeriodEnd %v, got %v", expectedPeriodEnd, inv.PeriodEnd)
+	if !inv.Items[0].PeriodEnd.Equal(expectedPeriodEnd) {
+		t.Errorf("expected PeriodEnd %v, got %v", expectedPeriodEnd, inv.Items[0].PeriodEnd)
 	}
 
 	if inv.Items[0].InvoicedQuantity != 5 {

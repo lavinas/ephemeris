@@ -73,6 +73,12 @@ func NewAPIRoutes(repo port.Repository, logger port.Logger, billingClients ...po
 	mux.HandleFunc("/invoicing/create", handler.InvoiceCreate)
 	mux.HandleFunc("/invoice/import-csv", handler.InvoiceImportCSV)
 	mux.HandleFunc("/invoicing/import-csv", handler.InvoiceImportCSV)
+	mux.HandleFunc("/invoice/item/add", handler.InvoiceItemAdd)
+	mux.HandleFunc("/invoice/item/create", handler.InvoiceItemAdd)
+	mux.HandleFunc("/invoicing/item/add", handler.InvoiceItemAdd)
+	mux.HandleFunc("/invoicing/item/create", handler.InvoiceItemAdd)
+	mux.HandleFunc("/invoice/item/delete", handler.InvoiceItemDelete)
+	mux.HandleFunc("/invoicing/item/delete", handler.InvoiceItemDelete)
 	mux.HandleFunc("/comptime/delete", handler.ComptimeDelete)
 	mux.HandleFunc("/banco-de-horas/delete", handler.ComptimeDelete)
 	mux.HandleFunc("/comptime/adjust", handler.ComptimeAdjust)
@@ -152,6 +158,9 @@ func NewHTMLRoutes(repo port.Repository, logger port.Logger, htmlTemplate []byte
 	mux.HandleFunc("/invoicing/faturar", handler.InvoicingBill)
 	mux.HandleFunc("/invoicing/faturar-lote-aviso", handler.InvoicingBillBatchWarning)
 	mux.HandleFunc("/invoicing/faturar-lote", handler.InvoicingBillBatch)
+	mux.HandleFunc("/invoicing/item-avulso/novo", handler.InvoicingItemAddModal)
+	mux.HandleFunc("/invoicing/item-avulso/salvar", handler.InvoicingItemAddSave)
+	mux.HandleFunc("/invoicing/item/deletar", handler.InvoicingItemDelete)
 
 	mux.HandleFunc("/pre-faturas", handler.InvoicingHTML)
 	mux.HandleFunc("/pre-faturas/", handler.InvoicingHTML)
@@ -173,6 +182,9 @@ func NewHTMLRoutes(repo port.Repository, logger port.Logger, htmlTemplate []byte
 	mux.HandleFunc("/pre-faturas/faturar", handler.InvoicingBill)
 	mux.HandleFunc("/pre-faturas/faturar-lote-aviso", handler.InvoicingBillBatchWarning)
 	mux.HandleFunc("/pre-faturas/faturar-lote", handler.InvoicingBillBatch)
+	mux.HandleFunc("/pre-faturas/item-avulso/novo", handler.InvoicingItemAddModal)
+	mux.HandleFunc("/pre-faturas/item-avulso/salvar", handler.InvoicingItemAddSave)
+	mux.HandleFunc("/pre-faturas/item/deletar", handler.InvoicingItemDelete)
 
 	// Comptime (Banco de Horas) routes
 	mux.HandleFunc("/comptime", handler.ComptimeHTML)

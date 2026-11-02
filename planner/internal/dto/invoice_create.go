@@ -19,6 +19,8 @@ type InvoiceItemCreateRequest struct {
 	Price       float64 `json:"price"`
 	Description string  `json:"description,omitempty"`
 	Quantity    int     `json:"quantity"`
+	PeriodStart string  `json:"period_start,omitempty"`
+	PeriodEnd   string  `json:"period_end,omitempty"`
 }
 
 // InvoiceCreateRequest represents a request to manually create a new invoice.
@@ -175,6 +177,19 @@ func (r *InvoiceCreateRequest) UnmarshalJSON(data []byte) error {
 					item.Description = strings.TrimSpace(d)
 				}
 
+				for _, k := range []string{"period_start", "inicio", "periodo_inicio", "periodo_inicial"} {
+					if ps, ok := itemMap[k].(string); ok && strings.TrimSpace(ps) != "" {
+						item.PeriodStart = strings.TrimSpace(ps)
+						break
+					}
+				}
+				for _, k := range []string{"period_end", "fim", "periodo_fim", "periodo_final"} {
+					if pe, ok := itemMap[k].(string); ok && strings.TrimSpace(pe) != "" {
+						item.PeriodEnd = strings.TrimSpace(pe)
+						break
+					}
+				}
+
 				r.Items = append(r.Items, item)
 			}
 		}
@@ -221,6 +236,14 @@ func (r *InvoiceCreateRequest) ApplyDefaults() {
 	}
 	if strings.TrimSpace(r.PeriodEnd) == "" {
 		r.PeriodEnd = lastDay.Format("2006-01-02")
+	}
+	for i := range r.Items {
+		if strings.TrimSpace(r.Items[i].PeriodStart) == "" {
+			r.Items[i].PeriodStart = r.PeriodStart
+		}
+		if strings.TrimSpace(r.Items[i].PeriodEnd) == "" {
+			r.Items[i].PeriodEnd = r.PeriodEnd
+		}
 	}
 }
 
@@ -272,12 +295,24 @@ func (r *InvoiceCreateRequest) Validate(repo port.Repository) error {
 		}
 	}
 
-	for i, item := range r.Items {
+	for i := range r.Items {
+		item := &r.Items[i]
 		if item.Price <= 0 {
 			return fmt.Errorf("item #%d: preço e quantidade devem ser maior que zero", i+1)
 		}
 		if item.Quantity <= 0 {
 			return fmt.Errorf("item #%d: preço e quantidade devem ser maior que zero", i+1)
+		}
+		itemStart, err := ParseFlexibleDate(item.PeriodStart)
+		if err != nil {
+			return fmt.Errorf("item #%d: período inicial inválido: %w", i+1, err)
+		}
+		itemEnd, err := ParseFlexibleDate(item.PeriodEnd)
+		if err != nil {
+			return fmt.Errorf("item #%d: período final inválido: %w", i+1, err)
+		}
+		if itemEnd.Before(itemStart) {
+			return fmt.Errorf("item #%d: o período final deve ser maior ou igual ao período inicial", i+1)
 		}
 
 		if repo != nil {

@@ -174,7 +174,7 @@ func TestSessionCreate_PayPerView_AutomaticInvoicingAndComptime(t *testing.T) {
 
 	req := &dto.SessionCreateRequest{
 		Nickname:  "cliente_ppv",
-		Date:      "2026-10-15",
+		Date:      "2026-11-15",
 		Minutes:   45,
 		ServiceID: 2,
 		Status:    "realizada",
@@ -194,19 +194,13 @@ func TestSessionCreate_PayPerView_AutomaticInvoicingAndComptime(t *testing.T) {
 	if inv.PlanID != 50 {
 		t.Errorf("expected PlanID 50, got %d", inv.PlanID)
 	}
-	expectedDate := time.Date(2026, 10, 15, 0, 0, 0, 0, time.UTC)
+	expectedDate := time.Date(2026, 11, 15, 0, 0, 0, 0, time.UTC)
 	if !inv.InvoicingDate.Equal(expectedDate) {
 		t.Errorf("expected InvoicingDate %v, got %v", expectedDate, inv.InvoicingDate)
 	}
-	expectedDueDate := time.Date(2026, 10, 30, 0, 0, 0, 0, time.UTC) // 15 + 15
+	expectedDueDate := time.Date(2026, 11, 30, 0, 0, 0, 0, time.UTC) // 15 + 15
 	if !inv.DueDate.Equal(expectedDueDate) {
 		t.Errorf("expected DueDate %v, got %v", expectedDueDate, inv.DueDate)
-	}
-	if !inv.PeriodStart.Equal(expectedDate) {
-		t.Errorf("expected PeriodStart %v, got %v", expectedDate, inv.PeriodStart)
-	}
-	if !inv.PeriodEnd.Equal(expectedDate) {
-		t.Errorf("expected PeriodEnd %v, got %v", expectedDate, inv.PeriodEnd)
 	}
 	if inv.Amount != 150.0 {
 		t.Errorf("expected Amount 150.0, got %.2f", inv.Amount)
@@ -215,6 +209,12 @@ func TestSessionCreate_PayPerView_AutomaticInvoicingAndComptime(t *testing.T) {
 		t.Fatalf("expected 1 invoice item, got %d", len(inv.Items))
 	}
 	item := inv.Items[0]
+	if !item.PeriodStart.Equal(expectedDate) {
+		t.Errorf("expected PeriodStart %v, got %v", expectedDate, item.PeriodStart)
+	}
+	if !item.PeriodEnd.Equal(expectedDate) {
+		t.Errorf("expected PeriodEnd %v, got %v", expectedDate, item.PeriodEnd)
+	}
 	if item.ServiceID != 2 {
 		t.Errorf("expected item ServiceID 2, got %d", item.ServiceID)
 	}
@@ -224,7 +224,7 @@ func TestSessionCreate_PayPerView_AutomaticInvoicingAndComptime(t *testing.T) {
 	if item.Quantity != 1 {
 		t.Errorf("expected item Quantity 1, got %d", item.Quantity)
 	}
-	expectedDesc := "Aula de Canto Avulsa - 15/10/2026"
+	expectedDesc := "Aula de Canto Avulsa - 15/11/2026"
 	if item.Description == nil || *item.Description != expectedDesc {
 		t.Errorf("expected item Description %q, got %v", expectedDesc, item.Description)
 	}

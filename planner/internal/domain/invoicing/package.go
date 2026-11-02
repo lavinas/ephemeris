@@ -88,11 +88,19 @@ func (s *PackageStrategy) Calculate(plan *domain.Plan, refDate time.Time) (*doma
 			desc = &descCopy
 		}
 
+		periodStart := plan.PlanStart
+		periodEnd := plan.PlanStart
+		if plan.PlanEnd != nil && !plan.PlanEnd.IsZero() {
+			periodEnd = *plan.PlanEnd
+		}
+
 		invoiceItems[i] = domain.InvoiceItem{
 			ServiceID:        item.ServiceID,
 			Price:            price,
 			Description:      desc,
 			Quantity:         invoicedQty,
+			PeriodStart:      periodStart,
+			PeriodEnd:        periodEnd,
 			InvoicedQuantity: invoicedQty,
 			RealizedQuantity: 0,
 			CreatedAt:        refDate,
@@ -108,18 +116,10 @@ func (s *PackageStrategy) Calculate(plan *domain.Plan, refDate time.Time) (*doma
 		amount = *plan.Price
 	}
 
-	periodStart := plan.PlanStart
-	periodEnd := plan.PlanStart
-	if plan.PlanEnd != nil && !plan.PlanEnd.IsZero() {
-		periodEnd = *plan.PlanEnd
-	}
-
 	invoice := &domain.Invoice{
 		PlanID:             plan.ID,
 		InvoicingDate:      plan.PlanStart,
 		DueDate:            dueDate,
-		PeriodStart:        periodStart,
-		PeriodEnd:          periodEnd,
 		Amount:             amount,
 		ReferenceInvoiceID: nil,
 		CreatedAt:          refDate,

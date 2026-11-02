@@ -865,19 +865,49 @@ func (a *Repository) UpdateInvoice(invoice *domain.Invoice) error {
 		return err
 	}
 
-	for _, it := range invoice.Items {
-		if it.ID > 0 {
-			qty := it.Quantity
-			if it.InvoicedQuantity > 0 && (it.Quantity == 0 || it.InvoicedQuantity != it.Quantity) {
-				qty = it.InvoicedQuantity
+	for i := range invoice.Items {
+		it := &invoice.Items[i]
+		if it.ID == 0 {
+			if it.DeletedAt != nil {
+				continue
 			}
+			it.InvoiceID = invoice.ID
+			it.CreatedAt = now
+			it.UpdatedAt = now
+			if it.Quantity == 0 && it.InvoicedQuantity > 0 {
+				it.Quantity = it.InvoicedQuantity
+			}
+			if it.InvoicedQuantity == 0 && it.Quantity > 0 {
+				it.InvoicedQuantity = it.Quantity
+			}
+			if err := tx.Omit("Service", "Invoice").Create(it).Error; err != nil {
+				tx.Rollback()
+				return err
+			}
+			continue
+		}
+
+		if it.DeletedAt != nil {
 			if err := tx.Model(&domain.InvoiceItem{}).Where("id = ? AND invoice_id = ? AND deleted_at IS NULL", it.ID, invoice.ID).Updates(map[string]interface{}{
-				"quantity":   qty,
+				"deleted_at": it.DeletedAt,
 				"updated_at": now,
 			}).Error; err != nil {
 				tx.Rollback()
 				return err
 			}
+			continue
+		}
+
+		qty := it.Quantity
+		if it.InvoicedQuantity > 0 && (it.Quantity == 0 || it.InvoicedQuantity != it.Quantity) {
+			qty = it.InvoicedQuantity
+		}
+		if err := tx.Model(&domain.InvoiceItem{}).Where("id = ? AND invoice_id = ? AND deleted_at IS NULL", it.ID, invoice.ID).Updates(map[string]interface{}{
+			"quantity":   qty,
+			"updated_at": now,
+		}).Error; err != nil {
+			tx.Rollback()
+			return err
 		}
 	}
 
@@ -1077,11 +1107,13 @@ func (a *Repository) CheckInvoiceExists(customerID int64, invoiceDate, periodSta
 	var count int64
 	query := db.Table("planner.invoice").
 		Joins("JOIN planner.plan ON planner.plan.id = planner.invoice.plan_id").
+		Joins("JOIN planner.invoice_item ON planner.invoice_item.invoice_id = planner.invoice.id").
 		Where("planner.plan.customer_id = ?", customerID).
 		Where("planner.invoice.invoicing_date = ?", invoiceDate.Format("2006-01-02")).
-		Where("planner.invoice.period_start = ?", periodStart.Format("2006-01-02")).
-		Where("planner.invoice.period_end = ?", periodEnd.Format("2006-01-02")).
+		Where("planner.invoice_item.period_start = ?", periodStart.Format("2006-01-02")).
+		Where("planner.invoice_item.period_end = ?", periodEnd.Format("2006-01-02")).
 		Where("planner.invoice.deleted_at IS NULL").
+		Where("planner.invoice_item.deleted_at IS NULL").
 		Where("planner.plan.deleted_at IS NULL")
 
 	if excludeInvoiceID > 0 {

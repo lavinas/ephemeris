@@ -748,6 +748,77 @@ func (h *HandlerApi) InvoiceImportCSV(w http.ResponseWriter, r *http.Request) {
 	h.writeResponse(w, response)
 }
 
+// InvoiceItemAdd handles adding a standalone item (addition or discount) to an existing pre-invoice via JSON API
+func (h *HandlerApi) InvoiceItemAdd(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	requestDTO := &dto.InvoiceItemAddRequest{}
+	if r.Body != nil && r.Body != http.NoBody {
+		if err := json.NewDecoder(r.Body).Decode(requestDTO); err != nil {
+			h.writeResponse(w, dto.NewInvoiceItemAddResponse(http.StatusBadRequest, "error", "Invalid JSON format: "+err.Error(), nil, nil))
+			return
+		}
+	}
+
+	q := r.URL.Query()
+	if requestDTO.InvoiceID <= 0 {
+		for _, k := range []string{"invoice_id", "id", "fatura_id"} {
+			if s := q.Get(k); s != "" {
+				if id, err := strconv.ParseInt(s, 10, 64); err == nil && id > 0 {
+					requestDTO.InvoiceID = id
+					break
+				}
+			}
+		}
+	}
+
+	svc := service.NewInvoiceItemAdd(h.repo, h.logger, h.getBillingClient())
+	response := svc.Run(requestDTO)
+	h.writeResponse(w, response)
+}
+
+// InvoiceItemDelete handles deleting an item from a pre-invoice via JSON API
+func (h *HandlerApi) InvoiceItemDelete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete && r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	requestDTO := &dto.InvoiceItemDeleteRequest{}
+	if r.Body != nil && r.Body != http.NoBody {
+		_ = json.NewDecoder(r.Body).Decode(requestDTO)
+	}
+
+	q := r.URL.Query()
+	if requestDTO.ItemID <= 0 {
+		for _, k := range []string{"id", "item_id", "invoice_item_id"} {
+			if s := q.Get(k); s != "" {
+				if id, err := strconv.ParseInt(s, 10, 64); err == nil && id > 0 {
+					requestDTO.ItemID = id
+					break
+				}
+			}
+		}
+	}
+	if requestDTO.InvoiceID <= 0 {
+		for _, k := range []string{"invoice_id", "fatura_id"} {
+			if s := q.Get(k); s != "" {
+				if id, err := strconv.ParseInt(s, 10, 64); err == nil && id > 0 {
+					requestDTO.InvoiceID = id
+					break
+				}
+			}
+		}
+	}
+
+	svc := service.NewInvoiceItemDelete(h.repo, h.logger, h.getBillingClient())
+	response := svc.Run(requestDTO)
+	h.writeResponse(w, response)
+}
+
 // writeResponse writes the given response to the http.ResponseWriter with the appropriate status
 func (h *HandlerApi) writeResponse(w http.ResponseWriter, response port.OutDTO) {
 	responseJSON, err := json.MarshalIndent(response, "", "  ")

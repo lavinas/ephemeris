@@ -136,8 +136,8 @@ type InvoiceDTO struct {
 	PlanType           int              `json:"plan_type"`
 	PlanTypeName       string           `json:"plan_type_name"`
 	DueDate            string           `json:"due_date"`
-	PeriodStart        string           `json:"period_start"`
-	PeriodEnd          string           `json:"period_end"`
+	PeriodStart        string           `json:"period_start,omitempty"`
+	PeriodEnd          string           `json:"period_end,omitempty"`
 	Amount             float64          `json:"amount"`
 	ReferenceInvoiceID *int64           `json:"reference_invoice_id,omitempty"`
 	Invoiced           bool             `json:"invoiced"`
@@ -148,10 +148,13 @@ type InvoiceDTO struct {
 type InvoiceItemDTO struct {
 	ID               int64   `json:"id"`
 	ServiceID        int64   `json:"service_id"`
+	ServiceName      string  `json:"service_name,omitempty"`
 	Description      string  `json:"description"`
 	Price            float64 `json:"price"`
 	InvoicedQuantity int     `json:"invoiced_quantity"`
 	RealizedQuantity int     `json:"realized_quantity"`
+	PeriodStart      string  `json:"period_start"`
+	PeriodEnd        string  `json:"period_end"`
 }
 
 // NewInvoiceListResponse creates a new instance of InvoiceListResponse.

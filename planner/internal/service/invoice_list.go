@@ -145,36 +145,51 @@ func (s *InvoiceList) mapInvoicesToDTO(invoices []domain.Invoice) []dto.InvoiceD
 		}
 
 		items := make([]dto.InvoiceItemDTO, len(inv.Items))
+		periodStartStr := ""
+		periodEndStr := ""
 		for j, it := range inv.Items {
 			desc := ""
-			if it.Description != nil && *it.Description != "" {
-				desc = *it.Description
-			} else if it.Service != nil && it.Service.Name != "" {
-				desc = it.Service.Name
+			svcName := ""
+			if it.Service != nil && it.Service.Name != "" {
+				svcName = it.Service.Name
 			} else if it.ServiceID != 0 && s.repo != nil {
 				svc, err := s.repo.GetServiceByID(it.ServiceID)
 				if err == nil && svc != nil {
-					desc = svc.Name
+					svcName = svc.Name
+				}
+			}
+			if it.Description != nil && *it.Description != "" {
+				desc = *it.Description
+			} else {
+				desc = svcName
+			}
+
+			itStartStr := ""
+			if !it.PeriodStart.IsZero() {
+				itStartStr = it.PeriodStart.Format("2006-01-02")
+				if periodStartStr == "" || itStartStr < periodStartStr {
+					periodStartStr = itStartStr
+				}
+			}
+			itEndStr := ""
+			if !it.PeriodEnd.IsZero() {
+				itEndStr = it.PeriodEnd.Format("2006-01-02")
+				if periodEndStr == "" || itEndStr > periodEndStr {
+					periodEndStr = itEndStr
 				}
 			}
 
 			items[j] = dto.InvoiceItemDTO{
 				ID:               it.ID,
 				ServiceID:        it.ServiceID,
+				ServiceName:      svcName,
 				Description:      desc,
 				Price:            it.Price,
 				InvoicedQuantity: it.InvoicedQuantity,
 				RealizedQuantity: it.RealizedQuantity,
+				PeriodStart:      itStartStr,
+				PeriodEnd:        itEndStr,
 			}
-		}
-
-		periodStartStr := ""
-		if !inv.PeriodStart.IsZero() {
-			periodStartStr = inv.PeriodStart.Format("2006-01-02")
-		}
-		periodEndStr := ""
-		if !inv.PeriodEnd.IsZero() {
-			periodEndStr = inv.PeriodEnd.Format("2006-01-02")
 		}
 
 		result[i] = dto.InvoiceDTO{

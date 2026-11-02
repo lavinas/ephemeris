@@ -163,6 +163,7 @@ func (s *InvoiceUpdate) Run(input port.InDTO) port.OutDTO {
 				Invoicing:    invoice.InvoicingDate.Format("2006-01-02"),
 				Due:          invoice.DueDate.Format("2006-01-02"),
 				ExternalCode: &extCode,
+				Amount:       invoice.Amount,
 				Items:        items,
 			}
 
@@ -234,49 +235,69 @@ func (s *InvoiceUpdate) mapInvoiceToDTO(inv *domain.Invoice) *dto.InvoiceDTO {
 		planTypeName = domain.PlanType(planType).String()
 	}
 
-	items := make([]dto.InvoiceItemDTO, len(inv.Items))
-	for j, it := range inv.Items {
+	items := make([]dto.InvoiceItemDTO, 0, len(inv.Items))
+	periodStartStr := ""
+	periodEndStr := ""
+	for _, it := range inv.Items {
+		if it.DeletedAt != nil {
+			continue
+		}
 		desc := ""
-		if it.Description != nil && *it.Description != "" {
-			desc = *it.Description
-		} else if it.Service != nil && it.Service.Name != "" {
-			desc = it.Service.Name
+		svcName := ""
+		if it.Service != nil && it.Service.Name != "" {
+			svcName = it.Service.Name
 		} else if it.ServiceID != 0 && s.repo != nil {
 			svc, err := s.repo.GetServiceByID(it.ServiceID)
 			if err == nil && svc != nil {
-				desc = svc.Name
+				svcName = svc.Name
+			}
+		}
+		if it.Description != nil && *it.Description != "" {
+			desc = *it.Description
+		} else {
+			desc = svcName
+		}
+
+		itStartStr := ""
+		if !it.PeriodStart.IsZero() {
+			itStartStr = it.PeriodStart.Format("2006-01-02")
+			if periodStartStr == "" || itStartStr < periodStartStr {
+				periodStartStr = itStartStr
+			}
+		}
+		itEndStr := ""
+		if !it.PeriodEnd.IsZero() {
+			itEndStr = it.PeriodEnd.Format("2006-01-02")
+			if periodEndStr == "" || itEndStr > periodEndStr {
+				periodEndStr = itEndStr
 			}
 		}
 
-		items[j] = dto.InvoiceItemDTO{
+		items = append(items, dto.InvoiceItemDTO{
 			ID:               it.ID,
 			ServiceID:        it.ServiceID,
+			ServiceName:      svcName,
 			Description:      desc,
 			Price:            it.Price,
 			InvoicedQuantity: it.InvoicedQuantity,
 			RealizedQuantity: it.RealizedQuantity,
-		}
-	}
-
-	periodStartStr := ""
-	if !inv.PeriodStart.IsZero() {
-		periodStartStr = inv.PeriodStart.Format("2006-01-02")
-	}
-	periodEndStr := ""
-	if !inv.PeriodEnd.IsZero() {
-		periodEndStr = inv.PeriodEnd.Format("2006-01-02")
+			PeriodStart:      itStartStr,
+			PeriodEnd:        itEndStr,
+		})
 	}
 
 	return &dto.InvoiceDTO{
-		ID:           inv.ID,
-		InvoiceDate:  inv.InvoicingDate.Format("2006-01-02"),
-		Nickname:     nickname,
-		PlanType:     planType,
-		PlanTypeName: planTypeName,
-		DueDate:      inv.DueDate.Format("2006-01-02"),
-		PeriodStart:  periodStartStr,
-		PeriodEnd:    periodEndStr,
-		Amount:       inv.Amount,
-		Items:        items,
+		ID:                 inv.ID,
+		InvoiceDate:        inv.InvoicingDate.Format("2006-01-02"),
+		Nickname:           nickname,
+		PlanType:           planType,
+		PlanTypeName:       planTypeName,
+		DueDate:            inv.DueDate.Format("2006-01-02"),
+		PeriodStart:        periodStartStr,
+		PeriodEnd:          periodEndStr,
+		Amount:             inv.Amount,
+		ReferenceInvoiceID: inv.ReferenceInvoiceID,
+		Invoiced:           inv.ReferenceInvoiceID != nil,
+		Items:              items,
 	}
 }

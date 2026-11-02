@@ -467,7 +467,7 @@ func (a *Repository) FindActiveInvoiceItemsForComptime(ctx context.Context, vend
 		Joins("JOIN planner.plan ON planner.plan.id = planner.invoice.plan_id").
 		Joins("JOIN planner.customer ON planner.customer.id = planner.plan.customer_id").
 		Where("planner.customer.vendor_id = ?", vendorID).
-		Where("planner.invoice.period_start <= ? AND planner.invoice.period_end >= ?", endStr, startStr).
+		Where("planner.invoice_item.period_start <= ? AND planner.invoice_item.period_end >= ?", endStr, startStr).
 		Where("planner.invoice_item.deleted_at IS NULL AND planner.invoice.deleted_at IS NULL AND planner.plan.deleted_at IS NULL")
 
 	if customerID != nil && *customerID > 0 {
@@ -481,7 +481,7 @@ func (a *Repository) FindActiveInvoiceItemsForComptime(ctx context.Context, vend
 		Preload("Invoice.Plan").
 		Preload("Invoice.Plan.Customer").
 		Preload("Service").
-		Order("planner.invoice.period_start asc, planner.invoice_item.id asc").
+		Order("planner.invoice_item.period_start asc, planner.invoice_item.id asc").
 		Find(&items).Error
 	return items, err
 }

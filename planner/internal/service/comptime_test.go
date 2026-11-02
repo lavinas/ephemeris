@@ -282,8 +282,8 @@ func (m *mockComptimeRepo) FindActiveInvoiceItemsForComptime(ctx context.Context
 			if serviceID != nil && *serviceID > 0 && it.ServiceID != *serviceID {
 				continue
 			}
-			if !startDate.IsZero() && !endDate.IsZero() && it.Invoice != nil && !it.Invoice.PeriodStart.IsZero() && !it.Invoice.PeriodEnd.IsZero() {
-				if !it.Invoice.IsActiveInPeriod(startDate, endDate) {
+			if !startDate.IsZero() && !endDate.IsZero() && !it.PeriodStart.IsZero() && !it.PeriodEnd.IsZero() {
+				if !it.IsActiveInPeriod(startDate, endDate) {
 					continue
 				}
 			}
@@ -457,20 +457,21 @@ func TestComptimeService_InvoiceItemCredit(t *testing.T) {
 	service := &domain.Service{ID: 200, SessionMinutes: &minutes}
 	periodStart := time.Date(2026, time.May, 1, 0, 0, 0, 0, time.UTC)
 	invoice := &domain.Invoice{
-		ID:          1,
-		PeriodStart: periodStart,
+		ID: 1,
 		Plan: &domain.Plan{
 			CustomerID: 100,
 			Customer:   &domain.Customer{VendorID: 1},
 		},
 	}
 	repo.invoiceItems[501] = &domain.InvoiceItem{
-		ID:        501,
-		InvoiceID: 1,
-		Invoice:   invoice,
-		ServiceID: 200,
-		Service:   service,
-		Quantity:  4, // 4 * 50 = 200 invoiced minutes
+		ID:          501,
+		InvoiceID:   1,
+		Invoice:     invoice,
+		ServiceID:   200,
+		Service:     service,
+		Quantity:    4, // 4 * 50 = 200 invoiced minutes
+		PeriodStart: periodStart,
+		PeriodEnd:   periodStart.AddDate(0, 1, -1),
 	}
 
 	if err := svc.ProcessInvoiceItemCreated(ctx, 501); err != nil {
@@ -515,20 +516,21 @@ func TestComptimeService_Resync(t *testing.T) {
 	service := &domain.Service{ID: 200, SessionMinutes: &minutes}
 	periodStart := time.Date(2026, time.June, 1, 0, 0, 0, 0, time.UTC)
 	invoice := &domain.Invoice{
-		ID:          1,
-		PeriodStart: periodStart,
+		ID: 1,
 		Plan: &domain.Plan{
 			CustomerID: 100,
 			Customer:   &domain.Customer{VendorID: 1},
 		},
 	}
 	repo.invoiceItems[10] = &domain.InvoiceItem{
-		ID:        10,
-		InvoiceID: 1,
-		Invoice:   invoice,
-		ServiceID: 200,
-		Service:   service,
-		Quantity:  2, // 2 * 60 = 120 min
+		ID:          10,
+		InvoiceID:   1,
+		Invoice:     invoice,
+		ServiceID:   200,
+		Service:     service,
+		Quantity:    2, // 2 * 60 = 120 min
+		PeriodStart: periodStart,
+		PeriodEnd:   periodStart.AddDate(0, 1, -1),
 	}
 
 	repo.sessions[20] = &domain.Session{
@@ -967,30 +969,30 @@ func TestComptimeService_ListComptime_CurrentMonthPredictions(t *testing.T) {
 		octEnd := time.Date(2026, time.October, 31, 0, 0, 0, 0, time.UTC)
 		// Invoice 1: active in October by [PeriodStart, PeriodEnd] even if InvoicingDate was in September
 		repo.invoiceItems[1] = &domain.InvoiceItem{
-			ID:        1,
-			ServiceID: 20,
-			Quantity:  2,
+			ID:          1,
+			ServiceID:   20,
+			Quantity:    2,
+			PeriodStart: octMonth,
+			PeriodEnd:   octEnd,
 			Invoice: &domain.Invoice{
 				ID:            1,
 				PlanID:        plan.ID,
 				Plan:          plan,
 				InvoicingDate: time.Date(2026, time.September, 28, 0, 0, 0, 0, time.UTC),
-				PeriodStart:   octMonth,
-				PeriodEnd:     octEnd,
 			},
 		}
 		// Invoice 2: InvoicingDate is in October (post-paid), but [PeriodStart, PeriodEnd] is in September -> must be ignored!
 		repo.invoiceItems[2] = &domain.InvoiceItem{
-			ID:        2,
-			ServiceID: 20,
-			Quantity:  1,
+			ID:          2,
+			ServiceID:   20,
+			Quantity:    1,
+			PeriodStart: time.Date(2026, time.September, 1, 0, 0, 0, 0, time.UTC),
+			PeriodEnd:   time.Date(2026, time.September, 30, 0, 0, 0, 0, time.UTC),
 			Invoice: &domain.Invoice{
 				ID:            2,
 				PlanID:        plan.ID,
 				Plan:          plan,
 				InvoicingDate: time.Date(2026, time.October, 5, 0, 0, 0, 0, time.UTC),
-				PeriodStart:   time.Date(2026, time.September, 1, 0, 0, 0, 0, time.UTC),
-				PeriodEnd:     time.Date(2026, time.September, 30, 0, 0, 0, 0, time.UTC),
 			},
 		}
 

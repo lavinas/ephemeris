@@ -13,8 +13,6 @@ type Invoice struct {
 	Plan               *Plan         `gorm:"foreignKey:PlanID;references:ID"`
 	InvoicingDate      time.Time     `gorm:"type:date;column:invoicing_date;not null"`
 	DueDate            time.Time     `gorm:"type:date;column:due_date;not null"`
-	PeriodStart        time.Time     `gorm:"type:date;column:period_start;not null"`
-	PeriodEnd          time.Time     `gorm:"type:date;column:period_end;not null"`
 	Amount             float64       `gorm:"type:numeric(15,2);column:amount;not null"`
 	ReferenceInvoiceID *int64        `gorm:"column:reference_invoice_id"`
 	CreatedAt          time.Time     `gorm:"column:created_at;not null"`
@@ -29,14 +27,12 @@ func (Invoice) TableName() string {
 }
 
 // NewInvoice creates a new Invoice instance.
-func NewInvoice(planID int64, invoicingDate, dueDate, periodStart, periodEnd time.Time, amount float64, refInvoiceID *int64) *Invoice {
+func NewInvoice(planID int64, invoicingDate, dueDate time.Time, amount float64, refInvoiceID *int64) *Invoice {
 	now := time.Now()
 	return &Invoice{
 		PlanID:             planID,
 		InvoicingDate:      invoicingDate,
 		DueDate:            dueDate,
-		PeriodStart:        periodStart,
-		PeriodEnd:          periodEnd,
 		Amount:             amount,
 		ReferenceInvoiceID: refInvoiceID,
 		CreatedAt:          now,
@@ -45,17 +41,18 @@ func NewInvoice(planID int64, invoicingDate, dueDate, periodStart, periodEnd tim
 	}
 }
 
-// IsActiveInPeriod checks whether the invoice period [PeriodStart, PeriodEnd] overlaps with [startDate, endDate].
-// Active invoices for a month are determined by PeriodStart and PeriodEnd rather than InvoicingDate.
+// IsActiveInPeriod checks whether any active item of the invoice has a period [PeriodStart, PeriodEnd]
+// that overlaps with [startDate, endDate].
 func (inv *Invoice) IsActiveInPeriod(startDate, endDate time.Time) bool {
-	if inv == nil || inv.DeletedAt != nil || inv.PeriodStart.IsZero() || inv.PeriodEnd.IsZero() {
+	if inv == nil || inv.DeletedAt != nil {
 		return false
 	}
-	s := time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 0, 0, 0, 0, time.UTC)
-	e := time.Date(endDate.Year(), endDate.Month(), endDate.Day(), 0, 0, 0, 0, time.UTC)
-	pStart := time.Date(inv.PeriodStart.Year(), inv.PeriodStart.Month(), inv.PeriodStart.Day(), 0, 0, 0, 0, time.UTC)
-	pEnd := time.Date(inv.PeriodEnd.Year(), inv.PeriodEnd.Month(), inv.PeriodEnd.Day(), 0, 0, 0, 0, time.UTC)
-	return !pStart.After(e) && !pEnd.Before(s)
+	for idx := range inv.Items {
+		if inv.Items[idx].IsActiveInPeriod(startDate, endDate) {
+			return true
+		}
+	}
+	return false
 }
 
 // InvoiceItem represents an individual line item within an invoice.
@@ -68,6 +65,8 @@ type InvoiceItem struct {
 	Price            float64              `gorm:"type:numeric(15,2);column:price;not null"`
 	Description      *string              `gorm:"type:varchar(255);column:description"`
 	Quantity         int                  `gorm:"column:quantity;not null"`
+	PeriodStart      time.Time            `gorm:"type:date;column:period_start;not null"`
+	PeriodEnd        time.Time            `gorm:"type:date;column:period_end;not null"`
 	InvoicedQuantity int                  `gorm:"-"`
 	RealizedQuantity int                  `gorm:"-"`
 	CreatedAt        time.Time            `gorm:"column:created_at;not null"`
@@ -88,7 +87,7 @@ func (i *InvoiceItem) AfterFind(tx *gorm.DB) (err error) {
 }
 
 // NewInvoiceItem creates a new InvoiceItem instance.
-func NewInvoiceItem(invoiceID, serviceID int64, price float64, description *string, invoicedQty, realizedQty int) *InvoiceItem {
+func NewInvoiceItem(invoiceID, serviceID int64, price float64, description *string, invoicedQty, realizedQty int, periodStart, periodEnd time.Time) *InvoiceItem {
 	now := time.Now()
 	return &InvoiceItem{
 		InvoiceID:        invoiceID,
@@ -96,12 +95,29 @@ func NewInvoiceItem(invoiceID, serviceID int64, price float64, description *stri
 		Price:            price,
 		Description:      description,
 		Quantity:         invoicedQty,
+		PeriodStart:      periodStart,
+		PeriodEnd:        periodEnd,
 		InvoicedQuantity: invoicedQty,
 		RealizedQuantity: realizedQty,
 		CreatedAt:        now,
 		UpdatedAt:        now,
 		DeletedAt:        nil,
 	}
+}
+
+// IsActiveInPeriod checks whether the item period [PeriodStart, PeriodEnd] overlaps with [startDate, endDate].
+func (i *InvoiceItem) IsActiveInPeriod(startDate, endDate time.Time) bool {
+	if i == nil || i.DeletedAt != nil || i.PeriodStart.IsZero() || i.PeriodEnd.IsZero() {
+		return false
+	}
+	if startDate.IsZero() || endDate.IsZero() {
+		return true
+	}
+	s := time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 0, 0, 0, 0, time.UTC)
+	e := time.Date(endDate.Year(), endDate.Month(), endDate.Day(), 0, 0, 0, 0, time.UTC)
+	pStart := time.Date(i.PeriodStart.Year(), i.PeriodStart.Month(), i.PeriodStart.Day(), 0, 0, 0, 0, time.UTC)
+	pEnd := time.Date(i.PeriodEnd.Year(), i.PeriodEnd.Month(), i.PeriodEnd.Day(), 0, 0, 0, 0, time.UTC)
+	return !pStart.After(e) && !pEnd.Before(s)
 }
 
 // AssociateSession links a session to this invoice item and increments RealizedQuantity.

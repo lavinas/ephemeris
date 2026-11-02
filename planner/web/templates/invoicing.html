@@ -102,7 +102,7 @@
 		}
 		.grade-itens-invoice {
 			display: grid !important;
-			grid-template-columns: 5.5fr 1.2fr 1.0fr 1.3fr !important;
+			grid-template-columns: 5.2fr 1.2fr 1.0fr 1.3fr 0.4fr !important;
 			gap: 10px !important;
 			align-items: center !important;
 			box-sizing: border-box !important;
@@ -457,10 +457,6 @@
 					<span class="badge-plano bg-gray-800 text-gray-300 border border-gray-700">{{.PlanTypeName}}</span>
 				{{end}}
 			</div>
-			<div class="text-[11px] text-gray-400 leading-tight pt-1" style="padding-top: 3px;">
-				<div><span class="text-[9px] text-gray-500 uppercase font-semibold">De: </span><span class="font-mono text-gray-300 font-medium">{{if .PeriodStartFormatada}}{{.PeriodStartFormatada}}{{else}}-{{end}}</span></div>
-				<div><span class="text-[9px] text-gray-500 uppercase font-semibold">Até: </span><span class="font-mono text-gray-300 font-medium">{{if .PeriodEndFormatada}}{{.PeriodEndFormatada}}{{else}}-{{end}}</span></div>
-			</div>
 		</div>
 		<div class="flex flex-col items-start">
 			<span class="text-sm font-mono text-gray-300 font-medium">
@@ -490,25 +486,42 @@
 						<div class="text-right">Preço</div>
 						<div class="text-center" title="Quantidade">Quantidade</div>
 						<div class="text-right">Subtotal</div>
+						<div></div>
 					</div>
 					{{range .Items}}
 						<div class="grade-itens-invoice py-1 text-xs border-b border-gray-800/60 last:border-b-0">
 							<div class="item-desc-container text-gray-200 font-medium text-left min-w-0" title="{{if .Description}}{{.Description}}{{else}}Serviço #{{.ServiceID}}{{end}}">
-								<span class="item-desc-text">
+								<span class="item-desc-text {{if .IsDiscount}}text-rose-300{{end}}">
 									{{if .Description}}{{.Description}}{{else}}Serviço #{{.ServiceID}}{{end}}
 								</span>
+								{{if and .PeriodStartFormatada .PeriodEndFormatada}}
+									<span class="text-[10px] font-mono text-gray-500 block leading-tight">{{.PeriodStartFormatada}} a {{.PeriodEndFormatada}}</span>
+								{{end}}
 								<div class="item-desc-tooltip">
 									{{if .Description}}{{.Description}}{{else}}Serviço #{{.ServiceID}}{{end}}
+									{{if and .PeriodStartFormatada .PeriodEndFormatada}} ({{.PeriodStartFormatada}} a {{.PeriodEndFormatada}}){{end}}
 								</div>
 							</div>
-							<div class="text-right font-mono text-gray-400">
+							<div class="text-right font-mono {{if .IsDiscount}}text-rose-400{{else}}text-gray-400{{end}}">
 								R$ {{.PrecoFormatado}}
 							</div>
 							<div class="text-center font-mono font-bold text-indigo-300">
 								<span class="bg-indigo-950/60 border border-indigo-800/60 px-1.5 py-0.5 rounded text-[11px]">{{.InvoicedQuantity}}</span>
 							</div>
-							<div class="text-right font-mono font-semibold text-gray-200">
+							<div class="text-right font-mono font-semibold {{if .IsDiscount}}text-rose-300{{else}}text-gray-200{{end}}">
 								R$ {{.SubtotalFormatado}}
+							</div>
+							<div class="text-right">
+								<button type="button"
+										hx-post="/html/invoicing/item/deletar?id={{.ID}}&invoice_id={{.InvoiceID}}"
+										hx-target="#tabela-container-invoicing"
+										hx-include="#filtro-form-invoicing"
+										class="p-1 text-gray-500 hover:text-rose-400 hover:bg-rose-950/50 rounded transition cursor-pointer"
+										title="Excluir item da pré-fatura">
+									<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+									</svg>
+								</button>
 							</div>
 						</div>
 					{{end}}
@@ -518,6 +531,15 @@
 			</div>
 		</div>
 		<div class="flex items-center justify-end gap-1.5" style="display: flex; align-items: center; justify-content: flex-end; gap: 0.375rem;">
+			<button type="button"
+					hx-get="/html/invoicing/item-avulso/novo?invoice_id={{.ID}}"
+					hx-target="#modal-container-invoicing"
+					class="p-1.5 text-emerald-400 hover:text-emerald-200 hover:bg-emerald-950/60 rounded transition cursor-pointer"
+					title="Adicionar Item Avulso (Adição ou Desconto)">
+				<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+				</svg>
+			</button>
 			{{if not .Invoiced}}
 			<button type="button"
 					hx-post="/html/invoicing/faturar?id={{.ID}}"
@@ -581,10 +603,6 @@
 					<span class="badge-plano bg-gray-800 text-gray-300 border border-gray-700">{{.PlanTypeName}}</span>
 				{{end}}
 			</div>
-			<div class="text-[11px] text-gray-400 leading-tight pt-1" style="padding-top: 3px;">
-				<div><span class="text-[9px] text-gray-500 uppercase font-semibold">De: </span><span class="font-mono text-gray-300 font-medium">{{if .PeriodStartFormatada}}{{.PeriodStartFormatada}}{{else}}-{{end}}</span></div>
-				<div><span class="text-[9px] text-gray-500 uppercase font-semibold">Até: </span><span class="font-mono text-gray-300 font-medium">{{if .PeriodEndFormatada}}{{.PeriodEndFormatada}}{{else}}-{{end}}</span></div>
-			</div>
 		</div>
 		<div class="flex flex-col gap-1 items-start">
 			<label class="text-[10px] font-bold text-indigo-400 uppercase">Vencimento</label>
@@ -616,26 +634,43 @@
 						<div class="text-right">Preço</div>
 						<div class="text-center" title="Quantidade (Editável)">Quantidade ✏️</div>
 						<div class="text-right">Subtotal</div>
+						<div></div>
 					</div>
 					{{range .Items}}
 						<div class="grade-itens-invoice py-1 text-xs border-b border-gray-800/60 last:border-b-0">
 							<div class="item-desc-container text-gray-200 font-medium text-left min-w-0" title="{{if .Description}}{{.Description}}{{else}}Serviço #{{.ServiceID}}{{end}}">
-								<span class="item-desc-text">
+								<span class="item-desc-text {{if .IsDiscount}}text-rose-300{{end}}">
 									{{if .Description}}{{.Description}}{{else}}Serviço #{{.ServiceID}}{{end}}
 								</span>
+								{{if and .PeriodStartFormatada .PeriodEndFormatada}}
+									<span class="text-[10px] font-mono text-gray-500 block leading-tight">{{.PeriodStartFormatada}} a {{.PeriodEndFormatada}}</span>
+								{{end}}
 								<div class="item-desc-tooltip">
 									{{if .Description}}{{.Description}}{{else}}Serviço #{{.ServiceID}}{{end}}
+									{{if and .PeriodStartFormatada .PeriodEndFormatada}} ({{.PeriodStartFormatada}} a {{.PeriodEndFormatada}}){{end}}
 								</div>
 							</div>
-							<div class="text-right font-mono text-gray-400">
+							<div class="text-right font-mono {{if .IsDiscount}}text-rose-400{{else}}text-gray-400{{end}}">
 								R$ {{.PrecoFormatado}}
 							</div>
 							<div class="text-center font-mono">
 								<input type="number" name="item_qty_{{.ID}}" value="{{.InvoicedQuantity}}" min="0" required
 									   class="w-16 bg-gray-900 text-gray-100 border border-indigo-500 rounded px-1.5 py-0.5 text-center text-xs font-mono font-bold focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm">
 							</div>
-							<div class="text-right font-mono font-semibold text-gray-200">
+							<div class="text-right font-mono font-semibold {{if .IsDiscount}}text-rose-300{{else}}text-gray-200{{end}}">
 								R$ {{.SubtotalFormatado}}
+							</div>
+							<div class="text-right">
+								<button type="button"
+										hx-post="/html/invoicing/item/deletar?id={{.ID}}&invoice_id={{.InvoiceID}}"
+										hx-target="#tabela-container-invoicing"
+										hx-include="#filtro-form-invoicing"
+										class="p-1 text-gray-500 hover:text-rose-400 hover:bg-rose-950/50 rounded transition cursor-pointer"
+										title="Excluir item da pré-fatura">
+									<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+									</svg>
+								</button>
 							</div>
 						</div>
 					{{end}}
@@ -1167,6 +1202,140 @@
 		}
 
 		setTimeout(recalcularTotalModalInvoice, 50);
+		</script>
+	</div>
+	{{end}}
+
+	{{define "modal_adicionar_item_avulso"}}
+	<div id="modal-item-avulso" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+		<div class="bg-gray-900 border border-gray-800 rounded-xl max-w-xl w-full shadow-2xl overflow-hidden my-8 animate-in fade-in zoom-in-95 duration-150">
+			<!-- Header -->
+			<div class="flex items-center justify-between px-6 py-4 border-b border-gray-800 bg-gray-900/90">
+				<div class="flex items-center gap-3">
+					<div class="p-2 bg-emerald-600/20 text-emerald-400 rounded-lg border border-emerald-500/30">
+						<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+						</svg>
+					</div>
+					<div>
+						<h3 class="text-sm font-bold text-gray-100 uppercase tracking-wide">Adicionar Item Avulso</h3>
+						<p class="text-xs text-gray-400">Pré-fatura #{{.InvoiceID}}{{if .Nickname}} — Cliente: <strong class="text-indigo-400">{{.Nickname}}</strong>{{end}}</p>
+					</div>
+				</div>
+				<button type="button" onclick="document.getElementById('modal-container-invoicing').innerHTML = '';"
+						class="text-gray-400 hover:text-gray-200 hover:bg-gray-800 p-1.5 rounded-lg transition cursor-pointer">
+					<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+						<path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+					</svg>
+				</button>
+			</div>
+
+			<!-- Content -->
+			<div class="p-6">
+				{{if .Erro}}
+					<div class="mb-5 p-4 bg-rose-950/70 border border-rose-800 text-rose-200 rounded-lg text-sm flex items-center justify-between shadow-lg">
+						<div class="flex items-center gap-2">
+							<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-rose-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+							</svg>
+							<span>{{.Erro}}</span>
+						</div>
+						<button type="button" onclick="this.parentElement.remove()" class="text-rose-400 hover:text-rose-100 font-bold px-2 py-0.5 cursor-pointer">&times;</button>
+					</div>
+				{{end}}
+
+				<form hx-post="/html/invoicing/item-avulso/salvar"
+					  hx-target="#tabela-container-invoicing"
+					  hx-include="#filtro-form-invoicing"
+					  class="space-y-4">
+					<input type="hidden" name="invoice_id" value="{{.InvoiceID}}">
+
+					<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+						<div class="campo-box">
+							<label>Operação *</label>
+							<select name="operation" id="item-avulso-operation" onchange="recalcularTotalItemAvulso()" required>
+								<option value="add" {{if ne .Operation "discount"}}selected{{end}}>+ Adição (Cobrança Extra)</option>
+								<option value="discount" {{if eq .Operation "discount"}}selected{{end}}>- Desconto (Abatimento)</option>
+							</select>
+						</div>
+						<div class="campo-box">
+							<label>Serviço *</label>
+							<select name="service_id" id="item-avulso-service" required>
+								<option value="" disabled {{if not .ServiceID}}selected{{end}}>Selecione o serviço...</option>
+								{{range .Services}}
+									<option value="{{.ID}}" {{if eq .ID $.ServiceID}}selected{{end}}>{{.Name}}</option>
+								{{end}}
+							</select>
+						</div>
+					</div>
+
+					<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+						<div class="campo-box">
+							<label>Período Inicial *</label>
+							<input type="date" name="period_start" value="{{.PeriodStart}}" required>
+						</div>
+						<div class="campo-box">
+							<label>Período Final *</label>
+							<input type="date" name="period_end" value="{{.PeriodEnd}}" required>
+						</div>
+					</div>
+
+					<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+						<div class="campo-box">
+							<label>Preço Unitário (R$) *</label>
+							<input type="number" step="0.01" min="0.01" name="price" id="item-avulso-price" value="{{if .Price}}{{printf "%.2f" .Price}}{{end}}" placeholder="0,00" oninput="recalcularTotalItemAvulso()" required class="font-mono">
+						</div>
+						<div class="campo-box">
+							<label>Quantidade *</label>
+							<input type="number" min="1" name="quantity" id="item-avulso-quantity" value="{{if .Quantity}}{{.Quantity}}{{else}}1{{end}}" oninput="recalcularTotalItemAvulso()" required class="font-mono">
+						</div>
+					</div>
+
+					<div class="campo-box">
+						<label>Descrição (Opcional)</label>
+						<input type="text" name="description" value="{{.Description}}" placeholder="Se em branco, usa o nome do serviço e o período">
+					</div>
+
+					<div class="flex justify-between items-center p-3 bg-gray-950/60 border border-gray-800 rounded-lg">
+						<span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Impacto na Fatura:</span>
+						<span id="item-avulso-total-display" class="text-emerald-400 font-bold text-base font-mono">R$ 0,00</span>
+					</div>
+
+					<div class="flex items-center justify-end gap-3 pt-3 border-t border-gray-800">
+						<button type="button" onclick="document.getElementById('modal-container-invoicing').innerHTML = '';"
+								class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm font-medium rounded-lg border border-gray-700 transition cursor-pointer">
+							Cancelar
+						</button>
+						<button type="submit"
+								class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-lg shadow-lg hover:shadow-emerald-600/30 transition cursor-pointer flex items-center gap-2">
+							<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+							</svg>
+							<span>Salvar Item</span>
+						</button>
+					</div>
+				</form>
+			</div>
+		</div>
+		<script>
+		function recalcularTotalItemAvulso() {
+			var opEl = document.getElementById('item-avulso-operation');
+			var priceEl = document.getElementById('item-avulso-price');
+			var qtyEl = document.getElementById('item-avulso-quantity');
+			var display = document.getElementById('item-avulso-total-display');
+			if (!opEl || !priceEl || !qtyEl || !display) return;
+			var p = Math.abs(parseFloat((priceEl.value || '0').replace(',', '.')) || 0);
+			var q = parseInt(qtyEl.value || '0') || 0;
+			var subtotal = p * q;
+			if (opEl.value === 'discount') {
+				display.className = 'text-rose-400 font-bold text-base font-mono';
+				display.innerText = '- R$ ' + subtotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+			} else {
+				display.className = 'text-emerald-400 font-bold text-base font-mono';
+				display.innerText = '+ R$ ' + subtotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+			}
+		}
+		setTimeout(recalcularTotalItemAvulso, 50);
 		</script>
 	</div>
 	{{end}}

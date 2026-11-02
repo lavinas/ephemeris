@@ -742,15 +742,30 @@ func (h *HandlerHtml) getInvoiceData(response *dto.InvoiceListResponse) []map[st
 		itemsData := make([]map[string]interface{}, 0, len(inv.Items))
 		for _, it := range inv.Items {
 			subtotal := it.Price * float64(it.InvoicedQuantity)
+			itPeriodStartFmt := it.PeriodStart
+			if t, err := time.Parse("2006-01-02", it.PeriodStart); err == nil {
+				itPeriodStartFmt = t.Format("02/01/2006")
+			}
+			itPeriodEndFmt := it.PeriodEnd
+			if t, err := time.Parse("2006-01-02", it.PeriodEnd); err == nil {
+				itPeriodEndFmt = t.Format("02/01/2006")
+			}
 			itemsData = append(itemsData, map[string]interface{}{
-				"ID":                it.ID,
-				"ServiceID":         it.ServiceID,
-				"Description":       it.Description,
-				"Price":             it.Price,
-				"PrecoFormatado":    fmt.Sprintf("%.2f", it.Price),
-				"InvoicedQuantity":  it.InvoicedQuantity,
-				"RealizedQuantity":  it.RealizedQuantity,
-				"SubtotalFormatado": fmt.Sprintf("%.2f", subtotal),
+				"ID":                   it.ID,
+				"InvoiceID":            inv.ID,
+				"ServiceID":            it.ServiceID,
+				"ServiceName":          it.ServiceName,
+				"Description":          it.Description,
+				"Price":                it.Price,
+				"PrecoFormatado":       fmt.Sprintf("%.2f", it.Price),
+				"InvoicedQuantity":     it.InvoicedQuantity,
+				"RealizedQuantity":     it.RealizedQuantity,
+				"SubtotalFormatado":    fmt.Sprintf("%.2f", subtotal),
+				"PeriodStart":          it.PeriodStart,
+				"PeriodStartFormatada": itPeriodStartFmt,
+				"PeriodEnd":            it.PeriodEnd,
+				"PeriodEndFormatada":   itPeriodEndFmt,
+				"IsDiscount":           it.Price < 0,
 			})
 		}
 
@@ -1041,4 +1056,192 @@ func (h *HandlerHtml) renderInvoicingTableWithMessages(w http.ResponseWriter, _ 
 		page["MensagemErro"] = msgErro
 	}
 	h.tmplInvoicing.ExecuteTemplate(w, "tabela", page)
+}
+
+// InvoicingItemAddModal handles GET /invoicing/item-avulso/novo and renders the standalone item modal
+func (h *HandlerHtml) InvoicingItemAddModal(w http.ResponseWriter, r *http.Request) {
+	idStr := r.URL.Query().Get("invoice_id")
+	if idStr == "" {
+		idStr = r.URL.Query().Get("id")
+	}
+	invoiceID, _ := strconv.ParseInt(idStr, 10, 64)
+	if invoiceID <= 0 {
+		http.Error(w, "ID de pré-fatura inválido", http.StatusBadRequest)
+		return
+	}
+
+	req := &dto.InvoiceItemAddRequest{
+		InvoiceID: invoiceID,
+		Operation: "add",
+		Quantity:  1,
+	}
+	req.ApplyDefaults()
+
+	data := h.getInvoiceItemAddModalData(req, "")
+	if err := h.tmplInvoicing.ExecuteTemplate(w, "modal_adicionar_item_avulso", data); err != nil {
+		h.logger.IPrintf(2, "Failed to render modal_adicionar_item_avulso: %v", err)
+		http.Error(w, "Failed to render template", http.StatusInternalServerError)
+	}
+}
+
+// InvoicingItemAddSave handles POST /invoicing/item-avulso/salvar to add a standalone item (addition or discount)
+func (h *HandlerHtml) InvoicingItemAddSave(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Dados de formulário inválidos", http.StatusBadRequest)
+		return
+	}
+
+	idStr := r.FormValue("invoice_id")
+	if idStr == "" {
+		idStr = r.URL.Query().Get("invoice_id")
+	}
+	invoiceID, _ := strconv.ParseInt(idStr, 10, 64)
+	serviceID, _ := strconv.ParseInt(r.FormValue("service_id"), 10, 64)
+	operation := strings.TrimSpace(r.FormValue("operation"))
+	periodStart := strings.TrimSpace(r.FormValue("period_start"))
+	periodEnd := strings.TrimSpace(r.FormValue("period_end"))
+	price, _ := dto.ParsePrice(r.FormValue("price"))
+	quantity, _ := strconv.Atoi(strings.TrimSpace(r.FormValue("quantity")))
+	description := strings.TrimSpace(r.FormValue("description"))
+
+	req := &dto.InvoiceItemAddRequest{
+		InvoiceID:   invoiceID,
+		ServiceID:   serviceID,
+		Operation:   operation,
+		PeriodStart: periodStart,
+		PeriodEnd:   periodEnd,
+		Price:       price,
+		Quantity:    quantity,
+		Description: description,
+	}
+
+	svc := service.NewInvoiceItemAdd(h.repo, h.logger, h.getBillingClient())
+	resp := svc.Run(req)
+	if resp.GetStatusCode() != 201 {
+		data := h.getInvoiceItemAddModalData(req, resp.GetMessage())
+		if err := h.tmplInvoicing.ExecuteTemplate(w, "modal_adicionar_item_avulso", data); err != nil {
+			h.logger.IPrintf(2, "Failed to render modal_adicionar_item_avulso on error: %v", err)
+			http.Error(w, "Failed to render template", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	h.renderInvoicingTableWithMessages(w, r, "Item avulso adicionado com sucesso!", "")
+}
+
+// InvoicingItemDelete handles POST /invoicing/item/deletar to delete an item from a pre-invoice
+func (h *HandlerHtml) InvoicingItemDelete(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Dados de formulário inválidos", http.StatusBadRequest)
+		return
+	}
+
+	itemIDStr := r.URL.Query().Get("id")
+	if itemIDStr == "" {
+		itemIDStr = r.URL.Query().Get("item_id")
+	}
+	if itemIDStr == "" {
+		itemIDStr = r.FormValue("item_id")
+	}
+	if itemIDStr == "" {
+		itemIDStr = r.FormValue("id")
+	}
+	itemID, _ := strconv.ParseInt(itemIDStr, 10, 64)
+
+	invIDStr := r.URL.Query().Get("invoice_id")
+	if invIDStr == "" {
+		invIDStr = r.FormValue("invoice_id")
+	}
+	invoiceID, _ := strconv.ParseInt(invIDStr, 10, 64)
+
+	if itemID <= 0 {
+		http.Error(w, "ID do item inválido", http.StatusBadRequest)
+		return
+	}
+
+	svc := service.NewInvoiceItemDelete(h.repo, h.logger, h.getBillingClient())
+	req := &dto.InvoiceItemDeleteRequest{
+		ItemID:    itemID,
+		InvoiceID: invoiceID,
+	}
+	resp := svc.Run(req)
+	if resp.GetStatusCode() != 200 {
+		http.Error(w, resp.GetMessage(), resp.GetStatusCode())
+		return
+	}
+
+	r.Form.Del("invoice_id")
+	r.Form.Del("fatura_id")
+	r.Form.Del("id")
+	r.Form.Del("item_id")
+	h.InvoicingTable(w, r)
+}
+
+func (h *HandlerHtml) getInvoiceItemAddModalData(req *dto.InvoiceItemAddRequest, erro string) map[string]interface{} {
+	now := time.Now()
+	firstDay := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	lastDay := firstDay.AddDate(0, 1, -1)
+
+	invoiceID := int64(0)
+	serviceID := int64(0)
+	operation := "add"
+	periodStart := firstDay.Format("2006-01-02")
+	periodEnd := lastDay.Format("2006-01-02")
+	price := 0.0
+	quantity := 1
+	description := ""
+	nickname := ""
+
+	if req != nil {
+		invoiceID = req.InvoiceID
+		serviceID = req.ServiceID
+		if req.Operation != "" {
+			operation = req.Operation
+		}
+		if req.PeriodStart != "" {
+			periodStart = req.PeriodStart
+		}
+		if req.PeriodEnd != "" {
+			periodEnd = req.PeriodEnd
+		}
+		if req.Price < 0 {
+			price = -req.Price
+		} else {
+			price = req.Price
+		}
+		if req.Quantity > 0 {
+			quantity = req.Quantity
+		}
+		description = req.Description
+	}
+
+	if invoiceID > 0 && h.repo != nil {
+		if inv, err := h.repo.GetInvoiceByID(invoiceID); err == nil && inv != nil {
+			if inv.Plan != nil && inv.Plan.Customer != nil {
+				nickname = inv.Plan.Customer.Nickname
+			}
+			if req != nil && (req.PeriodStart == "" || req.PeriodEnd == "") && len(inv.Items) > 0 {
+				if !inv.Items[0].PeriodStart.IsZero() {
+					periodStart = inv.Items[0].PeriodStart.Format("2006-01-02")
+				}
+				if !inv.Items[0].PeriodEnd.IsZero() {
+					periodEnd = inv.Items[0].PeriodEnd.Format("2006-01-02")
+				}
+			}
+		}
+	}
+
+	return map[string]interface{}{
+		"InvoiceID":   invoiceID,
+		"Nickname":    nickname,
+		"Services":    h.getServices(),
+		"ServiceID":   serviceID,
+		"Operation":   operation,
+		"PeriodStart": periodStart,
+		"PeriodEnd":   periodEnd,
+		"Price":       price,
+		"Quantity":    quantity,
+		"Description": description,
+		"Erro":        erro,
+	}
 }

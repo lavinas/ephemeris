@@ -76,8 +76,6 @@ func TestInvoiceRepository_Integration(t *testing.T) {
 		PlanID:        firstPlan.ID,
 		InvoicingDate: time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC),
 		DueDate:       time.Date(2026, 9, 15, 0, 0, 0, 0, time.UTC),
-		PeriodStart:   time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC),
-		PeriodEnd:     time.Date(2026, 9, 30, 0, 0, 0, 0, time.UTC),
 		Amount:        150.00,
 		CreatedAt:     now,
 		UpdatedAt:     now,
@@ -88,6 +86,8 @@ func TestInvoiceRepository_Integration(t *testing.T) {
 				Description:      &desc,
 				InvoicedQuantity: 1,
 				RealizedQuantity: 1,
+				PeriodStart:      time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC),
+				PeriodEnd:        time.Date(2026, 9, 30, 0, 0, 0, 0, time.UTC),
 				CreatedAt:        now,
 				UpdatedAt:        now,
 			},
@@ -116,11 +116,11 @@ func TestInvoiceRepository_Integration(t *testing.T) {
 	if inv.Amount != 150.00 {
 		t.Errorf("expected amount 150.00, got %.2f", inv.Amount)
 	}
-	if !inv.PeriodStart.Equal(time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)) {
-		t.Errorf("expected PeriodStart 2026-09-01, got %v", inv.PeriodStart)
+	if len(inv.Items) > 0 && !inv.Items[0].PeriodStart.Equal(time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)) {
+		t.Errorf("expected PeriodStart 2026-09-01, got %v", inv.Items[0].PeriodStart)
 	}
-	if !inv.PeriodEnd.Equal(time.Date(2026, 9, 30, 0, 0, 0, 0, time.UTC)) {
-		t.Errorf("expected PeriodEnd 2026-09-30, got %v", inv.PeriodEnd)
+	if len(inv.Items) > 0 && !inv.Items[0].PeriodEnd.Equal(time.Date(2026, 9, 30, 0, 0, 0, 0, time.UTC)) {
+		t.Errorf("expected PeriodEnd 2026-09-30, got %v", inv.Items[0].PeriodEnd)
 	}
 
 	// 4. Test FindInvoices
@@ -167,7 +167,14 @@ func TestInvoiceRepository_Integration(t *testing.T) {
 		DueDate:       time.Date(2026, 11, 15, 0, 0, 0, 0, time.UTC),
 		Amount:        90.0,
 		Items: []domain.InvoiceItem{
-			{ServiceID: firstPlan.Items[0].ServiceID, Price: 90.0, InvoicedQuantity: 1, RealizedQuantity: 0},
+			{
+				ServiceID:        firstPlan.Items[0].ServiceID,
+				Price:            90.0,
+				InvoicedQuantity: 1,
+				RealizedQuantity: 0,
+				PeriodStart:      time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC),
+				PeriodEnd:        time.Date(2026, 10, 31, 0, 0, 0, 0, time.UTC),
+			},
 		},
 	}
 	if err := repo.SaveInvoice(testInvoice2); err != nil {
