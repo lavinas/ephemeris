@@ -17,9 +17,9 @@ RUN adduser -D -g '' appuser
 COPY --from=builder /app/main .
 COPY --from=builder /app/accounting.json .
 
-# 2. Copia as pastas de templates e estáticos
-COPY --from=builder /app/web/templates ./web/templates
-COPY --from=builder /app/web/static ./web/static
+# 2. Garante os diretórios de templates e estáticos e copia o conteúdo
+RUN mkdir -p ./web/templates ./web/static
+COPY --from=builder /app/web/ ./web/
 
 USER appuser
 EXPOSE 8084
