@@ -1,0 +1,54 @@
+services:
+  # Database service
+  accounting_db:
+    image: postgres:latest
+    container_name: accounting_db_prod
+    restart: always
+    environment:
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_DB=accounting
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    networks:
+      - net-accounting-prod
+    ports:
+      - "5435:5432"
+    volumes:
+      - pg_production_data:/var/lib/postgresql/data
+      - ./migration/banking.sql:/docker-entrypoint-initdb.d/01_banking.sql:ro
+
+  # API service
+  accounting_api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.prod
+    container_name: accounting_api_prod
+    restart: always
+    networks:
+      - net-accounting-prod
+      - ephemeris-network
+    ports:
+      - "8084:8084"
+    volumes:
+      # Sincroniza a pasta de logs local com a interna do container
+      - ./log:/app/log
+      # Sincroniza a pasta de certificados digitais
+      - ./certs:/app/certs:ro
+    environment:
+      - DB_HOST=accounting_db
+      - DB_PORT=5432
+      - DB_USER=root
+      - DB_PASSWORD=root
+      - DB_NAME=accounting
+    depends_on:
+      - accounting_db
+
+volumes:
+  pg_production_data:
+
+networks:
+  net-accounting-prod:
+    driver: bridge
+  ephemeris-network:
+    external: true
+

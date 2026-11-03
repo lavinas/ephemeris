@@ -1,0 +1,19 @@
+FROM golang:1.26-alpine
+
+WORKDIR /app
+
+RUN apk add --no-cache git gcc musl-dev
+
+RUN go install github.com/air-verse/air@latest
+
+ENV PATH="/go/bin:${PATH}"
+
+COPY go.mod ./
+RUN go mod download
+
+COPY . .
+
+EXPOSE 8084
+
+CMD ["sh", "-c", "sleep 5 && air"]
+

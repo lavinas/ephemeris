@@ -1,0 +1,21 @@
+{
+    "db": {
+        "host": "accounting_db",
+        "port": 5432,
+        "user": "root",
+        "password": "root",
+        "dbname": "accounting",
+        "sslmode": "disable",
+        "timezone": "America/Sao_Paulo",
+        "connect_timeout": 10,
+        "schema": "public"
+    },
+    "log": {
+        "output": "./log/accounting.log",
+        "level": 0
+    },
+    "web": {
+        "addr": ":8084"
+    }
+}
+
