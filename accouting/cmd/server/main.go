@@ -95,4 +95,3 @@ func main() {
 		log.Fatalf("Erro no servidor HTTP: %v", err)
 	}
 }
-
