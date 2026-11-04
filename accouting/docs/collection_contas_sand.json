@@ -1,0 +1,147 @@
+{
+    "info": {
+        "_postman_id": "666df9e6-9e64-4a4d-b34e-095e497f7f97",
+        "name": "Sandbox - Open API - Contas Correntes",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Saldo",
+            "request": {
+                "auth": {
+                    "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "body": {
+                    "mode": "raw",
+                    "raw": ""
+                },
+                "url": {
+                    "raw": "https://trust-sandbox.api.santander.com.br/bank_account_information/v1/banks/90400888000142/balances/0000.000011112222",
+                    "protocol": "https",
+                    "host": [
+                        "trust-sandbox",
+                        "api",
+                        "santander",
+                        "com",
+                        "br"
+                    ],
+                    "path": [
+                        "bank_account_information",
+                        "v1",
+                        "banks",
+                        "90400888000142",
+                        "balances",
+                        "0000.000011112222"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "Extrato",
+            "event": [
+                {
+                    "listen": "prerequest",
+                    "script": {
+                        "id": "a725c1cb-03ec-4486-91c9-d34efc211e5a",
+                        "exec": [
+                            ""
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "auth": {
+                    "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "body": {
+                    "mode": "raw",
+                    "raw": ""
+                },
+                "url": {
+                    "raw": "https://trust-sandbox.api.santander.com.br/bank_account_information/v1/banks/90400888000142/statements/0000.000011112222?_offset=1&_limit=50&initialDate=2023-01-01&finalDate=2023-01-10",
+                    "protocol": "https",
+                    "host": [
+                        "trust-sandbox",
+                        "api",
+                        "santander",
+                        "com",
+                        "br"
+                    ],
+                    "path": [
+                        "bank_account_information",
+                        "v1",
+                        "banks",
+                        "90400888000142",
+                        "statements",
+                        "0000.000011112222"
+                    ],
+                    "query": [
+                        {
+                            "key": "_offset",
+                            "value": "1"
+                        },
+                        {
+                            "key": "_limit",
+                            "value": "50"
+                        },
+                        {
+                            "key": "initialDate",
+                            "value": "2023-01-01"
+                        },
+                        {
+                            "key": "finalDate",
+                            "value": "2023-01-10"
+                        }
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "Lista Contas",
+            "protocolProfileBehavior": {
+                "disableBodyPruning": true
+            },
+            "request": {
+                "method": "GET",
+                "header": [],
+                "body": {},
+                "url": {
+                    "raw": "https://trust-sandbox.api.santander.com.br/bank_account_information/v1/banks/90400888000142/accounts?_offset=1&_limit=50",
+                    "protocol": "https",
+                    "host": [
+                        "trust-sandbox",
+                        "api",
+                        "santander",
+                        "com",
+                        "br"
+                    ],
+                    "path": [
+                        "bank_account_information",
+                        "v1",
+                        "banks",
+                        "90400888000142",
+                        "accounts"
+                    ],
+                    "query": [
+                        {
+                            "key": "_offset",
+                            "value": "1"
+                        },
+                        {
+                            "key": "_limit",
+                            "value": "50"
+                        }
+                    ]
+                }
+            },
+            "response": []
+        }
+    ]
+}

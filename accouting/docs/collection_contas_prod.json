@@ -1,0 +1,172 @@
+{
+    "info": {
+        "_postman_id": "6819f604-8b77-4304-86ca-e5d7194262ea",
+        "name": "Open API - Contas Correntes",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Lista Contas",
+            "event": [
+                {
+                    "listen": "prerequest",
+                    "script": {
+                        "id": "a725c1cb-03ec-4486-91c9-d34efc211e5a",
+                        "exec": [
+                            ""
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "auth": {
+                    "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "body": {
+                    "mode": "raw",
+                    "raw": ""
+                },
+                "url": {
+                    "raw": "https://trust-open.api.santander.com.br/bank_account_information/v1/banks/90400888000142/accounts?_offset=1&_limit=50",
+                    "protocol": "https",
+                    "host": [
+                        "trust-open",
+                        "api",
+                        "santander",
+                        "com",
+                        "br"
+                    ],
+                    "path": [
+                        "bank_account_information",
+                        "v1",
+                        "banks",
+                        "90400888000142",
+                        "accounts"
+                    ],
+                    "query": [
+                        {
+                            "key": "_offset",
+                            "value": "1"
+                        },
+                        {
+                            "key": "_limit",
+                            "value": "50"
+                        }
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "Saldo",
+            "request": {
+                "auth": {
+                    "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "body": {
+                    "mode": "raw",
+                    "raw": ""
+                },
+                "url": {
+                    "raw": "https://trust-open.api.santander.com.br/bank_account_information/v1/banks/90400888000142/balances/AGENCIA.CONTA",
+                    "protocol": "https",
+                    "host": [
+                        "trust-open",
+                        "api",
+                        "santander",
+                        "com",
+                        "br"
+                    ],
+                    "path": [
+                        "bank_account_information",
+                        "v1",
+                        "banks",
+                        "90400888000142",
+                        "balances",
+                        "AGENCIA.CONTA"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "Extrato",
+            "request": {
+                "auth": {
+                    "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "body": {
+                    "mode": "raw",
+                    "raw": ""
+                },
+                "url": {
+                    "raw": "https://trust-open.api.santander.com.br/bank_account_information/v1/banks/90400888000142/statements/AGENCIA.CONTA?_offset=1&_limit=50&initialDate=2023-07-01&finalDate=2023-07-24",
+                    "protocol": "https",
+                    "host": [
+                        "trust-open",
+                        "api",
+                        "santander",
+                        "com",
+                        "br"
+                    ],
+                    "path": [
+                        "bank_account_information",
+                        "v1",
+                        "banks",
+                        "90400888000142",
+                        "statements",
+                        "AGENCIA.CONTA"
+                    ],
+                    "query": [
+                        {
+                            "key": "_offset",
+                            "value": "1"
+                        },
+                        {
+                            "key": "_limit",
+                            "value": "50"
+                        },
+                        {
+                            "key": "initialDate",
+                            "value": "2023-07-01"
+                        },
+                        {
+                            "key": "finalDate",
+                            "value": "2023-07-24"
+                        }
+                    ]
+                }
+            },
+            "response": []
+        }
+    ],
+    "event": [
+        {
+            "listen": "prerequest",
+            "script": {
+                "id": "e0932fd9-8427-4a2e-813e-f606d0c6e491",
+                "type": "text/javascript",
+                "exec": [
+                    ""
+                ]
+            }
+        },
+        {
+            "listen": "test",
+            "script": {
+                "id": "9df07cf5-9eae-42e4-922c-c7c391267d5a",
+                "type": "text/javascript",
+                "exec": [
+                    ""
+                ]
+            }
+        }
+    ]
+}
