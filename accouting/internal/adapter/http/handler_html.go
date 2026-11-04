@@ -208,10 +208,10 @@ func (h *HandlerHtml) Sync(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("HX-Trigger", `{"reloadStatements": true, "closeSyncModal": true}`)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, _ = w.Write([]byte(fmt.Sprintf(`<div class="alert %s alert-dismissible fade show" role="alert">
+	_, _ = w.Write(fmt.Appendf(nil, `<div class="alert %s alert-dismissible fade show" role="alert">
 		%s
 		<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-	</div>`, statusClass, msg)))
+	</div>`, statusClass, msg))
 }
 
 func (h *HandlerHtml) render(w http.ResponseWriter, name string, data interface{}) {
