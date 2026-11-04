@@ -8,7 +8,7 @@
         "sslmode": "disable",
         "timezone": "America/Sao_Paulo",
         "connect_timeout": 10,
-        "schema": "public"
+        "schema": "accounting"
     },
     "log": {
         "output": "./log/accounting.log",
@@ -16,6 +16,19 @@
     },
     "web": {
         "addr": ":8084"
+    },
+    "santander": {
+        "environment": "sandbox",
+        "sandbox_base_url": "https://trust-sandbox.api.santander.com.br",
+        "prod_base_url": "https://trust-open.api.santander.com.br",
+        "bank_id": "90400888000142",
+        "certificate_path": "certs/26534905.pfx",
+        "certificate_password": "",
+        "timeout_seconds": 30
+    },
+    "sync_job": {
+        "enabled": true,
+        "cron_expr": "0 */4 * * *",
+        "days_back": 15
     }
 }
-

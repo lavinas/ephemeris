@@ -1,97 +1,78 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"log"
-	"net/http"
 	"os"
-	"time"
+
+	"accounting/internal/adapter/bank/santander"
+	"accounting/internal/adapter/config"
+	"accounting/internal/adapter/cron"
+	"accounting/internal/adapter/http"
+	"accounting/internal/adapter/logger"
+	"accounting/internal/adapter/repository"
+	"accounting/internal/service"
 )
 
-type Config struct {
-	DB struct {
-		Host           string `json:"host"`
-		Port           int    `json:"port"`
-		User           string `json:"user"`
-		Password       string `json:"password"`
-		DBName         string `json:"dbname"`
-		SSLMode        string `json:"sslmode"`
-		Timezone       string `json:"timezone"`
-		ConnectTimeout int    `json:"connect_timeout"`
-		Schema         string `json:"schema"`
-	} `json:"db"`
-	Log struct {
-		Output string `json:"output"`
-		Level  int    `json:"level"`
-	} `json:"log"`
-	Web struct {
-		Addr string `json:"addr"`
-	} `json:"web"`
-}
-
-func loadConfig(path string) (*Config, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	var cfg Config
-	decoder := json.NewDecoder(file)
-	if err := decoder.Decode(&cfg); err != nil {
-		return nil, err
-	}
-	return &cfg, nil
-}
+const configFile = "accounting.json"
 
 func main() {
-	configPath := "accounting.json"
+	configPath := configFile
 	if envPath := os.Getenv("CONFIG_PATH"); envPath != "" {
 		configPath = envPath
 	}
 
-	cfg, err := loadConfig(configPath)
+	cfg, err := config.NewConfig(configPath)
 	if err != nil {
-		log.Printf("Aviso: Falha ao carregar %s (%v). Usando portas padrão.", configPath, err)
-		cfg = &Config{}
-		cfg.Web.Addr = ":8084"
+		fmt.Printf("Error loading config %s: %v\n", configPath, err)
+		return
 	}
 
-	mux := http.NewServeMux()
+	// 1. Logger
+	logOutput, logLevel := cfg.GetLogData()
+	log, err := logger.NewLogger(logOutput, logLevel)
+	if err != nil {
+		fmt.Printf("Error initializing logger: %v\n", err)
+		return
+	}
+	defer func() {
+		log.IPrintf(0, "Accounting logger closing")
+		log.Close()
+	}()
 
-	// Health check endpoint
-	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"status":"ok","service":"accounting"}`))
-	})
+	// 2. Repository
+	host, port, user, password, dbname, sslmode, timezone, timeout, schema := cfg.GetDBData()
+	repo, err := repository.NewRepository(host, user, password, dbname, sslmode, timezone, port, timeout, schema)
+	if err != nil {
+		log.IPrintf(2, "Error initializing database repository: %v", err)
+		return
+	}
+	defer func() {
+		repo.Close()
+		log.IPrintf(0, "Accounting repository closed")
+	}()
 
-	// Static files handling if directory exists
-	if _, err := os.Stat("web/static"); err == nil {
-		fs := http.FileServer(http.Dir("web/static"))
-		mux.Handle("/static/", http.StripPrefix("/static/", fs))
+	os.Setenv("TZ", timezone)
+
+	// 3. Bank Providers (Santander API, and future providers like OFX)
+	santanderClient, err := santander.NewClient(cfg.Santander, log)
+	if err != nil {
+		log.IPrintf(1, "Warning: Santander client initialization encountered issue: %v", err)
 	}
 
-	// Home endpoint
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/" {
-			http.NotFound(w, r)
-			return
-		}
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		fmt.Fprintf(w, "<h1>Accounting Service</h1><p>Sistema contábil e banking ativo.</p>")
-	})
+	// 4. Services
+	statementListService := service.NewStatementListService(repo, log)
+	statementSyncService := service.NewStatementSyncService(repo, santanderClient, log, cfg.SyncJob.DaysBack)
 
-	server := &http.Server{
-		Addr:         cfg.Web.Addr,
-		Handler:      mux,
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
+	// 5. Scheduled Cron Job for periodic banking statements sync
+	scheduler := cron.NewScheduler(cfg.SyncJob, statementSyncService, log)
+	if err := scheduler.Start(); err != nil {
+		log.IPrintf(1, "Warning: failed to start scheduler: %v", err)
 	}
+	defer scheduler.Stop()
 
-	log.Printf("Iniciando accounting_api em %s...", cfg.Web.Addr)
-	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		log.Fatalf("Erro no servidor HTTP: %v", err)
+	// 6. HTTP Server (API & HTMX)
+	handler := http.NewHandler(repo, log, statementListService, statementSyncService)
+	if err := handler.Run(cfg.GetWebAddr()); err != nil {
+		log.IPrintf(2, "Error running accounting server: %v", err)
 	}
 }

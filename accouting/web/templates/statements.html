@@ -1,0 +1,294 @@
+{{define "statements.html"}}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accounting - Extrato Bancário</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <script src="/static/htmx.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+        body { background-color: #f8f9fa; font-family: system-ui, -apple-system, sans-serif; }
+        .card-header { background-color: #212529; color: #fff; }
+        .amount-pos { color: #198754; font-weight: 600; }
+        .amount-neg { color: #dc3545; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-dark mb-4 shadow-sm">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1">
+                <i class="bi bi-bank me-2"></i>Accounting &amp; Banking Service
+            </span>
+            <span class="badge bg-secondary">v1.0</span>
+        </div>
+    </nav>
+
+    <div class="container-fluid px-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="bi bi-journal-text me-2"></i>Consulta de Extrato Bancário</h5>
+                        <div id="sync-button-container">
+                            {{template "sync_button_partial" .}}
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Notification Feedback Area -->
+                        <div id="sync-feedback"></div>
+
+                        <!-- Filter Form -->
+                        <form id="filter-form"
+                              hx-get="/html/statements?partial=table"
+                              hx-target="#statements-table-container"
+                              hx-trigger="submit, change from:select, reloadStatements from:body"
+                              class="row g-3 align-items-end mb-4">
+                            
+                            <div class="col-md-4">
+                                <label for="account_id" class="form-label fw-bold">Conta Bancária</label>
+                                <select id="account_id" name="account_id" class="form-select"
+                                        onchange="updateSyncModalAccount(this)">
+                                    {{range .Accounts}}
+                                    <option value="{{.ID}}"
+                                            data-santander="{{if .AccountSantanderAPI}}true{{else}}false{{end}}"
+                                            data-label="Banco {{.BankCode}} | Ag: {{.AccountBranch}} - CC: {{.AccountNumber}}"
+                                            {{if and $.SelectedAccount (eq $.SelectedAccount.ID .ID)}}selected{{end}}>
+                                        Banco {{.BankCode}} | Ag: {{.AccountBranch}} - CC: {{.AccountNumber}}
+                                        {{if .AccountSantanderAPI}} (API Santander) {{end}}
+                                    </option>
+                                    {{else}}
+                                    <option value="">Nenhuma conta ativa cadastrada</option>
+                                    {{end}}
+                                </select>
+                            </div>
+
+                            <div class="col-md-3">
+                                <label for="start_date" class="form-label fw-bold">Data Inicial</label>
+                                <input type="date" id="start_date" name="start_date" class="form-control" value="{{.StartDate}}">
+                            </div>
+
+                            <div class="col-md-3">
+                                <label for="end_date" class="form-label fw-bold">Data Final</label>
+                                <input type="date" id="end_date" name="end_date" class="form-control" value="{{.EndDate}}">
+                            </div>
+
+                            <div class="col-md-2 d-flex gap-2">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="bi bi-filter me-1"></i>Filtrar
+                                </button>
+                                <a href="/html/statements" class="btn btn-outline-secondary">Limpar</a>
+                            </div>
+                        </form>
+
+                        <!-- Dynamic Table Container -->
+                        <div id="statements-table-container">
+                            {{template "table_partial" .}}
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Sincronização Manual Santander -->
+    <div class="modal fade" id="syncModal" tabindex="-1" aria-labelledby="syncModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form hx-post="/html/statements/sync"
+                      hx-target="#sync-feedback"
+                      hx-indicator="#modal-sync-spinner">
+                    <div class="modal-header bg-dark text-white">
+                        <h5 class="modal-title" id="syncModalLabel">
+                            <i class="bi bi-cloud-arrow-down me-2"></i>Sincronizar Santander API
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="modal_account_id" name="account_id" value="{{if .SelectedAccount}}{{.SelectedAccount.ID}}{{end}}">
+                        
+                        <div class="mb-3">
+                            <label class="form-label text-muted small">Conta Selecionada</label>
+                            <input type="text" id="modal_account_label" class="form-control-plaintext fw-bold" readonly
+                                   value="{{if .SelectedAccount}}Banco {{.SelectedAccount.BankCode}} | Ag: {{.SelectedAccount.AccountBranch}} - CC: {{.SelectedAccount.AccountNumber}}{{end}}">
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label for="sync_start_date" class="form-label fw-bold">Data Início</label>
+                                <input type="date" id="sync_start_date" name="sync_start_date" class="form-control" required>
+                            </div>
+                            <div class="col-6">
+                                <label for="sync_end_date" class="form-label fw-bold">Data Fim</label>
+                                <input type="date" id="sync_end_date" name="sync_end_date" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="form-text">
+                            O sistema consultará a API Santander pelo período informado, gravando movimentações e ignorando transações já existentes.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">
+                            <span id="modal-sync-spinner" class="spinner-border spinner-border-sm htmx-indicator me-1" role="status"></span>
+                            <i class="bi bi-arrow-repeat me-1"></i>Iniciar Sincronização
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Set default dates for modal (last 15 days up to today)
+        function initModalDates() {
+            const today = new Date();
+            const past = new Date();
+            past.setDate(today.getDate() - 15);
+            
+            const formatDate = (d) => d.toISOString().split('T')[0];
+            const startDateEl = document.getElementById('sync_start_date');
+            const endDateEl = document.getElementById('sync_end_date');
+            if (startDateEl && !startDateEl.value) startDateEl.value = formatDate(past);
+            if (endDateEl && !endDateEl.value) endDateEl.value = formatDate(today);
+        }
+
+        function updateSyncModalAccount(selectEl) {
+            const selectedOpt = selectEl.options[selectEl.selectedIndex];
+            if (!selectedOpt) return;
+            const accId = selectedOpt.value;
+            const isSantander = selectedOpt.getAttribute('data-santander') === 'true';
+            const label = selectedOpt.getAttribute('data-label');
+
+            const modalAccId = document.getElementById('modal_account_id');
+            const modalAccLabel = document.getElementById('modal_account_label');
+            const syncBtn = document.getElementById('btn-open-sync-modal');
+
+            if (modalAccId) modalAccId.value = accId;
+            if (modalAccLabel) modalAccLabel.value = label;
+
+            if (syncBtn) {
+                if (isSantander) {
+                    syncBtn.removeAttribute('disabled');
+                    syncBtn.classList.remove('btn-outline-secondary');
+                    syncBtn.classList.add('btn-outline-light');
+                    syncBtn.title = 'Sincronizar extrato via API Santander';
+                } else {
+                    syncBtn.setAttribute('disabled', 'disabled');
+                    syncBtn.classList.remove('btn-outline-light');
+                    syncBtn.classList.add('btn-outline-secondary');
+                    syncBtn.title = 'Esta conta não possui integração Santander API';
+                }
+            }
+        }
+
+        // Close modal on custom event
+        document.body.addEventListener('closeSyncModal', function() {
+            const modalEl = document.getElementById('syncModal');
+            if (modalEl) {
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initModalDates();
+            const selectEl = document.getElementById('account_id');
+            if (selectEl) updateSyncModalAccount(selectEl);
+        });
+    </script>
+</body>
+</html>
+{{end}}
+
+{{define "sync_button_partial"}}
+{{$hasSantander := false}}
+{{if and .SelectedAccount .SelectedAccount.AccountSantanderAPI}}
+    {{$hasSantander = true}}
+{{end}}
+<button id="btn-open-sync-modal"
+        type="button"
+        class="btn {{if $hasSantander}}btn-outline-light{{else}}btn-outline-secondary{{end}} btn-sm"
+        data-bs-toggle="modal"
+        data-bs-target="#syncModal"
+        {{if not $hasSantander}}disabled title="Esta conta não possui integração Santander API"{{else}}title="Sincronizar extrato via API Santander"{{end}}>
+    <i class="bi bi-arrow-repeat me-1"></i>Sincronizar
+</button>
+{{end}}
+
+{{define "table_partial"}}
+<div class="table-responsive">
+    <table class="table table-hover table-striped align-middle border">
+        <thead class="table-dark">
+            <tr>
+                <th scope="col" style="width: 80px;">ID</th>
+                <th scope="col" style="width: 130px;">Data (sdate)</th>
+                <th scope="col">Descrição (memo)</th>
+                <th scope="col">Contraparte (partie)</th>
+                <th scope="col" class="text-end" style="width: 160px;">Valor (amount)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .Statements}}
+            <tr>
+                <td><span class="badge bg-light text-dark border">#{{.ID}}</span></td>
+                <td>{{formatDate .SDate}}</td>
+                <td>{{.Memo}}</td>
+                <td>
+                    {{if .Partie}}
+                    <span class="badge bg-secondary-subtle text-secondary-emphasis">{{.Partie}}</span>
+                    {{else}}
+                    <span class="text-muted">-</span>
+                    {{end}}
+                </td>
+                <td class="text-end">
+                    <span class="{{if isNegative .Amount}}amount-neg{{else}}amount-pos{{end}}">
+                        {{formatMoney .Amount}}
+                    </span>
+                </td>
+            </tr>
+            {{else}}
+            <tr>
+                <td colspan="5" class="text-center py-4 text-muted">
+                    <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                    Nenhuma movimentação encontrada para o período/conta selecionada.
+                </td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination Controls -->
+<div class="d-flex justify-content-between align-items-center mt-3">
+    <div class="text-muted small">
+        Mostrando <strong>{{len .Statements}}</strong> de <strong>{{.Total}}</strong> registro(s) (Página {{.Page}} de {{.TotalPages}})
+    </div>
+    {{if gt .TotalPages 1}}
+    <nav aria-label="Navegação do extrato">
+        <ul class="pagination pagination-sm mb-0">
+            <li class="page-item {{if le .Page 1}}disabled{{end}}">
+                <button class="page-link"
+                        hx-get="/html/statements?partial=table&account_id={{if .SelectedAccount}}{{.SelectedAccount.ID}}{{end}}&start_date={{.StartDate}}&end_date={{.EndDate}}&page={{sub .Page 1}}"
+                        hx-target="#statements-table-container">
+                    Anterior
+                </button>
+            </li>
+            <li class="page-item active">
+                <span class="page-link">{{.Page}}</span>
+            </li>
+            <li class="page-item {{if ge .Page .TotalPages}}disabled{{end}}">
+                <button class="page-link"
+                        hx-get="/html/statements?partial=table&account_id={{if .SelectedAccount}}{{.SelectedAccount.ID}}{{end}}&start_date={{.StartDate}}&end_date={{.EndDate}}&page={{add .Page 1}}"
+                        hx-target="#statements-table-container">
+                    Próxima
+                </button>
+            </li>
+        </ul>
+    </nav>
+    {{end}}
+</div>
+{{end}}
