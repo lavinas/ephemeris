@@ -107,6 +107,8 @@ type StatementsViewData struct {
 
 // Index renders the main statements page
 func (h *HandlerHtml) Index(w http.ResponseWriter, r *http.Request) {
+	h.logger.IPrintf(0, "HandlerHtml.Index called: method=%s, path=%s, HX-Request=%s", r.Method, r.URL.Path, r.Header.Get("HX-Request"))
+
 	accounts, err := h.repo.GetAccounts(true)
 	if err != nil {
 		h.logger.IPrintf(2, "Error fetching accounts: %v", err)
@@ -123,7 +125,13 @@ func (h *HandlerHtml) Index(w http.ResponseWriter, r *http.Request) {
 
 	q := r.URL.Query()
 	accountID, _ := strconv.ParseInt(q.Get("account_id"), 10, 64)
+	if accountID <= 0 {
+		accountID, _ = strconv.ParseInt(r.FormValue("account_id"), 10, 64)
+	}
 	page, _ := strconv.Atoi(q.Get("page"))
+	if page <= 0 {
+		page, _ = strconv.Atoi(r.FormValue("page"))
+	}
 	if page <= 0 {
 		page = 1
 	}
@@ -147,7 +155,13 @@ func (h *HandlerHtml) Index(w http.ResponseWriter, r *http.Request) {
 	}
 
 	startDate := q.Get("start_date")
+	if startDate == "" {
+		startDate = r.FormValue("start_date")
+	}
 	endDate := q.Get("end_date")
+	if endDate == "" {
+		endDate = r.FormValue("end_date")
+	}
 
 	resp := h.listService.Run(&dto.StatementListRequest{
 		AccountID: accountID,
@@ -170,12 +184,32 @@ func (h *HandlerHtml) Index(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// If HTMX partial request for table only
-	if r.Header.Get("HX-Request") == "true" && q.Get("partial") == "table" {
-		h.render(w, "table_partial", viewData)
+	if r.Header.Get("HX-Request") == "true" && (q.Get("partial") == "table" || r.URL.Path == "/statements/tabela" || r.URL.Path == "/extratos/tabela") {
+		h.render(w, "tabela", viewData)
+		return
+	}
+
+	// If HTMX partial request from vendor shell (#conteudo-principal)
+	if r.Header.Get("HX-Request") == "true" {
+		h.render(w, "fragment", viewData)
 		return
 	}
 
 	h.render(w, "statements.html", viewData)
+}
+
+// Table renders only the statements table
+func (h *HandlerHtml) Table(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		h.logger.IPrintf(1, "Warning: failed to parse form in Table: %v", err)
+	}
+	h.Index(w, r)
+}
+
+// TableReset resets filters and renders default table
+func (h *HandlerHtml) TableReset(w http.ResponseWriter, r *http.Request) {
+	r.Form = nil
+	h.Index(w, r)
 }
 
 // Sync handles manual synchronization trigger via HTMX

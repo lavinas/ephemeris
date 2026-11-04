@@ -1,294 +1,429 @@
-{{define "statements.html"}}
+{{define "fragment"}}
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+	.grade-filtros-statements {
+		display: grid !important;
+		grid-template-columns: 2.2fr 1.3fr 1.3fr !important;
+		gap: 12px !important;
+		width: 100% !important;
+		box-sizing: border-box !important;
+	}
+	@media (max-width: 1024px) {
+		.grade-filtros-statements {
+			grid-template-columns: 1fr 1fr !important;
+		}
+	}
+	@media (max-width: 640px) {
+		.grade-filtros-statements {
+			grid-template-columns: 1fr !important;
+		}
+	}
+	.grade-tabela-statements {
+		display: grid !important;
+		grid-template-columns: 100px 140px 1fr 180px 160px !important;
+		gap: 14px !important;
+		align-items: center !important;
+		width: 100% !important;
+		box-sizing: border-box !important;
+		padding: 16px 20px !important;
+	}
+	@media (max-width: 1024px) {
+		.grade-tabela-statements {
+			grid-template-columns: 80px 120px 1fr 150px !important;
+		}
+		.col-partie {
+			display: none !important;
+		}
+	}
+	@media (max-width: 640px) {
+		.grade-tabela-statements {
+			grid-template-columns: 80px 1fr 120px !important;
+			gap: 8px !important;
+			padding: 12px 10px !important;
+		}
+		.col-id, .col-partie {
+			display: none !important;
+		}
+	}
+	.topo-tabela-statements {
+		color: #9ca3af !important;
+		font-size: 11px !important;
+		font-weight: 700 !important;
+		text-transform: uppercase !important;
+		letter-spacing: 0.05em !important;
+		border-bottom: 1px solid #374151 !important;
+		padding-bottom: 12px !important;
+		margin-bottom: 12px !important;
+	}
+	.linha-box-statements {
+		background-color: #111827 !important;
+		border: 1px solid #1f2937 !important;
+		border-radius: 8px !important;
+		margin-bottom: 8px !important;
+		color: #f3f4f6 !important;
+		transition: all 0.15s ease !important;
+		box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important;
+	}
+	.linha-box-statements:hover {
+		background-color: #1f2937 !important;
+		border-color: #374151 !important;
+		transform: translateY(-1px);
+	}
+	.campo-box-statements {
+		background-color: #111827 !important;
+		border: 1px solid #374151 !important;
+		padding: 10px 14px !important;
+		border-radius: 8px !important;
+		display: flex !important;
+		flex-direction: column !important;
+	}
+	.campo-box-statements label {
+		display: block !important;
+		font-size: 11px !important;
+		font-weight: 600 !important;
+		color: #9ca3af !important;
+		text-transform: uppercase !important;
+		margin-bottom: 6px !important;
+		letter-spacing: 0.05em !important;
+	}
+	.campo-box-statements input, .campo-box-statements select {
+		width: 100% !important;
+		padding: 8px 10px !important;
+		background-color: #1f2937 !important;
+		border: 1px solid #4b5563 !important;
+		border-radius: 6px !important;
+		color: #f9fafb !important;
+		font-size: 13px !important;
+		outline: none !important;
+		box-sizing: border-box !important;
+	}
+	.campo-box-statements input:focus, .campo-box-statements select:focus {
+		border-color: #3b82f6 !important;
+		box-shadow: 0 0 0 1px #3b82f6 !important;
+	}
+	.valor-positivo {
+		background-color: rgba(16, 185, 129, 0.15) !important;
+		color: #34d399 !important;
+		border: 1px solid rgba(16, 185, 129, 0.3) !important;
+	}
+	.valor-negativo {
+		background-color: rgba(244, 63, 94, 0.15) !important;
+		color: #fb7185 !important;
+		border: 1px solid rgba(244, 63, 94, 0.3) !important;
+	}
+</style>
+
+<div class="w-full min-h-screen bg-gray-950 text-gray-100 py-8 px-6">
+	<div class="max-w-7xl mx-auto bg-gray-900 shadow-2xl rounded-2xl overflow-hidden border border-gray-800 p-8">
+		<!-- Feedback de Sincronização -->
+		<div id="sync-feedback" class="mb-4"></div>
+
+		<!-- Formulário de Auto-Filtros (mesmo padrão do Banco de Horas) -->
+		<form id="filtro-form-statements"
+			  hx-post="/html/statements/tabela"
+			  hx-target="#tabela-container-statements"
+			  hx-trigger="input delay:200ms, change"
+			  oninput="var p=document.getElementById('input-pagina-form-statements'); if(p && event.target.id!=='input-pagina-form-statements') p.value='1';"
+			  onchange="var p=document.getElementById('input-pagina-form-statements'); if(p && event.target.id!=='input-pagina-form-statements') p.value='1';"
+			  class="w-full">
+			<input type="hidden" id="input-pagina-form-statements" name="page" value="1">
+
+			<div class="grade-filtros-statements">
+				<div class="campo-box-statements">
+					<label>Conta Bancária</label>
+					<select id="select-account-statements" name="account_id" onchange="atualizarBotaoSync(this)">
+						{{range .Accounts}}
+							<option value="{{.ID}}"
+									data-santander="{{if .AccountSantanderAPI}}true{{else}}false{{end}}"
+									data-label="Banco {{.BankCode}} | Ag: {{.AccountBranch}} - CC: {{.AccountNumber}}"
+									{{if and $.SelectedAccount (eq $.SelectedAccount.ID .ID)}}selected{{end}}>
+								Banco {{.BankCode}} | Ag: {{.AccountBranch}} - CC: {{.AccountNumber}}
+								{{if .AccountSantanderAPI}} (API Santander) {{end}}
+							</option>
+						{{else}}
+							<option value="">Nenhuma conta ativa cadastrada</option>
+						{{end}}
+					</select>
+				</div>
+				<div class="campo-box-statements">
+					<label>Data Inicial</label>
+					<input type="date" name="start_date" value="{{.StartDate}}">
+				</div>
+				<div class="campo-box-statements">
+					<label>Data Final</label>
+					<input type="date" name="end_date" value="{{.EndDate}}">
+				</div>
+			</div>
+		</form>
+
+		<!-- Barra de Ações (Limpar e Sincronizar) -->
+		<div class="flex items-center gap-3 mt-6">
+			<button type="button"
+					hx-post="/html/statements/tabela/reset"
+					hx-target="#tabela-container-statements"
+					onclick="var f=document.getElementById('filtro-form-statements'); if(f) f.reset(); var p=document.getElementById('input-pagina-form-statements'); if(p) p.value='1';"
+					class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold text-xs px-4 py-2 rounded-lg border border-gray-700 transition duration-150 shadow-md cursor-pointer flex items-center gap-2">
+				<span>🧹</span>
+				<span>Limpar Filtros</span>
+			</button>
+
+			{{$hasSantander := false}}
+			{{if and .SelectedAccount .SelectedAccount.AccountSantanderAPI}}
+				{{$hasSantander = true}}
+			{{end}}
+			<button id="btn-sync-statements"
+					type="button"
+					onclick="abrirModalSyncStatements()"
+					class="{{if $hasSantander}}bg-blue-600 hover:bg-blue-500 text-white border-blue-400 cursor-pointer{{else}}bg-gray-800 text-gray-500 border-gray-700 cursor-not-allowed opacity-60{{end}} font-bold text-xs uppercase tracking-wider px-4 py-2 rounded-lg border transition duration-150 shadow-md flex items-center gap-2"
+					{{if not $hasSantander}}disabled title="Esta conta não possui integração Santander API"{{else}}title="Sincronizar extrato via API Santander"{{end}}>
+				<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+				</svg>
+				<span>Sincronizar</span>
+			</button>
+		</div>
+
+		<div style="height: 28px; width: 100%;"></div>
+
+		<!-- Container do Modal -->
+		<div id="modal-container-statements"></div>
+
+		<!-- Container da Tabela -->
+		<div id="tabela-container-statements" class="w-full">
+			{{template "tabela" .}}
+		</div>
+	</div>
+</div>
+
+<!-- Modal de Sincronização Santander no Padrão Dark / Azul -->
+<div id="sync-modal-statements" class="fixed inset-0 z-50 flex items-center justify-center bg-black/75 hidden p-4">
+	<div class="bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden">
+		<div class="flex items-center justify-between border-b border-gray-800 px-6 py-4 bg-gray-950">
+			<div class="flex items-center gap-2">
+				<div class="p-2 bg-blue-950/80 border border-blue-800/80 rounded-lg text-blue-400">
+					<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+					</svg>
+				</div>
+				<h3 class="text-base font-bold text-gray-100">Sincronizar Santander API</h3>
+			</div>
+			<button type="button" onclick="fecharModalSyncStatements()" class="text-gray-400 hover:text-gray-200 transition">
+				<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+				</svg>
+			</button>
+		</div>
+
+		<form hx-post="/html/statements/sync"
+			  hx-target="#sync-feedback"
+			  hx-indicator="#sync-modal-spinner"
+			  class="p-6">
+			<input type="hidden" id="modal-sync-account-id" name="account_id" value="{{if .SelectedAccount}}{{.SelectedAccount.ID}}{{end}}">
+
+			<div class="mb-4">
+				<label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Conta Selecionada</label>
+				<div id="modal-sync-account-label" class="text-sm font-bold text-blue-300 bg-gray-950 p-3 rounded-lg border border-gray-800">
+					{{if .SelectedAccount}}Banco {{.SelectedAccount.BankCode}} | Ag: {{.SelectedAccount.AccountBranch}} - CC: {{.SelectedAccount.AccountNumber}}{{end}}
+				</div>
+			</div>
+
+			<div class="grid grid-cols-2 gap-4 mb-4">
+				<div class="campo-box-statements">
+					<label>Data Início</label>
+					<input type="date" id="modal-sync-start-date" name="sync_start_date" required>
+				</div>
+				<div class="campo-box-statements">
+					<label>Data Fim</label>
+					<input type="date" id="modal-sync-end-date" name="sync_end_date" required>
+				</div>
+			</div>
+
+			<p class="text-xs text-gray-400 mb-6 leading-relaxed">
+				O sistema consultará a API Santander pelo período informado, gravando movimentações e ignorando transações duplicadas.
+			</p>
+
+			<div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-800">
+				<button type="button" onclick="fecharModalSyncStatements()" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold text-xs rounded-lg border border-gray-700 transition">
+					Cancelar
+				</button>
+				<button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs uppercase tracking-wider rounded-lg border border-blue-400 shadow-md flex items-center gap-2 transition cursor-pointer">
+					<span id="sync-modal-spinner" class="htmx-indicator animate-spin">⏳</span>
+					<span>Iniciar Sincronização</span>
+				</button>
+			</div>
+		</form>
+	</div>
+</div>
+
+<script>
+	function abrirModalSyncStatements() {
+		var modal = document.getElementById('sync-modal-statements');
+		if (modal) {
+			modal.classList.remove('hidden');
+			var today = new Date();
+			var past = new Date();
+			past.setDate(today.getDate() - 15);
+			var fmt = function(d) { return d.toISOString().split('T')[0]; };
+			var sEl = document.getElementById('modal-sync-start-date');
+			var eEl = document.getElementById('modal-sync-end-date');
+			if (sEl && !sEl.value) sEl.value = fmt(past);
+			if (eEl && !eEl.value) eEl.value = fmt(today);
+		}
+	}
+
+	function fecharModalSyncStatements() {
+		var modal = document.getElementById('sync-modal-statements');
+		if (modal) modal.classList.add('hidden');
+	}
+
+	function atualizarBotaoSync(selectElem) {
+		if (!selectElem) return;
+		var opt = selectElem.options[selectElem.selectedIndex];
+		if (!opt) return;
+		var isSantander = opt.getAttribute('data-santander') === 'true';
+		var label = opt.getAttribute('data-label');
+		var accId = opt.value;
+
+		var btn = document.getElementById('btn-sync-statements');
+		if (btn) {
+			if (isSantander) {
+				btn.removeAttribute('disabled');
+				btn.className = "bg-blue-600 hover:bg-blue-500 text-white border-blue-400 cursor-pointer font-bold text-xs uppercase tracking-wider px-4 py-2 rounded-lg border transition duration-150 shadow-md flex items-center gap-2";
+				btn.title = "Sincronizar extrato via API Santander";
+			} else {
+				btn.setAttribute('disabled', 'disabled');
+				btn.className = "bg-gray-800 text-gray-500 border-gray-700 cursor-not-allowed opacity-60 font-bold text-xs uppercase tracking-wider px-4 py-2 rounded-lg border transition duration-150 shadow-md flex items-center gap-2";
+				btn.title = "Esta conta não possui integração Santander API";
+			}
+		}
+
+		var mId = document.getElementById('modal-sync-account-id');
+		var mLabel = document.getElementById('modal-sync-account-label');
+		if (mId) mId.value = accId;
+		if (mLabel) mLabel.textContent = label;
+	}
+
+	document.body.addEventListener('closeSyncModal', function() {
+		fecharModalSyncStatements();
+	});
+</script>
+{{end}}
+
+{{define "index"}}
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Accounting - Extrato Bancário</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <script src="/static/htmx.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <style>
-        body { background-color: #f8f9fa; font-family: system-ui, -apple-system, sans-serif; }
-        .card-header { background-color: #212529; color: #fff; }
-        .amount-pos { color: #198754; font-weight: 600; }
-        .amount-neg { color: #dc3545; font-weight: 600; }
-    </style>
+	<meta charset="UTF-8">
+	<title>Extratos - Ephemeris</title>
+	<script src="https://cdn.tailwindcss.com"></script>
+	<script src="/static/htmx.min.js"></script>
+	<style>
+		html, body {
+			background-color: #030712 !important;
+			margin: 0;
+			padding: 0;
+		}
+	</style>
 </head>
-<body>
-    <nav class="navbar navbar-dark bg-dark mb-4 shadow-sm">
-        <div class="container-fluid">
-            <span class="navbar-brand mb-0 h1">
-                <i class="bi bi-bank me-2"></i>Accounting &amp; Banking Service
-            </span>
-            <span class="badge bg-secondary">v1.0</span>
-        </div>
-    </nav>
-
-    <div class="container-fluid px-4">
-        <div class="row">
-            <div class="col-12">
-                <div class="card shadow-sm mb-4">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0"><i class="bi bi-journal-text me-2"></i>Consulta de Extrato Bancário</h5>
-                        <div id="sync-button-container">
-                            {{template "sync_button_partial" .}}
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <!-- Notification Feedback Area -->
-                        <div id="sync-feedback"></div>
-
-                        <!-- Filter Form -->
-                        <form id="filter-form"
-                              hx-get="/html/statements?partial=table"
-                              hx-target="#statements-table-container"
-                              hx-trigger="submit, change from:select, reloadStatements from:body"
-                              class="row g-3 align-items-end mb-4">
-                            
-                            <div class="col-md-4">
-                                <label for="account_id" class="form-label fw-bold">Conta Bancária</label>
-                                <select id="account_id" name="account_id" class="form-select"
-                                        onchange="updateSyncModalAccount(this)">
-                                    {{range .Accounts}}
-                                    <option value="{{.ID}}"
-                                            data-santander="{{if .AccountSantanderAPI}}true{{else}}false{{end}}"
-                                            data-label="Banco {{.BankCode}} | Ag: {{.AccountBranch}} - CC: {{.AccountNumber}}"
-                                            {{if and $.SelectedAccount (eq $.SelectedAccount.ID .ID)}}selected{{end}}>
-                                        Banco {{.BankCode}} | Ag: {{.AccountBranch}} - CC: {{.AccountNumber}}
-                                        {{if .AccountSantanderAPI}} (API Santander) {{end}}
-                                    </option>
-                                    {{else}}
-                                    <option value="">Nenhuma conta ativa cadastrada</option>
-                                    {{end}}
-                                </select>
-                            </div>
-
-                            <div class="col-md-3">
-                                <label for="start_date" class="form-label fw-bold">Data Inicial</label>
-                                <input type="date" id="start_date" name="start_date" class="form-control" value="{{.StartDate}}">
-                            </div>
-
-                            <div class="col-md-3">
-                                <label for="end_date" class="form-label fw-bold">Data Final</label>
-                                <input type="date" id="end_date" name="end_date" class="form-control" value="{{.EndDate}}">
-                            </div>
-
-                            <div class="col-md-2 d-flex gap-2">
-                                <button type="submit" class="btn btn-primary w-100">
-                                    <i class="bi bi-filter me-1"></i>Filtrar
-                                </button>
-                                <a href="/html/statements" class="btn btn-outline-secondary">Limpar</a>
-                            </div>
-                        </form>
-
-                        <!-- Dynamic Table Container -->
-                        <div id="statements-table-container">
-                            {{template "table_partial" .}}
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal para Sincronização Manual Santander -->
-    <div class="modal fade" id="syncModal" tabindex="-1" aria-labelledby="syncModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <form hx-post="/html/statements/sync"
-                      hx-target="#sync-feedback"
-                      hx-indicator="#modal-sync-spinner">
-                    <div class="modal-header bg-dark text-white">
-                        <h5 class="modal-title" id="syncModalLabel">
-                            <i class="bi bi-cloud-arrow-down me-2"></i>Sincronizar Santander API
-                        </h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <input type="hidden" id="modal_account_id" name="account_id" value="{{if .SelectedAccount}}{{.SelectedAccount.ID}}{{end}}">
-                        
-                        <div class="mb-3">
-                            <label class="form-label text-muted small">Conta Selecionada</label>
-                            <input type="text" id="modal_account_label" class="form-control-plaintext fw-bold" readonly
-                                   value="{{if .SelectedAccount}}Banco {{.SelectedAccount.BankCode}} | Ag: {{.SelectedAccount.AccountBranch}} - CC: {{.SelectedAccount.AccountNumber}}{{end}}">
-                        </div>
-
-                        <div class="row g-2 mb-3">
-                            <div class="col-6">
-                                <label for="sync_start_date" class="form-label fw-bold">Data Início</label>
-                                <input type="date" id="sync_start_date" name="sync_start_date" class="form-control" required>
-                            </div>
-                            <div class="col-6">
-                                <label for="sync_end_date" class="form-label fw-bold">Data Fim</label>
-                                <input type="date" id="sync_end_date" name="sync_end_date" class="form-control" required>
-                            </div>
-                        </div>
-                        <div class="form-text">
-                            O sistema consultará a API Santander pelo período informado, gravando movimentações e ignorando transações já existentes.
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-primary">
-                            <span id="modal-sync-spinner" class="spinner-border spinner-border-sm htmx-indicator me-1" role="status"></span>
-                            <i class="bi bi-arrow-repeat me-1"></i>Iniciar Sincronização
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // Set default dates for modal (last 15 days up to today)
-        function initModalDates() {
-            const today = new Date();
-            const past = new Date();
-            past.setDate(today.getDate() - 15);
-            
-            const formatDate = (d) => d.toISOString().split('T')[0];
-            const startDateEl = document.getElementById('sync_start_date');
-            const endDateEl = document.getElementById('sync_end_date');
-            if (startDateEl && !startDateEl.value) startDateEl.value = formatDate(past);
-            if (endDateEl && !endDateEl.value) endDateEl.value = formatDate(today);
-        }
-
-        function updateSyncModalAccount(selectEl) {
-            const selectedOpt = selectEl.options[selectEl.selectedIndex];
-            if (!selectedOpt) return;
-            const accId = selectedOpt.value;
-            const isSantander = selectedOpt.getAttribute('data-santander') === 'true';
-            const label = selectedOpt.getAttribute('data-label');
-
-            const modalAccId = document.getElementById('modal_account_id');
-            const modalAccLabel = document.getElementById('modal_account_label');
-            const syncBtn = document.getElementById('btn-open-sync-modal');
-
-            if (modalAccId) modalAccId.value = accId;
-            if (modalAccLabel) modalAccLabel.value = label;
-
-            if (syncBtn) {
-                if (isSantander) {
-                    syncBtn.removeAttribute('disabled');
-                    syncBtn.classList.remove('btn-outline-secondary');
-                    syncBtn.classList.add('btn-outline-light');
-                    syncBtn.title = 'Sincronizar extrato via API Santander';
-                } else {
-                    syncBtn.setAttribute('disabled', 'disabled');
-                    syncBtn.classList.remove('btn-outline-light');
-                    syncBtn.classList.add('btn-outline-secondary');
-                    syncBtn.title = 'Esta conta não possui integração Santander API';
-                }
-            }
-        }
-
-        // Close modal on custom event
-        document.body.addEventListener('closeSyncModal', function() {
-            const modalEl = document.getElementById('syncModal');
-            if (modalEl) {
-                const modal = bootstrap.Modal.getInstance(modalEl);
-                if (modal) modal.hide();
-            }
-        });
-
-        document.addEventListener('DOMContentLoaded', function() {
-            initModalDates();
-            const selectEl = document.getElementById('account_id');
-            if (selectEl) updateSyncModalAccount(selectEl);
-        });
-    </script>
+<body class="bg-gray-950 text-gray-100 font-sans antialiased">
+	{{template "fragment" .}}
 </body>
 </html>
 {{end}}
 
-{{define "sync_button_partial"}}
-{{$hasSantander := false}}
-{{if and .SelectedAccount .SelectedAccount.AccountSantanderAPI}}
-    {{$hasSantander = true}}
-{{end}}
-<button id="btn-open-sync-modal"
-        type="button"
-        class="btn {{if $hasSantander}}btn-outline-light{{else}}btn-outline-secondary{{end}} btn-sm"
-        data-bs-toggle="modal"
-        data-bs-target="#syncModal"
-        {{if not $hasSantander}}disabled title="Esta conta não possui integração Santander API"{{else}}title="Sincronizar extrato via API Santander"{{end}}>
-    <i class="bi bi-arrow-repeat me-1"></i>Sincronizar
-</button>
+{{define "statements.html"}}
+{{template "index" .}}
 {{end}}
 
-{{define "table_partial"}}
-<div class="table-responsive">
-    <table class="table table-hover table-striped align-middle border">
-        <thead class="table-dark">
-            <tr>
-                <th scope="col" style="width: 80px;">ID</th>
-                <th scope="col" style="width: 130px;">Data (sdate)</th>
-                <th scope="col">Descrição (memo)</th>
-                <th scope="col">Contraparte (partie)</th>
-                <th scope="col" class="text-end" style="width: 160px;">Valor (amount)</th>
-            </tr>
-        </thead>
-        <tbody>
-            {{range .Statements}}
-            <tr>
-                <td><span class="badge bg-light text-dark border">#{{.ID}}</span></td>
-                <td>{{formatDate .SDate}}</td>
-                <td>{{.Memo}}</td>
-                <td>
-                    {{if .Partie}}
-                    <span class="badge bg-secondary-subtle text-secondary-emphasis">{{.Partie}}</span>
-                    {{else}}
-                    <span class="text-muted">-</span>
-                    {{end}}
-                </td>
-                <td class="text-end">
-                    <span class="{{if isNegative .Amount}}amount-neg{{else}}amount-pos{{end}}">
-                        {{formatMoney .Amount}}
-                    </span>
-                </td>
-            </tr>
-            {{else}}
-            <tr>
-                <td colspan="5" class="text-center py-4 text-muted">
-                    <i class="bi bi-inbox fs-2 d-block mb-2"></i>
-                    Nenhuma movimentação encontrada para o período/conta selecionada.
-                </td>
-            </tr>
-            {{end}}
-        </tbody>
-    </table>
+{{define "tabela"}}
+<div class="w-full">
+	<div class="grade-tabela-statements topo-tabela-statements">
+		<div class="col-id">ID</div>
+		<div>DATA</div>
+		<div>DESCRIÇÃO</div>
+		<div class="col-partie">CONTRAPARTE</div>
+		<div class="text-right">VALOR</div>
+	</div>
+
+	{{if .Statements}}
+		{{range .Statements}}
+			{{template "linha_statement" .}}
+		{{end}}
+
+		<!-- Paginação no padrão do Banco de Horas -->
+		<div class="flex items-center justify-between border-t border-gray-800 pt-4 mt-6 text-sm text-gray-400">
+			<div>
+				Página <span class="font-bold text-gray-200">{{.Page}}</span> de <span class="font-bold text-gray-200">{{.TotalPages}}</span>
+				(Total: {{.Total}} lançamentos)
+			</div>
+			<div class="flex gap-2">
+				{{if gt .Page 1}}
+					<button type="button"
+							hx-post="/html/statements/tabela?page={{sub .Page 1}}"
+							hx-target="#tabela-container-statements"
+							hx-include="#filtro-form-statements"
+							onclick="var p = document.getElementById('input-pagina-form-statements'); if(p) p.value='{{sub .Page 1}}';"
+							class="px-3 py-1 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded border border-gray-700 transition cursor-pointer">
+						&larr; Anterior
+					</button>
+				{{else}}
+					<button disabled class="px-3 py-1 bg-gray-900 text-gray-600 rounded border border-gray-800 cursor-not-allowed">
+						&larr; Anterior
+					</button>
+				{{end}}
+
+				{{if lt .Page .TotalPages}}
+					<button type="button"
+							hx-post="/html/statements/tabela?page={{add .Page 1}}"
+							hx-target="#tabela-container-statements"
+							hx-include="#filtro-form-statements"
+							onclick="var p = document.getElementById('input-pagina-form-statements'); if(p) p.value='{{add .Page 1}}';"
+							class="px-3 py-1 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded border border-gray-700 transition cursor-pointer">
+						Próxima &rarr;
+					</button>
+				{{else}}
+					<button disabled class="px-3 py-1 bg-gray-900 text-gray-600 rounded border border-gray-800 cursor-not-allowed">
+						Próxima &rarr;
+					</button>
+				{{end}}
+			</div>
+		</div>
+		<script>
+			var p = document.getElementById("input-pagina-form-statements");
+			if (p) p.value = "{{.Page}}";
+		</script>
+	{{else}}
+		<div class="py-12 text-center text-gray-400 italic bg-gray-950 rounded-xl border border-dashed border-gray-800 mt-2">
+			Nenhuma movimentação bancária encontrada para os filtros selecionados.
+		</div>
+	{{end}}
 </div>
+{{end}}
 
-<!-- Pagination Controls -->
-<div class="d-flex justify-content-between align-items-center mt-3">
-    <div class="text-muted small">
-        Mostrando <strong>{{len .Statements}}</strong> de <strong>{{.Total}}</strong> registro(s) (Página {{.Page}} de {{.TotalPages}})
-    </div>
-    {{if gt .TotalPages 1}}
-    <nav aria-label="Navegação do extrato">
-        <ul class="pagination pagination-sm mb-0">
-            <li class="page-item {{if le .Page 1}}disabled{{end}}">
-                <button class="page-link"
-                        hx-get="/html/statements?partial=table&account_id={{if .SelectedAccount}}{{.SelectedAccount.ID}}{{end}}&start_date={{.StartDate}}&end_date={{.EndDate}}&page={{sub .Page 1}}"
-                        hx-target="#statements-table-container">
-                    Anterior
-                </button>
-            </li>
-            <li class="page-item active">
-                <span class="page-link">{{.Page}}</span>
-            </li>
-            <li class="page-item {{if ge .Page .TotalPages}}disabled{{end}}">
-                <button class="page-link"
-                        hx-get="/html/statements?partial=table&account_id={{if .SelectedAccount}}{{.SelectedAccount.ID}}{{end}}&start_date={{.StartDate}}&end_date={{.EndDate}}&page={{add .Page 1}}"
-                        hx-target="#statements-table-container">
-                    Próxima
-                </button>
-            </li>
-        </ul>
-    </nav>
-    {{end}}
+{{define "linha_statement"}}
+<div id="linha-statement-{{.ID}}" class="linha-box-statements grade-tabela-statements text-sm">
+	<div class="col-id font-mono text-xs text-blue-400 font-bold">
+		#{{.ID}}
+	</div>
+	<div class="font-mono text-gray-300">
+		{{formatDate .SDate}}
+	</div>
+	<div class="font-medium text-gray-100 truncate" title="{{.Memo}}">
+		{{.Memo}}
+	</div>
+	<div class="col-partie truncate" title="{{.Partie}}">
+		{{if .Partie}}
+			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-medium bg-gray-800 text-gray-300 border border-gray-700">
+				{{.Partie}}
+			</span>
+		{{else}}
+			<span class="text-gray-600">-</span>
+		{{end}}
+	</div>
+	<div class="text-right">
+		<span class="inline-flex items-center px-2.5 py-1 rounded text-xs font-mono font-bold {{if isNegative .Amount}}valor-negativo{{else}}valor-positivo{{end}}">
+			{{formatMoney .Amount}}
+		</span>
+	</div>
 </div>
 {{end}}

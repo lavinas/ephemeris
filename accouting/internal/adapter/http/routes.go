@@ -38,8 +38,22 @@ func NewRoutes(
 
 	htmlMux := http.NewServeMux()
 	htmlMux.HandleFunc("/statements", htmlHandler.Index)
+	htmlMux.HandleFunc("/statements/", htmlHandler.Index)
+	htmlMux.HandleFunc("/statements/tabela", htmlHandler.Table)
+	htmlMux.HandleFunc("/statements/tabela/reset", htmlHandler.TableReset)
+	htmlMux.HandleFunc("/extratos", htmlHandler.Index)
+	htmlMux.HandleFunc("/extratos/", htmlHandler.Index)
+	htmlMux.HandleFunc("/extratos/tabela", htmlHandler.Table)
+	htmlMux.HandleFunc("/extratos/tabela/reset", htmlHandler.TableReset)
 	htmlMux.HandleFunc("/statements/sync", htmlHandler.Sync)
+	htmlMux.HandleFunc("/extratos/sync", htmlHandler.Sync)
+
+	// Registra tanto com /html/ quanto sem prefixo para compatibilidade total com proxies
 	mux.Handle("/html/", http.StripPrefix("/html", htmlMux))
+	mux.Handle("/statements", htmlMux)
+	mux.Handle("/statements/", htmlMux)
+	mux.Handle("/extratos", htmlMux)
+	mux.Handle("/extratos/", htmlMux)
 
 	// Root redirects or renders index
 	mux.HandleFunc("/", htmlHandler.Index)
