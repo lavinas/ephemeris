@@ -247,11 +247,14 @@ func (h *HandlerHtml) Sync(w http.ResponseWriter, r *http.Request) {
 	accountID, _ := strconv.ParseInt(r.FormValue("account_id"), 10, 64)
 	startDate := r.FormValue("sync_start_date")
 	endDate := r.FormValue("sync_end_date")
+	delVal := strings.ToLower(strings.TrimSpace(r.FormValue("delete_existing")))
+	deleteExisting := delVal == "true" || delVal == "1" || delVal == "on"
 
 	resp := h.syncService.Run(r.Context(), &dto.SyncStatementsRequest{
-		AccountID: accountID,
-		StartDate: startDate,
-		EndDate:   endDate,
+		AccountID:      accountID,
+		StartDate:      startDate,
+		EndDate:        endDate,
+		DeleteExisting: deleteExisting,
 	})
 
 	statusClass := "alert-success"
@@ -259,8 +262,12 @@ func (h *HandlerHtml) Sync(w http.ResponseWriter, r *http.Request) {
 		statusClass = "alert-danger"
 	}
 
-	msg := fmt.Sprintf("Sincronização concluída: %d buscadas, %d importadas, %d ignoradas (duplicadas).",
+	msg := fmt.Sprintf("Sincronização concluída: %d buscadas, %d importadas, %d ignoradas.",
 		resp.TotalFetched, resp.TotalImported, resp.TotalIgnored)
+	if resp.TotalDeleted > 0 {
+		msg = fmt.Sprintf("Sincronização concluída: %d excluídas no período, %d buscadas, %d importadas, %d ignoradas.",
+			resp.TotalDeleted, resp.TotalFetched, resp.TotalImported, resp.TotalIgnored)
+	}
 	if resp.GetStatusCode() >= 400 {
 		msg = fmt.Sprintf("Falha na sincronização: %s", resp.GetMessage())
 	}

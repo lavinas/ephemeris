@@ -90,12 +90,14 @@ func (s *StatementSyncService) Run(ctx context.Context, req *dto.SyncStatementsR
 	}
 
 	totalAccounts := 0
+	totalDeleted := 0
 	totalFetched := 0
 	totalImported := 0
 	totalIgnored := 0
 
-	s.logger.IPrintf(0, "Starting statement sync for %d account(s) (window: %s to %s)",
-		len(accountsToProcess), initialDate.Format("2006-01-02"), finalDate.Format("2006-01-02"))
+	deleteExisting := req != nil && req.DeleteExisting
+	s.logger.IPrintf(0, "Starting statement sync for %d account(s) (window: %s to %s, delete_existing: %t)",
+		len(accountsToProcess), initialDate.Format("2006-01-02"), finalDate.Format("2006-01-02"), deleteExisting)
 
 	for _, acc := range accountsToProcess {
 		totalAccounts++
@@ -115,6 +117,19 @@ func (s *StatementSyncService) Run(ctx context.Context, req *dto.SyncStatementsR
 		}
 
 		totalFetched += len(txs)
+
+		// If delete_existing requested, delete existing statements for this account in the synchronized date window
+		if deleteExisting {
+			deleted, err := s.repo.DeleteStatementsByDateRange(acc.ID, initialDate, finalDate)
+			if err != nil {
+				s.logger.IPrintf(1, "Warning: failed to delete existing statements for Account ID %d in window %s to %s: %v",
+					acc.ID, initialDate.Format("2006-01-02"), finalDate.Format("2006-01-02"), err)
+			} else {
+				totalDeleted += deleted
+				s.logger.IPrintf(0, "Deleted %d existing statements for Account ID %d in window %s to %s before processing",
+					deleted, acc.ID, initialDate.Format("2006-01-02"), finalDate.Format("2006-01-02"))
+			}
+		}
 
 		// Load configured actions/rules for this account
 		actions, err := s.repo.GetAccountActions(acc.ID)
@@ -145,12 +160,13 @@ func (s *StatementSyncService) Run(ctx context.Context, req *dto.SyncStatementsR
 		}
 	}
 
-	s.logger.IPrintf(0, "Completed statement sync: %d accounts, %d fetched, %d imported, %d ignored",
-		totalAccounts, totalFetched, totalImported, totalIgnored)
+	s.logger.IPrintf(0, "Completed statement sync: %d accounts, %d deleted, %d fetched, %d imported, %d ignored",
+		totalAccounts, totalDeleted, totalFetched, totalImported, totalIgnored)
 
 	return &dto.SyncStatementsResponse{
 		ResponseBase:      dto.NewResponseBase(200, "success", "Sync completed"),
 		ProcessedAccounts: totalAccounts,
+		TotalDeleted:      totalDeleted,
 		TotalFetched:      totalFetched,
 		TotalImported:     totalImported,
 		TotalIgnored:      totalIgnored,

@@ -28,6 +28,9 @@ type Repository interface {
 	// General Statement insert (for OFX or other providers)
 	CreateStatement(st *domain.Statement) error
 
+	// Statement deletion by date range (for clean re-sync)
+	DeleteStatementsByDateRange(accountID int64, startDate, endDate time.Time) (int, error)
+
 	// Action & Action Rules operations
 	GetAccountActions(accountID int64) ([]domain.BankAccountAction, error)
 	GetActionByID(id int64) (*domain.BankAccountAction, error)

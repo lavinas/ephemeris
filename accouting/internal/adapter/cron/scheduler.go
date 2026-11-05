@@ -46,7 +46,8 @@ func (s *Scheduler) Start() error {
 	_, err := s.cron.AddFunc(cronExpr, func() {
 		s.logger.IPrintf(0, "Executing scheduled banking statement sync (cron: %s)...", cronExpr)
 		resp := s.syncService.Run(context.Background(), &dto.SyncStatementsRequest{
-			DaysBack: s.cfg.DaysBack,
+			DaysBack:       s.cfg.DaysBack,
+			DeleteExisting: false,
 		})
 		s.logger.IPrintf(0, "Scheduled sync finished: %d imported, %d ignored", resp.TotalImported, resp.TotalIgnored)
 	})

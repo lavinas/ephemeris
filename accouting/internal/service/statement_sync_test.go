@@ -193,6 +193,45 @@ func (m *MockRepository) CreateStatement(st *domain.Statement) error {
 	return nil
 }
 
+func (m *MockRepository) DeleteStatementsByDateRange(accountID int64, startDate, endDate time.Time) (int, error) {
+	startDateStr := startDate.Format("2006-01-02")
+	endDateStr := endDate.Format("2006-01-02")
+
+	var keptSt []*domain.Statement
+	var keptSantSt []*domain.StatementSantanderAPI
+	var deletedCount int
+	var totalDeletedAmount float64
+
+	for i, st := range m.createdSt {
+		if st.AccountID == accountID && st.SDate != nil {
+			dateStr := st.SDate.Format("2006-01-02")
+			if dateStr >= startDateStr && dateStr <= endDateStr {
+				deletedCount++
+				totalDeletedAmount += st.Amount
+				continue
+			}
+		}
+		keptSt = append(keptSt, st)
+		if i < len(m.createdSantSt) {
+			keptSantSt = append(keptSantSt, m.createdSantSt[i])
+		}
+	}
+
+	m.createdSt = keptSt
+	m.createdSantSt = keptSantSt
+
+	// Adjust posterior records
+	for _, st := range m.createdSt {
+		if st.AccountID == accountID && st.SDate != nil {
+			if st.SDate.Format("2006-01-02") > endDateStr {
+				st.Balance -= totalDeletedAmount
+			}
+		}
+	}
+
+	return deletedCount, nil
+}
+
 func (m *MockRepository) Close() {}
 
 // MockProvider implements port.BankStatementProvider
@@ -388,5 +427,77 @@ func TestStatementSyncService_AccountActionRule_Ignore(t *testing.T) {
 	}
 	if mockRepo.createdSt[0].Transaction != "TED FORNECEDOR" {
 		t.Errorf("expected TED FORNECEDOR, got %s", mockRepo.createdSt[0].Transaction)
+	}
+}
+
+func TestStatementSyncService_DeleteExisting(t *testing.T) {
+	now := time.Now()
+	account := domain.Account{
+		ID:             3,
+		BankCode:       "033",
+		AccountNumber:  "13001001-4",
+		AccountBranch:  "0985",
+		Status:         1,
+		InitialBalance: 1000.00,
+		InitialDate:    now.AddDate(0, 0, -10),
+		AccountSantanderAPI: &domain.AccountSantanderAPI{
+			ID:           3,
+			ClientID:     "mock_client_id",
+			ClientSecret: "mock_secret",
+		},
+	}
+
+	mockRepo := &MockRepository{
+		accounts: []domain.Account{account},
+	}
+
+	txDate := now.AddDate(0, 0, -1)
+	mockProv := &MockProvider{
+		txs: []port.BankTransaction{
+			{
+				CreditDebitType:    "CREDITO",
+				TransactionName:    "PIX RECEBIDO",
+				HistoricComplement: "DOC 001",
+				Amount:             250.00,
+				TransactionDate:    txDate,
+				DocumentNumber:     "DOC001",
+			},
+		},
+	}
+
+	logger := &MockLogger{}
+	syncService := service.NewStatementSyncService(mockRepo, mockProv, logger, 5)
+
+	// 1. Initial Sync: imports 1 statement
+	resp1 := syncService.Run(context.Background(), &dto.SyncStatementsRequest{
+		AccountID:      3,
+		DeleteExisting: false,
+	})
+	if resp1.TotalImported != 1 || resp1.TotalDeleted != 0 {
+		t.Fatalf("run 1: expected 1 imported and 0 deleted, got imported=%d, deleted=%d", resp1.TotalImported, resp1.TotalDeleted)
+	}
+	if len(mockRepo.createdSt) != 1 {
+		t.Fatalf("run 1: expected 1 record in repo, got %d", len(mockRepo.createdSt))
+	}
+
+	// 2. Second Sync without DeleteExisting: duplicate ignored
+	resp2 := syncService.Run(context.Background(), &dto.SyncStatementsRequest{
+		AccountID:      3,
+		DeleteExisting: false,
+	})
+	if resp2.TotalImported != 0 || resp2.TotalIgnored != 1 {
+		t.Fatalf("run 2: expected 0 imported and 1 ignored, got imported=%d, ignored=%d", resp2.TotalImported, resp2.TotalIgnored)
+	}
+
+	// 3. Third Sync WITH DeleteExisting: deletes the 1 existing and re-imports
+	resp3 := syncService.Run(context.Background(), &dto.SyncStatementsRequest{
+		AccountID:      3,
+		DeleteExisting: true,
+	})
+	if resp3.TotalDeleted != 1 || resp3.TotalImported != 1 {
+		t.Fatalf("run 3: expected 1 deleted and 1 imported, got deleted=%d, imported=%d", resp3.TotalDeleted, resp3.TotalImported)
+	}
+	if len(mockRepo.createdSt) != 1 {
+		t.Fatalf("run 3: expected 1 record remaining in repo, got %d", len(mockRepo.createdSt))
 	}
 }

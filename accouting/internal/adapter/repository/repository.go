@@ -217,6 +217,56 @@ func (r *Repository) CreateStatement(st *domain.Statement) error {
 	})
 }
 
+// DeleteStatementsByDateRange removes statement records and associated santander records for an account
+// in the given date range [startDate, endDate], and adjusts running balance of posterior records.
+func (r *Repository) DeleteStatementsByDateRange(accountID int64, startDate, endDate time.Time) (int, error) {
+	startDateStr := startDate.Format("2006-01-02")
+	endDateStr := endDate.Format("2006-01-02")
+
+	var deletedCount int
+	err := r.db.Transaction(func(tx *gorm.DB) error {
+		var statements []domain.Statement
+		if err := tx.Where("account_id = ? AND sdate >= ? AND sdate <= ? AND deleted_at IS NULL",
+			accountID, startDateStr, endDateStr).
+			Find(&statements).Error; err != nil {
+			return err
+		}
+
+		if len(statements) == 0 {
+			return nil
+		}
+
+		var ids []int64
+		var totalAmount float64
+		for _, st := range statements {
+			ids = append(ids, st.ID)
+			totalAmount += st.Amount
+		}
+
+		// 1. Delete from bank_statement_santander_api
+		if err := tx.Unscoped().Where("id IN ?", ids).Delete(&domain.StatementSantanderAPI{}).Error; err != nil {
+			return err
+		}
+
+		// 2. Delete from bank_statement
+		if err := tx.Unscoped().Where("id IN ?", ids).Delete(&domain.Statement{}).Error; err != nil {
+			return err
+		}
+
+		// 3. Adjust running balance of posterior records (sdate > endDate)
+		if err := tx.Model(&domain.Statement{}).
+			Where("account_id = ? AND deleted_at IS NULL AND sdate > ?", accountID, endDateStr).
+			Update("balance", gorm.Expr("balance - ?", totalAmount)).Error; err != nil {
+			return err
+		}
+
+		deletedCount = len(statements)
+		return nil
+	})
+
+	return deletedCount, err
+}
+
 // GetAccountActions returns all active actions for an account with their active rules
 func (r *Repository) GetAccountActions(accountID int64) ([]domain.BankAccountAction, error) {
 	var actions []domain.BankAccountAction

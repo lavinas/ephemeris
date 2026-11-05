@@ -256,6 +256,30 @@
 				</div>
 			</div>
 
+			<!-- Opção: Excluir lançamentos existentes no período antes de sincronizar -->
+			<div class="mb-4">
+				<button type="button"
+						id="btn-toggle-delete-existing"
+						onclick="toggleDeleteExistingStatements()"
+						class="w-full text-left p-3.5 bg-gray-950 border border-gray-800 rounded-xl hover:border-gray-700 transition flex items-start gap-3 cursor-pointer">
+					<div id="icon-toggle-delete-existing" class="mt-0.5 p-1 rounded bg-gray-800 text-gray-400">
+						<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+						</svg>
+					</div>
+					<div class="flex-1">
+						<div class="flex items-center justify-between">
+							<span class="text-xs font-bold text-gray-200">Excluir extratos existentes no período antes de processar</span>
+							<span id="badge-toggle-delete-existing" class="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-800 text-gray-400 uppercase">Não</span>
+						</div>
+						<p class="text-[11px] text-gray-400 mt-1 leading-normal">
+							Se ativado, exclui as linhas de extrato já salvas para os dias sincronizados antes de processar os novos lançamentos.
+						</p>
+					</div>
+				</button>
+				<input type="hidden" id="modal-sync-delete-existing" name="delete_existing" value="false">
+			</div>
+
 			<p class="text-xs text-gray-400 mb-6 leading-relaxed">
 				O sistema consultará a API Santander pelo período informado, gravando movimentações e ignorando transações duplicadas.
 			</p>
@@ -286,6 +310,46 @@
 			var eEl = document.getElementById('modal-sync-end-date');
 			if (sEl && !sEl.value) sEl.value = fmt(past);
 			if (eEl && !eEl.value) eEl.value = fmt(today);
+
+			// Garantir que a opção de exclusão venha sempre desmarcada (false por padrão)
+			var delInput = document.getElementById('modal-sync-delete-existing');
+			var delBtn = document.getElementById('btn-toggle-delete-existing');
+			var delBadge = document.getElementById('badge-toggle-delete-existing');
+			var delIcon = document.getElementById('icon-toggle-delete-existing');
+			if (delInput) delInput.value = "false";
+			if (delBtn) delBtn.className = "w-full text-left p-3.5 bg-gray-950 border border-gray-800 rounded-xl hover:border-gray-700 transition flex items-start gap-3 cursor-pointer";
+			if (delBadge) {
+				delBadge.textContent = "Não";
+				delBadge.className = "text-[10px] font-bold px-2 py-0.5 rounded bg-gray-800 text-gray-400 uppercase";
+			}
+			if (delIcon) delIcon.className = "mt-0.5 p-1 rounded bg-gray-800 text-gray-400";
+		}
+	}
+
+	function toggleDeleteExistingStatements() {
+		var input = document.getElementById('modal-sync-delete-existing');
+		var btn = document.getElementById('btn-toggle-delete-existing');
+		var badge = document.getElementById('badge-toggle-delete-existing');
+		var icon = document.getElementById('icon-toggle-delete-existing');
+		if (!input) return;
+
+		var isChecked = input.value === "true";
+		if (!isChecked) {
+			input.value = "true";
+			if (btn) btn.className = "w-full text-left p-3.5 bg-rose-950/30 border border-rose-800/80 rounded-xl transition flex items-start gap-3 cursor-pointer";
+			if (badge) {
+				badge.textContent = "Sim (Excluir)";
+				badge.className = "text-[10px] font-bold px-2 py-0.5 rounded bg-rose-900/80 text-rose-200 uppercase";
+			}
+			if (icon) icon.className = "mt-0.5 p-1 rounded bg-rose-900/60 text-rose-300";
+		} else {
+			input.value = "false";
+			if (btn) btn.className = "w-full text-left p-3.5 bg-gray-950 border border-gray-800 rounded-xl hover:border-gray-700 transition flex items-start gap-3 cursor-pointer";
+			if (badge) {
+				badge.textContent = "Não";
+				badge.className = "text-[10px] font-bold px-2 py-0.5 rounded bg-gray-800 text-gray-400 uppercase";
+			}
+			if (icon) icon.className = "mt-0.5 p-1 rounded bg-gray-800 text-gray-400";
 		}
 	}
 

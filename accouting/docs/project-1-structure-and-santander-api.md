@@ -95,4 +95,7 @@ Ações para as contas e regras de ação:
 - Deve-se implementar no serviço de sincronismo, tanto via job como via sincronimo no htmx o filtro dos campos referente as ações e regras cadastradas. 
 
 Botão excluir no modal de sincronismo:
-- 
+- Deve-se ter no modal de sincronimos dos extratos um botão para que, se clicado, ele faz com que o sincrimos exclua as linhas do extrato para os dias sincronizados antes de fazer o processamento.
+- O default deve ser sempre false, isto é, deve-se clicar para deletar.
+- O sincronismo via job é sempre desligado
+- A opção para exclusão também deve constar na api rest da chamada da funcionalidade
