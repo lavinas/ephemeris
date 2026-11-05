@@ -164,7 +164,7 @@
 			</div>
 		</form>
 
-		<!-- Barra de Ações (Limpar e Sincronizar) -->
+		<!-- Barra de Ações (Limpar, Regras de Ação e Sincronizar) -->
 		<div class="flex items-center gap-3 mt-6">
 			<button type="button"
 					hx-post="/html/statements/tabela/reset"
@@ -173,6 +173,16 @@
 					class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold text-xs px-4 py-2 rounded-lg border border-gray-700 transition duration-150 shadow-md cursor-pointer flex items-center gap-2">
 				<span>🧹</span>
 				<span>Limpar Filtros</span>
+			</button>
+
+			<button id="btn-actions-statements"
+					type="button"
+					hx-get="/html/statements/actions?account_id={{if .SelectedAccount}}{{.SelectedAccount.ID}}{{end}}"
+					hx-target="#modal-container-statements"
+					class="bg-gray-800 hover:bg-gray-700 text-gray-200 font-semibold text-xs px-4 py-2 rounded-lg border border-gray-700 transition duration-150 shadow-md cursor-pointer flex items-center gap-2"
+					title="Configurar regras de ação (ex: filtrar transações)">
+				<span>⚙️</span>
+				<span>Regras de Ação</span>
 			</button>
 
 			{{$hasSantander := false}}
@@ -309,6 +319,78 @@
 		var mLabel = document.getElementById('modal-sync-account-label');
 		if (mId) mId.value = accId;
 		if (mLabel) mLabel.textContent = label;
+
+		var btnActions = document.getElementById('btn-actions-statements');
+		if (btnActions) {
+			btnActions.setAttribute('hx-get', '/html/statements/actions?account_id=' + accId);
+			if (window.htmx) {
+				htmx.process(btnActions);
+			}
+		}
+	}
+
+	function fecharModalActionsStatements() {
+		var c = document.getElementById('modal-container-statements');
+		if (c) c.innerHTML = '';
+	}
+
+	function adicionarLinhaRegra() {
+		var container = document.getElementById('regras-container');
+		if (!container) return;
+		var div = document.createElement('div');
+		div.className = "linha-regra bg-gray-950 border border-gray-800 rounded-xl p-3 grid grid-cols-1 md:grid-cols-12 gap-2 items-center";
+		div.innerHTML = `
+			<div class="md:col-span-3">
+				<label class="block text-[10px] font-semibold text-gray-400 uppercase mb-1">Campo</label>
+				<select name="rule_field" class="w-full bg-gray-900 border border-gray-700 rounded p-1.5 text-xs text-gray-100">
+					<option value="2" selected>Transação</option>
+					<option value="3">Complemento</option>
+					<option value="4">Documento</option>
+					<option value="1">Data</option>
+					<option value="5">Valor</option>
+				</select>
+			</div>
+			<div class="md:col-span-3">
+				<label class="block text-[10px] font-semibold text-gray-400 uppercase mb-1">Operador</label>
+				<select name="rule_operator" class="w-full bg-gray-900 border border-gray-700 rounded p-1.5 text-xs text-gray-100">
+					<option value="2" selected>Contém</option>
+					<option value="1">Igual a</option>
+					<option value="3">Inicia com</option>
+					<option value="4">Termina com</option>
+					<option value="5">Expressão Regular</option>
+					<option value="6">Maior que</option>
+					<option value="7">Menor que</option>
+				</select>
+			</div>
+			<div class="md:col-span-4">
+				<label class="block text-[10px] font-semibold text-gray-400 uppercase mb-1">Valor</label>
+				<input type="text" name="rule_value" placeholder="Texto ou valor a comparar" required class="w-full bg-gray-900 border border-gray-700 rounded p-1.5 text-xs text-gray-100">
+			</div>
+			<div class="md:col-span-1">
+				<label class="block text-[10px] font-semibold text-gray-400 uppercase mb-1" title="Diferenciar Maiúsculas e Minúsculas">Diferenciar</label>
+				<select name="rule_case_sensitive" class="w-full bg-gray-900 border border-gray-700 rounded p-1.5 text-xs text-gray-100" title="Diferenciar maiúsculas/minúsculas">
+					<option value="false" selected>Não</option>
+					<option value="true">Sim</option>
+				</select>
+			</div>
+			<div class="md:col-span-1 flex items-end justify-center pt-4 md:pt-0">
+				<button type="button" onclick="removerLinhaRegra(this)" class="p-1.5 text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 rounded transition" title="Remover regra">
+					✕
+				</button>
+			</div>
+		`;
+		container.appendChild(div);
+	}
+
+	function removerLinhaRegra(btn) {
+		var row = btn.closest('.linha-regra');
+		var container = document.getElementById('regras-container');
+		if (container && container.querySelectorAll('.linha-regra').length > 1) {
+			row.remove();
+		} else {
+			alert('É necessário manter pelo menos uma regra.');
+		}
+	}
 	}
 
 	document.body.addEventListener('closeSyncModal', function() {
@@ -441,5 +523,265 @@
 	<div class="text-right font-mono text-xs font-bold {{if isNegative .Balance}}text-rose-400{{else}}text-blue-300{{end}}">
 		{{formatMoney .Balance}}
 	</div>
+</div>
+{{end}}
+
+{{define "modal_actions"}}
+<div id="actions-modal-backdrop" class="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 overflow-y-auto">
+	<div class="bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl max-w-3xl w-full overflow-hidden my-8">
+		<div class="flex items-center justify-between border-b border-gray-800 px-6 py-4 bg-gray-950">
+			<div class="flex items-center gap-3">
+				<div class="p-2 bg-blue-950/80 border border-blue-800/80 rounded-lg text-blue-400">
+					<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+					</svg>
+				</div>
+				<div>
+					<h3 class="text-base font-bold text-gray-100">Regras de Ação da Conta</h3>
+					<p class="text-xs text-gray-400">
+						{{if .SelectedAccount}}Banco {{.SelectedAccount.BankCode}} | Ag: {{.SelectedAccount.AccountBranch}} - CC: {{.SelectedAccount.AccountNumber}}{{end}}
+					</p>
+				</div>
+			</div>
+			<button type="button" onclick="fecharModalActionsStatements()" class="text-gray-400 hover:text-gray-200 transition">
+				<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+				</svg>
+			</button>
+		</div>
+
+		<div id="modal-action-content" class="p-6">
+			{{template "modal_actions_list" .}}
+		</div>
+	</div>
+</div>
+{{end}}
+
+{{define "modal_actions_list"}}
+<div>
+	{{if .SuccessMessage}}
+		<div class="mb-4 p-3 bg-emerald-950/60 border border-emerald-800/80 rounded-lg text-emerald-300 text-xs flex items-center gap-2">
+			<span>✓</span>
+			<span>{{.SuccessMessage}}</span>
+		</div>
+	{{end}}
+	{{if .ErrorMessage}}
+		<div class="mb-4 p-3 bg-rose-950/60 border border-rose-800/80 rounded-lg text-rose-300 text-xs flex items-center gap-2">
+			<span>⚠️</span>
+			<span>{{.ErrorMessage}}</span>
+		</div>
+	{{end}}
+
+	<div class="mb-4 text-xs text-gray-400 leading-relaxed bg-gray-950 p-3 rounded-lg border border-gray-800">
+		<strong class="text-gray-200">Como funciona:</strong> Se qualquer uma das ações cadastradas for atendida (relação <strong class="text-blue-400">OU</strong> entre ações), a ação correspondente será executada na importação das transações. Cada ação pode conter múltiplas regras que devem ser atendidas conjuntamente (relação <strong class="text-blue-400">E</strong> entre regras).
+	</div>
+
+	{{if .Actions}}
+		<div class="space-y-3 mb-6">
+			{{range .Actions}}
+				<div class="bg-gray-950 border border-gray-800 rounded-xl p-4 transition hover:border-gray-700">
+					<div class="flex items-center justify-between mb-3">
+						<div class="flex items-center gap-2">
+							<span class="px-2.5 py-1 text-xs font-bold rounded-md bg-amber-950/80 text-amber-300 border border-amber-800/80">
+								{{actionName .Action}}
+							</span>
+							<span class="text-xs text-gray-400">
+								({{len .Rules}} regra{{if gt (len .Rules) 1}}s{{end}})
+							</span>
+						</div>
+						<div class="flex items-center gap-2">
+							<button type="button"
+									hx-get="/html/statements/actions/edit?id={{.ID}}"
+									hx-target="#modal-action-content"
+									class="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs font-semibold rounded border border-gray-700 transition cursor-pointer">
+								Editar
+							</button>
+							<button type="button"
+									hx-post="/html/statements/actions/delete?id={{.ID}}&account_id={{$.AccountID}}"
+									hx-target="#modal-action-content"
+									hx-confirm="Tem certeza que deseja remover esta ação?"
+									class="px-2.5 py-1 bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 text-xs font-semibold rounded border border-rose-800/50 transition cursor-pointer">
+								Excluir
+							</button>
+						</div>
+					</div>
+
+					<div class="space-y-1.5 pl-2 border-l-2 border-blue-900/60">
+						{{range $idx, $r := .Rules}}
+							<div class="text-xs text-gray-300 flex items-center gap-2 flex-wrap">
+								{{if gt $idx 0}}
+									<span class="font-bold text-blue-400 uppercase text-[10px] bg-blue-950/80 px-1.5 py-0.5 rounded border border-blue-900">E</span>
+								{{end}}
+								<span class="font-semibold text-gray-200">{{fieldName $r.Field}}</span>
+								<span class="text-gray-400">{{operatorName $r.Operator}}</span>
+								<span class="font-mono bg-gray-900 px-2 py-0.5 rounded text-blue-300 border border-gray-800">"{{$r.Value}}"</span>
+								{{if $r.CaseSensitive}}
+									<span class="text-[10px] text-amber-400 bg-amber-950/60 px-1 rounded border border-amber-800/40">Diferencia maiúsculas</span>
+								{{end}}
+							</div>
+						{{end}}
+					</div>
+				</div>
+			{{end}}
+		</div>
+	{{else}}
+		<div class="py-8 text-center text-gray-400 italic bg-gray-950 rounded-xl border border-dashed border-gray-800 mb-6 text-sm">
+			Nenhuma regra de ação configurada para esta conta.<br>
+			Todas as transações do extrato serão importadas normalmente.
+		</div>
+	{{end}}
+
+	<div class="flex items-center justify-between pt-4 border-t border-gray-800">
+		<button type="button" onclick="fecharModalActionsStatements()" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold text-xs rounded-lg border border-gray-700 transition">
+			Fechar
+		</button>
+		<button type="button"
+				hx-get="/html/statements/actions/new?account_id={{.AccountID}}"
+				hx-target="#modal-action-content"
+				class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs uppercase tracking-wider rounded-lg border border-blue-400 shadow-md flex items-center gap-2 transition cursor-pointer">
+			<span>+</span>
+			<span>Nova Ação</span>
+		</button>
+	</div>
+</div>
+{{end}}
+
+{{define "modal_action_form"}}
+<div>
+	{{if .ErrorMessage}}
+		<div class="mb-4 p-3 bg-rose-950/60 border border-rose-800/80 rounded-lg text-rose-300 text-xs flex items-center gap-2">
+			<span>⚠️</span>
+			<span>{{.ErrorMessage}}</span>
+		</div>
+	{{end}}
+
+	<form hx-post="/html/statements/actions/save"
+		  hx-target="#modal-action-content"
+		  class="space-y-4">
+		<input type="hidden" name="account_id" value="{{.AccountID}}">
+		{{if and .Action .Action.ID}}
+			<input type="hidden" name="id" value="{{.Action.ID}}">
+		{{end}}
+
+		<div class="campo-box-statements">
+			<label>Tipo de Ação</label>
+			<select name="action">
+				<option value="1" {{if or (not .Action) (eq .Action.Action 1)}}selected{{end}}>Ignorar Transação (Não importar no extrato)</option>
+			</select>
+		</div>
+
+		<div class="flex items-center justify-between pt-2">
+			<div class="text-xs font-semibold text-gray-300 uppercase tracking-wider">
+				Regras desta Ação (todas devem ser verdadeiras - condição "E")
+			</div>
+			<button type="button"
+					onclick="adicionarLinhaRegra()"
+					class="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 text-blue-300 text-xs font-semibold rounded border border-gray-700 transition cursor-pointer flex items-center gap-1">
+				<span>+</span>
+				<span>Adicionar Regra</span>
+			</button>
+		</div>
+
+		<div id="regras-container" class="space-y-3">
+			{{if and .Action .Action.Rules}}
+				{{range $idx, $r := .Action.Rules}}
+					<div class="linha-regra bg-gray-950 border border-gray-800 rounded-xl p-3 grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
+						<div class="md:col-span-3">
+							<label class="block text-[10px] font-semibold text-gray-400 uppercase mb-1">Campo</label>
+							<select name="rule_field" class="w-full bg-gray-900 border border-gray-700 rounded p-1.5 text-xs text-gray-100">
+								<option value="2" {{if eq $r.Field 2}}selected{{end}}>Transação</option>
+								<option value="3" {{if eq $r.Field 3}}selected{{end}}>Complemento</option>
+								<option value="4" {{if eq $r.Field 4}}selected{{end}}>Documento</option>
+								<option value="1" {{if eq $r.Field 1}}selected{{end}}>Data</option>
+								<option value="5" {{if eq $r.Field 5}}selected{{end}}>Valor</option>
+							</select>
+						</div>
+						<div class="md:col-span-3">
+							<label class="block text-[10px] font-semibold text-gray-400 uppercase mb-1">Operador</label>
+							<select name="rule_operator" class="w-full bg-gray-900 border border-gray-700 rounded p-1.5 text-xs text-gray-100">
+								<option value="2" {{if eq $r.Operator 2}}selected{{end}}>Contém</option>
+								<option value="1" {{if eq $r.Operator 1}}selected{{end}}>Igual a</option>
+								<option value="3" {{if eq $r.Operator 3}}selected{{end}}>Inicia com</option>
+								<option value="4" {{if eq $r.Operator 4}}selected{{end}}>Termina com</option>
+								<option value="5" {{if eq $r.Operator 5}}selected{{end}}>Expressão Regular</option>
+								<option value="6" {{if eq $r.Operator 6}}selected{{end}}>Maior que</option>
+								<option value="7" {{if eq $r.Operator 7}}selected{{end}}>Menor que</option>
+							</select>
+						</div>
+						<div class="md:col-span-4">
+							<label class="block text-[10px] font-semibold text-gray-400 uppercase mb-1">Valor</label>
+							<input type="text" name="rule_value" value="{{$r.Value}}" placeholder="Texto ou valor a comparar" required class="w-full bg-gray-900 border border-gray-700 rounded p-1.5 text-xs text-gray-100">
+						</div>
+						<div class="md:col-span-1">
+							<label class="block text-[10px] font-semibold text-gray-400 uppercase mb-1" title="Diferenciar Maiúsculas e Minúsculas">Diferenciar</label>
+							<select name="rule_case_sensitive" class="w-full bg-gray-900 border border-gray-700 rounded p-1.5 text-xs text-gray-100" title="Diferenciar maiúsculas/minúsculas">
+								<option value="false" {{if not $r.CaseSensitive}}selected{{end}}>Não</option>
+								<option value="true" {{if $r.CaseSensitive}}selected{{end}}>Sim</option>
+							</select>
+						</div>
+						<div class="md:col-span-1 flex items-end justify-center pt-4 md:pt-0">
+							<button type="button" onclick="removerLinhaRegra(this)" class="p-1.5 text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 rounded transition" title="Remover regra">
+								✕
+							</button>
+						</div>
+					</div>
+				{{end}}
+			{{else}}
+				<div class="linha-regra bg-gray-950 border border-gray-800 rounded-xl p-3 grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
+					<div class="md:col-span-3">
+						<label class="block text-[10px] font-semibold text-gray-400 uppercase mb-1">Campo</label>
+						<select name="rule_field" class="w-full bg-gray-900 border border-gray-700 rounded p-1.5 text-xs text-gray-100">
+							<option value="2" selected>Transação</option>
+							<option value="3">Complemento</option>
+							<option value="4">Documento</option>
+							<option value="1">Data</option>
+							<option value="5">Valor</option>
+						</select>
+					</div>
+					<div class="md:col-span-3">
+						<label class="block text-[10px] font-semibold text-gray-400 uppercase mb-1">Operador</label>
+						<select name="rule_operator" class="w-full bg-gray-900 border border-gray-700 rounded p-1.5 text-xs text-gray-100">
+							<option value="2" selected>Contém</option>
+							<option value="1">Igual a</option>
+							<option value="3">Inicia com</option>
+							<option value="4">Termina com</option>
+							<option value="5">Expressão Regular</option>
+							<option value="6">Maior que</option>
+							<option value="7">Menor que</option>
+						</select>
+					</div>
+					<div class="md:col-span-4">
+						<label class="block text-[10px] font-semibold text-gray-400 uppercase mb-1">Valor</label>
+						<input type="text" name="rule_value" placeholder="Texto ou valor a comparar" required class="w-full bg-gray-900 border border-gray-700 rounded p-1.5 text-xs text-gray-100">
+					</div>
+					<div class="md:col-span-1">
+						<label class="block text-[10px] font-semibold text-gray-400 uppercase mb-1" title="Diferenciar Maiúsculas e Minúsculas">Diferenciar</label>
+						<select name="rule_case_sensitive" class="w-full bg-gray-900 border border-gray-700 rounded p-1.5 text-xs text-gray-100" title="Diferenciar maiúsculas/minúsculas">
+							<option value="false" selected>Não</option>
+							<option value="true">Sim</option>
+						</select>
+					</div>
+					<div class="md:col-span-1 flex items-end justify-center pt-4 md:pt-0">
+						<button type="button" onclick="removerLinhaRegra(this)" class="p-1.5 text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 rounded transition" title="Remover regra">
+							✕
+						</button>
+					</div>
+				</div>
+			{{end}}
+		</div>
+
+		<div class="flex items-center justify-between pt-4 border-t border-gray-800">
+			<button type="button"
+					hx-get="/html/statements/actions/list?account_id={{.AccountID}}"
+					hx-target="#modal-action-content"
+					class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold text-xs rounded-lg border border-gray-700 transition">
+				Cancelar
+			</button>
+			<button type="submit"
+					class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs uppercase tracking-wider rounded-lg border border-blue-400 shadow-md flex items-center gap-2 transition cursor-pointer">
+				<span>Salvar Ação</span>
+			</button>
+		</div>
+	</form>
 </div>
 {{end}}

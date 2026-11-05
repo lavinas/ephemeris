@@ -28,5 +28,12 @@ type Repository interface {
 	// General Statement insert (for OFX or other providers)
 	CreateStatement(st *domain.Statement) error
 
+	// Action & Action Rules operations
+	GetAccountActions(accountID int64) ([]domain.BankAccountAction, error)
+	GetActionByID(id int64) (*domain.BankAccountAction, error)
+	CreateAccountAction(action *domain.BankAccountAction) error
+	UpdateAccountAction(action *domain.BankAccountAction) error
+	DeleteAccountAction(id int64) error
+
 	Close()
 }

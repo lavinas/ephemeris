@@ -60,6 +60,7 @@ func main() {
 	}
 
 	// 4. Services
+	accountActionService := service.NewAccountActionService(repo, log)
 	statementListService := service.NewStatementListService(repo, log)
 	statementSyncService := service.NewStatementSyncService(repo, santanderClient, log, cfg.SyncJob.DaysBack)
 
@@ -71,7 +72,7 @@ func main() {
 	defer scheduler.Stop()
 
 	// 6. HTTP Server (API & HTMX)
-	handler := http.NewHandler(repo, log, statementListService, statementSyncService)
+	handler := http.NewHandler(repo, log, statementListService, statementSyncService, accountActionService)
 	if err := handler.Run(cfg.GetWebAddr()); err != nil {
 		log.IPrintf(2, "Error running accounting server: %v", err)
 	}

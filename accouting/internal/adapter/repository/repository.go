@@ -217,3 +217,95 @@ func (r *Repository) CreateStatement(st *domain.Statement) error {
 	})
 }
 
+// GetAccountActions returns all active actions for an account with their active rules
+func (r *Repository) GetAccountActions(accountID int64) ([]domain.BankAccountAction, error) {
+	var actions []domain.BankAccountAction
+	err := r.db.Preload("Rules", "deleted_at IS NULL").
+		Where("account_id = ? AND deleted_at IS NULL", accountID).
+		Order("id asc").
+		Find(&actions).Error
+	return actions, err
+}
+
+// GetActionByID returns an action by ID with its rules
+func (r *Repository) GetActionByID(id int64) (*domain.BankAccountAction, error) {
+	var action domain.BankAccountAction
+	err := r.db.Preload("Rules", "deleted_at IS NULL").
+		Where("id = ? AND deleted_at IS NULL", id).
+		First(&action).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &action, nil
+}
+
+// CreateAccountAction creates a new action and its child rules
+func (r *Repository) CreateAccountAction(action *domain.BankAccountAction) error {
+	now := time.Now()
+	action.CreatedAt = now
+	action.UpdatedAt = now
+	for i := range action.Rules {
+		action.Rules[i].CreatedAt = now
+		action.Rules[i].UpdatedAt = now
+	}
+
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		return tx.Create(action).Error
+	})
+}
+
+// UpdateAccountAction updates an action and replaces its rules
+func (r *Repository) UpdateAccountAction(action *domain.BankAccountAction) error {
+	now := time.Now()
+	action.UpdatedAt = now
+
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&domain.BankAccountAction{}).
+			Where("id = ? AND deleted_at IS NULL", action.ID).
+			Updates(map[string]interface{}{
+				"action":     action.Action,
+				"updated_at": now,
+			}).Error; err != nil {
+			return err
+		}
+
+		// Soft delete old rules
+		if err := tx.Model(&domain.BankAccountActionRule{}).
+			Where("action_id = ? AND deleted_at IS NULL", action.ID).
+			Update("deleted_at", now).Error; err != nil {
+			return err
+		}
+
+		// Insert updated rules
+		for i := range action.Rules {
+			action.Rules[i].ID = 0
+			action.Rules[i].ActionID = action.ID
+			action.Rules[i].CreatedAt = now
+			action.Rules[i].UpdatedAt = now
+			if err := tx.Create(&action.Rules[i]).Error; err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+}
+
+// DeleteAccountAction soft-deletes an action and its rules
+func (r *Repository) DeleteAccountAction(id int64) error {
+	now := time.Now()
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&domain.BankAccountAction{}).
+			Where("id = ? AND deleted_at IS NULL", id).
+			Update("deleted_at", now).Error; err != nil {
+			return err
+		}
+		return tx.Model(&domain.BankAccountActionRule{}).
+			Where("action_id = ? AND deleted_at IS NULL", id).
+			Update("deleted_at", now).Error
+	})
+}
+

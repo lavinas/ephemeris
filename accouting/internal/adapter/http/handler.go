@@ -21,10 +21,11 @@ const (
 
 // Handler manages HTTP server lifecycle
 type Handler struct {
-	repo        port.Repository
-	logger      port.Logger
-	listService *service.StatementListService
-	syncService *service.StatementSyncService
+	repo          port.Repository
+	logger        port.Logger
+	listService   *service.StatementListService
+	syncService   *service.StatementSyncService
+	actionService *service.AccountActionService
 }
 
 func NewHandler(
@@ -32,12 +33,14 @@ func NewHandler(
 	logger port.Logger,
 	listService *service.StatementListService,
 	syncService *service.StatementSyncService,
+	actionService *service.AccountActionService,
 ) *Handler {
 	return &Handler{
-		repo:        repo,
-		logger:      logger,
-		listService: listService,
-		syncService: syncService,
+		repo:          repo,
+		logger:        logger,
+		listService:   listService,
+		syncService:   syncService,
+		actionService: actionService,
 	}
 }
 
@@ -48,7 +51,7 @@ func (h *Handler) Run(addr string) error {
 		tmplData = []byte(fallbackTemplate)
 	}
 
-	mainMux, err := NewRoutes(h.repo, h.logger, h.listService, h.syncService, tmplData)
+	mainMux, err := NewRoutes(h.repo, h.logger, h.listService, h.syncService, h.actionService, tmplData)
 	if err != nil {
 		return fmt.Errorf("error creating routes: %w", err)
 	}

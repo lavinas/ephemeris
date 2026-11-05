@@ -12,10 +12,11 @@ import (
 
 // HandlerApi handles JSON API endpoints
 type HandlerApi struct {
-	repo         port.Repository
-	logger       port.Logger
-	listService  *service.StatementListService
-	syncService  *service.StatementSyncService
+	repo          port.Repository
+	logger        port.Logger
+	listService   *service.StatementListService
+	syncService   *service.StatementSyncService
+	actionService *service.AccountActionService
 }
 
 func NewHandlerApi(
@@ -23,12 +24,14 @@ func NewHandlerApi(
 	logger port.Logger,
 	listService *service.StatementListService,
 	syncService *service.StatementSyncService,
+	actionService *service.AccountActionService,
 ) *HandlerApi {
 	return &HandlerApi{
-		repo:        repo,
-		logger:      logger,
-		listService: listService,
-		syncService: syncService,
+		repo:          repo,
+		logger:        logger,
+		listService:   listService,
+		syncService:   syncService,
+		actionService: actionService,
 	}
 }
 
@@ -80,6 +83,69 @@ func (h *HandlerApi) StatementSync(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := h.syncService.Run(r.Context(), &req)
+	h.writeResponse(w, resp.GetStatusCode(), resp)
+}
+
+// AccountActionList handles GET /api/account/action?account_id=...
+func (h *HandlerApi) AccountActionList(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	accountID, _ := strconv.ParseInt(r.URL.Query().Get("account_id"), 10, 64)
+	resp := h.actionService.ListByAccount(accountID)
+	h.writeResponse(w, resp.GetStatusCode(), resp)
+}
+
+// AccountActionDetail handles GET /api/account/action/{id}
+func (h *HandlerApi) AccountActionDetail(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	id, _ := strconv.ParseInt(r.URL.Query().Get("id"), 10, 64)
+	resp := h.actionService.GetByID(id)
+	h.writeResponse(w, resp.GetStatusCode(), resp)
+}
+
+// AccountActionCreate handles POST /api/account/action
+func (h *HandlerApi) AccountActionCreate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req dto.AccountActionCreateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.writeResponse(w, http.StatusBadRequest, dto.NewResponseBase(400, "error", "JSON inválido"))
+		return
+	}
+	resp := h.actionService.Create(&req)
+	h.writeResponse(w, resp.GetStatusCode(), resp)
+}
+
+// AccountActionUpdate handles PUT /api/account/action
+func (h *HandlerApi) AccountActionUpdate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut && r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req dto.AccountActionUpdateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.writeResponse(w, http.StatusBadRequest, dto.NewResponseBase(400, "error", "JSON inválido"))
+		return
+	}
+	resp := h.actionService.Update(&req)
+	h.writeResponse(w, resp.GetStatusCode(), resp)
+}
+
+// AccountActionDelete handles DELETE /api/account/action
+func (h *HandlerApi) AccountActionDelete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete && r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	id, _ := strconv.ParseInt(r.URL.Query().Get("id"), 10, 64)
+	resp := h.actionService.Delete(id)
 	h.writeResponse(w, resp.GetStatusCode(), resp)
 }
 

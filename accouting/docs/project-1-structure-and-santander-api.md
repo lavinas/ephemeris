@@ -94,4 +94,5 @@ Ações para as contas e regras de ação:
 - Pode-se ter mais de uma bank_account_action para uma mesma conta, inclusive para a mesma ação, e neste, caso (mesma conta e mesma ação), a combinação das duas sobrepostas tem o mesmo efeito que um 'or' ou seja, deve ser ignorado o registro se qualquer uma das regras for verdadeira. 
 - Deve-se implementar no serviço de sincronismo, tanto via job como via sincronimo no htmx o filtro dos campos referente as ações e regras cadastradas. 
 
-        
+Botão excluir no modal de sincronismo:
+- 

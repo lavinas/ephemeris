@@ -20,11 +20,12 @@ const (
 
 // HandlerHtml handles HTML / HTMX rendering for banking statements
 type HandlerHtml struct {
-	repo        port.Repository
-	logger      port.Logger
-	listService *service.StatementListService
-	syncService *service.StatementSyncService
-	tmpl        *template.Template
+	repo          port.Repository
+	logger        port.Logger
+	listService   *service.StatementListService
+	syncService   *service.StatementSyncService
+	actionService *service.AccountActionService
+	tmpl          *template.Template
 }
 
 func NewHandlerHtml(
@@ -32,6 +33,7 @@ func NewHandlerHtml(
 	logger port.Logger,
 	listService *service.StatementListService,
 	syncService *service.StatementSyncService,
+	actionService *service.AccountActionService,
 	templateData []byte,
 ) (*HandlerHtml, error) {
 	funcMap := template.FuncMap{
@@ -76,6 +78,9 @@ func NewHandlerHtml(
 		"sub": func(a, b int) int {
 			return a - b
 		},
+		"fieldName":    domain.FieldName,
+		"operatorName": domain.OperatorName,
+		"actionName":   domain.ActionName,
 	}
 
 	tmpl, err := template.New("statements").Funcs(funcMap).Parse(string(templateData))
@@ -84,11 +89,12 @@ func NewHandlerHtml(
 	}
 
 	return &HandlerHtml{
-		repo:        repo,
-		logger:      logger,
-		listService: listService,
-		syncService: syncService,
-		tmpl:        tmpl,
+		repo:          repo,
+		logger:        logger,
+		listService:   listService,
+		syncService:   syncService,
+		actionService: actionService,
+		tmpl:          tmpl,
 	}, nil
 }
 
@@ -273,4 +279,191 @@ func (h *HandlerHtml) render(w http.ResponseWriter, name string, data interface{
 		h.logger.IPrintf(2, "Template execution error: %v", err)
 		http.Error(w, fmt.Sprintf("Erro ao renderizar template: %v", err), http.StatusInternalServerError)
 	}
+}
+
+type ActionModalViewData struct {
+	AccountID       int64
+	SelectedAccount *domain.Account
+	Actions         []dto.AccountActionItemDTO
+	Action          *dto.AccountActionItemDTO
+	ErrorMessage    string
+	SuccessMessage  string
+}
+
+// ActionsModal renders the actions modal wrapper for an account
+func (h *HandlerHtml) ActionsModal(w http.ResponseWriter, r *http.Request) {
+	accountID, _ := strconv.ParseInt(r.URL.Query().Get("account_id"), 10, 64)
+	if accountID <= 0 {
+		accountID, _ = strconv.ParseInt(r.FormValue("account_id"), 10, 64)
+	}
+	acc, _ := h.repo.GetAccountByID(accountID)
+	resp := h.actionService.ListByAccount(accountID)
+
+	h.render(w, "modal_actions", ActionModalViewData{
+		AccountID:       accountID,
+		SelectedAccount: acc,
+		Actions:         resp.Data,
+	})
+}
+
+// ActionsList renders only the list of actions
+func (h *HandlerHtml) ActionsList(w http.ResponseWriter, r *http.Request) {
+	accountID, _ := strconv.ParseInt(r.URL.Query().Get("account_id"), 10, 64)
+	if accountID <= 0 {
+		accountID, _ = strconv.ParseInt(r.FormValue("account_id"), 10, 64)
+	}
+	acc, _ := h.repo.GetAccountByID(accountID)
+	resp := h.actionService.ListByAccount(accountID)
+
+	h.render(w, "modal_actions_list", ActionModalViewData{
+		AccountID:       accountID,
+		SelectedAccount: acc,
+		Actions:         resp.Data,
+	})
+}
+
+// ActionsNew renders the creation form for a new action
+func (h *HandlerHtml) ActionsNew(w http.ResponseWriter, r *http.Request) {
+	accountID, _ := strconv.ParseInt(r.URL.Query().Get("account_id"), 10, 64)
+	if accountID <= 0 {
+		accountID, _ = strconv.ParseInt(r.FormValue("account_id"), 10, 64)
+	}
+	acc, _ := h.repo.GetAccountByID(accountID)
+
+	actionItem := &dto.AccountActionItemDTO{
+		AccountID: accountID,
+		Action:    domain.ActionIgnoreTransaction,
+		Rules: []dto.ActionRuleDTO{
+			{Field: domain.RuleFieldTransaction, Operator: domain.RuleOpContains, Value: ""},
+		},
+	}
+
+	h.render(w, "modal_action_form", ActionModalViewData{
+		AccountID:       accountID,
+		SelectedAccount: acc,
+		Action:          actionItem,
+	})
+}
+
+// ActionsEdit renders the edit form for an existing action
+func (h *HandlerHtml) ActionsEdit(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.ParseInt(r.URL.Query().Get("id"), 10, 64)
+	resp := h.actionService.GetByID(id)
+	if resp.Data == nil {
+		http.Error(w, "Ação não encontrada", http.StatusNotFound)
+		return
+	}
+
+	acc, _ := h.repo.GetAccountByID(resp.Data.AccountID)
+
+	h.render(w, "modal_action_form", ActionModalViewData{
+		AccountID:       resp.Data.AccountID,
+		SelectedAccount: acc,
+		Action:          resp.Data,
+	})
+}
+
+// ActionsSave handles saving (creating or updating) an action
+func (h *HandlerHtml) ActionsSave(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		h.logger.IPrintf(1, "Warning: failed to parse form in ActionsSave: %v", err)
+	}
+
+	id, _ := strconv.ParseInt(r.FormValue("id"), 10, 64)
+	accountID, _ := strconv.ParseInt(r.FormValue("account_id"), 10, 64)
+	actionType, _ := strconv.Atoi(r.FormValue("action"))
+	if actionType <= 0 {
+		actionType = domain.ActionIgnoreTransaction
+	}
+
+	fields := r.Form["rule_field"]
+	ops := r.Form["rule_operator"]
+	vals := r.Form["rule_value"]
+	caseSensitives := r.Form["rule_case_sensitive"]
+
+	var rules []dto.ActionRuleDTO
+	for i := 0; i < len(fields); i++ {
+		f, _ := strconv.Atoi(fields[i])
+		op, _ := strconv.Atoi(ops[i])
+		v := strings.TrimSpace(vals[i])
+		if v == "" {
+			continue
+		}
+		cs := false
+		if i < len(caseSensitives) && (caseSensitives[i] == "true" || caseSensitives[i] == "1") {
+			cs = true
+		}
+		rules = append(rules, dto.ActionRuleDTO{
+			Field:         f,
+			Operator:      op,
+			Value:         v,
+			CaseSensitive: cs,
+		})
+	}
+
+	if len(rules) == 0 {
+		acc, _ := h.repo.GetAccountByID(accountID)
+		h.render(w, "modal_action_form", ActionModalViewData{
+			AccountID:       accountID,
+			SelectedAccount: acc,
+			ErrorMessage:    "Informe ao menos uma regra com valor preenchido.",
+			Action: &dto.AccountActionItemDTO{
+				ID:        id,
+				AccountID: accountID,
+				Action:    actionType,
+				Rules: []dto.ActionRuleDTO{
+					{Field: domain.RuleFieldTransaction, Operator: domain.RuleOpContains, Value: ""},
+				},
+			},
+		})
+		return
+	}
+
+	if id > 0 {
+		h.actionService.Update(&dto.AccountActionUpdateRequest{
+			ID:        id,
+			AccountID: accountID,
+			Action:    actionType,
+			Rules:     rules,
+		})
+	} else {
+		h.actionService.Create(&dto.AccountActionCreateRequest{
+			AccountID: accountID,
+			Action:    actionType,
+			Rules:     rules,
+		})
+	}
+
+	// Re-render the actions list
+	acc, _ := h.repo.GetAccountByID(accountID)
+	resp := h.actionService.ListByAccount(accountID)
+	h.render(w, "modal_actions_list", ActionModalViewData{
+		AccountID:       accountID,
+		SelectedAccount: acc,
+		Actions:         resp.Data,
+		SuccessMessage:  "Ação salva com sucesso!",
+	})
+}
+
+// ActionsDelete handles deleting an action
+func (h *HandlerHtml) ActionsDelete(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.ParseInt(r.URL.Query().Get("id"), 10, 64)
+	if id <= 0 {
+		id, _ = strconv.ParseInt(r.FormValue("id"), 10, 64)
+	}
+	accountID, _ := strconv.ParseInt(r.URL.Query().Get("account_id"), 10, 64)
+	if accountID <= 0 {
+		accountID, _ = strconv.ParseInt(r.FormValue("account_id"), 10, 64)
+	}
+
+	h.actionService.Delete(id)
+
+	acc, _ := h.repo.GetAccountByID(accountID)
+	resp := h.actionService.ListByAccount(accountID)
+	h.render(w, "modal_actions_list", ActionModalViewData{
+		AccountID:       accountID,
+		SelectedAccount: acc,
+		Actions:         resp.Data,
+		SuccessMessage:  "Ação removida com sucesso!",
+	})
 }

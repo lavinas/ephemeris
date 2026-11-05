@@ -19,6 +19,7 @@ type StatementSyncService struct {
 	santanderProvider port.BankStatementProvider
 	logger            port.Logger
 	defaultDaysBack   int
+	actionEngine      *domain.ActionEngine
 }
 
 // NewStatementSyncService creates a new StatementSyncService
@@ -36,6 +37,7 @@ func NewStatementSyncService(
 		santanderProvider: santanderProvider,
 		logger:            logger,
 		defaultDaysBack:   defaultDaysBack,
+		actionEngine:      domain.NewActionEngine(),
 	}
 }
 
@@ -114,6 +116,12 @@ func (s *StatementSyncService) Run(ctx context.Context, req *dto.SyncStatementsR
 
 		totalFetched += len(txs)
 
+		// Load configured actions/rules for this account
+		actions, err := s.repo.GetAccountActions(acc.ID)
+		if err != nil {
+			s.logger.IPrintf(1, "Warning: failed to load actions for account %d: %v", acc.ID, err)
+		}
+
 		// Sort transactions chronologically for sequential balance calculation
 		sort.SliceStable(txs, func(i, j int) bool {
 			return txs[i].TransactionDate.Before(txs[j].TransactionDate)
@@ -122,7 +130,7 @@ func (s *StatementSyncService) Run(ctx context.Context, req *dto.SyncStatementsR
 		occurrences := make(map[string]int)
 
 		for _, tx := range txs {
-			imported, err := s.processSantanderTransaction(&acc, tx, occurrences)
+			imported, err := s.processSantanderTransaction(&acc, tx, occurrences, actions)
 			if err != nil {
 				s.logger.IPrintf(1, "Warning: error processing transaction (%s %s %.2f): %v",
 					tx.CreditDebitType, tx.TransactionName, tx.Amount, err)
@@ -164,13 +172,36 @@ func (s *StatementSyncService) selectProviderForAccount(acc *domain.Account) (po
 }
 
 // processSantanderTransaction performs deduplication, balance calculation and persistence
-func (s *StatementSyncService) processSantanderTransaction(acc *domain.Account, tx port.BankTransaction, occurrences map[string]int) (bool, error) {
+func (s *StatementSyncService) processSantanderTransaction(acc *domain.Account, tx port.BankTransaction, occurrences map[string]int, actions []domain.BankAccountAction) (bool, error) {
 	// 1. Ignore transactions prior to account.initial_date if defined
 	if !acc.InitialDate.IsZero() && tx.TransactionDate.Before(acc.InitialDate) {
 		return false, nil
 	}
 
-	// 2. Generate Santander transaction key
+	// 2. Compute signed amount: positive for CREDITO (+), negative for DEBITO (-)
+	absAmount := math.Abs(tx.Amount)
+	signedAmount := absAmount
+	if strings.EqualFold(tx.CreditDebitType, "DEBITO") || strings.EqualFold(tx.CreditDebitType, "DÉBITO") {
+		signedAmount = -absAmount
+	}
+
+	// 3. Evaluate account action rules (e.g. Action 1 - Ignore/Filter line)
+	evalCtx := domain.TransactionEvalContext{
+		Date:        tx.TransactionDate,
+		Transaction: tx.TransactionName,
+		Complement:  tx.HistoricComplement,
+		Document:    tx.DocumentNumber,
+		Amount:      signedAmount,
+	}
+	if s.actionEngine.ShouldIgnore(actions, evalCtx) {
+		if s.logger != nil {
+			s.logger.IPrintf(0, "Transaction ignored by account action rule: date=%s, tx=%q, comp=%q, doc=%q, amount=%.2f",
+				tx.TransactionDate.Format("2006-01-02"), tx.TransactionName, tx.HistoricComplement, tx.DocumentNumber, signedAmount)
+		}
+		return false, nil
+	}
+
+	// 4. Generate Santander transaction key
 	txDate := tx.TransactionDate
 	santanderKey := domain.GenerateSantanderKey(
 		tx.CreditDebitType,
@@ -181,12 +212,12 @@ func (s *StatementSyncService) processSantanderTransaction(acc *domain.Account, 
 		tx.DocumentNumber,
 	)
 
-	// 3. Track occurrence for this (date, santanderKey) on the day being processed
+	// 5. Track occurrence for this (date, santanderKey) on the day being processed
 	dateKey := fmt.Sprintf("%s_%s", txDate.Format("2006-01-02"), santanderKey)
 	occurrences[dateKey]++
 	occurrence := occurrences[dateKey]
 
-	// 4. Generate Statement key and deduplicate
+	// 6. Generate Statement key and deduplicate
 	statementKey := domain.GenerateStatementKey(acc.ID, occurrence, santanderKey)
 	existingSt, err := s.repo.GetStatementByKey(statementKey)
 	if err != nil {
@@ -195,13 +226,6 @@ func (s *StatementSyncService) processSantanderTransaction(acc *domain.Account, 
 	if existingSt != nil {
 		// Duplicated statement, ignore
 		return false, nil
-	}
-
-	// 5. Compute signed amount: positive for CREDITO (+), negative for DEBITO (-)
-	absAmount := math.Abs(tx.Amount)
-	signedAmount := absAmount
-	if strings.EqualFold(tx.CreditDebitType, "DEBITO") || strings.EqualFold(tx.CreditDebitType, "DÉBITO") {
-		signedAmount = -absAmount
 	}
 
 	// 6. Calculate running balance:
