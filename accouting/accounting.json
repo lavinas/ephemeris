@@ -18,17 +18,18 @@
         "addr": ":8084"
     },
     "santander": {
-        "environment": "sandbox",
+        "environment": "production",
         "sandbox_base_url": "https://trust-sandbox.api.santander.com.br",
         "prod_base_url": "https://trust-open.api.santander.com.br",
+        "token_url": "https://trust-open.api.santander.com.br/auth/oauth/v2/token",
         "bank_id": "90400888000142",
         "certificate_path": "certs/26534905.pfx",
-        "certificate_password": "",
+        "certificate_password": "pwd22Adm*",
         "timeout_seconds": 30
     },
     "sync_job": {
         "enabled": true,
-        "cron_expr": "0 */4 * * *",
-        "days_back": 15
+        "cron_expr": "0 0 * * *",
+        "days_back": 3
     }
 }

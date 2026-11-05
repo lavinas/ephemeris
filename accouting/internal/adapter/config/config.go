@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"os"
+	"strings"
 )
 
 // Config represents the application configuration
@@ -81,6 +82,13 @@ func (c *Config) setDefaults() {
 	}
 	if c.Santander.ProdBaseURL == "" {
 		c.Santander.ProdBaseURL = "https://trust-open.api.santander.com.br"
+	}
+	if c.Santander.TokenURL == "" {
+		if strings.EqualFold(c.Santander.Environment, "production") || strings.EqualFold(c.Santander.Environment, "prod") {
+			c.Santander.TokenURL = c.Santander.ProdBaseURL + "/auth/oauth/v2/token"
+		} else {
+			c.Santander.TokenURL = c.Santander.SandboxBaseURL + "/auth/oauth/v2/token"
+		}
 	}
 	if c.Santander.BankID == "" {
 		c.Santander.BankID = "90400888000142"
