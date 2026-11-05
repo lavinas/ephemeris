@@ -3,7 +3,6 @@ package santander
 import (
 	"context"
 	"crypto/rsa"
-	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -25,15 +24,15 @@ import (
 	"accounting/internal/port"
 )
 
-// Client implements port.BankStatementProvider for Santander API
+// Client implements port.BankStatementProvider for Santander Open API - Contas Correntes
 type Client struct {
 	cfg        config.SantanderConfig
 	logger     port.Logger
 	httpClient *http.Client
 
 	// Token cache per client_id
-	tokenMu   sync.Mutex
-	tokenMap  map[string]*tokenEntry
+	tokenMu  sync.Mutex
+	tokenMap map[string]*tokenEntry
 }
 
 type tokenEntry struct {
@@ -82,7 +81,6 @@ func (c *Client) ProviderName() string {
 func (c *Client) buildTLSConfig() (*tls.Config, error) {
 	certPath := c.cfg.CertificatePath
 	if certPath == "" {
-		// Look for default cert files in ./certs
 		if _, err := os.Stat("certs/26534905.pfx"); err == nil {
 			certPath = "certs/26534905.pfx"
 		} else if _, err := os.Stat("certs/certificado.crt"); err == nil {
@@ -127,7 +125,6 @@ func (c *Client) buildTLSConfig() (*tls.Config, error) {
 		}
 		tlsConfig.Certificates = []tls.Certificate{tlsCert}
 	} else if strings.HasSuffix(strings.ToLower(certPath), ".crt") {
-		// CRT files
 		certBytes, err := os.ReadFile(certPath)
 		if err != nil {
 			return nil, fmt.Errorf("reading crt from %s: %w", certPath, err)
@@ -145,7 +142,7 @@ func (c *Client) buildTLSConfig() (*tls.Config, error) {
 
 // getBaseURL returns base URL depending on environment
 func (c *Client) getBaseURL() string {
-	if strings.ToLower(c.cfg.Environment) == "production" || strings.ToLower(c.cfg.Environment) == "prod" {
+	if strings.EqualFold(c.cfg.Environment, "production") || strings.EqualFold(c.cfg.Environment, "prod") {
 		return c.cfg.ProdBaseURL
 	}
 	return c.cfg.SandboxBaseURL
@@ -181,7 +178,7 @@ func (c *Client) formatAccountBranchConta(branch, number string) string {
 	return fmt.Sprintf("%s.%s", cleanBranch, cleanNumber)
 }
 
-// getAccessToken authenticates with Santander OAuth2 if needed
+// getAccessToken authenticates with Santander OAuth2 endpoint
 func (c *Client) getAccessToken(ctx context.Context, clientID, clientSecret string) (string, error) {
 	c.tokenMu.Lock()
 	defer c.tokenMu.Unlock()
@@ -212,7 +209,6 @@ func (c *Client) getAccessToken(ctx context.Context, clientID, clientSecret stri
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		// Em caso de falha de rede/mock em sandbox sem backend real levantado
 		return "", fmt.Errorf("token request failed: %w", err)
 	}
 	defer resp.Body.Close()
@@ -245,7 +241,7 @@ func (c *Client) getAccessToken(ctx context.Context, clientID, clientSecret stri
 	return tokenResp.AccessToken, nil
 }
 
-// FetchStatements retrieves transactions from Santander API
+// FetchStatements retrieves transactions from Santander Open API - Contas Correntes
 func (c *Client) FetchStatements(ctx context.Context, account *domain.Account, creds *domain.AccountSantanderAPI, initialDate, finalDate time.Time) ([]port.BankTransaction, error) {
 	if account == nil {
 		return nil, fmt.Errorf("account cannot be nil")
@@ -258,8 +254,6 @@ func (c *Client) FetchStatements(ctx context.Context, account *domain.Account, c
 	}
 
 	branchConta := c.formatAccountBranchConta(account.AccountBranch, account.AccountNumber)
-
-	// Date format YYYY-MM-DD
 	initDateStr := initialDate.Format("2006-01-02")
 	finalDateStr := finalDate.Format("2006-01-02")
 
@@ -270,34 +264,6 @@ func (c *Client) FetchStatements(ctx context.Context, account *domain.Account, c
 			return nil, fmt.Errorf("oauth token error for account %d: %w", account.ID, err)
 		}
 		token = t
-	}
-
-	// Try Open Finance detailed statements route first if accountId is available or discoverable
-	cleanBranch := sanitizeDigits(account.AccountBranch)
-	if len(cleanBranch) < 4 {
-		cleanBranch = strings.Repeat("0", 4-len(cleanBranch)) + cleanBranch
-	}
-	cleanNumber := sanitizeDigits(account.AccountNumber)
-	if len(cleanNumber) < 12 {
-		cleanNumber = strings.Repeat("0", 12-len(cleanNumber)) + cleanNumber
-	}
-
-	var accountIDParam string
-	if creds != nil && creds.ClientID != "" {
-		accountIDParam = c.discoverAccountID(ctx, token, creds.ClientID, bankID, cleanBranch, cleanNumber)
-	}
-
-	if accountIDParam != "" {
-		txs, err := c.fetchStatementsWithQueryParams(ctx, token, creds, bankID, cleanBranch, cleanNumber, accountIDParam, initDateStr, finalDateStr)
-		if err == nil && len(txs) > 0 {
-			if c.logger != nil {
-				c.logger.IPrintf(0, "Successfully fetched %d statement(s) via Open Finance detailed endpoint", len(txs))
-			}
-			return txs, nil
-		}
-		if c.logger != nil {
-			c.logger.IPrintf(0, "Open Finance detailed endpoint did not return transactions (%v), proceeding with corporate path endpoint", err)
-		}
 	}
 
 	var allTransactions []port.BankTransaction
@@ -361,186 +327,8 @@ func (c *Client) FetchStatements(ctx context.Context, account *domain.Account, c
 	return allTransactions, nil
 }
 
-// discoverAccountID queries /bank_account_information/v1/banks/{bank_id}/accounts to find Open Finance accountId
-func (c *Client) discoverAccountID(ctx context.Context, token, clientID, bankID, branch, number string) string {
-	baseURL := c.getBaseURL()
-	reqURL := fmt.Sprintf("%s/bank_account_information/v1/banks/%s/accounts?_offset=1&_limit=50", baseURL, bankID)
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
-	if err != nil {
-		return ""
-	}
-	if token != "" {
-		req.Header.Set("Authorization", "Bearer "+token)
-	}
-	if clientID != "" {
-		req.Header.Set("X-Application-Key", clientID)
-	}
-	req.Header.Set("Accept", "application/json")
-
-	if c.logger != nil {
-		c.logger.IPrintf(0, "Santander API Discover Accounts Request: GET %s", reqURL)
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		if c.logger != nil {
-			c.logger.IPrintf(1, "Santander API Discover Accounts failed: %v", err)
-		}
-		return ""
-	}
-	defer resp.Body.Close()
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return ""
-	}
-
-	if c.logger != nil {
-		c.logger.IPrintf(0, "Santander API Discover Accounts Response (HTTP %d): %s", resp.StatusCode, string(bodyBytes))
-	}
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return ""
-	}
-
-	var raw struct {
-		Accounts          []santanderAccountItem `json:"accounts"`
-		Content           []santanderAccountItem `json:"content"`
-		UnderscoreContent []santanderAccountItem `json:"_content"`
-		Data              []santanderAccountItem `json:"data"`
-		Items             []santanderAccountItem `json:"items"`
-	}
-	if err := json.Unmarshal(bodyBytes, &raw); err != nil {
-		var list []santanderAccountItem
-		if errList := json.Unmarshal(bodyBytes, &list); errList == nil {
-			return findAccountID(list, branch, number)
-		}
-		return ""
-	}
-
-	items := raw.Accounts
-	if len(items) == 0 {
-		items = raw.Content
-	}
-	if len(items) == 0 {
-		items = raw.UnderscoreContent
-	}
-	if len(items) == 0 {
-		items = raw.Data
-	}
-	if len(items) == 0 {
-		items = raw.Items
-	}
-
-	return findAccountID(items, branch, number)
-}
-
-type santanderAccountItem struct {
-	AccountID     string `json:"accountId"`
-	ID            string `json:"id"`
-	BranchCode    string `json:"branchCode"`
-	Agency        string `json:"agency"`
-	AccountNumber string `json:"accountNumber"`
-	Number        string `json:"number"`
-}
-
-func findAccountID(items []santanderAccountItem, branch, number string) string {
-	cleanBranch := sanitizeDigits(branch)
-	cleanNumber := sanitizeDigits(number)
-
-	for _, item := range items {
-		itemBranch := sanitizeDigits(item.BranchCode)
-		if itemBranch == "" {
-			itemBranch = sanitizeDigits(item.Agency)
-		}
-		itemNumber := sanitizeDigits(item.AccountNumber)
-		if itemNumber == "" {
-			itemNumber = sanitizeDigits(item.Number)
-		}
-
-		if (itemBranch == "" || strings.HasSuffix(cleanBranch, itemBranch) || strings.HasSuffix(itemBranch, cleanBranch)) &&
-			(itemNumber == "" || strings.HasSuffix(cleanNumber, itemNumber) || strings.HasSuffix(itemNumber, cleanNumber)) {
-			if item.AccountID != "" {
-				return item.AccountID
-			}
-			if item.ID != "" {
-				return item.ID
-			}
-		}
-	}
-
-	if len(items) == 1 {
-		if items[0].AccountID != "" {
-			return items[0].AccountID
-		}
-		return items[0].ID
-	}
-	return ""
-}
-
-// fetchStatementsWithQueryParams queries Open Finance statements using query params
-func (c *Client) fetchStatementsWithQueryParams(ctx context.Context, token string, creds *domain.AccountSantanderAPI, bankID, branch, number, accountID, initDateStr, finalDateStr string) ([]port.BankTransaction, error) {
-	baseURL := c.getBaseURL()
-	var allTransactions []port.BankTransaction
-	offset := 1
-	limit := 50
-
-	for {
-		reqURL := fmt.Sprintf("%s/bank_account_information/v1/banks/%s/statements?branchCode=%s&accountNumber=%s&accountId=%s&initialDate=%s&finalDate=%s&_offset=%d&_limit=%d",
-			baseURL, bankID, branch, number, accountID, initDateStr, finalDateStr, offset, limit)
-
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
-		if err != nil {
-			return nil, err
-		}
-
-		if token != "" {
-			req.Header.Set("Authorization", "Bearer "+token)
-		}
-		if creds != nil && creds.ClientID != "" {
-			req.Header.Set("X-Application-Key", creds.ClientID)
-		}
-		req.Header.Set("Accept", "application/json")
-
-		if c.logger != nil {
-			c.logger.IPrintf(0, "Santander Open Finance Statement Request: GET %s", reqURL)
-		}
-
-		resp, err := c.httpClient.Do(req)
-		if err != nil {
-			return nil, err
-		}
-
-		bodyBytes, err := io.ReadAll(resp.Body)
-		resp.Body.Close()
-
-		if c.logger != nil {
-			c.logger.IPrintf(0, "Santander Open Finance Statement Response (HTTP %d): %s", resp.StatusCode, string(bodyBytes))
-		}
-
-		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			return nil, fmt.Errorf("HTTP %d: %s", resp.StatusCode, string(bodyBytes))
-		}
-
-		items, hasMore, err := c.parseStatementResponse(bodyBytes)
-		if err != nil {
-			return nil, err
-		}
-
-		allTransactions = append(allTransactions, items...)
-		if !hasMore || len(items) == 0 {
-			break
-		}
-		offset += len(items)
-	}
-
-	return allTransactions, nil
-}
-
 // parseStatementResponse parses JSON response returned by Santander Statement API
 func (c *Client) parseStatementResponse(data []byte) ([]port.BankTransaction, bool, error) {
-	// Flexible structure handling Santander API schema
 	var raw struct {
 		Transactions      []santanderTransactionRaw `json:"transactions"`
 		Statements        []santanderTransactionRaw `json:"statements"`
@@ -548,37 +336,34 @@ func (c *Client) parseStatementResponse(data []byte) ([]port.BankTransaction, bo
 		Data              []santanderTransactionRaw `json:"data"`
 		Content           []santanderTransactionRaw `json:"content"`
 		UnderscoreContent []santanderTransactionRaw `json:"_content"`
-		Lancamentos       []santanderTransactionRaw `json:"lancamentos"`
-		Transacoes        []santanderTransactionRaw `json:"transacoes"`
 		Pagination        struct {
 			TotalElements int  `json:"totalElements"`
 			HasMore       bool `json:"hasMore"`
 			Next          bool `json:"next"`
 		} `json:"pagination"`
 		Pageable struct {
-			MoreElements    bool        `json:"_moreElements"`
-			MoreElementsAlt bool        `json:"moreElements"`
-			TotalPages      interface{} `json:"totalPages"`
-			TotalRecords    interface{} `json:"totalRecords"`
+			MoreElements bool        `json:"_moreElements"`
+			TotalPages   interface{} `json:"totalPages"`
+			TotalRecords interface{} `json:"totalRecords"`
 		} `json:"_pageable"`
-		PageableAlt struct {
-			MoreElements    bool `json:"_moreElements"`
-			MoreElementsAlt bool `json:"moreElements"`
-		} `json:"pageable"`
 		HasMore bool `json:"hasMore"`
 	}
 
 	if err := json.Unmarshal(data, &raw); err != nil {
-		// Could also be an array directly
 		var list []santanderTransactionRaw
 		if errList := json.Unmarshal(data, &list); errList == nil {
-			txs := convertRawList(list)
-			return txs, false, nil
+			return convertRawList(list), false, nil
 		}
 		return nil, false, err
 	}
 
-	txList := raw.Transactions
+	txList := raw.UnderscoreContent
+	if len(txList) == 0 {
+		txList = raw.Content
+	}
+	if len(txList) == 0 {
+		txList = raw.Transactions
+	}
 	if len(txList) == 0 {
 		txList = raw.Statements
 	}
@@ -588,247 +373,39 @@ func (c *Client) parseStatementResponse(data []byte) ([]port.BankTransaction, bo
 	if len(txList) == 0 {
 		txList = raw.Data
 	}
-	if len(txList) == 0 {
-		txList = raw.Content
-	}
-	if len(txList) == 0 {
-		txList = raw.UnderscoreContent
-	}
-	if len(txList) == 0 {
-		txList = raw.Lancamentos
-	}
-	if len(txList) == 0 {
-		txList = raw.Transacoes
-	}
 
 	result := convertRawList(txList)
-	hasMore := raw.HasMore || raw.Pagination.HasMore || raw.Pagination.Next ||
-		raw.Pageable.MoreElements || raw.Pageable.MoreElementsAlt ||
-		raw.PageableAlt.MoreElements || raw.PageableAlt.MoreElementsAlt
+	hasMore := raw.HasMore || raw.Pagination.HasMore || raw.Pagination.Next || raw.Pageable.MoreElements
 	return result, hasMore, nil
 }
 
 type santanderTransactionRaw struct {
-	TransactionID                  string      `json:"transactionId"`
-	ID                             string      `json:"id"`
-	TransactionStatus              string      `json:"transactionStatus"`
-	Status                         string      `json:"status"`
-	CompletedAuthorisedPaymentType string      `json:"completedAuthorisedPaymentType"`
-	TransactionSign                string      `json:"transactionSign"` // "+" or "-"
-	Sign                           string      `json:"sign"`
-	Sinal                          string      `json:"sinal"`
-	CreditDebitIndicator           string      `json:"creditDebitIndicator"`
-	CreditDebitType                string      `json:"creditDebitType"` // "DEBITO" or "CREDITO"
-	TransactionName                string      `json:"transactionName"`
-	Description                    string      `json:"description"`
-	Descricao                      string      `json:"descricao"`
-	HistoricComplement             string      `json:"historicComplement"`
-	Historico                      string      `json:"historico"`
-	Memo                           string      `json:"memo"`
-	TransactionType                string      `json:"transactionType"`
-	Type                           string      `json:"type"`
-	Tipo                           string      `json:"tipo"`
-	TransactionAmount              interface{} `json:"transactionAmount"`
-	Amount                         interface{} `json:"amount"`
-	Valor                          interface{} `json:"valor"`
-	Value                          interface{} `json:"value"`
-	TransactionCurrency            string      `json:"transactionCurrency"`
-	Currency                       string      `json:"currency"`
-	Moeda                          string      `json:"moeda"`
-	TransactionDate                string      `json:"transactionDate"`
-	Date                           string      `json:"date"`
-	Data                           string      `json:"data"`
-	BookingDate                    string      `json:"bookingDate"`
-	ValueDate                      string      `json:"valueDate"`
-	PartieDocument                 string      `json:"partieDocument"`
-	PartieCnpjCpf                  string      `json:"partieCnpjCpf"`
-	PartieType                     string      `json:"partieType"`
-	PartiePersonType               string      `json:"partiePersonType"`
-	PartieBankCode                 string      `json:"partieBankCode"`
-	PartieCompeCode                string      `json:"partieCompeCode"`
-	PartieBranchCode               string      `json:"partieBranchCode"`
-	PartieAccount                  string      `json:"partieAccount"`
-	PartieNumber                   string      `json:"partieNumber"`
-	PartieCheckDigit               string      `json:"partieCheckDigit"`
-	CounterPartie                  struct {
-		Document   string `json:"document"`
-		Type       string `json:"type"`
-		BankCode   string `json:"bankCode"`
-		BranchCode string `json:"branchCode"`
-		Account    string `json:"account"`
-	} `json:"counterPartie"`
+	CreditDebitType    string      `json:"creditDebitType"`
+	TransactionName    string      `json:"transactionName"`
+	HistoricComplement string      `json:"historicComplement"`
+	Amount             interface{} `json:"amount"`
+	TransactionDate    string      `json:"transactionDate"`
+	DocumentNumber     string      `json:"documentNumber"`
+	DocumentType       string      `json:"documentType"`
 }
 
 func convertRawList(rawList []santanderTransactionRaw) []port.BankTransaction {
 	var list []port.BankTransaction
 	for _, item := range rawList {
-		tID := item.TransactionID
-		if tID == "" {
-			tID = item.ID
-		}
-
-		sign := item.TransactionSign
-		if sign == "" {
-			sign = item.Sign
-		}
-		if sign == "" {
-			sign = item.Sinal
-		}
-		if sign == "" {
-			if strings.EqualFold(item.CreditDebitIndicator, "CRDT") || strings.EqualFold(item.CreditDebitIndicator, "CREDIT") || strings.EqualFold(item.CreditDebitIndicator, "C") {
-				sign = "+"
-			} else if strings.EqualFold(item.CreditDebitIndicator, "DBIT") || strings.EqualFold(item.CreditDebitIndicator, "DEBIT") || strings.EqualFold(item.CreditDebitIndicator, "D") {
-				sign = "-"
-			}
-		}
-		if sign == "" {
-			if strings.EqualFold(item.CreditDebitType, "DEBITO") || strings.EqualFold(item.CreditDebitType, "DEBIT") || strings.EqualFold(item.CreditDebitType, "D") {
-				sign = "-"
-			} else if strings.EqualFold(item.CreditDebitType, "CREDITO") || strings.EqualFold(item.CreditDebitType, "CREDIT") || strings.EqualFold(item.CreditDebitType, "C") {
-				sign = "+"
-			}
-		}
-
-		name := item.TransactionName
-		if name == "" {
-			name = item.Description
-		}
-		if name == "" {
-			name = item.Descricao
-		}
-		if name == "" {
-			name = item.Historico
-		}
-		if name == "" {
-			name = item.Memo
-		}
-
-		status := item.TransactionStatus
-		if status == "" {
-			status = item.Status
-		}
-		if status == "" {
-			status = item.CompletedAuthorisedPaymentType
-		}
-
-		tType := item.TransactionType
-		if tType == "" {
-			tType = item.Type
-		}
-		if tType == "" {
-			tType = item.Tipo
-		}
-		if tType == "" && item.CreditDebitType != "" {
-			tType = item.CreditDebitType
-		}
-
-		amt := parseAmount(item.TransactionAmount)
-		if amt == 0 {
-			amt = parseAmount(item.Amount)
-		}
-		if amt == 0 {
-			amt = parseAmount(item.Valor)
-		}
-		if amt == 0 {
-			amt = parseAmount(item.Value)
-		}
-		if amt < 0 {
-			sign = "-"
-			amt = math.Abs(amt)
-		}
-
-		curr := item.TransactionCurrency
-		if curr == "" {
-			curr = item.Currency
-		}
-		if curr == "" {
-			curr = item.Moeda
-		}
-		if curr == "" {
-			curr = "BRL"
-		}
-
-		dateStr := item.TransactionDate
-		if dateStr == "" {
-			dateStr = item.Date
-		}
-		if dateStr == "" {
-			dateStr = item.Data
-		}
-		if dateStr == "" {
-			dateStr = item.BookingDate
-		}
-		if dateStr == "" {
-			dateStr = item.ValueDate
-		}
-		tDate := parseDate(dateStr)
-
-		pDoc := item.PartieDocument
-		if pDoc == "" {
-			pDoc = item.PartieCnpjCpf
-		}
-		if pDoc == "" {
-			pDoc = item.HistoricComplement
-		}
-		if pDoc == "" {
-			pDoc = item.CounterPartie.Document
-		}
-
-		pType := item.PartieType
-		if pType == "" {
-			pType = item.PartiePersonType
-		}
-		if pType == "" {
-			pType = item.CounterPartie.Type
-		}
-
-		pBank := item.PartieBankCode
-		if pBank == "" {
-			pBank = item.PartieCompeCode
-		}
-		if pBank == "" {
-			pBank = item.CounterPartie.BankCode
-		}
-
-		pBranch := item.PartieBranchCode
-		if pBranch == "" {
-			pBranch = item.CounterPartie.BranchCode
-		}
-
-		pAcc := item.PartieAccount
-		if pAcc == "" {
-			if item.PartieNumber != "" {
-				pAcc = item.PartieNumber
-				if item.PartieCheckDigit != "" {
-					pAcc = fmt.Sprintf("%s-%s", item.PartieNumber, item.PartieCheckDigit)
-				}
-			}
-		}
-		if pAcc == "" {
-			pAcc = item.CounterPartie.Account
-		}
-
-		if tID == "" {
-			// Generate deterministic synthetic ID when API doesn't provide transactionId
-			rawHash := fmt.Sprintf("%s|%s|%.2f|%s|%s", dateStr, sign, amt, name, pDoc)
-			h := sha256.Sum256([]byte(rawHash))
-			tID = fmt.Sprintf("santander_%x", h[:16])
-		}
+		cType := strings.ToUpper(strings.TrimSpace(item.CreditDebitType))
+		name := strings.TrimSpace(item.TransactionName)
+		comp := strings.TrimSpace(item.HistoricComplement)
+		amt := math.Abs(parseAmount(item.Amount))
+		tDate := parseDate(item.TransactionDate)
+		doc := strings.TrimSpace(item.DocumentNumber)
 
 		list = append(list, port.BankTransaction{
-			TransactionID:       tID,
-			TransactionStatus:   status,
-			TransactionSign:     sign,
-			TransactionName:     name,
-			TransactionType:     tType,
-			TransactionAmount:   amt,
-			TransactionCurrency: curr,
-			TransactionDate:     tDate,
-			PartieDocument:      pDoc,
-			PartieType:          pType,
-			PartieBankCode:      pBank,
-			PartieBranchCode:    pBranch,
-			PartieAccount:       pAcc,
+			CreditDebitType:    cType,
+			TransactionName:    name,
+			HistoricComplement: comp,
+			Amount:             amt,
+			TransactionDate:    tDate,
+			DocumentNumber:     doc,
 		})
 	}
 	return list
@@ -854,10 +431,10 @@ func parseAmount(val interface{}) float64 {
 func parseDate(val string) time.Time {
 	val = strings.TrimSpace(val)
 	formats := []string{
+		"02/01/2006",
 		"2006-01-02",
 		"2006-01-02T15:04:05Z",
 		"2006-01-02T15:04:05-07:00",
-		"02/01/2006",
 	}
 	for _, f := range formats {
 		if t, err := time.Parse(f, val); err == nil {
@@ -866,4 +443,3 @@ func parseDate(val string) time.Time {
 	}
 	return time.Now()
 }
-

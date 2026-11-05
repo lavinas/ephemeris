@@ -15,10 +15,13 @@ type Repository interface {
 	GetVendors() ([]domain.Vendor, error)
 
 	// Statement operations
-	ListStatements(accountID int64, startDate, endDate *time.Time, offset, limit int) ([]domain.Statement, int64, error)
-	GetStatementByChecksum(checksum string) (*domain.Statement, error)
-	GetSantanderStatementByTransactionID(transactionID string) (*domain.StatementSantanderAPI, error)
-	
+	ListStatements(accountID int64, startDate, endDate *time.Time, txType string, offset, limit int) ([]domain.Statement, int64, error)
+	GetStatementByKey(key string) (*domain.Statement, error)
+
+	// Balance and occurrence queries for synchronization
+	GetSantanderKeyCountForAccountAndDate(accountID int64, date time.Time, santanderKey string) (int, error)
+	GetLastStatementBeforeOrOnDate(accountID int64, date time.Time) (*domain.Statement, error)
+
 	// Atomic persistence of a Santander transaction (statement + statement_santander_api)
 	CreateSantanderStatement(st *domain.Statement, santanderSt *domain.StatementSantanderAPI) error
 
@@ -27,4 +30,3 @@ type Repository interface {
 
 	Close()
 }
-

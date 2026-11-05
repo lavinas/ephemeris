@@ -3,7 +3,7 @@
 <style>
 	.grade-filtros-statements {
 		display: grid !important;
-		grid-template-columns: 2.2fr 1.3fr 1.3fr !important;
+		grid-template-columns: 2fr 1.2fr 1.1fr 1.1fr !important;
 		gap: 12px !important;
 		width: 100% !important;
 		box-sizing: border-box !important;
@@ -20,28 +20,28 @@
 	}
 	.grade-tabela-statements {
 		display: grid !important;
-		grid-template-columns: 100px 140px 1fr 180px 160px !important;
+		grid-template-columns: 105px 1.4fr 1.4fr 110px 130px 130px !important;
 		gap: 14px !important;
 		align-items: center !important;
 		width: 100% !important;
 		box-sizing: border-box !important;
-		padding: 16px 20px !important;
+		padding: 14px 18px !important;
 	}
 	@media (max-width: 1024px) {
 		.grade-tabela-statements {
-			grid-template-columns: 80px 120px 1fr 150px !important;
+			grid-template-columns: 95px 1.4fr 1fr 115px 115px !important;
 		}
-		.col-partie {
+		.col-document {
 			display: none !important;
 		}
 	}
-	@media (max-width: 640px) {
+	@media (max-width: 768px) {
 		.grade-tabela-statements {
-			grid-template-columns: 80px 1fr 120px !important;
+			grid-template-columns: 85px 1fr 105px 105px !important;
 			gap: 8px !important;
 			padding: 12px 10px !important;
 		}
-		.col-id, .col-partie {
+		.col-complement, .col-document {
 			display: none !important;
 		}
 	}
@@ -143,6 +143,14 @@
 						{{else}}
 							<option value="">Nenhuma conta ativa cadastrada</option>
 						{{end}}
+					</select>
+				</div>
+				<div class="campo-box-statements">
+					<label>Tipo</label>
+					<select name="type">
+						<option value="all" {{if or (eq $.Type "all") (eq $.Type "")}}selected{{end}}>Todos</option>
+						<option value="credit" {{if eq $.Type "credit"}}selected{{end}}>Crédito (+)</option>
+						<option value="debit" {{if eq $.Type "debit"}}selected{{end}}>Débito (-)</option>
 					</select>
 				</div>
 				<div class="campo-box-statements">
@@ -338,11 +346,12 @@
 {{define "tabela"}}
 <div class="w-full">
 	<div class="grade-tabela-statements topo-tabela-statements">
-		<div class="col-id">ID</div>
 		<div>DATA</div>
-		<div>DESCRIÇÃO</div>
-		<div class="col-partie">CONTRAPARTE</div>
+		<div>TRANSAÇÃO</div>
+		<div class="col-complement">COMPLEMENTO</div>
+		<div class="col-document">DOCUMENTO</div>
 		<div class="text-right">VALOR</div>
+		<div class="text-right">SALDO</div>
 	</div>
 
 	{{if .Statements}}
@@ -402,19 +411,23 @@
 
 {{define "linha_statement"}}
 <div id="linha-statement-{{.ID}}" class="linha-box-statements grade-tabela-statements text-sm">
-	<div class="col-id font-mono text-xs text-blue-400 font-bold">
-		#{{.ID}}
-	</div>
-	<div class="font-mono text-gray-300">
+	<div class="font-mono text-gray-300 text-xs">
 		{{formatDate .SDate}}
 	</div>
-	<div class="font-medium text-gray-100 truncate" title="{{.Memo}}">
-		{{.Memo}}
+	<div class="font-medium text-gray-100 truncate" title="{{.Transaction}}">
+		{{.Transaction}}
 	</div>
-	<div class="col-partie truncate" title="{{.Partie}}">
-		{{if .Partie}}
+	<div class="col-complement text-gray-300 truncate text-xs" title="{{.Complement}}">
+		{{if .Complement}}
+			{{.Complement}}
+		{{else}}
+			<span class="text-gray-600">-</span>
+		{{end}}
+	</div>
+	<div class="col-document truncate" title="{{.Document}}">
+		{{if .Document}}
 			<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-medium bg-gray-800 text-gray-300 border border-gray-700">
-				{{.Partie}}
+				{{.Document}}
 			</span>
 		{{else}}
 			<span class="text-gray-600">-</span>
@@ -424,6 +437,9 @@
 		<span class="inline-flex items-center px-2.5 py-1 rounded text-xs font-mono font-bold {{if isNegative .Amount}}valor-negativo{{else}}valor-positivo{{end}}">
 			{{formatMoney .Amount}}
 		</span>
+	</div>
+	<div class="text-right font-mono text-xs font-bold {{if isNegative .Balance}}text-rose-400{{else}}text-blue-300{{end}}">
+		{{formatMoney .Balance}}
 	</div>
 </div>
 {{end}}

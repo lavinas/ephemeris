@@ -34,15 +34,17 @@ func (Vendor) TableName() string {
 
 // Account represents a bank account owned by a vendor
 type Account struct {
-	ID            int64      `gorm:"primaryKey;autoIncrement" json:"id"`
-	VendorID      int64      `gorm:"column:vendor_id;not null" json:"vendor_id"`
-	BankCode      string     `gorm:"column:bank_code;size:10;not null" json:"bank_code"`
-	AccountNumber string     `gorm:"column:account_number;size:50;not null" json:"account_number"`
-	AccountBranch string     `gorm:"column:account_branch;size:20;not null" json:"account_branch"`
-	Status        int        `gorm:"column:status;not null;default:1" json:"status"` // 0 - inactive, 1 - active
-	CreatedAt     time.Time  `gorm:"column:created_at;not null" json:"created_at"`
-	UpdatedAt     time.Time  `gorm:"column:updated_at;not null" json:"updated_at"`
-	DeletedAt     *time.Time `gorm:"column:deleted_at" json:"deleted_at,omitempty"`
+	ID             int64      `gorm:"primaryKey;autoIncrement" json:"id"`
+	VendorID       int64      `gorm:"column:vendor_id;not null" json:"vendor_id"`
+	BankCode       string     `gorm:"column:bank_code;size:10;not null" json:"bank_code"`
+	AccountNumber  string     `gorm:"column:account_number;size:50;not null" json:"account_number"`
+	AccountBranch  string     `gorm:"column:account_branch;size:20;not null" json:"account_branch"`
+	Status         int        `gorm:"column:status;not null;default:1" json:"status"` // 0 - inactive, 1 - active
+	InitialBalance float64    `gorm:"column:initial_balance;type:numeric(10,2);not null" json:"initial_balance"`
+	InitialDate    time.Time  `gorm:"column:initial_date;type:date;not null" json:"initial_date"`
+	CreatedAt      time.Time  `gorm:"column:created_at;not null" json:"created_at"`
+	UpdatedAt      time.Time  `gorm:"column:updated_at;not null" json:"updated_at"`
+	DeletedAt      *time.Time `gorm:"column:deleted_at" json:"deleted_at,omitempty"`
 
 	// Relationships
 	Vendor              *Vendor              `gorm:"foreignKey:VendorID" json:"vendor,omitempty"`

@@ -7,21 +7,14 @@ import (
 	"accounting/internal/domain"
 )
 
-// BankTransaction represents a normalized transaction returned by any bank provider
+// BankTransaction represents a transaction returned by Santander Open API Contas Correntes
 type BankTransaction struct {
-	TransactionID      string
-	TransactionStatus  string
-	TransactionSign    string  // "+" or "-"
-	TransactionName    string  // Description or label
-	TransactionType    string
-	TransactionAmount  float64 // Absolute amount
-	TransactionCurrency string
-	TransactionDate    time.Time
-	PartieDocument     string
-	PartieType         string
-	PartieBankCode     string
-	PartieBranchCode   string
-	PartieAccount      string
+	CreditDebitType    string    // "DEBITO" or "CREDITO"
+	TransactionName    string    // Description / label
+	HistoricComplement string    // Complement / document
+	Amount             float64   // Raw positive amount
+	TransactionDate    time.Time // Date of the transaction
+	DocumentNumber     string    // Document number if provided
 }
 
 // BankStatementProvider defines the contract for bank statement providers (Santander, OFX, etc.)
@@ -31,4 +24,3 @@ type BankStatementProvider interface {
 	// FetchStatements retrieves transactions for a given account within a date window
 	FetchStatements(ctx context.Context, account *domain.Account, creds *domain.AccountSantanderAPI, initialDate, finalDate time.Time) ([]BankTransaction, error)
 }
-

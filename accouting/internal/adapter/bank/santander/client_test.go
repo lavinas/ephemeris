@@ -40,10 +40,6 @@ func TestClient_GetAccessTokenAndStatements(t *testing.T) {
 			w.Header().Set("Content-Type", "application/json")
 			w.Write([]byte(`{"access_token":"mock_jwt_token","token_type":"Bearer","expires_in":3600}`))
 
-		case "/bank_account_information/v1/banks/90400888000142/accounts":
-			// Test fallback when accounts endpoint returns 404
-			w.WriteHeader(http.StatusNotFound)
-
 		case "/bank_account_information/v1/banks/90400888000142/statements/0985.000130010014":
 			if r.Header.Get("Authorization") != "Bearer mock_jwt_token" {
 				t.Errorf("unexpected Authorization header: %s", r.Header.Get("Authorization"))
@@ -54,16 +50,19 @@ func TestClient_GetAccessTokenAndStatements(t *testing.T) {
 			statementsReceived = true
 			w.Header().Set("Content-Type", "application/json")
 			w.Write([]byte(`{
-				"transactions": [
+				"_content": [
 					{
-						"transactionId": "tx-123456",
-						"transactionSign": "-",
+						"creditDebitType": "DEBITO",
 						"transactionName": "PIX ENVIADO",
-						"transactionAmount": 150.75,
-						"transactionDate": "2026-11-04"
+						"historicComplement": "04417932824",
+						"amount": "150.75",
+						"transactionDate": "04/11/2026",
+						"documentNumber": "DOC123"
 					}
 				],
-				"hasMore": false
+				"_pageable": {
+					"_moreElements": false
+				}
 			}`))
 
 		default:
@@ -111,11 +110,17 @@ func TestClient_GetAccessTokenAndStatements(t *testing.T) {
 	if len(txs) != 1 {
 		t.Fatalf("expected 1 transaction, got %d", len(txs))
 	}
-	if txs[0].TransactionID != "tx-123456" {
-		t.Errorf("expected tx-123456, got %s", txs[0].TransactionID)
+	if txs[0].CreditDebitType != "DEBITO" {
+		t.Errorf("expected DEBITO, got %s", txs[0].CreditDebitType)
 	}
-	if txs[0].TransactionAmount != 150.75 {
-		t.Errorf("expected 150.75, got %f", txs[0].TransactionAmount)
+	if txs[0].TransactionName != "PIX ENVIADO" {
+		t.Errorf("expected PIX ENVIADO, got %s", txs[0].TransactionName)
+	}
+	if txs[0].Amount != 150.75 {
+		t.Errorf("expected 150.75, got %f", txs[0].Amount)
+	}
+	if txs[0].DocumentNumber != "DOC123" {
+		t.Errorf("expected DOC123, got %s", txs[0].DocumentNumber)
 	}
 }
 
@@ -156,10 +161,10 @@ func TestClient_FormatAccountBranchConta(t *testing.T) {
 	}
 }
 
-func TestClient_ParseStatementResponse_BothFormats(t *testing.T) {
+func TestClient_ParseStatementResponse(t *testing.T) {
 	c := &Client{}
 
-	// Format 1: Real Corporate Extrato response from Santander
+	// Real Open API Contas Correntes response from Santander
 	corporateJSON := []byte(`{
 		"_content": [
 			{
@@ -167,14 +172,16 @@ func TestClient_ParseStatementResponse_BothFormats(t *testing.T) {
 				"transactionName": "TRANSF VALOR P/ CONTA DIF TITULAR",
 				"historicComplement": "04417932824",
 				"amount": "70.00",
-				"transactionDate": "03/11/2026"
+				"transactionDate": "03/11/2026",
+				"documentNumber": "12345"
 			},
 			{
 				"creditDebitType": "CREDITO",
 				"transactionName": "PIX RECEBIDO",
 				"historicComplement": "15271970850",
 				"amount": "480.00",
-				"transactionDate": "03/11/2026"
+				"transactionDate": "03/11/2026",
+				"documentNumber": "67890"
 			}
 		],
 		"_pageable": {
@@ -183,167 +190,33 @@ func TestClient_ParseStatementResponse_BothFormats(t *testing.T) {
 		}
 	}`)
 
-	txs1, hasMore1, err := c.parseStatementResponse(corporateJSON)
+	txs, hasMore, err := c.parseStatementResponse(corporateJSON)
 	if err != nil {
 		t.Fatalf("failed to parse corporate response: %v", err)
 	}
-	if len(txs1) != 2 {
-		t.Fatalf("expected 2 transactions, got %d", len(txs1))
+	if len(txs) != 2 {
+		t.Fatalf("expected 2 transactions, got %d", len(txs))
 	}
-	if hasMore1 {
+	if hasMore {
 		t.Errorf("expected hasMore false")
 	}
-	if txs1[0].TransactionSign != "-" {
-		t.Errorf("expected debit sign '-', got %s", txs1[0].TransactionSign)
+	if txs[0].CreditDebitType != "DEBITO" {
+		t.Errorf("expected DEBITO, got %s", txs[0].CreditDebitType)
 	}
-	if txs1[0].PartieDocument != "04417932824" {
-		t.Errorf("expected counterparty doc 04417932824, got %s", txs1[0].PartieDocument)
+	if txs[0].HistoricComplement != "04417932824" {
+		t.Errorf("expected complement 04417932824, got %s", txs[0].HistoricComplement)
 	}
-	if txs1[0].TransactionAmount != 70.00 {
-		t.Errorf("expected amount 70.00, got %f", txs1[0].TransactionAmount)
+	if txs[0].Amount != 70.00 {
+		t.Errorf("expected amount 70.00, got %f", txs[0].Amount)
 	}
-	if txs1[1].TransactionSign != "+" {
-		t.Errorf("expected credit sign '+', got %s", txs1[1].TransactionSign)
-	}
-	if txs1[1].TransactionAmount != 480.00 {
-		t.Errorf("expected amount 480.00, got %f", txs1[1].TransactionAmount)
+	if txs[0].DocumentNumber != "12345" {
+		t.Errorf("expected document 12345, got %s", txs[0].DocumentNumber)
 	}
 
-	// Format 2: Open Finance response from Santander Developer Portal
-	openFinanceJSON := []byte(`{
-		"_pageable": {
-			"_moreElements": true
-		},
-		"_content": [
-			{
-				"transactionId": "1654119654b128318c0bbb905ebbb95b8c9c2f841c1a0c",
-				"completedAuthorisedPaymentType": "TRANSACAO_EFETIVADA",
-				"creditDebitType": "DEBITO",
-				"transactionName": "Você transferiu para...",
-				"type": "PIX",
-				"amount": -0.1,
-				"transactionCurrency": "BRL",
-				"transactionDate": "2022-08-12",
-				"partieCnpjCpf": "11608308863",
-				"partiePersonType": "PESSOA_NATURAL",
-				"partieCompeCode": "0001",
-				"partieBranchCode": "0001",
-				"partieNumber": "01015243",
-				"partieCheckDigit": "3"
-			}
-		]
-	}`)
-
-	txs2, hasMore2, err := c.parseStatementResponse(openFinanceJSON)
-	if err != nil {
-		t.Fatalf("failed to parse open finance response: %v", err)
+	if txs[1].CreditDebitType != "CREDITO" {
+		t.Errorf("expected CREDITO, got %s", txs[1].CreditDebitType)
 	}
-	if len(txs2) != 1 {
-		t.Fatalf("expected 1 transaction, got %d", len(txs2))
-	}
-	if !hasMore2 {
-		t.Errorf("expected hasMore true")
-	}
-	if txs2[0].TransactionID != "1654119654b128318c0bbb905ebbb95b8c9c2f841c1a0c" {
-		t.Errorf("expected transactionId, got %s", txs2[0].TransactionID)
-	}
-	if txs2[0].TransactionSign != "-" {
-		t.Errorf("expected debit sign '-', got %s", txs2[0].TransactionSign)
-	}
-	if txs2[0].TransactionAmount != 0.1 {
-		t.Errorf("expected abs amount 0.1, got %f", txs2[0].TransactionAmount)
-	}
-	if txs2[0].PartieDocument != "11608308863" {
-		t.Errorf("expected partie document 11608308863, got %s", txs2[0].PartieDocument)
-	}
-	if txs2[0].PartieAccount != "01015243-3" {
-		t.Errorf("expected partie account 01015243-3, got %s", txs2[0].PartieAccount)
-	}
-}
-
-func TestClient_OpenFinanceDetailedRoute(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/auth/oauth/v2/token":
-			w.Header().Set("Content-Type", "application/json")
-			w.Write([]byte(`{"access_token":"mock_jwt_token","token_type":"Bearer","expires_in":3600}`))
-
-		case "/bank_account_information/v1/banks/90400888000142/accounts":
-			w.Header().Set("Content-Type", "application/json")
-			w.Write([]byte(`{
-				"_content": [
-					{
-						"accountId": "ACC-999888",
-						"branchCode": "0985",
-						"accountNumber": "000130010014"
-					}
-				]
-			}`))
-
-		case "/bank_account_information/v1/banks/90400888000142/statements":
-			if r.URL.Query().Get("accountId") != "ACC-999888" {
-				t.Errorf("expected accountId ACC-999888, got %s", r.URL.Query().Get("accountId"))
-			}
-			w.Header().Set("Content-Type", "application/json")
-			w.Write([]byte(`{
-				"_content": [
-					{
-						"transactionId": "tx-open-finance-1",
-						"creditDebitType": "DEBITO",
-						"transactionName": "PIX ENVIADO",
-						"type": "PIX",
-						"amount": 50.0,
-						"transactionDate": "2026-11-04",
-						"partieCnpjCpf": "12345678900"
-					}
-				],
-				"_pageable": {
-					"_moreElements": false
-				}
-			}`))
-
-		default:
-			t.Errorf("unexpected path: %s", r.URL.Path)
-			w.WriteHeader(http.StatusNotFound)
-		}
-	}))
-	defer ts.Close()
-
-	cfg := config.SantanderConfig{
-		Environment:    "production",
-		ProdBaseURL:    ts.URL,
-		TokenURL:       ts.URL + "/auth/oauth/v2/token",
-		BankID:         "90400888000142",
-		TimeoutSeconds: 5,
-	}
-
-	client, err := NewClient(cfg, nil)
-	if err != nil {
-		t.Fatalf("failed to create client: %v", err)
-	}
-
-	account := &domain.Account{
-		ID:            1,
-		AccountBranch: "0985",
-		AccountNumber: "13001001-4",
-	}
-	creds := &domain.AccountSantanderAPI{
-		ID:           1,
-		ClientID:     "test_client_id",
-		ClientSecret: "test_secret",
-	}
-
-	txs, err := client.FetchStatements(context.Background(), account, creds, time.Now().AddDate(0, 0, -1), time.Now())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(txs) != 1 {
-		t.Fatalf("expected 1 tx, got %d", len(txs))
-	}
-	if txs[0].TransactionID != "tx-open-finance-1" {
-		t.Errorf("expected tx-open-finance-1, got %s", txs[0].TransactionID)
-	}
-	if txs[0].PartieDocument != "12345678900" {
-		t.Errorf("expected 12345678900, got %s", txs[0].PartieDocument)
+	if txs[1].Amount != 480.00 {
+		t.Errorf("expected amount 480.00, got %f", txs[1].Amount)
 	}
 }

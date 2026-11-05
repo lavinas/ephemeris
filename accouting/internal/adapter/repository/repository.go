@@ -93,7 +93,7 @@ func (r *Repository) GetVendors() ([]domain.Vendor, error) {
 }
 
 // ListStatements returns statements for an account ordered by sdate desc, id desc with pagination
-func (r *Repository) ListStatements(accountID int64, startDate, endDate *time.Time, offset, limit int) ([]domain.Statement, int64, error) {
+func (r *Repository) ListStatements(accountID int64, startDate, endDate *time.Time, txType string, offset, limit int) ([]domain.Statement, int64, error) {
 	var statements []domain.Statement
 	var total int64
 
@@ -103,6 +103,12 @@ func (r *Repository) ListStatements(accountID int64, startDate, endDate *time.Ti
 	}
 	if endDate != nil {
 		q = q.Where("sdate <= ?", endDate)
+	}
+
+	if txType == "credit" {
+		q = q.Where("amount > 0")
+	} else if txType == "debit" {
+		q = q.Where("amount < 0")
 	}
 
 	if err := q.Count(&total).Error; err != nil {
@@ -117,10 +123,10 @@ func (r *Repository) ListStatements(accountID int64, startDate, endDate *time.Ti
 	return statements, total, nil
 }
 
-// GetStatementByChecksum checks whether a statement with the given checksum already exists
-func (r *Repository) GetStatementByChecksum(checksum string) (*domain.Statement, error) {
+// GetStatementByKey checks whether a statement with the given key already exists
+func (r *Repository) GetStatementByKey(key string) (*domain.Statement, error) {
 	var st domain.Statement
-	err := r.db.Where("checksum = ? AND deleted_at IS NULL", checksum).First(&st).Error
+	err := r.db.Where("key = ? AND deleted_at IS NULL", key).First(&st).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
@@ -130,20 +136,35 @@ func (r *Repository) GetStatementByChecksum(checksum string) (*domain.Statement,
 	return &st, nil
 }
 
-// GetSantanderStatementByTransactionID checks whether a Santander transaction was already imported
-func (r *Repository) GetSantanderStatementByTransactionID(transactionID string) (*domain.StatementSantanderAPI, error) {
-	var s domain.StatementSantanderAPI
-	err := r.db.Where("transaction_id = ? AND deleted_at IS NULL", transactionID).First(&s).Error
+// GetSantanderKeyCountForAccountAndDate counts existing Santander statements for the same account, date and santanderKey
+func (r *Repository) GetSantanderKeyCountForAccountAndDate(accountID int64, date time.Time, santanderKey string) (int, error) {
+	var count int64
+	dateStr := date.Format("2006-01-02")
+	err := r.db.Table("statement").
+		Joins("JOIN statement_santander_api ON statement_santander_api.id = statement.id").
+		Where("statement.account_id = ? AND statement.sdate = ? AND statement_santander_api.key = ? AND statement.deleted_at IS NULL", accountID, dateStr, santanderKey).
+		Count(&count).Error
+	return int(count), err
+}
+
+// GetLastStatementBeforeOrOnDate returns the last statement recorded on or before date for accountID (ordered by sdate desc, id desc)
+func (r *Repository) GetLastStatementBeforeOrOnDate(accountID int64, date time.Time) (*domain.Statement, error) {
+	var st domain.Statement
+	dateStr := date.Format("2006-01-02")
+	err := r.db.Where("account_id = ? AND sdate <= ? AND deleted_at IS NULL", accountID, dateStr).
+		Order("sdate desc, id desc").
+		First(&st).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
 		return nil, err
 	}
-	return &s, nil
+	return &st, nil
 }
 
 // CreateSantanderStatement atomically persists statement and statement_santander_api in a transaction
+// and updates the balance of any posterior records.
 func (r *Repository) CreateSantanderStatement(st *domain.Statement, santanderSt *domain.StatementSantanderAPI) error {
 	now := time.Now()
 	st.CreatedAt = now
@@ -157,10 +178,16 @@ func (r *Repository) CreateSantanderStatement(st *domain.Statement, santanderSt 
 
 		// 2. Set foreign key ID in statement_santander_api
 		santanderSt.ID = st.ID
-		santanderSt.CreatedAt = now
-		santanderSt.UpdatedAt = now
 
 		if err := tx.Create(santanderSt).Error; err != nil {
+			return err
+		}
+
+		// 3. Update posterior records balance if any
+		dateStr := st.SDate.Format("2006-01-02")
+		if err := tx.Model(&domain.Statement{}).
+			Where("account_id = ? AND deleted_at IS NULL AND (sdate > ? OR (sdate = ? AND id > ?))", st.AccountID, dateStr, dateStr, st.ID).
+			Update("balance", gorm.Expr("balance + ?", st.Amount)).Error; err != nil {
 			return err
 		}
 
@@ -168,11 +195,25 @@ func (r *Repository) CreateSantanderStatement(st *domain.Statement, santanderSt 
 	})
 }
 
-// CreateStatement inserts a standard statement entry
+// CreateStatement inserts a standard statement entry and updates posterior records balance
 func (r *Repository) CreateStatement(st *domain.Statement) error {
 	now := time.Now()
 	st.CreatedAt = now
 	st.UpdatedAt = now
-	return r.db.Create(st).Error
+
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(st).Error; err != nil {
+			return err
+		}
+
+		dateStr := st.SDate.Format("2006-01-02")
+		if err := tx.Model(&domain.Statement{}).
+			Where("account_id = ? AND deleted_at IS NULL AND (sdate > ? OR (sdate = ? AND id > ?))", st.AccountID, dateStr, dateStr, st.ID).
+			Update("balance", gorm.Expr("balance + ?", st.Amount)).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
 

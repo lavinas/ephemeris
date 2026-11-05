@@ -44,7 +44,7 @@ func (s *StatementListService) Run(req *dto.StatementListRequest) *dto.Statement
 	}
 
 	offset := (req.Page - 1) * req.PageSize
-	items, total, err := s.repo.ListStatements(req.AccountID, startDate, endDate, offset, req.PageSize)
+	items, total, err := s.repo.ListStatements(req.AccountID, startDate, endDate, req.Type, offset, req.PageSize)
 	if err != nil {
 		s.logger.IPrintf(2, "Error listing statements: %v", err)
 		return &dto.StatementListResponse{

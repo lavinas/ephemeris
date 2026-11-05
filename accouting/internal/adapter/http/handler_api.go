@@ -58,6 +58,7 @@ func (h *HandlerApi) StatementList(w http.ResponseWriter, r *http.Request) {
 		AccountID: accountID,
 		StartDate: q.Get("start_date"),
 		EndDate:   q.Get("end_date"),
+		Type:      q.Get("type"),
 		Page:      page,
 		PageSize:  pageSize,
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"sort"
 	"strings"
 	"time"
 
@@ -113,10 +114,18 @@ func (s *StatementSyncService) Run(ctx context.Context, req *dto.SyncStatementsR
 
 		totalFetched += len(txs)
 
+		// Sort transactions chronologically for sequential balance calculation
+		sort.SliceStable(txs, func(i, j int) bool {
+			return txs[i].TransactionDate.Before(txs[j].TransactionDate)
+		})
+
+		occurrences := make(map[string]int)
+
 		for _, tx := range txs {
-			imported, err := s.processSantanderTransaction(&acc, tx)
+			imported, err := s.processSantanderTransaction(&acc, tx, occurrences)
 			if err != nil {
-				s.logger.IPrintf(1, "Warning: error processing transaction %s: %v", tx.TransactionID, err)
+				s.logger.IPrintf(1, "Warning: error processing transaction (%s %s %.2f): %v",
+					tx.CreditDebitType, tx.TransactionName, tx.Amount, err)
 				totalIgnored++
 				continue
 			}
@@ -154,32 +163,32 @@ func (s *StatementSyncService) selectProviderForAccount(acc *domain.Account) (po
 	return nil, nil
 }
 
-// processSantanderTransaction performs deduplication and persistence
-func (s *StatementSyncService) processSantanderTransaction(acc *domain.Account, tx port.BankTransaction) (bool, error) {
-	// 1. Santander specific deduplication by transaction_id
-	if tx.TransactionID != "" {
-		existing, err := s.repo.GetSantanderStatementByTransactionID(tx.TransactionID)
-		if err != nil {
-			return false, err
-		}
-		if existing != nil {
-			// Already imported, ignore
-			return false, nil
-		}
+// processSantanderTransaction performs deduplication, balance calculation and persistence
+func (s *StatementSyncService) processSantanderTransaction(acc *domain.Account, tx port.BankTransaction, occurrences map[string]int) (bool, error) {
+	// 1. Ignore transactions prior to account.initial_date if defined
+	if !acc.InitialDate.IsZero() && tx.TransactionDate.Before(acc.InitialDate) {
+		return false, nil
 	}
 
-	// 2. Compute signed amount: positive for credit (+), negative for debit (-)
-	// Na statement o valor pode ser positivo e negativo de acordo com o santander (debito/credito, valor)
-	absAmount := math.Abs(tx.TransactionAmount)
-	signedAmount := absAmount
-	if tx.TransactionSign == "-" || strings.ToLower(tx.TransactionType) == "debito" || strings.ToLower(tx.TransactionType) == "débito" {
-		signedAmount = -absAmount
-	}
-
-	// 3. Checksum deduplication for statement table
+	// 2. Generate Santander transaction key
 	txDate := tx.TransactionDate
-	checksum := domain.GenerateChecksum(acc.ID, &txDate, signedAmount, tx.TransactionName, tx.PartieDocument)
-	existingSt, err := s.repo.GetStatementByChecksum(checksum)
+	santanderKey := domain.GenerateSantanderKey(
+		tx.CreditDebitType,
+		tx.TransactionName,
+		tx.HistoricComplement,
+		tx.Amount,
+		&txDate,
+		tx.DocumentNumber,
+	)
+
+	// 3. Track occurrence for this (date, santanderKey) on the day being processed
+	dateKey := fmt.Sprintf("%s_%s", txDate.Format("2006-01-02"), santanderKey)
+	occurrences[dateKey]++
+	occurrence := occurrences[dateKey]
+
+	// 4. Generate Statement key and deduplicate
+	statementKey := domain.GenerateStatementKey(acc.ID, occurrence, santanderKey)
+	existingSt, err := s.repo.GetStatementByKey(statementKey)
 	if err != nil {
 		return false, err
 	}
@@ -188,30 +197,47 @@ func (s *StatementSyncService) processSantanderTransaction(acc *domain.Account, 
 		return false, nil
 	}
 
-	// 4. Create entities for persistence
+	// 5. Compute signed amount: positive for CREDITO (+), negative for DEBITO (-)
+	absAmount := math.Abs(tx.Amount)
+	signedAmount := absAmount
+	if strings.EqualFold(tx.CreditDebitType, "DEBITO") || strings.EqualFold(tx.CreditDebitType, "DÉBITO") {
+		signedAmount = -absAmount
+	}
+
+	// 6. Calculate running balance:
+	// Find last record on or before transaction date for this account.
+	// If none found, use account.InitialBalance.
+	lastSt, err := s.repo.GetLastStatementBeforeOrOnDate(acc.ID, txDate)
+	if err != nil {
+		return false, fmt.Errorf("error finding prior statement for account %d: %w", acc.ID, err)
+	}
+
+	prevBalance := acc.InitialBalance
+	if lastSt != nil {
+		prevBalance = lastSt.Balance
+	}
+	currentBalance := prevBalance + signedAmount
+
+	// 7. Create entities for persistence
 	statement := &domain.Statement{
-		AccountID: acc.ID,
-		SDate:     &txDate,
-		Amount:    signedAmount,
-		Memo:      tx.TransactionName,
-		Partie:    tx.PartieDocument,
-		Checksum:  checksum,
+		AccountID:   acc.ID,
+		SDate:       &txDate,
+		Transaction: tx.TransactionName,
+		Complement:  tx.HistoricComplement,
+		Document:    tx.DocumentNumber,
+		Amount:      signedAmount,
+		Balance:     currentBalance,
+		Key:         statementKey,
 	}
 
 	santanderStatement := &domain.StatementSantanderAPI{
-		TransactionID:       tx.TransactionID,
-		TransactionStatus:   tx.TransactionStatus,
-		TransactionSign:     tx.TransactionSign,
-		TransactionName:     tx.TransactionName,
-		TransactionType:     tx.TransactionType,
-		TransactionAmount:   tx.TransactionAmount,
-		TransactionCurrency: tx.TransactionCurrency,
-		TransactionDate:     &txDate,
-		PartieDocument:      tx.PartieDocument,
-		PartieType:          tx.PartieType,
-		PartieBankCode:      tx.PartieBankCode,
-		PartieBranchCode:    tx.PartieBranchCode,
-		PartieAccount:       tx.PartieAccount,
+		CreditDebitType:    tx.CreditDebitType,
+		TransactionName:    tx.TransactionName,
+		HistoricComplement: tx.HistoricComplement,
+		Amount:             tx.Amount,
+		TransactionDate:    &txDate,
+		DocumentNumber:     tx.DocumentNumber,
+		Key:                santanderKey,
 	}
 
 	if err := s.repo.CreateSantanderStatement(statement, santanderStatement); err != nil {

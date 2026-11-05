@@ -13,6 +13,7 @@ type StatementListRequest struct {
 	AccountID int64  `json:"account_id"`
 	StartDate string `json:"start_date"` // YYYY-MM-DD
 	EndDate   string `json:"end_date"`   // YYYY-MM-DD
+	Type      string `json:"type"`       // all, credit, debit
 	Page      int    `json:"page"`
 	PageSize  int    `json:"page_size"`
 }
@@ -26,6 +27,9 @@ func (r *StatementListRequest) Validate(repo port.Repository) error {
 	}
 	if r.PageSize <= 0 {
 		r.PageSize = 20
+	}
+	if r.Type == "" {
+		r.Type = "all"
 	}
 	if r.StartDate != "" {
 		if _, err := time.Parse("2006-01-02", r.StartDate); err != nil {
@@ -42,14 +46,16 @@ func (r *StatementListRequest) Validate(repo port.Repository) error {
 
 // StatementItemResponse represents a row returned in the statement list
 type StatementItemResponse struct {
-	ID        int64      `json:"id"`
-	AccountID int64      `json:"account_id"`
-	SDate     *time.Time `json:"sdate"`
-	Amount    float64    `json:"amount"`
-	Memo      string     `json:"memo"`
-	Partie    string     `json:"partie"`
-	Checksum  string     `json:"checksum"`
-	CreatedAt time.Time  `json:"created_at"`
+	ID          int64      `json:"id"`
+	AccountID   int64      `json:"account_id"`
+	SDate       *time.Time `json:"sdate"`
+	Transaction string     `json:"transaction"`
+	Complement  string     `json:"complement"`
+	Document    string     `json:"document"`
+	Amount      float64    `json:"amount"`
+	Balance     float64    `json:"balance"`
+	Key         string     `json:"key"`
+	CreatedAt   time.Time  `json:"created_at"`
 }
 
 // StatementListResponse is the paginated response
@@ -66,14 +72,16 @@ type StatementListResponse struct {
 // ToStatementItemResponse converts domain.Statement to DTO item
 func ToStatementItemResponse(s domain.Statement) StatementItemResponse {
 	return StatementItemResponse{
-		ID:        s.ID,
-		AccountID: s.AccountID,
-		SDate:     s.SDate,
-		Amount:    s.Amount,
-		Memo:      s.Memo,
-		Partie:    s.Partie,
-		Checksum:  s.Checksum,
-		CreatedAt: s.CreatedAt,
+		ID:          s.ID,
+		AccountID:   s.AccountID,
+		SDate:       s.SDate,
+		Transaction: s.Transaction,
+		Complement:  s.Complement,
+		Document:    s.Document,
+		Amount:      s.Amount,
+		Balance:     s.Balance,
+		Key:         s.Key,
+		CreatedAt:   s.CreatedAt,
 	}
 }
 

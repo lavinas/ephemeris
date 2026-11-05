@@ -1,4 +1,4 @@
--- Active: 1793746833660@@127.0.0.1@5435@accounting
+-- Active: 1793746833660@@127.0.0.1@5435@accounting@accounting
 
 create schema if not exists accounting;
 
@@ -43,6 +43,8 @@ create table account (
     account_number varchar(50) not null,
     account_branch varchar(20) not null,
     status int not null default 1, -- 0 - inactive, 1 - active
+    initial_balance numeric(10,2) not null,
+    initial_date date not null,
     created_at timestamp not null,
     updated_at timestamp not null,
     deleted_at timestamp,
@@ -50,8 +52,8 @@ create table account (
     CONSTRAINT uk_account_vendor_agency_number unique(vendor_id, account_branch, account_number)
 );
 
-insert into account (vendor_id, bank_code, account_number, account_branch, created_at, updated_at) values
-(1, '033', '13001001-4', '0985', now(), now());
+insert into account (vendor_id, bank_code, account_number, account_branch, status, initial_balance, initial_date, created_at, updated_at) values
+(1, '033', '13001001-4', '0985', 1, 1135.51, '2026-10-01', now(), now());
 
 create index idx_account_vendor_id on account(vendor_id);
 
@@ -68,11 +70,13 @@ insert into account_santander_api (id, client_id, client_secret) values
 create table statement (
     id bigserial primary key,
     account_id bigint not null references account(id),
-    sdate date,
-    amount numeric(10,2),
-    memo varchar(200),
-    partie varchar(50),
-    checksum varchar(100),
+    sdate date not null,
+    transaction varchar(200) not null,
+    complement varchar(200),
+    document varchar(100),
+    amount numeric(10,2) not null,
+    balance numeric(10,2) not null,
+    key varchar(100) not null,
     created_at timestamp not null,
     updated_at timestamp not null,
     deleted_at timestamp
@@ -80,25 +84,19 @@ create table statement (
 
 create index idx_statement_account_id on statement(account_id);
 
-create unique index unique_statement_checksum on statement(checksum);
+create unique index uk_statement_key on statement(key);
+
+create index idx_statement_date_account_id on statement(account_id, sdate);
 
 create table statement_santander_api (
     id bigserial primary key references statement(id),
-    transaction_id varchar(100),
-    transaction_status varchar(100),
-    transaction_sign varchar(1),
-    transaction_name varchar(200),
-    transaction_type varchar(100),
-    transaction_amount numeric(10,2),
-    transaction_currency varchar(3),
+    credit_debit_type varchar(10),
+    transaction_name varchar(100),
+    historic_complement varchar(100),
+    amount numeric(10,2),
     transaction_date date,
-    partie_document varchar(50),
-    partie_type varchar(100),
-    partie_bank_code varchar(10),
-    partie_branch_code varchar(10),
-    partie_account varchar(50),
-    created_at timestamp not null,
-    updated_at timestamp not null,
-    deleted_at timestamp
+    document_number varchar(50),
+    key varchar(100)
 );
+
 

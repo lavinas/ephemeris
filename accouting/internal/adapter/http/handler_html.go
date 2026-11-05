@@ -93,16 +93,17 @@ func NewHandlerHtml(
 }
 
 type StatementsViewData struct {
-	Accounts       []domain.Account
+	Accounts        []domain.Account
 	SelectedAccount *domain.Account
-	Statements     []dto.StatementItemResponse
-	Total          int64
-	Page           int
-	PageSize       int
-	TotalPages     int
-	StartDate      string
-	EndDate        string
-	SyncMessage    string
+	Statements      []dto.StatementItemResponse
+	Total           int64
+	Page            int
+	PageSize        int
+	TotalPages      int
+	StartDate       string
+	EndDate         string
+	Type            string // all, credit, debit
+	SyncMessage     string
 }
 
 // Index renders the main statements page
@@ -163,10 +164,19 @@ func (h *HandlerHtml) Index(w http.ResponseWriter, r *http.Request) {
 		endDate = r.FormValue("end_date")
 	}
 
+	txType := q.Get("type")
+	if txType == "" {
+		txType = r.FormValue("type")
+	}
+	if txType == "" {
+		txType = "all"
+	}
+
 	resp := h.listService.Run(&dto.StatementListRequest{
 		AccountID: accountID,
 		StartDate: startDate,
 		EndDate:   endDate,
+		Type:      txType,
 		Page:      page,
 		PageSize:  defaultPageSize,
 	})
@@ -181,6 +191,7 @@ func (h *HandlerHtml) Index(w http.ResponseWriter, r *http.Request) {
 		TotalPages:      resp.TotalPages,
 		StartDate:       startDate,
 		EndDate:         endDate,
+		Type:            txType,
 	}
 
 	// If HTMX partial request for table only
@@ -209,6 +220,14 @@ func (h *HandlerHtml) Table(w http.ResponseWriter, r *http.Request) {
 // TableReset resets filters and renders default table
 func (h *HandlerHtml) TableReset(w http.ResponseWriter, r *http.Request) {
 	r.Form = nil
+	if r.URL != nil {
+		newQ := r.URL.Query()
+		newQ.Del("start_date")
+		newQ.Del("end_date")
+		newQ.Del("type")
+		newQ.Del("page")
+		r.URL.RawQuery = newQ.Encode()
+	}
 	h.Index(w, r)
 }
 

@@ -34,3 +34,41 @@ Integração com o Santander API no subprojeto accouning:
     * ordenar pela data decrencente, e depois pelo id decrescente também
 - Fazer a paginação conforme os demais serviços de outros subprojetos
 - Propor alguma melhoria ou alteração caso seja necessário, sempre utilizando as boas práticas solid e clean code, etc.
+
+
+Alguns ajustes devem ser feitos após as implementações:
+- Retirar do código, as implementações que se remetem ao open finance brasil que foi feito o ultimo pedido, vou utilizar apenas o santander api por agora.
+- Alterei a tabela statement_santander_api para comportar os dados que realmente retornam da chamada Open API - Contas Correntes, desta forma, deve-se alterar o dominio e serviços para comportar os dados de acordo com o retorno.
+- Foi criado também um campo chamado position, onde deve ser armazenada a posição do registro na lista de registro de um determinado dia, assumindo o risco que o santander apresenta os registros em uma ordem específica, e que novos campos sempre são apresentados aos registros que já estavam na lista. Este campos será utilizado para a garantia de unicidade, conforme descrito abaixo.
+- Alterei tambpem a tabela statament para que tenha os campos baseados no do santander. A proximas implementações de extratos irão se adapatar para este nomenclatura também.
+- Foi criado também o campo key na tabela statement_santander_api, onde será colocado um hash para garantir a unicidade e deve ser:
+    * key = sha256(credit_debit_type, transaction_name, historic_complement, amount, transaction_date, document_type)
+    * Este campo pode se repetir e será usado para se calcular o hash principal da tabela statamente como descrito abaixo.
+- Desta forma o mapeamento dos dados do sanatander para a tabela de statement é:
+    * transaction_name -> transaction
+    * historic_complement -> complement 
+    * amount -> amount se debito_credit = CEDITO e amount * -1 se debito_credit = DEBITO 
+    * transaction_date -> sdate
+    * document_number -> document
+- O campo checksum não existe mais, porem foi criado o campo key, onde deve ser calculado uma chave de unicidade para o registro para uma determinada conta (account)....cadas especialização da statement terá sua estratégia de calculo de unicidade....para o santander api teremos: 
+    * A composição da chave deve ser calculada com base no campo key da tabela statement_santander_api, e mais a identificação da conta (account_id) e também da ocorrência da chave para um determinado dia.
+    * Desta forma, o key deve ser calculado:
+        statement.key = hash256(account_id, ocorrencia do statament_santander_api.key no dia que está sendo processado, statament_santander_api.key)
+    * Por exemplo, se no dia que o extrato está sendo processado é a primeira ocorrência do statament_santander_api.key, então a ocorrência será 1. Se for a segunda ocorrência, então a ocorrência será 2, e assim por diante. 
+- Registros que estão importados cujo key1 já está na tabela, devem ser ignorados na importação, garantindo assim a não duplicidade na importação
+- Além disto, na tabela statament foi criado o campo balance, que é o saldo acumulado da conta e deve ser calculado da seguinte forma:
+    - Pelo account_id, data da transação deve-se encontrar o ultimo registro (com id maior)
+    - O valor do saldo é o valor do registro anterior mais o amount
+    - Caso seja o primeiro registro deve-se pegar como saldo anterior, o saldo que está na tabela (initial_balance)
+    - Caso tenha registros posteriores, deve-se atualizar o saldo dos registros
+- Na tabela account também existe o campo initial_date, deve-se considerar apenas registros com data maior ou igual esta data
+- Mudar o htmx e também a correspondente api (dto, seriços, etc) para conter os seguintes campos na tabela:
+    - Data (sdate)
+    - Transacão (transaction)
+    - Complemento (complement)
+    - Documento (document)
+    - Valor (amount)
+    - Saldo (balance)
+- Continuar ordenando pela data decrescente e pelo id decrescente
+- Os filtros continuam os mesmos, porém adicionar o filtro de todos/crédito/débito (dependendo do valor da transação)
+
