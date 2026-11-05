@@ -102,21 +102,28 @@ create table bank_statement_santander_api (
 
 
 create table bank_account_action (
-    id big
-)
-
-
-CREATE TABLE accounting.statement_rule (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,            -- Ex: "Filtro Fornecedor João"
-    field VARCHAR(50) NOT NULL,            -- "transaction", "complement", "document"
-    operator VARCHAR(20) NOT NULL,         -- "contains", "starts_with", "ends_with", "equals", "regex"
-    value VARCHAR(255) NOT NULL,           -- "João", "Ana", etc.
-    case_sensitive BOOLEAN DEFAULT FALSE,  -- Quase sempre FALSE em extratos
-    priority INT DEFAULT 0,                -- Ordem de execução (maior prioridade vence)
-    action VARCHAR(50),                    -- Ex: "categorize", "ignore", "highlight"
-    created_at TIMESTAMP DEFAULT now()
+    id bigserial PRIMARY KEY,
+    account_id bigint not null references bank_account(id),
+    action int not null, -- 1 - ignore line
+    created_at timestamp not null,
+    updated_at timestamp not null,
+    deleted_at timestamp
 );
 
+create index idx_bank_account_action_account_id on bank_account_action(account_id);
+
+create table bank_account_action_rule (
+    id bigserial PRIMARY KEY,
+    action_id bigint not null references bank_account_action(id),
+    field int not null, -- 1 - date, 2 - transaction, 3 - complement, 4 - document, 5 - amount
+    operator int not null, -- 1 - equals, 2 - contains, 3 - starts_with, 4 - ends_with, 5 - regex, 6 - greater_than, 7 - less_than
+    value varchar(255) not null,
+    case_sensitive boolean default false,
+    created_at timestamp not null,
+    updated_at timestamp not null,
+    deleted_at timestamp
+);
+
+create index idx_bank_account_action_rule_action_id on bank_account_action_rule(action_id);
 
 

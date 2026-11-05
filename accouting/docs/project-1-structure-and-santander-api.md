@@ -72,3 +72,26 @@ Alguns ajustes devem ser feitos após as implementações:
 - Continuar ordenando pela data decrescente e pelo id decrescente
 - Os filtros continuam os mesmos, porém adicionar o filtro de todos/crédito/débito (dependendo do valor da transação)
 
+
+Ações para as contas e regras de ação:
+- Foram criadas as tabelas bank_account_action e bank_account_action_rule que armazenam ações que devem ser feitas ao processar os extratos das contas.
+- A tabela bank_account_action contém a conta a qual a ação será aplicada e uma especificação de ação que é um inteiro:
+    * Para cada ação deve-se ter um código que implementa a regra a ação. 
+    * A primeira regra é filtrar transações (1), ou seja, desconsiderar a linha do extrato na importação cuja linha cai nas regras especificadas em bank_account_action_rule.
+    * As demais regras serão implementadas futuramente, porém deve-se prever uma arquitetura que se deixe claro e isolado o código de cada regra.
+- A tabela bank_account_action_rule contém as regras que serão aplicadas às transações.
+    * A tabela contém os seguintes campos:
+        - action_id: foreign key para bank_account_action. A relação deve ser de 1 para muitos (1 ação pode ter muitas regras)
+        - field: número que identifica o campo da tabela statement que deverá ser analisado pela regra e podem ser:
+             1 - date, 2 - transaction, 3 - complement, 4 - document, 5 - amount
+        - operator - número que identifica o operador que deverá ser usado para analisar o campo. Podem ser:
+             1 - equals, 2 - contains, 3 - starts_with, 4 - ends_with, 5 - regex, 6 - greater_than, 7 - less_than
+        - value - texto que deverá ser a variável utilizado pelo operador para a análise
+        - case_sensitive - booleano que indica se a comparação deve ser case sensitive
+    * Pode-se ter um ou mais regras por ação, caso tenha mais que um, as regras combinam-se como 'and', ou seja, elas devem ser todas verdadeiras para que a ação seja aplicada.
+- Devem-se ter os serviço de inclusão, edição e exclusão destas entidades, que devem ser implementados via api e via htmx
+- No htmx deve-se ter um botão aplicado a conta selecionada abrindo assim um modal para edição de ações.
+- Pode-se ter mais de uma bank_account_action para uma mesma conta, inclusive para a mesma ação, e neste, caso (mesma conta e mesma ação), a combinação das duas sobrepostas tem o mesmo efeito que um 'or' ou seja, deve ser ignorado o registro se qualquer uma das regras for verdadeira. 
+- Deve-se implementar no serviço de sincronismo, tanto via job como via sincronimo no htmx o filtro dos campos referente as ações e regras cadastradas. 
+
+        
