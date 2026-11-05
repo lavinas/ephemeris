@@ -36,7 +36,7 @@ insert into vendor (nickname, legal_name, trading_name, document, tax_document, 
 ('estudio_amelia', 'Cardoso e Barbosa Serviços Musicais e Tecnologia LTDA', 'Estúdio Amélia Cardoso', '27.928.875/0001-04', '5.727.888-1', '033 - Santander', '0985', '13001001-4', '27.928.875/0001-04', 'Estúdio Vocal Amélia Cardoso', 'São Paulo', 'logo_amelia.png', 'financeiro@ameliacardoso.com.br', '(11) 98088-8399', 2435, 'smtp.zoho.com', 465, 'financeiro@ameliacardoso.com.br', 'pwd22Adm**', now(), now());
 
 
-create table account (
+create table bank_account (
     id bigserial primary key,
     vendor_id bigint not null,
     bank_code varchar(10) not null,
@@ -48,28 +48,29 @@ create table account (
     created_at timestamp not null,
     updated_at timestamp not null,
     deleted_at timestamp,
-    CONSTRAINT fk_account_vendor foreign key (vendor_id) references vendor(id),
-    CONSTRAINT uk_account_vendor_agency_number unique(vendor_id, account_branch, account_number)
+    CONSTRAINT fk_bank_account_vendor foreign key (vendor_id) references vendor(id),
+    CONSTRAINT uk_bank_account_vendor_agency_number unique(vendor_id, account_branch, account_number)
 );
 
-insert into account (vendor_id, bank_code, account_number, account_branch, status, initial_balance, initial_date, created_at, updated_at) values
+insert into bank_account (vendor_id, bank_code, account_number, account_branch, status, initial_balance, initial_date, created_at, updated_at) values
 (1, '033', '13001001-4', '0985', 1, 1135.51, '2026-10-01', now(), now());
 
-create index idx_account_vendor_id on account(vendor_id);
+create index idx_bank_account_vendor_id on bank_account(vendor_id);
 
-create table account_santander_api(
-    id bigint primary key references account(id),
+create table bank_account_santander_api(
+    id bigint primary key references bank_account(id),
     client_id varchar(50) not null,
     client_secret varchar(255) not null
 );
 
-insert into account_santander_api (id, client_id, client_secret) values
-(1, 'aSsooLX631tn49AdNXxAfUBsQZ2g0OWSV', 'cm4zpTdWhD9JbfGa');
+
+insert into bank_account_santander_api (id, client_id, client_secret) values
+(1, 'Xi6jcH4HxPCV2JAxshFOnG0SG22oiG7Z', 'C3mUGaA3EQyOFDl1');
 
 
-create table statement (
+create table bank_statement (
     id bigserial primary key,
-    account_id bigint not null references account(id),
+    account_id bigint not null references bank_account(id),
     sdate date not null,
     transaction varchar(200) not null,
     complement varchar(200),
@@ -82,14 +83,14 @@ create table statement (
     deleted_at timestamp
 );
 
-create index idx_statement_account_id on statement(account_id);
+create index idx_bank_statement_account_id on bank_statement(account_id);
 
-create unique index uk_statement_key on statement(key);
+create unique index uk_bank_statement_key on bank_statement(key);
 
-create index idx_statement_date_account_id on statement(account_id, sdate);
+create index idx_bank_statement_date_account_id on bank_statement(account_id, sdate);
 
-create table statement_santander_api (
-    id bigserial primary key references statement(id),
+create table bank_statement_santander_api (
+    id bigserial primary key references bank_statement(id),
     credit_debit_type varchar(10),
     transaction_name varchar(100),
     historic_complement varchar(100),
@@ -98,5 +99,24 @@ create table statement_santander_api (
     document_number varchar(50),
     key varchar(100)
 );
+
+
+create table bank_account_action (
+    id big
+)
+
+
+CREATE TABLE accounting.statement_rule (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,            -- Ex: "Filtro Fornecedor João"
+    field VARCHAR(50) NOT NULL,            -- "transaction", "complement", "document"
+    operator VARCHAR(20) NOT NULL,         -- "contains", "starts_with", "ends_with", "equals", "regex"
+    value VARCHAR(255) NOT NULL,           -- "João", "Ana", etc.
+    case_sensitive BOOLEAN DEFAULT FALSE,  -- Quase sempre FALSE em extratos
+    priority INT DEFAULT 0,                -- Ordem de execução (maior prioridade vence)
+    action VARCHAR(50),                    -- Ex: "categorize", "ignore", "highlight"
+    created_at TIMESTAMP DEFAULT now()
+);
+
 
 

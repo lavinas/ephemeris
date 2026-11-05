@@ -140,9 +140,9 @@ func (r *Repository) GetStatementByKey(key string) (*domain.Statement, error) {
 func (r *Repository) GetSantanderKeyCountForAccountAndDate(accountID int64, date time.Time, santanderKey string) (int, error) {
 	var count int64
 	dateStr := date.Format("2006-01-02")
-	err := r.db.Table("statement").
-		Joins("JOIN statement_santander_api ON statement_santander_api.id = statement.id").
-		Where("statement.account_id = ? AND statement.sdate = ? AND statement_santander_api.key = ? AND statement.deleted_at IS NULL", accountID, dateStr, santanderKey).
+	err := r.db.Table("bank_statement").
+		Joins("JOIN bank_statement_santander_api ON bank_statement_santander_api.id = bank_statement.id").
+		Where("bank_statement.account_id = ? AND bank_statement.sdate = ? AND bank_statement_santander_api.key = ? AND bank_statement.deleted_at IS NULL", accountID, dateStr, santanderKey).
 		Count(&count).Error
 	return int(count), err
 }

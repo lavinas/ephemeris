@@ -52,7 +52,7 @@ type Account struct {
 }
 
 func (Account) TableName() string {
-	return "account"
+	return "bank_account"
 }
 
 // AccountSantanderAPI contains specialized API credentials for Santander bank accounts
@@ -63,6 +63,6 @@ type AccountSantanderAPI struct {
 }
 
 func (AccountSantanderAPI) TableName() string {
-	return "account_santander_api"
+	return "bank_account_santander_api"
 }
 

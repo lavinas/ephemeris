@@ -27,10 +27,10 @@ type Statement struct {
 }
 
 func (Statement) TableName() string {
-	return "statement"
+	return "bank_statement"
 }
 
-// StatementSantanderAPI stores the specialized Santander API transaction entry in accounting.statement_santander_api
+// StatementSantanderAPI stores the specialized Santander API transaction entry in accounting.bank_statement_santander_api
 type StatementSantanderAPI struct {
 	ID                 int64      `gorm:"primaryKey;autoIncrement:false" json:"id"` // References statement(id)
 	CreditDebitType    string     `gorm:"column:credit_debit_type;size:10" json:"credit_debit_type"`
@@ -43,7 +43,7 @@ type StatementSantanderAPI struct {
 }
 
 func (StatementSantanderAPI) TableName() string {
-	return "statement_santander_api"
+	return "bank_statement_santander_api"
 }
 
 // GenerateSantanderKey calculates:

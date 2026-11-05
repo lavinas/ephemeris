@@ -261,9 +261,12 @@ func (c *Client) FetchStatements(ctx context.Context, account *domain.Account, c
 	if creds != nil && creds.ClientID != "" && creds.ClientSecret != "" {
 		t, err := c.getAccessToken(ctx, creds.ClientID, creds.ClientSecret)
 		if err != nil {
-			return nil, fmt.Errorf("oauth token error for account %d: %w", account.ID, err)
+			if c.logger != nil {
+				c.logger.IPrintf(1, "OAuth token warning for account %d: %v. Continuing request with mTLS.", account.ID, err)
+			}
+		} else {
+			token = t
 		}
-		token = t
 	}
 
 	var allTransactions []port.BankTransaction
