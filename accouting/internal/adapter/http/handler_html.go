@@ -257,9 +257,9 @@ func (h *HandlerHtml) Sync(w http.ResponseWriter, r *http.Request) {
 		DeleteExisting: deleteExisting,
 	})
 
-	statusClass := "alert-success"
+	statusClass := "bg-emerald-950/80 border border-emerald-700 text-emerald-200"
 	if resp.GetStatusCode() >= 400 {
-		statusClass = "alert-danger"
+		statusClass = "bg-rose-950/80 border border-rose-700 text-rose-200"
 	}
 
 	msg := fmt.Sprintf("Sincronização concluída: %d buscadas, %d importadas, %d ignoradas.",
@@ -274,9 +274,11 @@ func (h *HandlerHtml) Sync(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("HX-Trigger", `{"reloadStatements": true, "closeSyncModal": true}`)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, _ = w.Write(fmt.Appendf(nil, `<div class="alert %s alert-dismissible fade show" role="alert">
-		%s
-		<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+	_, _ = w.Write(fmt.Appendf(nil, `<div class="p-4 rounded-xl %s flex items-center justify-between shadow-lg mb-4 text-sm font-medium">
+		<div class="flex items-center gap-2">
+			<span>%s</span>
+		</div>
+		<button type="button" onclick="this.parentElement.remove()" class="text-gray-400 hover:text-gray-200 transition text-base leading-none cursor-pointer">✕</button>
 	</div>`, statusClass, msg))
 }
 

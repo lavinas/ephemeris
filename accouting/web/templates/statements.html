@@ -122,7 +122,7 @@
 		<form id="filtro-form-statements"
 			  hx-post="/html/statements/tabela"
 			  hx-target="#tabela-container-statements"
-			  hx-trigger="input delay:200ms, change"
+			  hx-trigger="input delay:200ms, change, submit, reloadStatements from:body"
 			  oninput="var p=document.getElementById('input-pagina-form-statements'); if(p && event.target.id!=='input-pagina-form-statements') p.value='1';"
 			  onchange="var p=document.getElementById('input-pagina-form-statements'); if(p && event.target.id!=='input-pagina-form-statements') p.value='1';"
 			  class="w-full">
@@ -235,6 +235,7 @@
 		<form hx-post="/html/statements/sync"
 			  hx-target="#sync-feedback"
 			  hx-indicator="#sync-modal-spinner"
+			  onsubmit="syncPerformed = true;"
 			  class="p-6">
 			<input type="hidden" id="modal-sync-account-id" name="account_id" value="{{if .SelectedAccount}}{{.SelectedAccount.ID}}{{end}}">
 
@@ -298,18 +299,37 @@
 </div>
 
 <script>
+	var syncPerformed = false;
+
 	function abrirModalSyncStatements() {
 		var modal = document.getElementById('sync-modal-statements');
 		if (modal) {
 			modal.classList.remove('hidden');
+			syncPerformed = false;
 			var today = new Date();
 			var past = new Date();
 			past.setDate(today.getDate() - 15);
 			var fmt = function(d) { return d.toISOString().split('T')[0]; };
 			var sEl = document.getElementById('modal-sync-start-date');
 			var eEl = document.getElementById('modal-sync-end-date');
-			if (sEl && !sEl.value) sEl.value = fmt(past);
-			if (eEl && !eEl.value) eEl.value = fmt(today);
+
+			// Preenche com as datas do filtro caso já estejam preenchidas
+			var filterStart = document.querySelector('input[name="start_date"]');
+			var filterEnd = document.querySelector('input[name="end_date"]');
+			if (sEl) {
+				if (filterStart && filterStart.value) {
+					sEl.value = filterStart.value;
+				} else if (!sEl.value) {
+					sEl.value = fmt(past);
+				}
+			}
+			if (eEl) {
+				if (filterEnd && filterEnd.value) {
+					eEl.value = filterEnd.value;
+				} else if (!eEl.value) {
+					eEl.value = fmt(today);
+				}
+			}
 
 			// Garantir que a opção de exclusão venha sempre desmarcada (false por padrão)
 			var delInput = document.getElementById('modal-sync-delete-existing');
@@ -356,6 +376,18 @@
 	function fecharModalSyncStatements() {
 		var modal = document.getElementById('sync-modal-statements');
 		if (modal) modal.classList.add('hidden');
+		// Ao fechar, se houve sincronização ou se solicitado, recarrega a tabela com os filtros aplicados
+		if (syncPerformed) {
+			syncPerformed = false;
+			recarregarTabelaStatements();
+		}
+	}
+
+	function recarregarTabelaStatements() {
+		var form = document.getElementById('filtro-form-statements');
+		if (form && window.htmx) {
+			htmx.trigger(form, 'submit');
+		}
 	}
 
 	function atualizarBotaoSync(selectElem) {
@@ -396,6 +428,8 @@
 	function fecharModalActionsStatements() {
 		var c = document.getElementById('modal-container-statements');
 		if (c) c.innerHTML = '';
+		var backdrop = document.getElementById('actions-modal-backdrop');
+		if (backdrop) backdrop.remove();
 	}
 
 	function adicionarLinhaRegra() {
@@ -455,10 +489,21 @@
 			alert('É necessário manter pelo menos uma regra.');
 		}
 	}
-	}
+
+	document.body.addEventListener('reloadStatements', function() {
+		syncPerformed = true;
+		recarregarTabelaStatements();
+	});
 
 	document.body.addEventListener('closeSyncModal', function() {
 		fecharModalSyncStatements();
+	});
+
+	document.addEventListener('keydown', function(e) {
+		if (e.key === 'Escape') {
+			fecharModalActionsStatements();
+			fecharModalSyncStatements();
+		}
 	});
 </script>
 {{end}}
@@ -591,7 +636,7 @@
 {{end}}
 
 {{define "modal_actions"}}
-<div id="actions-modal-backdrop" class="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 overflow-y-auto">
+<div id="actions-modal-backdrop" onclick="if(event.target === this) fecharModalActionsStatements();" class="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 overflow-y-auto">
 	<div class="bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl max-w-3xl w-full overflow-hidden my-8">
 		<div class="flex items-center justify-between border-b border-gray-800 px-6 py-4 bg-gray-950">
 			<div class="flex items-center gap-3">
@@ -607,7 +652,7 @@
 					</p>
 				</div>
 			</div>
-			<button type="button" onclick="fecharModalActionsStatements()" class="text-gray-400 hover:text-gray-200 transition">
+			<button type="button" onclick="fecharModalActionsStatements()" class="text-gray-400 hover:text-gray-200 transition cursor-pointer">
 				<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
 				</svg>
@@ -696,7 +741,7 @@
 	{{end}}
 
 	<div class="flex items-center justify-between pt-4 border-t border-gray-800">
-		<button type="button" onclick="fecharModalActionsStatements()" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold text-xs rounded-lg border border-gray-700 transition">
+		<button type="button" onclick="fecharModalActionsStatements()" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold text-xs rounded-lg border border-gray-700 transition cursor-pointer">
 			Fechar
 		</button>
 		<button type="button"
