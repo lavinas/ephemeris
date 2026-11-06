@@ -2,7 +2,7 @@
 FROM golang:1.26-alpine AS builder
 RUN apk add --no-cache git gcc musl-dev
 WORKDIR /app
-COPY go.mod ./
+COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o main ./cmd/server/main.go
@@ -11,15 +11,22 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o main ./cmd/server/main
 FROM alpine:3.20
 RUN apk add --no-cache ca-certificates tzdata
 WORKDIR /app
-RUN adduser -D -g '' appuser
+
+# Cria usuário e diretórios necessários
+RUN adduser -D -u 1000 -g '' appuser && \
+    mkdir -p /app/web/templates /app/web/static /app/log /app/certs && \
+    chown -R appuser:appuser /app
 
 # 1. Copia o binário e arquivo de configuração
 COPY --from=builder /app/main .
 COPY --from=builder /app/accounting.json .
 
-# 2. Garante os diretórios de templates e estáticos e copia o conteúdo
-RUN mkdir -p ./web/templates ./web/static
-COPY --from=builder /app/web/ ./web/
+# 2. Copia templates e estáticos
+COPY --from=builder /app/web/templates ./web/templates
+COPY --from=builder /app/web/static ./web/static
+
+# Garante permissões para o appuser em todo o diretório /app
+RUN chown -R appuser:appuser /app
 
 USER appuser
 EXPOSE 8084

@@ -59,6 +59,13 @@ func setupZapLogger(output string, level int) (*zap.Logger, error) {
 	case "stderr":
 		writer = os.Stderr
 	default:
+		dir := filepath.Dir(output)
+		if dir != "" && dir != "." {
+			if err := os.MkdirAll(dir, 0777); err != nil {
+				return nil, fmt.Errorf("erro ao criar diretório de log %s: %v", dir, err)
+			}
+		}
+
 		ext := filepath.Ext(output)
 		base := strings.TrimSuffix(output, ext)
 		pattern := base + "-%Y-%m-%d" + ext
