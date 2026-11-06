@@ -29,7 +29,7 @@
     },
     "sync_job": {
         "enabled": true,
-        "cron_expr": "0 0 * * *",
+        "cron_expr": "0 0/4 * * *",
         "days_back": 3
     }
 }

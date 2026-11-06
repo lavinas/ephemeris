@@ -56,6 +56,14 @@ func NewClient(cfg config.SantanderConfig, logger port.Logger) (*Client, error) 
 			logger.IPrintf(1, "Warning: Santander mTLS setup could not be completed (%v). Fallback to standard TLS.", err)
 		}
 		tlsConfig = &tls.Config{InsecureSkipVerify: false}
+	} else if len(tlsConfig.Certificates) > 0 {
+		if logger != nil {
+			logger.IPrintf(0, "Santander mTLS setup completed successfully with certificate: %s", client.cfg.CertificatePath)
+		}
+	} else {
+		if logger != nil {
+			logger.IPrintf(1, "Warning: No client certificate found for Santander mTLS. Outgoing requests will lack client credentials.")
+		}
 	}
 
 	timeout := time.Duration(cfg.TimeoutSeconds) * time.Second
@@ -204,6 +212,8 @@ func (c *Client) getAccessToken(ctx context.Context, clientID, clientSecret stri
 		return "", err
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+	req.Header.Set("Accept", "application/json")
 	req.Header.Set("client_id", clientID)
 	req.Header.Set("client_secret", clientSecret)
 
@@ -288,6 +298,7 @@ func (c *Client) FetchStatements(ctx context.Context, account *domain.Account, c
 		if creds != nil && creds.ClientID != "" {
 			req.Header.Set("X-Application-Key", creds.ClientID)
 		}
+		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
 		req.Header.Set("Accept", "application/json")
 
 		if c.logger != nil {
