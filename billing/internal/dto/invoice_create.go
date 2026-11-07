@@ -35,11 +35,12 @@ type InvoiceCreate struct {
 	InvoiceItems     []*InvoiceCreateItem `json:"items" validate:"required,dive,required"`
 }
 
-// InvoiceCreateItemDTO represents an item in the invoice with description, quantity, and unit price.
+// InvoiceCreateItem represents an item in the invoice with description, quantity, and unit price.
 type InvoiceCreateItem struct {
 	Description string  `json:"description" validate:"required"`
 	Quantity    int     `json:"quantity" validate:"gte=0"`
 	Price       float64 `json:"price"`
+	NBSCode     *int64  `json:"nbs_code,omitempty"`
 }
 
 // InvoiceCreateResponse represents the data transfer object for the response
@@ -290,7 +291,7 @@ func (r *InvoiceCreate) GetDomain() *domain.Invoice {
 
 // GetDomain converts the InvoiceCreateItem to a domain.InvoiceItem entity.
 func (i *InvoiceCreateItem) GetDomain() *domain.InvoiceItem {
-	return domain.NewInvoiceItem(i.Price, i.Quantity, i.Description)
+	return domain.NewInvoiceItem(i.Price, i.Quantity, i.Description, i.NBSCode)
 }
 
 // Reset resets the fields of the InvoiceCreateRequest to their zero values.

@@ -63,6 +63,7 @@ type InvoiceListListItem struct {
 	Description string  `json:"description"`
 	Quantity    int     `json:"quantity"`
 	Price       float64 `json:"price"`
+	NBSCode     *int64  `json:"nbs_code,omitempty"`
 }
 
 // NewInvoiceListResponse creates a new instance of InvoiceListResponse
@@ -132,12 +133,17 @@ func NewInvoiceList(id int64, customer string, amount float64, invoiceDate, dueD
 
 // NewInvoiceListListItem creates a new instance of InvoiceListListItem with the provided details.
 func NewInvoiceListListItem(id int64, description string, quantity int,
-	price float64) InvoiceListListItem {
+	price float64, nbsCode ...*int64) InvoiceListListItem {
+	var nbs *int64
+	if len(nbsCode) > 0 && nbsCode[0] != nil {
+		nbs = nbsCode[0]
+	}
 	return InvoiceListListItem{
 		ID:          id,
 		Description: description,
 		Quantity:    quantity,
 		Price:       price,
+		NBSCode:     nbs,
 	}
 }
 

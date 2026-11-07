@@ -162,6 +162,9 @@ type JsonTaxConfig struct {
 	TimeoutSeconds      int     `json:"timeout_seconds"`
 	HomologationURL     string  `json:"homologation_url"`
 	ProductionURL       string  `json:"production_url"`
+	CLocPrestacao       string  `json:"c_loc_prestacao"`
+	CSTIBSCBS           string  `json:"cst_ibs_cbs"`
+	CClassifTrib        string  `json:"c_classif_trib"`
 }
 
 // GetTaxData returns the tax emission configuration
@@ -211,4 +214,21 @@ func (v *JsonConfig) GetTaxData() (env, certPath, certPassword string, serviceCo
 	}
 
 	return env, certPath, certPassword, serviceCode, aliquot, serie, timeoutSeconds, url
+}
+
+// GetTaxIBSCBSData returns the Leiaute 2 parameters: cLocPrestacao, cstIBSCBS, cClassifTrib
+func (v *JsonConfig) GetTaxIBSCBSData() (cLocPrestacao, cstIBSCBS, cClassifTrib string) {
+	cLocPrestacao = v.Tax.CLocPrestacao
+	if cLocPrestacao == "" {
+		cLocPrestacao = "3550308" // Default: São Paulo - SP
+	}
+	cstIBSCBS = v.Tax.CSTIBSCBS
+	if cstIBSCBS == "" {
+		cstIBSCBS = "499" // Default Simples Nacional puro
+	}
+	cClassifTrib = v.Tax.CClassifTrib
+	if cClassifTrib == "" {
+		cClassifTrib = "499001" // Default Simples Nacional puro
+	}
+	return cLocPrestacao, cstIBSCBS, cClassifTrib
 }

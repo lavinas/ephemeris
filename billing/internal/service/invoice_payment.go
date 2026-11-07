@@ -188,28 +188,36 @@ func (s *InvoicePayment) Run(inDTO port.InDTO) port.OutDTO {
 
 		successMsg := "Payment registered and receipt sent successfully"
 		// If tax emitter is present and invoice is taxable, attempt automatic NFS-e emission
-		if s.taxEmitter != nil && invoice.IsTaxable() {
-			s.logger.IPrintf(2, "Invoice ID %d is taxable; triggering automatic NFS-e emission", invoice.ID)
-			taxSvc := NewInvoiceTaxEmit(s.repo, s.logger, s.taxEmitter)
-			taxReq := &dto.InvoiceTaxEmitRequest{
-				Vendor: req.Vendor,
-				ID:     invoice.ID,
-			}
-			taxOut := taxSvc.Run(taxReq)
-			if taxOut != nil && taxOut.GetStatusCode() == 200 {
-				if taxResp, ok := taxOut.(dto.InvoiceTaxEmitResponse); ok && taxResp.NFENumber != nil {
-					successMsg = fmt.Sprintf("Pagamento registrado, recibo enviado e NFS-e #%d emitida com sucesso", *taxResp.NFENumber)
+		if s.taxEmitter != nil {
+			if invoice.IsTaxable() {
+				s.logger.IPrintf(2, "Invoice ID %d is taxable; triggering automatic NFS-e emission", invoice.ID)
+				taxSvc := NewInvoiceTaxEmit(s.repo, s.logger, s.taxEmitter)
+				taxReq := &dto.InvoiceTaxEmitRequest{
+					Vendor: req.Vendor,
+					ID:     invoice.ID,
+				}
+				taxOut := taxSvc.Run(taxReq)
+				if taxOut != nil && taxOut.GetStatusCode() == 200 {
+					if taxResp, ok := taxOut.(dto.InvoiceTaxEmitResponse); ok && taxResp.NFENumber != nil {
+						successMsg = fmt.Sprintf("Pagamento registrado, recibo enviado e NFS-e #%d emitida com sucesso", *taxResp.NFENumber)
+					} else {
+						successMsg = "Pagamento registrado, recibo enviado e NFS-e emitida com sucesso"
+					}
+					s.logger.IPrintf(2, "Automatic NFS-e emission succeeded for invoice ID %d", invoice.ID)
 				} else {
-					successMsg = "Pagamento registrado, recibo enviado e NFS-e emitida com sucesso"
+					errMsg := "Prefeitura indisponível ou rejeitou a emissão"
+					if taxResp, ok := taxOut.(dto.InvoiceTaxEmitResponse); ok && taxResp.Message != "" {
+						errMsg = taxResp.Message
+					}
+					s.logger.IPrintf(1, "Automatic NFS-e emission failed for invoice ID %d: %s. Invoice remains available for manual retry.", invoice.ID, errMsg)
+					successMsg = fmt.Sprintf("Pagamento registrado e recibo enviado com sucesso. Aviso da NFS-e: %s", errMsg)
 				}
-				s.logger.IPrintf(2, "Automatic NFS-e emission succeeded for invoice ID %d", invoice.ID)
 			} else {
-				errMsg := "Prefeitura indisponível ou rejeitou a emissão"
-				if taxResp, ok := taxOut.(dto.InvoiceTaxEmitResponse); ok && taxResp.Message != "" {
-					errMsg = taxResp.Message
+				if !invoice.IsPF() {
+					s.logger.IPrintf(2, "Invoice ID %d is for PJ; skipping automatic NFS-e emission step", invoice.ID)
+				} else if !invoice.HasNBS() {
+					s.logger.IPrintf(2, "Invoice ID %d has items without NBS; skipping automatic NFS-e emission step", invoice.ID)
 				}
-				s.logger.IPrintf(1, "Automatic NFS-e emission failed for invoice ID %d: %s. Invoice remains available for manual retry.", invoice.ID, errMsg)
-				successMsg = fmt.Sprintf("Pagamento registrado e recibo enviado com sucesso. Aviso da NFS-e: %s", errMsg)
 			}
 		}
 

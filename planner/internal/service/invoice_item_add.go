@@ -199,15 +199,25 @@ func syncUpdatedInvoiceWithBilling(repo port.Repository, billingClient port.Bill
 		if it.DeletedAt != nil {
 			continue
 		}
+		var nbsCode *int64
+		if it.Service != nil && it.Service.NBSCode != nil {
+			nbsCode = it.Service.NBSCode
+		}
 		desc := ""
 		if it.Description != nil && *it.Description != "" {
 			desc = *it.Description
 		} else if it.Service != nil && it.Service.Name != "" {
 			desc = it.Service.Name
-		} else if it.ServiceID != 0 && repo != nil {
+		}
+		if (desc == "" || nbsCode == nil) && it.ServiceID != 0 && repo != nil {
 			svc, err := repo.GetServiceByID(it.ServiceID)
 			if err == nil && svc != nil {
-				desc = svc.Name
+				if desc == "" {
+					desc = svc.Name
+				}
+				if nbsCode == nil {
+					nbsCode = svc.NBSCode
+				}
 			}
 		}
 		if desc == "" {
@@ -223,6 +233,7 @@ func syncUpdatedInvoiceWithBilling(repo port.Repository, billingClient port.Bill
 			Description: desc,
 			Price:       it.Price,
 			Quantity:    qty,
+			NBSCode:     nbsCode,
 		})
 	}
 

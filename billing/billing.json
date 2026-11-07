@@ -38,6 +38,9 @@
         "service_code": 5762,
         "aliquot": 0.0,
         "serie": "A",
-        "timeout_seconds": 25
+        "timeout_seconds": 25,
+        "c_loc_prestacao": "3550308",
+        "cst_ibs_cbs": "499",
+        "c_classif_trib": "499001"
     }
 }

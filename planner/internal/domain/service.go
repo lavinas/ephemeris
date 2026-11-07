@@ -13,17 +13,23 @@ type Service struct {
 	Name           string    `gorm:"not null"`
 	Description    *string   `gorm:"type:text"`
 	SessionMinutes *int      `gorm:"column:session_minutes"`
+	NBSCode        *int64    `gorm:"column:nbs_code" json:"nbs_code"`
 	CreatedAt      time.Time `gorm:"not null"`
 	UpdatedAt      time.Time `gorm:"not null"`
 }
 
 // NewService creates a new Service instance with the provided details.
-func NewService(vendorID int64, name string, description *string, sessionMinutes *int) *Service {
+func NewService(vendorID int64, name string, description *string, sessionMinutes *int, nbsCode ...*int64) *Service {
+	var nbs *int64
+	if len(nbsCode) > 0 {
+		nbs = nbsCode[0]
+	}
 	return &Service{
 		VendorID:       vendorID,
 		Name:           name,
 		Description:    description,
 		SessionMinutes: sessionMinutes,
+		NBSCode:        nbs,
 		CreatedAt:      time.Now(),
 		UpdatedAt:      time.Now(),
 	}

@@ -29,6 +29,9 @@ func TestClient_CreateInvoice_Success(t *testing.T) {
 		if req.Items[0].Customer != "cliente1" || req.Items[0].Vendor != "vendedor1" || req.Items[0].Amount != 350.0 {
 			t.Errorf("unexpected payload: %+v", req.Items[0])
 		}
+		if len(req.Items[0].Items) != 1 || req.Items[0].Items[0].NBSCode == nil || *req.Items[0].Items[0].NBSCode != 122051100 {
+			t.Errorf("expected NBSCode 122051100, got %+v", req.Items[0].Items)
+		}
 
 		resp := billingResponseBase{
 			HttpCode: 200,
@@ -45,6 +48,7 @@ func TestClient_CreateInvoice_Success(t *testing.T) {
 
 	client := NewClient(server.URL, nil, server.Client())
 	extCode := "50"
+	nbs := int64(122051100)
 	id, err := client.CreateInvoice(context.Background(), port.BillingInvoiceInput{
 		Vendor:       "vendedor1",
 		Customer:     "cliente1",
@@ -53,7 +57,7 @@ func TestClient_CreateInvoice_Success(t *testing.T) {
 		Due:          "2026-10-25",
 		ExternalCode: &extCode,
 		Items: []port.BillingItemInput{
-			{Description: "Item 1", Price: 150.0, Quantity: 2},
+			{Description: "Item 1", Price: 150.0, Quantity: 2, NBSCode: &nbs},
 		},
 	})
 	if err != nil {

@@ -59,6 +59,7 @@ type taxMockRepo struct {
 func newTaxMockRepo() *taxMockRepo {
 	doc := "42343223858"
 	email := "cliente@teste.com"
+	nbs := int64(101010100)
 	pm := newPaymentMockRepo()
 	pm.invoices[1] = &domain.Invoice{
 		ID:          1,
@@ -76,7 +77,7 @@ func newTaxMockRepo() *taxMockRepo {
 			Email:    &email,
 		},
 		InvoiceItems: []domain.InvoiceItem{
-			{ID: 1, InvoiceID: 1, Description: "Aula de Música", Quantity: 1, Price: 150.00},
+			{ID: 1, InvoiceID: 1, Description: "Aula de Música", Quantity: 1, Price: 150.00, NBSCode: &nbs},
 		},
 	}
 	vendor := &domain.Vendor{
@@ -290,5 +291,102 @@ func TestInvoicePayment_AutomaticTaxEmission(t *testing.T) {
 	}
 	if repo.vendor.LastRps != 2436 {
 		t.Errorf("expected vendor LastRps to be incremented to 2436, got %d", repo.vendor.LastRps)
+	}
+}
+
+func TestInvoicePayment_SkipEmission_WhenMissingNBS(t *testing.T) {
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("could not get wd: %v", err)
+	}
+	defer os.Chdir(origDir)
+
+	if err := os.Chdir("../.."); err != nil {
+		t.Fatalf("could not chdir to billing root: %v", err)
+	}
+
+	repo := newTaxMockRepo()
+	logger := &mockLogger{}
+	issuer := &paymentMockIssuer{}
+	pixer := &paymentMockPixer{}
+	emitter := &taxMockEmitter{nfeNumber: 7772, nfeVerif: "AUTO-TAX-FAIL"}
+
+	// Remove NBSCode from item
+	repo.invoices[1].InvoiceItems[0].NBSCode = nil
+
+	paymentSvc := NewInvoicePayment(repo, logger, issuer, pixer, emitter)
+	req := &dto.InvoicePaymentRequest{
+		Vendor:      "estudio_amelia",
+		ID:          1,
+		PaymentDate: "2026-10-27",
+	}
+
+	out := paymentSvc.Run(req)
+	if out.GetStatusCode() != 200 {
+		var msg string
+		if resp, ok := out.(dto.InvoicePaymentResponse); ok {
+			msg = resp.Message
+		}
+		t.Fatalf("expected payment status 200, got %d (msg: %s)", out.GetStatusCode(), msg)
+	}
+
+	// Payment must succeed, but TaxDate must remain nil and RPS untouched
+	if repo.invoices[1].PaymentDate == nil {
+		t.Errorf("expected PaymentDate to be set")
+	}
+	if repo.invoices[1].TaxDate != nil {
+		t.Errorf("expected TaxDate to remain nil when NBS is missing")
+	}
+	if repo.vendor.LastRps != 2435 {
+		t.Errorf("expected vendor LastRps to remain 2435, got %d", repo.vendor.LastRps)
+	}
+}
+
+func TestInvoicePayment_SkipEmission_WhenPJ(t *testing.T) {
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("could not get wd: %v", err)
+	}
+	defer os.Chdir(origDir)
+
+	if err := os.Chdir("../.."); err != nil {
+		t.Fatalf("could not chdir to billing root: %v", err)
+	}
+
+	repo := newTaxMockRepo()
+	logger := &mockLogger{}
+	issuer := &paymentMockIssuer{}
+	pixer := &paymentMockPixer{}
+	emitter := &taxMockEmitter{nfeNumber: 7773, nfeVerif: "AUTO-TAX-PJ"}
+
+	// Set PJ document (14 digits)
+	cnpj := "12.345.678/0001-90"
+	repo.invoices[1].Customer.Document = &cnpj
+
+	paymentSvc := NewInvoicePayment(repo, logger, issuer, pixer, emitter)
+	req := &dto.InvoicePaymentRequest{
+		Vendor:      "estudio_amelia",
+		ID:          1,
+		PaymentDate: "2026-10-27",
+	}
+
+	out := paymentSvc.Run(req)
+	if out.GetStatusCode() != 200 {
+		var msg string
+		if resp, ok := out.(dto.InvoicePaymentResponse); ok {
+			msg = resp.Message
+		}
+		t.Fatalf("expected payment status 200, got %d (msg: %s)", out.GetStatusCode(), msg)
+	}
+
+	// Payment must succeed, but TaxDate must remain nil and RPS untouched
+	if repo.invoices[1].PaymentDate == nil {
+		t.Errorf("expected PaymentDate to be set")
+	}
+	if repo.invoices[1].TaxDate != nil {
+		t.Errorf("expected TaxDate to remain nil for PJ")
+	}
+	if repo.vendor.LastRps != 2435 {
+		t.Errorf("expected vendor LastRps to remain 2435, got %d", repo.vendor.LastRps)
 	}
 }

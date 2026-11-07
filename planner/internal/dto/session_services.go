@@ -14,6 +14,7 @@ type ServiceDTO struct {
 	Name           string  `json:"name"`
 	Description    *string `json:"description,omitempty"`
 	SessionMinutes *int    `json:"session_minutes,omitempty"`
+	NBSCode        *int64  `json:"nbs_code,omitempty"`
 }
 
 // SessionServicesRequest represents the input DTO for retrieving suggested services for a session/customer.

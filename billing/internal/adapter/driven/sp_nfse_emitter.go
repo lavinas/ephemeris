@@ -28,17 +28,20 @@ import (
 	pkcs12 "software.sslmate.com/src/go-pkcs12"
 )
 
-// SPNfseEmitter handles single RPS submission to São Paulo's municipal web service
+// SPNfseEmitter handles single RPS submission to São Paulo's municipal web service (Leiaute 2)
 type SPNfseEmitter struct {
-	logger       port.Logger
-	env          string
-	certPath     string
-	certPassword string
-	serviceCode  int
-	aliquot      float64
-	serie        string
-	timeout      time.Duration
-	endpointURL  string
+	logger        port.Logger
+	env           string
+	certPath      string
+	certPassword  string
+	serviceCode   int
+	aliquot       float64
+	serie         string
+	timeout       time.Duration
+	endpointURL   string
+	cLocPrestacao string
+	cstIBSCBS     string
+	cClassifTrib  string
 }
 
 // NewSPNfseEmitter creates a new instance of SPNfseEmitter
@@ -55,15 +58,31 @@ func NewSPNfseEmitter(
 		timeoutSeconds = 25
 	}
 	return &SPNfseEmitter{
-		logger:       logger,
-		env:          env,
-		certPath:     certPath,
-		certPassword: certPassword,
-		serviceCode:  serviceCode,
-		aliquot:      aliquot,
-		serie:        serie,
-		timeout:      time.Duration(timeoutSeconds) * time.Second,
-		endpointURL:  endpointURL,
+		logger:        logger,
+		env:           env,
+		certPath:      certPath,
+		certPassword:  certPassword,
+		serviceCode:   serviceCode,
+		aliquot:       aliquot,
+		serie:         serie,
+		timeout:       time.Duration(timeoutSeconds) * time.Second,
+		endpointURL:   endpointURL,
+		cLocPrestacao: "3550308", // Default: São Paulo
+		cstIBSCBS:     "499",     // Default: Simples Nacional puro
+		cClassifTrib:  "499001",  // Default: Simples Nacional puro
+	}
+}
+
+// SetIBSCBS updates the IBS/CBS parameters for Leiaute 2
+func (e *SPNfseEmitter) SetIBSCBS(cLocPrestacao, cstIBSCBS, cClassifTrib string) {
+	if cLocPrestacao != "" {
+		e.cLocPrestacao = cLocPrestacao
+	}
+	if cstIBSCBS != "" {
+		e.cstIBSCBS = cstIBSCBS
+	}
+	if cClassifTrib != "" {
+		e.cClassifTrib = cClassifTrib
 	}
 }
 
@@ -77,6 +96,13 @@ func (e *SPNfseEmitter) EmitSingle(ctx context.Context, invoice *domain.Invoice,
 	}
 	if cleanNumbers.ReplaceAllString(invoice.Vendor.TaxDocument, "") == "" {
 		return nil, fmt.Errorf("Inscrição Municipal do prestador (Vendor.TaxDocument/CCM) não informada na fatura")
+	}
+
+	if !invoice.IsPF() {
+		return nil, fmt.Errorf("emissão de NFS-e não permitida para pessoa jurídica (apenas pessoa física com endereço em branco é suportada no momento)")
+	}
+	if !invoice.HasNBS() {
+		return nil, fmt.Errorf("não é permitido emitir NFS-e: todos os itens da fatura devem possuir código NBS cadastrado")
 	}
 
 	tlsCert, rsaKey, x509Cert, err := e.loadCertificates()
@@ -161,15 +187,15 @@ func (e *SPNfseEmitter) loadCertificates() (*tls.Certificate, *rsa.PrivateKey, *
 	return tlsCert, rsaKey, cert, nil
 }
 
-// buildAndSignRPS creates the concatenated ASCII string and signs it with RSA-SHA1
+// buildAndSignRPS creates the concatenated ASCII string and signs it with RSA-SHA1 (Leiaute 2)
 func (e *SPNfseEmitter) buildAndSignRPS(invoice *domain.Invoice, rpsNumber int64, emissionDate time.Time, rsaKey *rsa.PrivateKey) (string, error) {
 	cleanNumbers := regexp.MustCompile(`[^0-9]`)
 
 	ccm := cleanNumbers.ReplaceAllString(invoice.Vendor.TaxDocument, "")
-	if len(ccm) > 8 {
-		ccm = ccm[:8]
+	if len(ccm) > 12 {
+		ccm = ccm[:12]
 	}
-	ccmFormatted := fmt.Sprintf("%08s", ccm)
+	ccmFormatted := fmt.Sprintf("%012s", ccm)
 
 	serieFormatted := fmt.Sprintf("%-5s", e.serie)
 	if len(serieFormatted) > 5 {
@@ -197,7 +223,7 @@ func (e *SPNfseEmitter) buildAndSignRPS(invoice *domain.Invoice, rpsNumber int64
 	}
 	docFormatted := fmt.Sprintf("%014s", doc)
 
-	// Concatenation string defined by PMSP Manual
+	// Concatenation string defined by PMSP Manual for Layout 2
 	asciiStr := ccmFormatted + serieFormatted + rpsFormatted + dateFormatted +
 		tributacao + status + issRetido + amountFormatted + deductionsFormatted +
 		serviceCodeFormatted + docType + docFormatted
@@ -243,22 +269,44 @@ func (e *SPNfseEmitter) buildPedidoEnvioRPSXML(invoice *domain.Invoice, rpsNumbe
 	}
 	docTag := "CPF"
 	if len(customerDoc) > 11 {
-		docTag = "CNPJ"
-		if len(customerDoc) < 14 {
-			customerDoc = fmt.Sprintf("%014s", customerDoc)
-		}
-	} else {
-		if len(customerDoc) > 0 && len(customerDoc) < 11 {
-			customerDoc = fmt.Sprintf("%011s", customerDoc)
-		}
+		return "", fmt.Errorf("emissão não permitida para tomador PJ (CNPJ %s)", customerDoc)
+	}
+	if len(customerDoc) > 0 && len(customerDoc) < 11 {
+		customerDoc = fmt.Sprintf("%011s", customerDoc)
 	}
 	if customerDoc == "" {
-		return "", fmt.Errorf("documento (CPF/CNPJ) do tomador (Customer.Document) está vazio")
+		return "", fmt.Errorf("documento (CPF) do tomador (Customer.Document) está vazio")
 	}
 
 	customerEmail := ""
 	if invoice.Customer.Email != nil {
 		customerEmail = strings.TrimSpace(*invoice.Customer.Email)
+	}
+
+	// Extract primary NBS code from invoice items
+	var nbsCode int64
+	for _, item := range invoice.InvoiceItems {
+		if item.NBSCode != nil && *item.NBSCode > 0 {
+			nbsCode = *item.NBSCode
+			break
+		}
+	}
+	if nbsCode <= 0 {
+		return "", fmt.Errorf("nenhum item da fatura possui código NBS informado")
+	}
+	nbsFormatted := fmt.Sprintf("%09d", nbsCode)
+
+	cLoc := e.cLocPrestacao
+	if cLoc == "" {
+		cLoc = "3550308"
+	}
+	cst := e.cstIBSCBS
+	if cst == "" {
+		cst = "499"
+	}
+	cClassif := e.cClassifTrib
+	if cClassif == "" {
+		cClassif = "499001"
 	}
 
 	// Build description
@@ -280,9 +328,9 @@ func (e *SPNfseEmitter) buildPedidoEnvioRPSXML(invoice *domain.Invoice, rpsNumbe
 	_ = xml.EscapeText(&bufName, []byte(invoice.Customer.Name))
 	escapedName := bufName.String()
 
-	// PedidoEnvioRPS layout PMSP
+	// PedidoEnvioRPS layout 2 PMSP
 	xmlContent := fmt.Sprintf(`<PedidoEnvioRPS xmlns="http://www.prefeitura.sp.gov.br/nfe">
-  <Cabecalho xmlns="" Versao="1">
+  <Cabecalho xmlns="" Versao="2">
     <CPFCNPJRemetente>
       <CNPJ>%s</CNPJ>
     </CPFCNPJRemetente>
@@ -298,7 +346,7 @@ func (e *SPNfseEmitter) buildPedidoEnvioRPSXML(invoice *domain.Invoice, rpsNumbe
     <DataEmissao>%s</DataEmissao>
     <StatusRPS>N</StatusRPS>
     <TributacaoRPS>T</TributacaoRPS>
-    <ValorServicos>%.2f</ValorServicos>
+    <ValorFinalCobrado>%.2f</ValorFinalCobrado>
     <ValorDeducoes>0.00</ValorDeducoes>
     <ValorPIS>0.00</ValorPIS>
     <ValorCOFINS>0.00</ValorCOFINS>
@@ -312,8 +360,26 @@ func (e *SPNfseEmitter) buildPedidoEnvioRPSXML(invoice *domain.Invoice, rpsNumbe
       <%s>%s</%s>
     </CPFCNPJTomador>
     <RazaoSocialTomador>%s</RazaoSocialTomador>
+    <EnderecoTomador>
+      <TipoLogradouro></TipoLogradouro>
+      <Logradouro></Logradouro>
+      <NumeroEndereco></NumeroEndereco>
+      <ComplementoEndereco></ComplementoEndereco>
+      <Bairro></Bairro>
+      <Cidade></Cidade>
+      <UF></UF>
+      <CEP></CEP>
+    </EnderecoTomador>
     <EmailTomador>%s</EmailTomador>
     <Discriminacao>%s</Discriminacao>
+    <cLocPrestacao>%s</cLocPrestacao>
+    <NBS>%s</NBS>
+    <IBSCBS>
+      <finNFSe>0</finNFSe>
+      <indFinal>1</indFinal>
+      <cClassifTrib>%s</cClassifTrib>
+      <CST>%s</CST>
+    </IBSCBS>
   </RPS>
 </PedidoEnvioRPS>`,
 		vendorCNPJ,
@@ -329,6 +395,10 @@ func (e *SPNfseEmitter) buildPedidoEnvioRPSXML(invoice *domain.Invoice, rpsNumbe
 		escapedName,
 		customerEmail,
 		escapedDesc,
+		cLoc,
+		nbsFormatted,
+		cClassif,
+		cst,
 	)
 
 	return xmlContent, nil
@@ -367,7 +437,7 @@ func (e *SPNfseEmitter) sendSOAP(ctx context.Context, clientCert *tls.Certificat
 <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
   <soap:Body>
     <EnvioRPSRequest xmlns="http://www.prefeitura.sp.gov.br/nfe">
-      <VersaoSchema>1</VersaoSchema>
+      <VersaoSchema>2</VersaoSchema>
       <MensagemXML><![CDATA[%s]]></MensagemXML>
     </EnvioRPSRequest>
   </soap:Body>

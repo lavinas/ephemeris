@@ -66,6 +66,7 @@ func (s *SessionServices) Run(input port.InDTO) port.OutDTO {
 			Name:           svc.Name,
 			Description:    svc.Description,
 			SessionMinutes: svc.SessionMinutes,
+			NBSCode:        svc.NBSCode,
 		}
 	}
 

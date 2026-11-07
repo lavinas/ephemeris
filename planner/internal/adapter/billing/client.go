@@ -47,6 +47,7 @@ type billingItemPayload struct {
 	Description string  `json:"description"`
 	Quantity    int     `json:"quantity"`
 	Price       float64 `json:"price"`
+	NBSCode     *int64  `json:"nbs_code,omitempty"`
 }
 
 type billingInvoicePayload struct {
@@ -99,6 +100,7 @@ func (c *Client) CreateInvoice(ctx context.Context, input port.BillingInvoiceInp
 			Description: it.Description,
 			Quantity:    qty,
 			Price:       it.Price,
+			NBSCode:     it.NBSCode,
 		}
 	}
 

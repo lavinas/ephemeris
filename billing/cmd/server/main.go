@@ -46,6 +46,8 @@ func main() {
 	// TaxEmitter initialization
 	taxEnv, certPath, certPassword, serviceCode, aliquot, serie, taxTimeout, taxURL := cfg.GetTaxData()
 	taxEmitter := driven.NewSPNfseEmitter(logger, taxEnv, certPath, certPassword, serviceCode, aliquot, serie, taxTimeout, taxURL)
+	cLoc, cst, cClassif := cfg.GetTaxIBSCBSData()
+	taxEmitter.SetIBSCBS(cLoc, cst, cClassif)
 	// Pixer initialization
 	pixer := driven.NewPixer(logger)
 	// Issuer initialization

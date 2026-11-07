@@ -137,3 +137,129 @@ func TestInvoice_CanPay(t *testing.T) {
 		}
 	})
 }
+
+func TestInvoice_HasNBS(t *testing.T) {
+	nbs := int64(122051100)
+
+	t.Run("no items -> false", func(t *testing.T) {
+		inv := &Invoice{}
+		if inv.HasNBS() {
+			t.Errorf("expected HasNBS() = false, got true")
+		}
+	})
+
+	t.Run("item with nil NBS -> false", func(t *testing.T) {
+		inv := &Invoice{
+			InvoiceItems: []InvoiceItem{
+				{Description: "Item 1", NBSCode: nil},
+			},
+		}
+		if inv.HasNBS() {
+			t.Errorf("expected HasNBS() = false, got true")
+		}
+	})
+
+	t.Run("all items with valid NBS -> true", func(t *testing.T) {
+		inv := &Invoice{
+			InvoiceItems: []InvoiceItem{
+				{Description: "Item 1", NBSCode: &nbs},
+			},
+		}
+		if !inv.HasNBS() {
+			t.Errorf("expected HasNBS() = true, got false")
+		}
+	})
+}
+
+func TestInvoice_IsPF(t *testing.T) {
+	cpf := "123.456.789-01"
+	cnpj := "12.345.678/0001-90"
+	cleanCPF := "12345678901"
+
+	t.Run("CPF with mask -> true", func(t *testing.T) {
+		inv := &Invoice{Customer: Customer{Document: &cpf}}
+		if !inv.IsPF() {
+			t.Errorf("expected IsPF() = true for CPF")
+		}
+	})
+
+	t.Run("clean CPF -> true", func(t *testing.T) {
+		inv := &Invoice{Customer: Customer{Document: &cleanCPF}}
+		if !inv.IsPF() {
+			t.Errorf("expected IsPF() = true for clean CPF")
+		}
+	})
+
+	t.Run("CNPJ -> false", func(t *testing.T) {
+		inv := &Invoice{Customer: Customer{Document: &cnpj}}
+		if inv.IsPF() {
+			t.Errorf("expected IsPF() = false for CNPJ")
+		}
+	})
+
+	t.Run("nil document -> false", func(t *testing.T) {
+		inv := &Invoice{Customer: Customer{Document: nil}}
+		if inv.IsPF() {
+			t.Errorf("expected IsPF() = false for nil doc")
+		}
+	})
+}
+
+func TestInvoice_CanTax(t *testing.T) {
+	now := time.Now()
+	cpf := "123.456.789-01"
+	cnpj := "12.345.678/0001-90"
+	nbs := int64(122051100)
+
+	t.Run("valid paid PF with NBS -> can tax", func(t *testing.T) {
+		inv := &Invoice{
+			PaymentDate: &now,
+			Customer:    Customer{Document: &cpf},
+			InvoiceItems: []InvoiceItem{
+				{Description: "Aula", NBSCode: &nbs},
+			},
+		}
+		if !inv.CanTax() {
+			t.Errorf("expected CanTax() = true, got false")
+		}
+	})
+
+	t.Run("paid PF without NBS -> cannot tax", func(t *testing.T) {
+		inv := &Invoice{
+			PaymentDate: &now,
+			Customer:    Customer{Document: &cpf},
+			InvoiceItems: []InvoiceItem{
+				{Description: "Aula", NBSCode: nil},
+			},
+		}
+		if inv.CanTax() {
+			t.Errorf("expected CanTax() = false when NBS is nil, got true")
+		}
+	})
+
+	t.Run("paid PJ with NBS -> cannot tax", func(t *testing.T) {
+		inv := &Invoice{
+			PaymentDate: &now,
+			Customer:    Customer{Document: &cnpj},
+			InvoiceItems: []InvoiceItem{
+				{Description: "Aula", NBSCode: &nbs},
+			},
+		}
+		if inv.CanTax() {
+			t.Errorf("expected CanTax() = false for PJ, got true")
+		}
+	})
+
+	t.Run("unpaid PF with NBS -> cannot tax", func(t *testing.T) {
+		inv := &Invoice{
+			PaymentDate: nil,
+			Customer:    Customer{Document: &cpf},
+			InvoiceItems: []InvoiceItem{
+				{Description: "Aula", NBSCode: &nbs},
+			},
+		}
+		if inv.CanTax() {
+			t.Errorf("expected CanTax() = false for unpaid invoice, got true")
+		}
+	})
+}

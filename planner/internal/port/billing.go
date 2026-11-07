@@ -7,6 +7,7 @@ type BillingItemInput struct {
 	Description string  `json:"description"`
 	Price       float64 `json:"price"`
 	Quantity    int     `json:"quantity"`
+	NBSCode     *int64  `json:"nbs_code,omitempty"`
 }
 
 // BillingInvoiceInput represents the invoice payload sent to the external billing subsystem.

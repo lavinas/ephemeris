@@ -19,4 +19,4 @@ Como resposta ao ultimo comanda do agente, quanto ao ajuste da emissão da nfe p
     * ajuster dominio, serviços e adapters para estes ajustes.
     * No serviço de emissão da invoice (envio para billing), considerar este campos ao enviar/criar invoice item.
 
-É necessária mais alguma informação, caso contrário seguir com os ajustes.
+É necessária mais alguma informação ? caso contrário seguir com os ajustes.

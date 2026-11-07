@@ -1,6 +1,9 @@
 package domain
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 // Invoice represents a billing invoice with customer details and amount.
 type Invoice struct {
@@ -69,16 +72,22 @@ type InvoiceItem struct {
 	Price       float64   `json:"price" gorm:"not null"`
 	Quantity    int       `json:"quantity" gorm:"not null"`
 	Description string    `json:"description" gorm:"not null"`
+	NBSCode     *int64    `json:"nbs_code" gorm:"column:nbs_code"`
 	CreatedAt   time.Time `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt   time.Time `json:"updated_at" gorm:"autoUpdateTime"`
 }
 
 // NewInvoiceItem creates a new InvoiceItem instance with the provided details.
-func NewInvoiceItem(price float64, quantity int, description string) *InvoiceItem {
+func NewInvoiceItem(price float64, quantity int, description string, nbsCode ...*int64) *InvoiceItem {
+	var nbs *int64
+	if len(nbsCode) > 0 && nbsCode[0] != nil {
+		nbs = nbsCode[0]
+	}
 	return &InvoiceItem{
 		Price:       price,
 		Quantity:    quantity,
 		Description: description,
+		NBSCode:     nbs,
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
@@ -87,6 +96,39 @@ func NewInvoiceItem(price float64, quantity int, description string) *InvoiceIte
 // TableName specifies the table name for InvoiceItem model.
 func (InvoiceItem) TableName() string {
 	return "invoice_item"
+}
+
+// HasNBS checks if the invoice has items and all items have a valid NBS code.
+func (i *Invoice) HasNBS() bool {
+	if len(i.InvoiceItems) == 0 {
+		return false
+	}
+	for _, item := range i.InvoiceItems {
+		if item.NBSCode == nil || *item.NBSCode <= 0 {
+			return false
+		}
+	}
+	return true
+}
+
+// IsPF checks if the customer is an individual (Pessoa Física).
+// Returns true if Document is present and has at most 11 digits (CPF).
+func (i *Invoice) IsPF() bool {
+	if i.Customer.Document == nil || *i.Customer.Document == "" {
+		return false
+	}
+	cleanDoc := cleanNonDigits(*i.Customer.Document)
+	return len(cleanDoc) > 0 && len(cleanDoc) <= 11
+}
+
+func cleanNonDigits(s string) string {
+	var b strings.Builder
+	for _, r := range s {
+		if r >= '0' && r <= '9' {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
 }
 
 // IsOverdue checks if the invoice is overdue (dueDate <= today 00:00:00 and paymentDate is nil).
@@ -100,7 +142,8 @@ func (i *Invoice) IsOverdue() bool {
 	return !dueStart.After(todayStart)
 }
 
-// IsTaxable checks if the invoice item is taxable based on its description or other criteria.
+// IsTaxable checks if the invoice item is taxable and eligible for NFS-e emission.
+// Requires payment confirmed, not cancelled, tax date nil, customer PF, and all items having NBS.
 func (i *Invoice) IsTaxable() bool {
 	if i.CancellationDate != nil {
 		return false
@@ -111,10 +154,13 @@ func (i *Invoice) IsTaxable() bool {
 	if i.PaymentDate == nil {
 		return false
 	}
-	if i.Customer.Document == nil {
+	if !i.IsPF() {
 		return false
 	}
-	return true // Placeholder implementation; replace with actual logic.
+	if !i.HasNBS() {
+		return false
+	}
+	return true
 }
 
 // CanDelete checks if the invoice can be deleted (all of CancellationDate, PaymentDate, TaxDate are nil).
@@ -134,11 +180,12 @@ func (i *Invoice) CanPay() bool {
 	return i.PaymentDate == nil
 }
 
-// CanTax checks if the invoice can have a tax note emitted (paid, not cancelled, tax date is nil, customer has document).
+// CanTax checks if the invoice can have a tax note emitted:
+// must be paid, not cancelled, tax date nil, customer must be PF, and all items must have NBS.
 func (i *Invoice) CanTax() bool {
 	return i.CancellationDate == nil &&
 		i.PaymentDate != nil &&
 		i.TaxDate == nil &&
-		i.Customer.Document != nil &&
-		*i.Customer.Document != ""
+		i.IsPF() &&
+		i.HasNBS()
 }

@@ -100,6 +100,12 @@ func (r *InvoiceTaxEmitRequest) validateInvoice(repo port.Repository) error {
 	if invoice.Customer.Document == nil || strings.TrimSpace(*invoice.Customer.Document) == "" {
 		return errors.New("customer document (CPF/CNPJ) is required to emit tax note")
 	}
+	if !invoice.IsPF() {
+		return errors.New("emissão de NFS-e não permitida para pessoa jurídica (apenas pessoa física é suportada no momento)")
+	}
+	if !invoice.HasNBS() {
+		return errors.New("não é permitido emitir NFS-e: todos os itens da fatura devem possuir código NBS cadastrado")
+	}
 	if r.vendor != nil && (invoice.Vendor.Document == "" || invoice.Vendor.TaxDocument == "") {
 		invoice.Vendor = *r.vendor
 		invoice.VendorID = r.vendor.ID

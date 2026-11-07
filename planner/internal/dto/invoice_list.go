@@ -154,6 +154,7 @@ type InvoiceItemDTO struct {
 	Quantity    int     `json:"quantity"`
 	PeriodStart string  `json:"period_start"`
 	PeriodEnd   string  `json:"period_end"`
+	NBSCode     *int64  `json:"nbs_code,omitempty"`
 }
 
 // NewInvoiceListResponse creates a new instance of InvoiceListResponse.

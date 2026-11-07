@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -176,7 +177,12 @@ func (h *HandlerHtml) InvoicesSave(w http.ResponseWriter, r *http.Request) {
 	if len(itemPrices) == 0 {
 		itemPrices = r.Form["item_preco"]
 	}
+	itemNBS := r.Form["item_nbs[]"]
+	if len(itemNBS) == 0 {
+		itemNBS = r.Form["item_nbs"]
+	}
 
+	cleanNumbers := regexp.MustCompile(`[^0-9]`)
 	createItems := make([]*dto.InvoiceCreateItem, 0, len(itemDescriptions))
 	formItems := make([]map[string]interface{}, 0, len(itemDescriptions))
 
@@ -194,16 +200,27 @@ func (h *HandlerHtml) InvoicesSave(w http.ResponseWriter, r *http.Request) {
 			priceStr := strings.ReplaceAll(strings.TrimSpace(itemPrices[i]), ",", ".")
 			price, _ = strconv.ParseFloat(priceStr, 64)
 		}
+		var nbsPtr *int64
+		if i < len(itemNBS) {
+			cleanNBS := cleanNumbers.ReplaceAllString(itemNBS[i], "")
+			if cleanNBS != "" {
+				if parsedNBS, err := strconv.ParseInt(cleanNBS, 10, 64); err == nil && parsedNBS > 0 {
+					nbsPtr = &parsedNBS
+				}
+			}
+		}
 		if desc != "" || price != 0 {
 			createItems = append(createItems, &dto.InvoiceCreateItem{
 				Description: desc,
 				Quantity:    qty,
 				Price:       price,
+				NBSCode:     nbsPtr,
 			})
 			formItems = append(formItems, map[string]interface{}{
 				"Description": desc,
 				"Quantity":    qty,
 				"Price":       price,
+				"NBSCode":     nbsPtr,
 			})
 		}
 	}
@@ -925,11 +942,17 @@ func (h *HandlerHtml) loadPageData(page int, customer, invoiceDate, dueDate, pay
 func (h *HandlerHtml) mapSingleInvoiceData(inv domain.Invoice) map[string]interface{} {
 	itemsView := make([]map[string]interface{}, len(inv.InvoiceItems))
 	for j, it := range inv.InvoiceItems {
+		var nbsStr string
+		if it.NBSCode != nil {
+			nbsStr = strconv.FormatInt(*it.NBSCode, 10)
+		}
 		itemsView[j] = map[string]interface{}{
 			"ID":             it.ID,
 			"Description":    it.Description,
 			"Quantity":       it.Quantity,
 			"Price":          it.Price,
+			"NBSCode":        it.NBSCode,
+			"NBSCodeStr":     nbsStr,
 			"PrecoFormatado": formatMoney(it.Price),
 			"Total":          float64(it.Quantity) * it.Price,
 		}

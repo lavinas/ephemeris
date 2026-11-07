@@ -150,12 +150,24 @@ func (s *InvoiceList) mapInvoicesToDTO(invoices []domain.Invoice) []dto.InvoiceD
 		for j, it := range inv.Items {
 			desc := ""
 			svcName := ""
-			if it.Service != nil && it.Service.Name != "" {
-				svcName = it.Service.Name
-			} else if it.ServiceID != 0 && s.repo != nil {
+			var nbsCode *int64
+			if it.Service != nil {
+				if it.Service.Name != "" {
+					svcName = it.Service.Name
+				}
+				if it.Service.NBSCode != nil {
+					nbsCode = it.Service.NBSCode
+				}
+			}
+			if (svcName == "" || nbsCode == nil) && it.ServiceID != 0 && s.repo != nil {
 				svc, err := s.repo.GetServiceByID(it.ServiceID)
 				if err == nil && svc != nil {
-					svcName = svc.Name
+					if svcName == "" {
+						svcName = svc.Name
+					}
+					if nbsCode == nil {
+						nbsCode = svc.NBSCode
+					}
 				}
 			}
 			if it.Description != nil && *it.Description != "" {
@@ -188,6 +200,7 @@ func (s *InvoiceList) mapInvoicesToDTO(invoices []domain.Invoice) []dto.InvoiceD
 				Quantity:    it.Quantity,
 				PeriodStart: itStartStr,
 				PeriodEnd:   itEndStr,
+				NBSCode:     nbsCode,
 			}
 		}
 

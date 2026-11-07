@@ -97,7 +97,7 @@ func (s *InvoiceList) mountInvoices(invoices []domain.Invoice) []dto.InvoiceList
 	for i, invoice := range invoices {
 		items := make([]dto.InvoiceListListItem, len(invoice.InvoiceItems))
 		for j, item := range invoice.InvoiceItems {
-			items[j] = dto.NewInvoiceListListItem(item.ID, item.Description, item.Quantity, item.Price)
+			items[j] = dto.NewInvoiceListListItem(item.ID, item.Description, item.Quantity, item.Price, item.NBSCode)
 		}
 		invDTO := dto.NewInvoiceList(invoice.ID, invoice.Customer.Nickname, invoice.Amount,
 			invoice.InvoiceDate, invoice.DueDate, invoice.IsOverdue(), invoice.PaymentDate, invoice.SentDate,

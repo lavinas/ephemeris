@@ -650,13 +650,16 @@
 				{{if .Items}}
 					{{range $idx, $item := .Items}}
 					<div class="linha-item-form grid grid-cols-12 gap-3 items-center bg-gray-900 p-2.5 rounded border border-gray-800 shadow-sm">
-						<div class="col-span-6">
+						<div class="col-span-5">
 							<input type="text" name="item_descricao[]" value="{{$item.Description}}" placeholder="Descrição do item ou serviço..." required class="input-inline-tabela text-xs">
+						</div>
+						<div class="col-span-2">
+							<input type="text" name="item_nbs[]" value="{{if $item.NBSCode}}{{$item.NBSCode}}{{end}}" placeholder="NBS (ex: 101010100)" class="input-inline-tabela text-xs text-center" title="Código NBS (obrigatório para NFS-e)">
 						</div>
 						<div class="col-span-2">
 							<input type="number" name="item_quantidade[]" value="{{$item.Quantity}}" min="0" placeholder="Qtd" required class="input-inline-tabela text-xs text-center" oninput="calcularTotalForm()">
 						</div>
-						<div class="col-span-3">
+						<div class="col-span-2">
 							<input type="number" name="item_preco[]" value="{{$item.Price}}" step="0.01" placeholder="Preço (R$)" required class="input-inline-tabela text-xs text-right" oninput="calcularTotalForm()">
 						</div>
 						<div class="col-span-1 text-center">
@@ -666,13 +669,16 @@
 					{{end}}
 				{{else}}
 					<div class="linha-item-form grid grid-cols-12 gap-3 items-center bg-gray-900 p-2.5 rounded border border-gray-800 shadow-sm">
-						<div class="col-span-6">
+						<div class="col-span-5">
 							<input type="text" name="item_descricao[]" placeholder="Descrição do item ou serviço..." required class="input-inline-tabela text-xs">
+						</div>
+						<div class="col-span-2">
+							<input type="text" name="item_nbs[]" placeholder="NBS (ex: 101010100)" class="input-inline-tabela text-xs text-center" title="Código NBS (obrigatório para NFS-e)">
 						</div>
 						<div class="col-span-2">
 							<input type="number" name="item_quantidade[]" value="1" min="0" placeholder="Qtd" required class="input-inline-tabela text-xs text-center" oninput="calcularTotalForm()">
 						</div>
-						<div class="col-span-3">
+						<div class="col-span-2">
 							<input type="number" name="item_preco[]" step="0.01" placeholder="Preço (R$)" required class="input-inline-tabela text-xs text-right" oninput="calcularTotalForm()">
 						</div>
 						<div class="col-span-1 text-center">
@@ -705,13 +711,16 @@
 			const novaLinha = document.createElement('div');
 			novaLinha.className = 'linha-item-form grid grid-cols-12 gap-3 items-center bg-gray-900 p-2.5 rounded border border-gray-800 shadow-sm';
 			novaLinha.innerHTML = `
-				<div class="col-span-6">
+				<div class="col-span-5">
 					<input type="text" name="item_descricao[]" placeholder="Descrição do item ou serviço..." required class="input-inline-tabela text-xs">
+				</div>
+				<div class="col-span-2">
+					<input type="text" name="item_nbs[]" placeholder="NBS (ex: 101010100)" class="input-inline-tabela text-xs text-center" title="Código NBS (obrigatório para NFS-e)">
 				</div>
 				<div class="col-span-2">
 					<input type="number" name="item_quantidade[]" value="1" min="0" placeholder="Qtd" required class="input-inline-tabela text-xs text-center" oninput="calcularTotalForm()">
 				</div>
-				<div class="col-span-3">
+				<div class="col-span-2">
 					<input type="number" name="item_preco[]" step="0.01" placeholder="Preço (R$)" required class="input-inline-tabela text-xs text-right" oninput="calcularTotalForm()">
 				</div>
 				<div class="col-span-1 text-center">
@@ -861,7 +870,7 @@
 			{{if .Items}}
 				<div class="text-xs text-gray-300 space-y-0.5" style="min-width: 0;">
 					{{range .Items}}
-						<div style="word-break: break-word; overflow-wrap: anywhere; white-space: normal; line-height: 1.35;">• {{.Quantity}}x {{.Description}}{{if .Price}} ({{.PrecoFormatado}}){{end}}</div>
+						<div style="word-break: break-word; overflow-wrap: anywhere; white-space: normal; line-height: 1.35;">• {{.Quantity}}x {{.Description}}{{if .Price}} ({{.PrecoFormatado}}){{end}}{{if .NBSCodeStr}} <span class="text-gray-400 font-mono text-[10px] bg-gray-900 px-1 py-0.5 rounded border border-gray-800">NBS: {{.NBSCodeStr}}</span>{{end}}</div>
 					{{end}}
 				</div>
 			{{end}}
