@@ -346,7 +346,7 @@ func (e *SPNfseEmitter) buildPedidoEnvioRPSXML(invoice *domain.Invoice, rpsNumbe
     <DataEmissao>%s</DataEmissao>
     <StatusRPS>N</StatusRPS>
     <TributacaoRPS>T</TributacaoRPS>
-    <ValorServicos>%.2f</ValorServicos>
+    <ValorInicialCobrado>%.2f</ValorInicialCobrado>
     <ValorDeducoes>0.00</ValorDeducoes>
     <ValorPIS>0.00</ValorPIS>
     <ValorCOFINS>0.00</ValorCOFINS>

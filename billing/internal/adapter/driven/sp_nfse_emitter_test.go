@@ -60,8 +60,11 @@ func TestSPNfseEmitter_BuildPedidoEnvioRPSXML(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if !strings.Contains(xmlContent, `<ValorServicos>150.00</ValorServicos>`) {
-		t.Errorf("expected <ValorServicos>150.00</ValorServicos>, but not found in:\n%s", xmlContent)
+	if !strings.Contains(xmlContent, `<ValorInicialCobrado>150.00</ValorInicialCobrado>`) {
+		t.Errorf("expected <ValorInicialCobrado>150.00</ValorInicialCobrado>, but not found in:\n%s", xmlContent)
+	}
+	if strings.Contains(xmlContent, `ValorServicos`) {
+		t.Errorf("should NOT contain ValorServicos, but found in:\n%s", xmlContent)
 	}
 	if strings.Contains(xmlContent, `ValorFinalCobrado`) {
 		t.Errorf("should NOT contain ValorFinalCobrado, but found in:\n%s", xmlContent)
