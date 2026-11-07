@@ -45,6 +45,7 @@ services:
 
 volumes:
   pg_production_data:
+    name: accoting_pg_production_data
 
 networks:
   net-accounting-prod:
