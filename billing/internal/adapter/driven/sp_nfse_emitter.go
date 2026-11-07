@@ -192,10 +192,10 @@ func (e *SPNfseEmitter) buildAndSignRPS(invoice *domain.Invoice, rpsNumber int64
 	cleanNumbers := regexp.MustCompile(`[^0-9]`)
 
 	ccm := cleanNumbers.ReplaceAllString(invoice.Vendor.TaxDocument, "")
-	if len(ccm) > 12 {
-		ccm = ccm[:12]
+	if len(ccm) > 8 {
+		ccm = ccm[:8]
 	}
-	ccmFormatted := fmt.Sprintf("%012s", ccm)
+	ccmFormatted := fmt.Sprintf("%08s", ccm)
 
 	serieFormatted := fmt.Sprintf("%-5s", e.serie)
 	if len(serieFormatted) > 5 {
@@ -346,7 +346,7 @@ func (e *SPNfseEmitter) buildPedidoEnvioRPSXML(invoice *domain.Invoice, rpsNumbe
     <DataEmissao>%s</DataEmissao>
     <StatusRPS>N</StatusRPS>
     <TributacaoRPS>T</TributacaoRPS>
-    <ValorFinalCobrado>%.2f</ValorFinalCobrado>
+    <ValorServicos>%.2f</ValorServicos>
     <ValorDeducoes>0.00</ValorDeducoes>
     <ValorPIS>0.00</ValorPIS>
     <ValorCOFINS>0.00</ValorCOFINS>
