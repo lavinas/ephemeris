@@ -26,6 +26,7 @@ DATABASES=(
   "billing:5432"
   "planner:5433"
   "signup:5434"
+  "accounting:5435"
 )
 
 # ---- Configurações do Google Drive ----
