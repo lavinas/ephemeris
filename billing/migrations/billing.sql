@@ -129,6 +129,7 @@ create table invoice_item (
     price numeric(15, 2) not null,
     quantity int not null,
     description varchar(255) not null,
+    nbs_code varchar(50) null,
     created_at timestamp not null,
     updated_at timestamp not null
 );

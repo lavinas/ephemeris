@@ -62,6 +62,7 @@ create table service (
     name varchar(150) not null,
     description text,
     session_minutes int null, -- if there is a predicted duration for the service
+    nbs_code varchar(50),
     created_at timestamp not null default now(),
     updated_at timestamp not null default now()
 );
