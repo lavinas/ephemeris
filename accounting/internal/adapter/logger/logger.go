@@ -79,7 +79,7 @@ func setupZapLogger(output string, level int) (*zap.Logger, error) {
 		if err != nil {
 			return nil, fmt.Errorf("erro ao configurar rotatelogs: %v", err)
 		}
-		writer = rotator
+		writer = io.MultiWriter(os.Stdout, rotator)
 	}
 
 	writeSyncer := zapcore.AddSync(writer)
