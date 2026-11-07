@@ -346,7 +346,6 @@ func (e *SPNfseEmitter) buildPedidoEnvioRPSXML(invoice *domain.Invoice, rpsNumbe
     <DataEmissao>%s</DataEmissao>
     <StatusRPS>N</StatusRPS>
     <TributacaoRPS>T</TributacaoRPS>
-    <ValorInicialCobrado>%.2f</ValorInicialCobrado>
     <ValorDeducoes>0.00</ValorDeducoes>
     <ValorPIS>0.00</ValorPIS>
     <ValorCOFINS>0.00</ValorCOFINS>
@@ -372,8 +371,12 @@ func (e *SPNfseEmitter) buildPedidoEnvioRPSXML(invoice *domain.Invoice, rpsNumbe
     </EnderecoTomador>
     <EmailTomador>%s</EmailTomador>
     <Discriminacao>%s</Discriminacao>
-    <cLocPrestacao>%s</cLocPrestacao>
+    <ValorFinalCobrado>%.2f</ValorFinalCobrado>
+    <ValorIPI>0.00</ValorIPI>
+    <ExigibilidadeSuspensa>0</ExigibilidadeSuspensa>
+    <PagamentoParceladoAntecipado>0</PagamentoParceladoAntecipado>
     <NBS>%s</NBS>
+    <cLocPrestacao>%s</cLocPrestacao>
     <IBSCBS>
       <finNFSe>0</finNFSe>
       <indFinal>1</indFinal>
@@ -388,15 +391,15 @@ func (e *SPNfseEmitter) buildPedidoEnvioRPSXML(invoice *domain.Invoice, rpsNumbe
 		e.serie,
 		rpsNumber,
 		emissionDate.Format("2006-01-02"),
-		invoice.Amount,
 		e.serviceCode,
 		e.aliquot,
 		docTag, customerDoc, docTag,
 		escapedName,
 		customerEmail,
 		escapedDesc,
-		cLoc,
+		invoice.Amount,
 		nbsFormatted,
+		cLoc,
 		cClassif,
 		cst,
 	)

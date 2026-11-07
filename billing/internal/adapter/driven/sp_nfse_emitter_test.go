@@ -60,14 +60,25 @@ func TestSPNfseEmitter_BuildPedidoEnvioRPSXML(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if !strings.Contains(xmlContent, `<ValorInicialCobrado>150.00</ValorInicialCobrado>`) {
-		t.Errorf("expected <ValorInicialCobrado>150.00</ValorInicialCobrado>, but not found in:\n%s", xmlContent)
+	if !strings.Contains(xmlContent, `<ValorFinalCobrado>150.00</ValorFinalCobrado>`) {
+		t.Errorf("expected <ValorFinalCobrado>150.00</ValorFinalCobrado>, but not found in:\n%s", xmlContent)
 	}
-	if strings.Contains(xmlContent, `ValorServicos`) {
-		t.Errorf("should NOT contain ValorServicos, but found in:\n%s", xmlContent)
+	if strings.Contains(xmlContent, `ValorServicos`) || strings.Contains(xmlContent, `ValorInicialCobrado`) {
+		t.Errorf("should NOT contain ValorServicos/ValorInicialCobrado, but found in:\n%s", xmlContent)
 	}
-	if strings.Contains(xmlContent, `ValorFinalCobrado`) {
-		t.Errorf("should NOT contain ValorFinalCobrado, but found in:\n%s", xmlContent)
+	// Layout 2: ValorDeducoes must immediately follow TributacaoRPS
+	if !strings.Contains(xmlContent, "<TributacaoRPS>T</TributacaoRPS>\n    <ValorDeducoes>") {
+		t.Errorf("expected ValorDeducoes right after TributacaoRPS")
+	}
+	// Order: Discriminacao < ValorFinalCobrado < NBS < cLocPrestacao < IBSCBS
+	order := []string{"<Discriminacao>", "<ValorFinalCobrado>", "<ValorIPI>", "<ExigibilidadeSuspensa>", "<PagamentoParceladoAntecipado>", "<NBS>", "<cLocPrestacao>", "<IBSCBS>"}
+	last := -1
+	for _, tag := range order {
+		idx := strings.Index(xmlContent, tag)
+		if idx <= last {
+			t.Errorf("tag %s out of order or missing", tag)
+		}
+		last = idx
 	}
 	if !strings.Contains(xmlContent, `<Cabecalho xmlns="" Versao="2">`) {
 		t.Errorf("expected Versao=2 in Cabecalho, but not found")
