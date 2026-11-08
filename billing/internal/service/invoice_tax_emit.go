@@ -76,10 +76,21 @@ func (s *InvoiceTaxEmit) Run(inDTO port.InDTO) port.OutDTO {
 	}
 
 	nowStr := emissionItem.NFEDatetime.Format("2006-01-02 15:04:05")
-	msg := fmt.Sprintf("NFS-e #%d emitida com sucesso (Cód. Verificação: %s)", *emissionItem.NFENumber, *emissionItem.NFEVerification)
+	layoutInfo := ""
+	if emissionItem.LayoutVersion > 0 {
+		if emissionItem.UsedFallback {
+			layoutInfo = fmt.Sprintf(" [Leiaute %d via fallback]", emissionItem.LayoutVersion)
+		} else {
+			layoutInfo = fmt.Sprintf(" [Leiaute %d]", emissionItem.LayoutVersion)
+		}
+	}
+	msg := fmt.Sprintf("NFS-e #%d emitida com sucesso%s (Cód. Verificação: %s)", *emissionItem.NFENumber, layoutInfo, *emissionItem.NFEVerification)
 	s.logger.IPrintf(1, "Invoice ID %d tax emitted successfully: %s", invoice.ID, msg)
 
-	return dto.NewInvoiceTaxEmitResponse(200, "success", msg, emissionItem.NFENumber, emissionItem.NFEVerification, &nowStr, nextRPS)
+	resp := dto.NewInvoiceTaxEmitResponse(200, "success", msg, emissionItem.NFENumber, emissionItem.NFEVerification, &nowStr, nextRPS)
+	resp.LayoutVersion = emissionItem.LayoutVersion
+	resp.UsedFallback = emissionItem.UsedFallback
+	return resp
 }
 
 func (s *InvoiceTaxEmit) saveTaxEmission(vendor *domain.Vendor, invoice *domain.Invoice, item *domain.EmissionItem, rpsNumber int64) error {

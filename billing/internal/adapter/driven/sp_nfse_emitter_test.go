@@ -168,4 +168,66 @@ func TestSPNfseEmitter_BuildAndSignRPS(t *testing.T) {
 	if gotStr != wantStr {
 		t.Errorf("RPS signature string mismatch:\ngot:  %q (len=%d)\nwant: %q (len=%d)", gotStr, len(gotStr), wantStr, len(wantStr))
 	}
+
+	gotStrV1 := emitterProd.buildRPSSignatureStringWithCCMWidth(prodInvoice, 2558, time.Date(2026, 11, 7, 0, 0, 0, 0, time.UTC), 8)
+	wantStrV1 := "57278881A    00000000255820261107TNN00000000003920000000000000000005762100032591333807"
+	if gotStrV1 != wantStrV1 {
+		t.Errorf("Layout 1 RPS signature string mismatch:\ngot:  %q (len=%d)\nwant: %q (len=%d)", gotStrV1, len(gotStrV1), wantStrV1, len(wantStrV1))
+	}
+}
+
+func TestSPNfseEmitter_BuildPedidoEnvioRPSXML_Layout1(t *testing.T) {
+	emitter := NewSPNfseEmitter(
+		&dummyLogger{},
+		"homologacao",
+		"",
+		"",
+		5762,
+		0.0,
+		"A",
+		10,
+		"https://nfe.prefeitura.sp.gov.br/ws/lotenfe.asmx",
+	)
+
+	doc := "42343223858"
+	email := "cliente@teste.com"
+	nbs := int64(122051100)
+
+	invoice := &domain.Invoice{
+		ID:     1,
+		Amount: 150.00,
+		Vendor: domain.Vendor{
+			Document:    "27928875000104",
+			TaxDocument: "57278881",
+		},
+		Customer: domain.Customer{
+			Name:     "Cliente Teste",
+			Document: &doc,
+			Email:    &email,
+		},
+		InvoiceItems: []domain.InvoiceItem{
+			{
+				ID:          1,
+				Description: "Serviço Teste",
+				Quantity:    1,
+				Price:       150.00,
+				NBSCode:     &nbs,
+			},
+		},
+	}
+
+	xmlContent, err := emitter.buildPedidoEnvioRPSXMLForLayout(invoice, 1001, time.Date(2026, 11, 7, 0, 0, 0, 0, time.UTC), "FAKE_SIG", 1)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if !strings.Contains(xmlContent, `<Cabecalho xmlns="" Versao="1">`) {
+		t.Errorf("expected Versao=1 in Cabecalho, got:\n%s", xmlContent)
+	}
+	if !strings.Contains(xmlContent, `<ValorServicos>150.00</ValorServicos>`) {
+		t.Errorf("expected <ValorServicos>150.00</ValorServicos> in Layout 1, got:\n%s", xmlContent)
+	}
+	if strings.Contains(xmlContent, `ValorFinalCobrado`) || strings.Contains(xmlContent, `<IBSCBS>`) {
+		t.Errorf("Layout 1 should NOT contain ValorFinalCobrado or IBSCBS, got:\n%s", xmlContent)
+	}
 }

@@ -26,6 +26,8 @@ type InvoiceTaxEmitResponse struct {
 	NFEVerification *string `json:"nfe_verification,omitempty"`
 	NFEDatetime     *string `json:"nfe_datetime,omitempty"`
 	RPSNumber       int64   `json:"rps_number,omitempty"`
+	LayoutVersion   int     `json:"layout_version,omitempty"`
+	UsedFallback    bool    `json:"used_fallback,omitempty"`
 }
 
 // NewInvoiceTaxEmitResponse creates a new instance of InvoiceTaxEmitResponse.

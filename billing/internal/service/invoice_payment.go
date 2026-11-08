@@ -199,7 +199,15 @@ func (s *InvoicePayment) Run(inDTO port.InDTO) port.OutDTO {
 				taxOut := taxSvc.Run(taxReq)
 				if taxOut != nil && taxOut.GetStatusCode() == 200 {
 					if taxResp, ok := taxOut.(dto.InvoiceTaxEmitResponse); ok && taxResp.NFENumber != nil {
-						successMsg = fmt.Sprintf("Pagamento registrado, recibo enviado e NFS-e #%d emitida com sucesso", *taxResp.NFENumber)
+						layoutInfo := ""
+						if taxResp.LayoutVersion > 0 {
+							if taxResp.UsedFallback {
+								layoutInfo = fmt.Sprintf(" (Leiaute %d via fallback)", taxResp.LayoutVersion)
+							} else {
+								layoutInfo = fmt.Sprintf(" (Leiaute %d)", taxResp.LayoutVersion)
+							}
+						}
+						successMsg = fmt.Sprintf("Pagamento registrado, recibo enviado e NFS-e #%d emitida com sucesso%s", *taxResp.NFENumber, layoutInfo)
 					} else {
 						successMsg = "Pagamento registrado, recibo enviado e NFS-e emitida com sucesso"
 					}

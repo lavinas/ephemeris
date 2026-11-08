@@ -121,46 +121,107 @@ func (e *SPNfseEmitter) EmitSingle(ctx context.Context, invoice *domain.Invoice,
 		return nil, fmt.Errorf("falha ao carregar certificado digital A1: %w", err)
 	}
 
-	// 1. Calculate RPS signature (SHA-1 + RSA of fixed-width ASCII string)
 	// PMSP requires current local São Paulo date (cannot be ahead of SP date)
 	emissionDate := time.Now().In(spLocation())
-	rpsSignature, err := e.buildAndSignRPS(invoice, rpsNumber, emissionDate, rsaKey)
+
+	// 1. Primary attempt: Leiaute 2
+	item, errV2 := e.emitWithLayout(ctx, invoice, rpsNumber, emissionDate, tlsCert, rsaKey, x509Cert, 2)
+	if errV2 == nil {
+		item.LayoutVersion = 2
+		item.UsedFallback = false
+		e.logger.IPrintf(1, "NFS-e successfully emitted [Leiaute 2] for Invoice ID %d: NFe #%d, Verification: %s",
+			invoice.ID, *item.NFENumber, *item.NFEVerification)
+		return item, nil
+	}
+
+	e.logger.IPrintf(1, "Leiaute 2 emission failed for Invoice ID %d (RPS #%d): %v. Attempting fallback to Leiaute 1...",
+		invoice.ID, rpsNumber, errV2)
+
+	// 2. Fallback attempt: Leiaute 1
+	itemV1, errV1 := e.emitWithLayout(ctx, invoice, rpsNumber, emissionDate, tlsCert, rsaKey, x509Cert, 1)
+	if errV1 == nil {
+		itemV1.LayoutVersion = 1
+		itemV1.UsedFallback = true
+		e.logger.IPrintf(1, "NFS-e successfully emitted [Leiaute 1 via fallback] for Invoice ID %d: NFe #%d, Verification: %s",
+			invoice.ID, *itemV1.NFENumber, *itemV1.NFEVerification)
+		return itemV1, nil
+	}
+
+	e.logger.IPrintf(1, "Fallback Leiaute 1 emission also failed for Invoice ID %d (RPS #%d): %v",
+		invoice.ID, rpsNumber, errV1)
+
+	return nil, fmt.Errorf("[Leiaute 2] %v | [Fallback Leiaute 1] %v", errV2, errV1)
+}
+
+func (e *SPNfseEmitter) emitWithLayout(
+	ctx context.Context,
+	invoice *domain.Invoice,
+	rpsNumber int64,
+	emissionDate time.Time,
+	tlsCert *tls.Certificate,
+	rsaKey *rsa.PrivateKey,
+	x509Cert *x509.Certificate,
+	layoutVersion int,
+) (*domain.EmissionItem, error) {
+	ccmWidth := 12
+	if layoutVersion == 1 {
+		ccmWidth = 8
+	}
+	item, err := e.emitWithLayoutAndCCMWidth(ctx, invoice, rpsNumber, emissionDate, tlsCert, rsaKey, x509Cert, layoutVersion, ccmWidth)
+	if err != nil && layoutVersion == 1 && strings.Contains(err.Error(), "[1206]") {
+		e.logger.IPrintf(1, "Leiaute 1 returned [1206] with 8-digit CCM signature; retrying Leiaute 1 with 12-digit CCM signature...")
+		return e.emitWithLayoutAndCCMWidth(ctx, invoice, rpsNumber, emissionDate, tlsCert, rsaKey, x509Cert, layoutVersion, 12)
+	}
+	return item, err
+}
+
+func (e *SPNfseEmitter) emitWithLayoutAndCCMWidth(
+	ctx context.Context,
+	invoice *domain.Invoice,
+	rpsNumber int64,
+	emissionDate time.Time,
+	tlsCert *tls.Certificate,
+	rsaKey *rsa.PrivateKey,
+	x509Cert *x509.Certificate,
+	layoutVersion int,
+	ccmWidth int,
+) (*domain.EmissionItem, error) {
+	// 1. Calculate RPS signature (SHA-1 + RSA of fixed-width ASCII string)
+	rpsSignature, err := e.buildAndSignRPSWithCCMWidth(invoice, rpsNumber, emissionDate, rsaKey, ccmWidth)
 	if err != nil {
-		e.logger.IPrintf(1, "Failed to sign RPS: %v", err)
+		e.logger.IPrintf(1, "Failed to sign RPS (Leiaute %d): %v", layoutVersion, err)
 		return nil, fmt.Errorf("falha ao assinar RPS: %w", err)
 	}
 
-	// 2. Build PedidoEnvioRPS XML
-	rawXML, err := e.buildPedidoEnvioRPSXML(invoice, rpsNumber, emissionDate, rpsSignature)
+	// 2. Build PedidoEnvioRPS XML for the target layout
+	rawXML, err := e.buildPedidoEnvioRPSXMLForLayout(invoice, rpsNumber, emissionDate, rpsSignature, layoutVersion)
 	if err != nil {
-		e.logger.IPrintf(1, "Failed to build XML: %v", err)
+		e.logger.IPrintf(1, "Failed to build XML (Leiaute %d): %v", layoutVersion, err)
 		return nil, fmt.Errorf("falha ao gerar XML do RPS: %w", err)
 	}
 
 	// 3. Sign XML using XMLDSig (Enveloped)
 	signedXML, err := e.signXML(rawXML, tlsCert, x509Cert)
 	if err != nil {
-		e.logger.IPrintf(1, "Failed to sign XML document: %v", err)
+		e.logger.IPrintf(1, "Failed to sign XML document (Leiaute %d): %v", layoutVersion, err)
 		return nil, fmt.Errorf("falha na assinatura digital do XML (XMLDSig): %w", err)
 	}
 
 	// 4. Send SOAP request via HTTPS (with mTLS)
-	respXML, err := e.sendSOAP(ctx, tlsCert, signedXML)
+	respXML, err := e.sendSOAPForLayout(ctx, tlsCert, signedXML, layoutVersion)
 	if err != nil {
-		e.logger.IPrintf(1, "SOAP request to Prefeitura SP failed: %v", err)
+		e.logger.IPrintf(1, "SOAP request to Prefeitura SP failed (Leiaute %d): %v", layoutVersion, err)
 		return nil, fmt.Errorf("erro na comunicação com a Prefeitura de SP: %w", err)
 	}
 
 	// 5. Parse city response
 	item, err := e.parseResponse(respXML, rpsNumber, invoice)
 	if err != nil {
-		e.logger.IPrintf(1, "Prefeitura SP rejected or returned error: %v", err)
+		e.logger.IPrintf(1, "Prefeitura SP rejected or returned error (Leiaute %d): %v", layoutVersion, err)
 		return nil, err
 	}
 
-	e.logger.IPrintf(1, "NFS-e successfully emitted for Invoice ID %d: NFe #%d, Verification: %s",
-		invoice.ID, *item.NFENumber, *item.NFEVerification)
-
+	item.LayoutVersion = layoutVersion
 	return item, nil
 }
 
@@ -199,13 +260,20 @@ func (e *SPNfseEmitter) loadCertificates() (*tls.Certificate, *rsa.PrivateKey, *
 
 // buildRPSSignatureString creates the 90-char concatenated ASCII string defined by PMSP Manual for Layout 2
 func (e *SPNfseEmitter) buildRPSSignatureString(invoice *domain.Invoice, rpsNumber int64, emissionDate time.Time) string {
+	return e.buildRPSSignatureStringWithCCMWidth(invoice, rpsNumber, emissionDate, 12)
+}
+
+func (e *SPNfseEmitter) buildRPSSignatureStringWithCCMWidth(invoice *domain.Invoice, rpsNumber int64, emissionDate time.Time, ccmWidth int) string {
 	cleanNumbers := regexp.MustCompile(`[^0-9]`)
 
 	ccm := cleanNumbers.ReplaceAllString(invoice.Vendor.TaxDocument, "")
-	if len(ccm) > 12 {
-		ccm = ccm[:12]
+	if ccmWidth <= 0 {
+		ccmWidth = 12
 	}
-	ccmFormatted := fmt.Sprintf("%012s", ccm)
+	if len(ccm) > ccmWidth {
+		ccm = ccm[:ccmWidth]
+	}
+	ccmFormatted := fmt.Sprintf("%0*s", ccmWidth, ccm)
 
 	serieFormatted := fmt.Sprintf("%-5s", e.serie)
 	if len(serieFormatted) > 5 {
@@ -240,7 +308,11 @@ func (e *SPNfseEmitter) buildRPSSignatureString(invoice *domain.Invoice, rpsNumb
 
 // buildAndSignRPS creates the concatenated ASCII string and signs it with RSA-SHA1 (Leiaute 2)
 func (e *SPNfseEmitter) buildAndSignRPS(invoice *domain.Invoice, rpsNumber int64, emissionDate time.Time, rsaKey *rsa.PrivateKey) (string, error) {
-	asciiStr := e.buildRPSSignatureString(invoice, rpsNumber, emissionDate)
+	return e.buildAndSignRPSWithCCMWidth(invoice, rpsNumber, emissionDate, rsaKey, 12)
+}
+
+func (e *SPNfseEmitter) buildAndSignRPSWithCCMWidth(invoice *domain.Invoice, rpsNumber int64, emissionDate time.Time, rsaKey *rsa.PrivateKey, ccmWidth int) (string, error) {
+	asciiStr := e.buildRPSSignatureStringWithCCMWidth(invoice, rpsNumber, emissionDate, ccmWidth)
 
 	// Hash SHA-1
 	h := sha1.New()
@@ -257,6 +329,10 @@ func (e *SPNfseEmitter) buildAndSignRPS(invoice *domain.Invoice, rpsNumber int64
 }
 
 func (e *SPNfseEmitter) buildPedidoEnvioRPSXML(invoice *domain.Invoice, rpsNumber int64, emissionDate time.Time, rpsSignature string) (string, error) {
+	return e.buildPedidoEnvioRPSXMLForLayout(invoice, rpsNumber, emissionDate, rpsSignature, 2)
+}
+
+func (e *SPNfseEmitter) buildPedidoEnvioRPSXMLForLayout(invoice *domain.Invoice, rpsNumber int64, emissionDate time.Time, rpsSignature string, layoutVersion int) (string, error) {
 	cleanNumbers := regexp.MustCompile(`[^0-9]`)
 	vendorCNPJ := cleanNumbers.ReplaceAllString(invoice.Vendor.Document, "")
 	if len(vendorCNPJ) > 0 && len(vendorCNPJ) < 14 {
@@ -297,7 +373,79 @@ func (e *SPNfseEmitter) buildPedidoEnvioRPSXML(invoice *domain.Invoice, rpsNumbe
 		customerEmail = strings.TrimSpace(*invoice.Customer.Email)
 	}
 
-	// Extract primary NBS code from invoice items
+	// Build description
+	var descBuilder strings.Builder
+	for _, item := range invoice.InvoiceItems {
+		descBuilder.WriteString(fmt.Sprintf("%dx %s | ", item.Quantity, item.Description))
+	}
+	desc := strings.TrimSuffix(descBuilder.String(), " | ")
+	if desc == "" {
+		desc = "Prestação de serviços"
+	}
+
+	// XML Escaping
+	var bufDesc bytes.Buffer
+	_ = xml.EscapeText(&bufDesc, []byte(desc))
+	escapedDesc := bufDesc.String()
+
+	var bufName bytes.Buffer
+	_ = xml.EscapeText(&bufName, []byte(invoice.Customer.Name))
+	escapedName := bufName.String()
+
+	if layoutVersion == 1 {
+		xmlContent := fmt.Sprintf(`<PedidoEnvioRPS xmlns="http://www.prefeitura.sp.gov.br/nfe">
+  <Cabecalho xmlns="" Versao="1">
+    <CPFCNPJRemetente>
+      <CNPJ>%s</CNPJ>
+    </CPFCNPJRemetente>
+  </Cabecalho>
+  <RPS xmlns="">
+    <Assinatura>%s</Assinatura>
+    <ChaveRPS>
+      <InscricaoPrestador>%s</InscricaoPrestador>
+      <SerieRPS>%s</SerieRPS>
+      <NumeroRPS>%d</NumeroRPS>
+    </ChaveRPS>
+    <TipoRPS>RPS</TipoRPS>
+    <DataEmissao>%s</DataEmissao>
+    <StatusRPS>N</StatusRPS>
+    <TributacaoRPS>T</TributacaoRPS>
+    <ValorServicos>%.2f</ValorServicos>
+    <ValorDeducoes>0.00</ValorDeducoes>
+    <ValorPIS>0.00</ValorPIS>
+    <ValorCOFINS>0.00</ValorCOFINS>
+    <ValorINSS>0.00</ValorINSS>
+    <ValorIR>0.00</ValorIR>
+    <ValorCSLL>0.00</ValorCSLL>
+    <CodigoServico>%05d</CodigoServico>
+    <AliquotaServicos>%.4f</AliquotaServicos>
+    <ISSRetido>false</ISSRetido>
+    <CPFCNPJTomador>
+      <%s>%s</%s>
+    </CPFCNPJTomador>
+    <RazaoSocialTomador>%s</RazaoSocialTomador>
+    <EmailTomador>%s</EmailTomador>
+    <Discriminacao>%s</Discriminacao>
+  </RPS>
+</PedidoEnvioRPS>`,
+			vendorCNPJ,
+			rpsSignature,
+			ccm,
+			e.serie,
+			rpsNumber,
+			emissionDate.Format("2006-01-02"),
+			invoice.Amount,
+			e.serviceCode,
+			e.aliquot,
+			docTag, customerDoc, docTag,
+			escapedName,
+			customerEmail,
+			escapedDesc,
+		)
+		return xmlContent, nil
+	}
+
+	// Extract primary NBS code from invoice items for Leiaute 2
 	var nbsCode int64
 	for _, item := range invoice.InvoiceItems {
 		if item.NBSCode != nil && *item.NBSCode > 0 {
@@ -323,25 +471,6 @@ func (e *SPNfseEmitter) buildPedidoEnvioRPSXML(invoice *domain.Invoice, rpsNumbe
 	if cIndOp == "" {
 		cIndOp = "100301"
 	}
-
-	// Build description
-	var descBuilder strings.Builder
-	for _, item := range invoice.InvoiceItems {
-		descBuilder.WriteString(fmt.Sprintf("%dx %s | ", item.Quantity, item.Description))
-	}
-	desc := strings.TrimSuffix(descBuilder.String(), " | ")
-	if desc == "" {
-		desc = "Prestação de serviços"
-	}
-
-	// XML Escaping
-	var bufDesc bytes.Buffer
-	_ = xml.EscapeText(&bufDesc, []byte(desc))
-	escapedDesc := bufDesc.String()
-
-	var bufName bytes.Buffer
-	_ = xml.EscapeText(&bufName, []byte(invoice.Customer.Name))
-	escapedName := bufName.String()
 
 	// PedidoEnvioRPS layout 2 PMSP
 	xmlContent := fmt.Sprintf(`<PedidoEnvioRPS xmlns="http://www.prefeitura.sp.gov.br/nfe">
@@ -448,15 +577,22 @@ func (e *SPNfseEmitter) signXML(xmlContent string, tlsCert *tls.Certificate, _ *
 }
 
 func (e *SPNfseEmitter) sendSOAP(ctx context.Context, clientCert *tls.Certificate, xmlContent string) (string, error) {
+	return e.sendSOAPForLayout(ctx, clientCert, xmlContent, 2)
+}
+
+func (e *SPNfseEmitter) sendSOAPForLayout(ctx context.Context, clientCert *tls.Certificate, xmlContent string, layoutVersion int) (string, error) {
+	if layoutVersion != 1 && layoutVersion != 2 {
+		layoutVersion = 2
+	}
 	soapEnvelope := fmt.Sprintf(`<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
   <soap:Body>
     <EnvioRPSRequest xmlns="http://www.prefeitura.sp.gov.br/nfe">
-      <VersaoSchema>2</VersaoSchema>
+      <VersaoSchema>%d</VersaoSchema>
       <MensagemXML><![CDATA[%s]]></MensagemXML>
     </EnvioRPSRequest>
   </soap:Body>
-</soap:Envelope>`, xmlContent)
+</soap:Envelope>`, layoutVersion, xmlContent)
 
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{
