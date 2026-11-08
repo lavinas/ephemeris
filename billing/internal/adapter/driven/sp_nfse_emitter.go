@@ -42,6 +42,7 @@ type SPNfseEmitter struct {
 	cLocPrestacao string
 	cstIBSCBS     string
 	cClassifTrib  string
+	cIndOp        string
 }
 
 // NewSPNfseEmitter creates a new instance of SPNfseEmitter
@@ -70,6 +71,14 @@ func NewSPNfseEmitter(
 		cLocPrestacao: "3550308", // Default: São Paulo
 		cstIBSCBS:     "499",     // Default: Simples Nacional puro
 		cClassifTrib:  "499001",  // Default: Simples Nacional puro
+		cIndOp:        "100301",  // Default: serviço consumido no município do prestador
+	}
+}
+
+// SetCIndOp updates the operation indicator code (cIndOp) of the IBSCBS group
+func (e *SPNfseEmitter) SetCIndOp(cIndOp string) {
+	if cIndOp != "" {
+		e.cIndOp = cIndOp
 	}
 }
 
@@ -300,13 +309,14 @@ func (e *SPNfseEmitter) buildPedidoEnvioRPSXML(invoice *domain.Invoice, rpsNumbe
 	if cLoc == "" {
 		cLoc = "3550308"
 	}
-	cst := e.cstIBSCBS
-	if cst == "" {
-		cst = "499"
-	}
+	// Note: PMSP Layout 2 (tpGIBSCBS) has no CST element; the CST is implied by cClassTrib.
 	cClassif := e.cClassifTrib
 	if cClassif == "" {
 		cClassif = "499001"
+	}
+	cIndOp := e.cIndOp
+	if cIndOp == "" {
+		cIndOp = "100301"
 	}
 
 	// Build description
@@ -359,16 +369,6 @@ func (e *SPNfseEmitter) buildPedidoEnvioRPSXML(invoice *domain.Invoice, rpsNumbe
       <%s>%s</%s>
     </CPFCNPJTomador>
     <RazaoSocialTomador>%s</RazaoSocialTomador>
-    <EnderecoTomador>
-      <TipoLogradouro></TipoLogradouro>
-      <Logradouro></Logradouro>
-      <NumeroEndereco></NumeroEndereco>
-      <ComplementoEndereco></ComplementoEndereco>
-      <Bairro></Bairro>
-      <Cidade></Cidade>
-      <UF></UF>
-      <CEP></CEP>
-    </EnderecoTomador>
     <EmailTomador>%s</EmailTomador>
     <Discriminacao>%s</Discriminacao>
     <ValorFinalCobrado>%.2f</ValorFinalCobrado>
@@ -380,8 +380,15 @@ func (e *SPNfseEmitter) buildPedidoEnvioRPSXML(invoice *domain.Invoice, rpsNumbe
     <IBSCBS>
       <finNFSe>0</finNFSe>
       <indFinal>1</indFinal>
-      <cClassifTrib>%s</cClassifTrib>
-      <CST>%s</CST>
+      <cIndOp>%s</cIndOp>
+      <indDest>0</indDest>
+      <valores>
+        <trib>
+          <gIBSCBS>
+            <cClassTrib>%s</cClassTrib>
+          </gIBSCBS>
+        </trib>
+      </valores>
     </IBSCBS>
   </RPS>
 </PedidoEnvioRPS>`,
@@ -400,8 +407,8 @@ func (e *SPNfseEmitter) buildPedidoEnvioRPSXML(invoice *domain.Invoice, rpsNumbe
 		invoice.Amount,
 		nbsFormatted,
 		cLoc,
+		cIndOp,
 		cClassif,
-		cst,
 	)
 
 	return xmlContent, nil

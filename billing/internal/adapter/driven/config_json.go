@@ -165,6 +165,15 @@ type JsonTaxConfig struct {
 	CLocPrestacao       string  `json:"c_loc_prestacao"`
 	CSTIBSCBS           string  `json:"cst_ibs_cbs"`
 	CClassifTrib        string  `json:"c_classif_trib"`
+	CIndOp              string  `json:"c_ind_op"`
+}
+
+// GetTaxCIndOp returns the Leiaute 2 operation indicator code (cIndOp, IBSCBS group)
+func (v *JsonConfig) GetTaxCIndOp() string {
+	if v.Tax.CIndOp == "" {
+		return "100301" // Default: serviço prestado e consumido no município do prestador
+	}
+	return v.Tax.CIndOp
 }
 
 // GetTaxData returns the tax emission configuration

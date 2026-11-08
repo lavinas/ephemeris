@@ -71,7 +71,8 @@ func TestSPNfseEmitter_BuildPedidoEnvioRPSXML(t *testing.T) {
 		t.Errorf("expected ValorDeducoes right after TributacaoRPS")
 	}
 	// Order: Discriminacao < ValorFinalCobrado < NBS < cLocPrestacao < IBSCBS
-	order := []string{"<Discriminacao>", "<ValorFinalCobrado>", "<ValorIPI>", "<ExigibilidadeSuspensa>", "<PagamentoParceladoAntecipado>", "<NBS>", "<cLocPrestacao>", "<IBSCBS>"}
+	order := []string{"<Discriminacao>", "<ValorFinalCobrado>", "<ValorIPI>", "<ExigibilidadeSuspensa>", "<PagamentoParceladoAntecipado>", "<NBS>", "<cLocPrestacao>", "<IBSCBS>",
+		"<finNFSe>", "<indFinal>", "<cIndOp>100301</cIndOp>", "<indDest>", "<valores>", "<trib>", "<gIBSCBS>", "<cClassTrib>"}
 	last := -1
 	for _, tag := range order {
 		idx := strings.Index(xmlContent, tag)
@@ -89,11 +90,15 @@ func TestSPNfseEmitter_BuildPedidoEnvioRPSXML(t *testing.T) {
 	if !strings.Contains(xmlContent, `<cLocPrestacao>3550308</cLocPrestacao>`) {
 		t.Errorf("expected cLocPrestacao 3550308, but not found")
 	}
-	if !strings.Contains(xmlContent, `<cClassifTrib>499001</cClassifTrib>`) {
-		t.Errorf("expected cClassifTrib 499001, but not found")
+	if !strings.Contains(xmlContent, `<cClassTrib>499001</cClassTrib>`) {
+		t.Errorf("expected cClassTrib 499001, but not found")
 	}
-	if !strings.Contains(xmlContent, `<CST>499</CST>`) {
-		t.Errorf("expected CST 499, but not found")
+	if strings.Contains(xmlContent, `<CST>`) {
+		t.Errorf("PMSP v02 gIBSCBS has no CST element, but found")
+	}
+	// PF tomador without address: EnderecoTomador must be omitted (empty Cidade/UF/CEP fail schema)
+	if strings.Contains(xmlContent, `EnderecoTomador`) {
+		t.Errorf("EnderecoTomador should be omitted, but found in:\n%s", xmlContent)
 	}
 }
 

@@ -41,6 +41,7 @@
         "timeout_seconds": 25,
         "c_loc_prestacao": "3550308",
         "cst_ibs_cbs": "499",
-        "c_classif_trib": "499001"
+        "c_classif_trib": "499001",
+        "c_ind_op": "100301"
     }
 }
