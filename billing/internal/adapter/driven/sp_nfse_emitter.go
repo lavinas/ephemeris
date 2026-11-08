@@ -29,21 +29,27 @@ import (
 	pkcs12 "software.sslmate.com/src/go-pkcs12"
 )
 
-// SPNfseEmitter handles single RPS submission to São Paulo's municipal web service (Leiaute 2)
+const (
+	defaultSPNFSeEndpoint = "https://nfews.prefeitura.sp.gov.br/lotenfe.asmx"
+	legacySPNFSeEndpoint  = "https://nfe.prefeitura.sp.gov.br/ws/lotenfe.asmx"
+)
+
+// SPNfseEmitter handles single RPS submission to São Paulo's municipal web service (Leiaute 2 with Leiaute 1 fallback)
 type SPNfseEmitter struct {
-	logger        port.Logger
-	env           string
-	certPath      string
-	certPassword  string
-	serviceCode   int
-	aliquot       float64
-	serie         string
-	timeout       time.Duration
-	endpointURL   string
-	cLocPrestacao string
-	cstIBSCBS     string
-	cClassifTrib  string
-	cIndOp        string
+	logger            port.Logger
+	env               string
+	certPath          string
+	certPassword      string
+	serviceCode       int
+	aliquot           float64
+	serie             string
+	timeout           time.Duration
+	endpointURL       string
+	legacyEndpointURL string
+	cLocPrestacao     string
+	cstIBSCBS         string
+	cClassifTrib      string
+	cIndOp            string
 }
 
 // NewSPNfseEmitter creates a new instance of SPNfseEmitter
@@ -59,21 +65,30 @@ func NewSPNfseEmitter(
 	if timeoutSeconds <= 0 {
 		timeoutSeconds = 25
 	}
-	return &SPNfseEmitter{
-		logger:        logger,
-		env:           env,
-		certPath:      certPath,
-		certPassword:  certPassword,
-		serviceCode:   serviceCode,
-		aliquot:       aliquot,
-		serie:         serie,
-		timeout:       time.Duration(timeoutSeconds) * time.Second,
-		endpointURL:   endpointURL,
-		cLocPrestacao: "3550308", // Default: São Paulo
-		cstIBSCBS:     "499",     // Default: Simples Nacional puro
-		cClassifTrib:  "499001",  // Default: Simples Nacional puro
-		cIndOp:        "100301",  // Default: serviço consumido no município do prestador
+	if endpointURL == "" {
+		endpointURL = defaultSPNFSeEndpoint
 	}
+	return &SPNfseEmitter{
+		logger:            logger,
+		env:               env,
+		certPath:          certPath,
+		certPassword:      certPassword,
+		serviceCode:       serviceCode,
+		aliquot:           aliquot,
+		serie:             serie,
+		timeout:           time.Duration(timeoutSeconds) * time.Second,
+		endpointURL:       endpointURL,
+		legacyEndpointURL: legacySPNFSeEndpoint,
+		cLocPrestacao:     "3550308", // Default: São Paulo
+		cstIBSCBS:         "499",     // Default: Simples Nacional puro
+		cClassifTrib:      "499001",  // Default: Simples Nacional puro
+		cIndOp:            "100301",  // Default: serviço consumido no município do prestador
+	}
+}
+
+// SetLegacyEndpointURL updates the legacy endpoint URL used for Leiaute 1 fallback
+func (e *SPNfseEmitter) SetLegacyEndpointURL(legacyEndpointURL string) {
+	e.legacyEndpointURL = legacyEndpointURL
 }
 
 // SetCIndOp updates the operation indicator code (cIndOp) of the IBSCBS group
@@ -124,27 +139,50 @@ func (e *SPNfseEmitter) EmitSingle(ctx context.Context, invoice *domain.Invoice,
 	// PMSP requires current local São Paulo date (cannot be ahead of SP date)
 	emissionDate := time.Now().In(spLocation())
 
-	// 1. Primary attempt: Leiaute 2
-	item, errV2 := e.emitWithLayout(ctx, invoice, rpsNumber, emissionDate, tlsCert, rsaKey, x509Cert, 2)
+	// 1. Primary attempt: Leiaute 2 on primary endpoint (nfews.prefeitura.sp.gov.br)
+	item, errV2 := e.emitWithLayoutAndEndpoint(ctx, invoice, rpsNumber, emissionDate, tlsCert, rsaKey, x509Cert, 2, e.endpointURL)
 	if errV2 == nil {
 		item.LayoutVersion = 2
 		item.UsedFallback = false
+		item.UsedLegacyEndpoint = false
 		e.logger.IPrintf(1, "NFS-e successfully emitted [Leiaute 2] for Invoice ID %d: NFe #%d, Verification: %s",
 			invoice.ID, *item.NFENumber, *item.NFEVerification)
 		return item, nil
 	}
 
-	e.logger.IPrintf(1, "Leiaute 2 emission failed for Invoice ID %d (RPS #%d): %v. Attempting fallback to Leiaute 1...",
-		invoice.ID, rpsNumber, errV2)
+	e.logger.IPrintf(1, "Leiaute 2 emission failed for Invoice ID %d (RPS #%d): %v. Attempting fallback to Leiaute 1 on primary endpoint (%s)...",
+		invoice.ID, rpsNumber, errV2, e.endpointURL)
 
-	// 2. Fallback attempt: Leiaute 1
-	itemV1, errV1 := e.emitWithLayout(ctx, invoice, rpsNumber, emissionDate, tlsCert, rsaKey, x509Cert, 1)
+	// 2. Fallback attempt 1: Leiaute 1 on primary endpoint (nfews.prefeitura.sp.gov.br)
+	itemV1, errV1 := e.emitWithLayoutAndEndpoint(ctx, invoice, rpsNumber, emissionDate, tlsCert, rsaKey, x509Cert, 1, e.endpointURL)
 	if errV1 == nil {
 		itemV1.LayoutVersion = 1
 		itemV1.UsedFallback = true
+		itemV1.UsedLegacyEndpoint = false
 		e.logger.IPrintf(1, "NFS-e successfully emitted [Leiaute 1 via fallback] for Invoice ID %d: NFe #%d, Verification: %s",
 			invoice.ID, *itemV1.NFENumber, *itemV1.NFEVerification)
 		return itemV1, nil
+	}
+
+	// 3. Fallback attempt 2: Leiaute 1 on legacy endpoint (nfe.prefeitura.sp.gov.br/ws/lotenfe.asmx)
+	if e.legacyEndpointURL != "" && e.legacyEndpointURL != e.endpointURL {
+		e.logger.IPrintf(1, "Fallback Leiaute 1 on primary endpoint failed for Invoice ID %d (RPS #%d): %v. Attempting fallback to Leiaute 1 on legacy endpoint (%s)...",
+			invoice.ID, rpsNumber, errV1, e.legacyEndpointURL)
+
+		itemV1Legacy, errV1Legacy := e.emitWithLayoutAndEndpoint(ctx, invoice, rpsNumber, emissionDate, tlsCert, rsaKey, x509Cert, 1, e.legacyEndpointURL)
+		if errV1Legacy == nil {
+			itemV1Legacy.LayoutVersion = 1
+			itemV1Legacy.UsedFallback = true
+			itemV1Legacy.UsedLegacyEndpoint = true
+			e.logger.IPrintf(1, "NFS-e successfully emitted [Leiaute 1 via fallback - legacy endpoint] for Invoice ID %d: NFe #%d, Verification: %s",
+				invoice.ID, *itemV1Legacy.NFENumber, *itemV1Legacy.NFEVerification)
+			return itemV1Legacy, nil
+		}
+
+		e.logger.IPrintf(1, "Fallback Leiaute 1 on legacy endpoint (%s) also failed for Invoice ID %d (RPS #%d): %v",
+			e.legacyEndpointURL, invoice.ID, rpsNumber, errV1Legacy)
+
+		return nil, fmt.Errorf("[Leiaute 2] %v | [Fallback Leiaute 1] %v | [Fallback Leiaute 1 (Endpoint Antigo)] %v", errV2, errV1, errV1Legacy)
 	}
 
 	e.logger.IPrintf(1, "Fallback Leiaute 1 emission also failed for Invoice ID %d (RPS #%d): %v",
@@ -163,14 +201,28 @@ func (e *SPNfseEmitter) emitWithLayout(
 	x509Cert *x509.Certificate,
 	layoutVersion int,
 ) (*domain.EmissionItem, error) {
+	return e.emitWithLayoutAndEndpoint(ctx, invoice, rpsNumber, emissionDate, tlsCert, rsaKey, x509Cert, layoutVersion, e.endpointURL)
+}
+
+func (e *SPNfseEmitter) emitWithLayoutAndEndpoint(
+	ctx context.Context,
+	invoice *domain.Invoice,
+	rpsNumber int64,
+	emissionDate time.Time,
+	tlsCert *tls.Certificate,
+	rsaKey *rsa.PrivateKey,
+	x509Cert *x509.Certificate,
+	layoutVersion int,
+	targetEndpointURL string,
+) (*domain.EmissionItem, error) {
 	ccmWidth := 12
 	if layoutVersion == 1 {
 		ccmWidth = 8
 	}
-	item, err := e.emitWithLayoutAndCCMWidth(ctx, invoice, rpsNumber, emissionDate, tlsCert, rsaKey, x509Cert, layoutVersion, ccmWidth)
+	item, err := e.emitWithLayoutCCMWidthAndEndpoint(ctx, invoice, rpsNumber, emissionDate, tlsCert, rsaKey, x509Cert, layoutVersion, ccmWidth, targetEndpointURL)
 	if err != nil && layoutVersion == 1 && strings.Contains(err.Error(), "[1206]") {
-		e.logger.IPrintf(1, "Leiaute 1 returned [1206] with 8-digit CCM signature; retrying Leiaute 1 with 12-digit CCM signature...")
-		return e.emitWithLayoutAndCCMWidth(ctx, invoice, rpsNumber, emissionDate, tlsCert, rsaKey, x509Cert, layoutVersion, 12)
+		e.logger.IPrintf(1, "Leiaute 1 returned [1206] with 8-digit CCM signature on %s; retrying Leiaute 1 with 12-digit CCM signature...", targetEndpointURL)
+		return e.emitWithLayoutCCMWidthAndEndpoint(ctx, invoice, rpsNumber, emissionDate, tlsCert, rsaKey, x509Cert, layoutVersion, 12, targetEndpointURL)
 	}
 	return item, err
 }
@@ -185,6 +237,21 @@ func (e *SPNfseEmitter) emitWithLayoutAndCCMWidth(
 	x509Cert *x509.Certificate,
 	layoutVersion int,
 	ccmWidth int,
+) (*domain.EmissionItem, error) {
+	return e.emitWithLayoutCCMWidthAndEndpoint(ctx, invoice, rpsNumber, emissionDate, tlsCert, rsaKey, x509Cert, layoutVersion, ccmWidth, e.endpointURL)
+}
+
+func (e *SPNfseEmitter) emitWithLayoutCCMWidthAndEndpoint(
+	ctx context.Context,
+	invoice *domain.Invoice,
+	rpsNumber int64,
+	emissionDate time.Time,
+	tlsCert *tls.Certificate,
+	rsaKey *rsa.PrivateKey,
+	x509Cert *x509.Certificate,
+	layoutVersion int,
+	ccmWidth int,
+	targetEndpointURL string,
 ) (*domain.EmissionItem, error) {
 	// 1. Calculate RPS signature (SHA-1 + RSA of fixed-width ASCII string)
 	rpsSignature, err := e.buildAndSignRPSWithCCMWidth(invoice, rpsNumber, emissionDate, rsaKey, ccmWidth)
@@ -208,16 +275,16 @@ func (e *SPNfseEmitter) emitWithLayoutAndCCMWidth(
 	}
 
 	// 4. Send SOAP request via HTTPS (with mTLS)
-	respXML, err := e.sendSOAPForLayout(ctx, tlsCert, signedXML, layoutVersion)
+	respXML, err := e.sendSOAPForLayoutAndEndpoint(ctx, tlsCert, signedXML, layoutVersion, targetEndpointURL)
 	if err != nil {
-		e.logger.IPrintf(1, "SOAP request to Prefeitura SP failed (Leiaute %d): %v", layoutVersion, err)
+		e.logger.IPrintf(1, "SOAP request to Prefeitura SP (%s) failed (Leiaute %d): %v", targetEndpointURL, layoutVersion, err)
 		return nil, fmt.Errorf("erro na comunicação com a Prefeitura de SP: %w", err)
 	}
 
 	// 5. Parse city response
 	item, err := e.parseResponse(respXML, rpsNumber, invoice)
 	if err != nil {
-		e.logger.IPrintf(1, "Prefeitura SP rejected or returned error (Leiaute %d): %v", layoutVersion, err)
+		e.logger.IPrintf(1, "Prefeitura SP (%s) rejected or returned error (Leiaute %d): %v", targetEndpointURL, layoutVersion, err)
 		return nil, err
 	}
 
@@ -581,8 +648,15 @@ func (e *SPNfseEmitter) sendSOAP(ctx context.Context, clientCert *tls.Certificat
 }
 
 func (e *SPNfseEmitter) sendSOAPForLayout(ctx context.Context, clientCert *tls.Certificate, xmlContent string, layoutVersion int) (string, error) {
+	return e.sendSOAPForLayoutAndEndpoint(ctx, clientCert, xmlContent, layoutVersion, e.endpointURL)
+}
+
+func (e *SPNfseEmitter) sendSOAPForLayoutAndEndpoint(ctx context.Context, clientCert *tls.Certificate, xmlContent string, layoutVersion int, targetEndpointURL string) (string, error) {
 	if layoutVersion != 1 && layoutVersion != 2 {
 		layoutVersion = 2
+	}
+	if targetEndpointURL == "" {
+		targetEndpointURL = e.endpointURL
 	}
 	soapEnvelope := fmt.Sprintf(`<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
@@ -607,7 +681,7 @@ func (e *SPNfseEmitter) sendSOAPForLayout(ctx context.Context, clientCert *tls.C
 		Timeout:   e.timeout,
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, e.endpointURL, bytes.NewBufferString(soapEnvelope))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, targetEndpointURL, bytes.NewBufferString(soapEnvelope))
 	if err != nil {
 		return "", err
 	}

@@ -201,7 +201,9 @@ func (s *InvoicePayment) Run(inDTO port.InDTO) port.OutDTO {
 					if taxResp, ok := taxOut.(dto.InvoiceTaxEmitResponse); ok && taxResp.NFENumber != nil {
 						layoutInfo := ""
 						if taxResp.LayoutVersion > 0 {
-							if taxResp.UsedFallback {
+							if taxResp.UsedLegacyEndpoint {
+								layoutInfo = fmt.Sprintf(" (Leiaute %d via fallback - endpoint legado)", taxResp.LayoutVersion)
+							} else if taxResp.UsedFallback {
 								layoutInfo = fmt.Sprintf(" (Leiaute %d via fallback)", taxResp.LayoutVersion)
 							} else {
 								layoutInfo = fmt.Sprintf(" (Leiaute %d)", taxResp.LayoutVersion)

@@ -34,9 +34,10 @@ type EmissionItem struct {
 	NFENumber       *int64     `gorm:"index"`
 	NFEDatetime     *time.Time `gorm:"date"`
 	NFEVerification *string    `gorm:"size:255"`
-	NFEAmount       *float64   `gorm:"type:numeric(15,2)"`
-	LayoutVersion   int        `gorm:"-" json:"layout_version,omitempty"`
-	UsedFallback    bool       `gorm:"-" json:"used_fallback,omitempty"`
+	NFEAmount          *float64   `gorm:"type:numeric(15,2)"`
+	LayoutVersion      int        `gorm:"-" json:"layout_version,omitempty"`
+	UsedFallback       bool       `gorm:"-" json:"used_fallback,omitempty"`
+	UsedLegacyEndpoint bool       `gorm:"-" json:"used_legacy_endpoint,omitempty"`
 }
 
 // NewEmission creates a new Emission instance with the provided details.

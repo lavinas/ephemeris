@@ -230,4 +230,7 @@ func TestSPNfseEmitter_BuildPedidoEnvioRPSXML_Layout1(t *testing.T) {
 	if strings.Contains(xmlContent, `ValorFinalCobrado`) || strings.Contains(xmlContent, `<IBSCBS>`) {
 		t.Errorf("Layout 1 should NOT contain ValorFinalCobrado or IBSCBS, got:\n%s", xmlContent)
 	}
+	if emitter.legacyEndpointURL != "https://nfe.prefeitura.sp.gov.br/ws/lotenfe.asmx" {
+		t.Errorf("expected default legacyEndpointURL to be https://nfe.prefeitura.sp.gov.br/ws/lotenfe.asmx, got %s", emitter.legacyEndpointURL)
+	}
 }

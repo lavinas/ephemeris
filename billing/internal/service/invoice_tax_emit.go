@@ -22,7 +22,7 @@ func NewInvoiceTaxEmit(repo port.Repository, logger port.Logger, emitter port.Ta
 	return &InvoiceTaxEmit{
 		Base:    NewBase(repo, logger),
 		emitter: emitter,
-		timeout: 30 * time.Second,
+		timeout: 60 * time.Second,
 	}
 }
 
@@ -78,7 +78,9 @@ func (s *InvoiceTaxEmit) Run(inDTO port.InDTO) port.OutDTO {
 	nowStr := emissionItem.NFEDatetime.Format("2006-01-02 15:04:05")
 	layoutInfo := ""
 	if emissionItem.LayoutVersion > 0 {
-		if emissionItem.UsedFallback {
+		if emissionItem.UsedLegacyEndpoint {
+			layoutInfo = fmt.Sprintf(" [Leiaute %d via fallback - endpoint legado]", emissionItem.LayoutVersion)
+		} else if emissionItem.UsedFallback {
 			layoutInfo = fmt.Sprintf(" [Leiaute %d via fallback]", emissionItem.LayoutVersion)
 		} else {
 			layoutInfo = fmt.Sprintf(" [Leiaute %d]", emissionItem.LayoutVersion)
@@ -90,6 +92,7 @@ func (s *InvoiceTaxEmit) Run(inDTO port.InDTO) port.OutDTO {
 	resp := dto.NewInvoiceTaxEmitResponse(200, "success", msg, emissionItem.NFENumber, emissionItem.NFEVerification, &nowStr, nextRPS)
 	resp.LayoutVersion = emissionItem.LayoutVersion
 	resp.UsedFallback = emissionItem.UsedFallback
+	resp.UsedLegacyEndpoint = emissionItem.UsedLegacyEndpoint
 	return resp
 }
 
