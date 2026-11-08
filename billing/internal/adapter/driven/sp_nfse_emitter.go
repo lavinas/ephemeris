@@ -13,6 +13,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"os"
 	"regexp"
@@ -196,15 +197,15 @@ func (e *SPNfseEmitter) loadCertificates() (*tls.Certificate, *rsa.PrivateKey, *
 	return tlsCert, rsaKey, cert, nil
 }
 
-// buildAndSignRPS creates the concatenated ASCII string and signs it with RSA-SHA1 (Leiaute 2)
-func (e *SPNfseEmitter) buildAndSignRPS(invoice *domain.Invoice, rpsNumber int64, emissionDate time.Time, rsaKey *rsa.PrivateKey) (string, error) {
+// buildRPSSignatureString creates the 90-char concatenated ASCII string defined by PMSP Manual for Layout 2
+func (e *SPNfseEmitter) buildRPSSignatureString(invoice *domain.Invoice, rpsNumber int64, emissionDate time.Time) string {
 	cleanNumbers := regexp.MustCompile(`[^0-9]`)
 
 	ccm := cleanNumbers.ReplaceAllString(invoice.Vendor.TaxDocument, "")
-	if len(ccm) > 8 {
-		ccm = ccm[:8]
+	if len(ccm) > 12 {
+		ccm = ccm[:12]
 	}
-	ccmFormatted := fmt.Sprintf("%08s", ccm)
+	ccmFormatted := fmt.Sprintf("%012s", ccm)
 
 	serieFormatted := fmt.Sprintf("%-5s", e.serie)
 	if len(serieFormatted) > 5 {
@@ -217,7 +218,7 @@ func (e *SPNfseEmitter) buildAndSignRPS(invoice *domain.Invoice, rpsNumber int64
 	status := "N"
 	issRetido := "N"
 
-	amountCents := int64(invoice.Amount * 100)
+	amountCents := int64(math.Round(invoice.Amount * 100))
 	amountFormatted := fmt.Sprintf("%015d", amountCents)
 	deductionsFormatted := fmt.Sprintf("%015d", 0)
 	serviceCodeFormatted := fmt.Sprintf("%05d", e.serviceCode)
@@ -232,10 +233,14 @@ func (e *SPNfseEmitter) buildAndSignRPS(invoice *domain.Invoice, rpsNumber int64
 	}
 	docFormatted := fmt.Sprintf("%014s", doc)
 
-	// Concatenation string defined by PMSP Manual for Layout 2
-	asciiStr := ccmFormatted + serieFormatted + rpsFormatted + dateFormatted +
+	return ccmFormatted + serieFormatted + rpsFormatted + dateFormatted +
 		tributacao + status + issRetido + amountFormatted + deductionsFormatted +
 		serviceCodeFormatted + docType + docFormatted
+}
+
+// buildAndSignRPS creates the concatenated ASCII string and signs it with RSA-SHA1 (Leiaute 2)
+func (e *SPNfseEmitter) buildAndSignRPS(invoice *domain.Invoice, rpsNumber int64, emissionDate time.Time, rsaKey *rsa.PrivateKey) (string, error) {
+	asciiStr := e.buildRPSSignatureString(invoice, rpsNumber, emissionDate)
 
 	// Hash SHA-1
 	h := sha1.New()

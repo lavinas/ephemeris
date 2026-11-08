@@ -147,4 +147,25 @@ func TestSPNfseEmitter_BuildAndSignRPS(t *testing.T) {
 	if sig == "" {
 		t.Errorf("signature should not be empty")
 	}
+
+	// Verify exact 90-char Layout 2 signature string against PMSP production verification string
+	emitterProd := NewSPNfseEmitter(&dummyLogger{}, "production", "", "", 5762, 0.0, "A", 10, "")
+	prodDoc := "32591333807"
+	prodInvoice := &domain.Invoice{
+		ID:     1,
+		Amount: 392.00,
+		Vendor: domain.Vendor{
+			Document:    "27928875000104",
+			TaxDocument: "57278881",
+		},
+		Customer: domain.Customer{
+			Name:     "Cliente",
+			Document: &prodDoc,
+		},
+	}
+	gotStr := emitterProd.buildRPSSignatureString(prodInvoice, 2558, time.Date(2026, 11, 7, 0, 0, 0, 0, time.UTC))
+	wantStr := "000057278881A    00000000255820261107TNN00000000003920000000000000000005762100032591333807"
+	if gotStr != wantStr {
+		t.Errorf("RPS signature string mismatch:\ngot:  %q (len=%d)\nwant: %q (len=%d)", gotStr, len(gotStr), wantStr, len(wantStr))
+	}
 }
