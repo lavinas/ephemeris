@@ -398,6 +398,9 @@ func (d *DB) ListItems(ctx context.Context) ([]DBItem, error) {
 		}
 		list = append(list, item)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return list, nil
 }
 
@@ -472,6 +475,9 @@ func (d *DB) ListAccounts(ctx context.Context, accountType string) ([]DBAccount,
 		}
 		list = append(list, acc)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return list, nil
 }
 
@@ -529,6 +535,9 @@ func (d *DB) ListTransactions(ctx context.Context, accountID, accountType, searc
 		}
 		list = append(list, tx)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
 	return list, total, nil
 }
 
@@ -562,6 +571,9 @@ func (d *DB) ListBills(ctx context.Context, accountID string) ([]DBCreditCardBil
 			return nil, err
 		}
 		list = append(list, bill)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return list, nil
 }
@@ -603,6 +615,9 @@ func (d *DB) ListInvestments(ctx context.Context, itemID string) ([]DBInvestment
 		}
 		list = append(list, inv)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return list, nil
 }
 
@@ -639,6 +654,9 @@ func (d *DB) ListInvestmentTransactions(ctx context.Context, investmentID string
 		}
 		list = append(list, it)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return list, nil
 }
 
@@ -672,6 +690,9 @@ func (d *DB) ListWebhookEvents(ctx context.Context, limit int) ([]DBWebhookEvent
 			return nil, err
 		}
 		list = append(list, ev)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return list, nil
 }

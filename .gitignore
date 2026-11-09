@@ -58,6 +58,8 @@ node_modules/
 .venv/
 dist/
 build/
+bin/
+**/bin/
 
 # Ignorar arquivos de mídia pesados que gastam contexto da IA
 *.png
