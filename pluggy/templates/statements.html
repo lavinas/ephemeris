@@ -1,0 +1,167 @@
+{{template "layout" .}}
+
+{{define "content"}}
+<div class="space-y-6">
+    <!-- Cabeçalho -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Extratos Bancários</h1>
+            <p class="text-sm text-slate-500">Consulta de movimentações em contas correntes e poupanças sincronizadas via Pluggy</p>
+        </div>
+        <div class="flex items-center space-x-2">
+            <button 
+                hx-post="/api/sync/all" 
+                hx-target="#global-alert-container" 
+                hx-indicator="#stmt-sync-spinner"
+                class="inline-flex items-center px-3.5 py-2 border border-slate-300 shadow-sm text-sm font-medium rounded-lg text-slate-700 bg-white hover:bg-slate-50">
+                <svg id="stmt-sync-spinner" class="htmx-indicator animate-spin -ml-1 mr-2 h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                </svg>
+                Atualizar Extratos
+            </button>
+        </div>
+    </div>
+
+    <!-- Barra de Filtros -->
+    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center gap-4">
+        <!-- Filtro por Conta -->
+        <div class="w-full sm:w-64">
+            <label for="filter-account" class="block text-xs font-semibold text-slate-600 mb-1">Filtrar por Conta</label>
+            <select 
+                id="filter-account" 
+                name="accountId" 
+                hx-get="/statements" 
+                hx-target="#statements-table-container" 
+                hx-include="[name='search']"
+                class="w-full rounded-lg border-slate-300 text-sm focus:ring-blue-500 focus:border-blue-500 bg-slate-50 py-2 px-3 border">
+                <option value="">Todas as Contas</option>
+                {{range .Accounts}}
+                <option value="{{.ID}}" {{if eq .ID $.AccountID}}selected{{end}}>
+                    {{.BankName}} - {{.Name}} ({{.Number}})
+                </option>
+                {{end}}
+            </select>
+        </div>
+
+        <!-- Busca por texto / categoria -->
+        <div class="w-full sm:flex-1">
+            <label for="filter-search" class="block text-xs font-semibold text-slate-600 mb-1">Buscar Transação</label>
+            <div class="relative">
+                <input 
+                    type="text" 
+                    id="filter-search" 
+                    name="search" 
+                    value="{{.Search}}"
+                    placeholder="Busque por descrição, estabelecimento ou categoria..." 
+                    hx-get="/statements" 
+                    hx-trigger="keyup changed delay:350ms, search" 
+                    hx-target="#statements-table-container" 
+                    hx-include="[name='accountId']"
+                    class="w-full rounded-lg border-slate-300 text-sm focus:ring-blue-500 focus:border-blue-500 bg-slate-50 py-2 pl-9 pr-3 border">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela de Extratos (Container HTMX) -->
+    <div id="statements-table-container" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        {{template "statements-table" .}}
+    </div>
+</div>
+{{end}}
+
+{{define "statements-table"}}
+<div class="overflow-x-auto">
+    <table class="w-full text-left border-collapse text-sm">
+        <thead>
+            <tr class="bg-slate-50 text-slate-500 text-xs font-semibold border-b border-slate-200">
+                <th class="py-3.5 px-4">Data</th>
+                <th class="py-3.5 px-4">Instituição / Conta</th>
+                <th class="py-3.5 px-4">Descrição da Movimentação</th>
+                <th class="py-3.5 px-4">Categoria</th>
+                <th class="py-3.5 px-4">Status</th>
+                <th class="py-3.5 px-4 text-right">Valor</th>
+                <th class="py-3.5 px-4 text-right">Saldo</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+            {{if .Transactions}}
+                {{range .Transactions}}
+                <tr class="hover:bg-slate-50/80 transition">
+                    <td class="py-3.5 px-4 whitespace-nowrap text-xs font-medium text-slate-600">
+                        {{formatDate .Date}}
+                    </td>
+                    <td class="py-3.5 px-4 whitespace-nowrap text-xs">
+                        <div class="font-medium text-slate-900">{{.BankName}}</div>
+                        <div class="text-slate-400">{{.AccountName}}</div>
+                    </td>
+                    <td class="py-3.5 px-4">
+                        <div class="font-medium text-slate-900">{{.Description}}</div>
+                        {{if .MerchantName}}
+                        <div class="text-xs text-slate-400 flex items-center space-x-1 mt-0.5">
+                            <span>Estabelecimento: {{.MerchantName}}</span>
+                            {{if .MerchantCNPJ}}<span>&bull; CNPJ: {{.MerchantCNPJ}}</span>{{end}}
+                        </div>
+                        {{end}}
+                    </td>
+                    <td class="py-3.5 px-4 whitespace-nowrap text-xs">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700">
+                            {{.Category}}
+                        </span>
+                    </td>
+                    <td class="py-3.5 px-4 whitespace-nowrap text-xs">
+                        {{statusBadge .Status}}
+                    </td>
+                    <td class="py-3.5 px-4 whitespace-nowrap text-right font-semibold {{if isDebit .Type .Amount}}text-rose-600{{else}}text-emerald-600{{end}}">
+                        {{if isDebit .Type .Amount}}-{{else}}+{{end}}{{formatMoney .Amount}}
+                    </td>
+                    <td class="py-3.5 px-4 whitespace-nowrap text-right text-xs text-slate-500">
+                        {{formatMoneyPtr .Balance}}
+                    </td>
+                </tr>
+                {{end}}
+            {{else}}
+                <tr>
+                    <td colspan="7" class="py-12 text-center text-slate-500 text-sm">
+                        <div class="max-w-md mx-auto">
+                            <svg class="w-12 h-12 mx-auto text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            <p class="font-medium text-slate-700">Nenhum lançamento encontrado</p>
+                            <p class="text-xs text-slate-400 mt-1">Conecte uma conta bancária ou tente alterar os termos da busca.</p>
+                        </div>
+                    </td>
+                </tr>
+            {{end}}
+        </tbody>
+    </table>
+</div>
+
+<!-- Paginação -->
+{{if gt .TotalPages 1}}
+<div class="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
+    <div>
+        Exibindo página <strong>{{.Page}}</strong> de <strong>{{.TotalPages}}</strong> (Total: {{.Total}} transações)
+    </div>
+    <div class="flex space-x-2">
+        {{if gt .Page 1}}
+        <button 
+            hx-get="/statements?page={{subtract .Page 1}}&accountId={{$.AccountID}}&search={{$.Search}}" 
+            hx-target="#statements-table-container"
+            class="px-3 py-1.5 rounded border border-slate-300 bg-white hover:bg-slate-50 font-medium">
+            &larr; Anterior
+        </button>
+        {{end}}
+        {{if lt .Page .TotalPages}}
+        <button 
+            hx-get="/statements?page={{add .Page 1}}&accountId={{$.AccountID}}&search={{$.Search}}" 
+            hx-target="#statements-table-container"
+            class="px-3 py-1.5 rounded border border-slate-300 bg-white hover:bg-slate-50 font-medium">
+            Próxima &rarr;
+        </button>
+        {{end}}
+    </div>
+</div>
+{{end}}
+{{end}}

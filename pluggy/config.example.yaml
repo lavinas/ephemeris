@@ -1,0 +1,17 @@
+server:
+  port: 8085
+
+pluggy:
+  base_url: "https://api.pluggy.ai"
+  client_id: "YOUR_CLIENT_ID"
+  client_secret: "YOUR_CLIENT_SECRET"
+  webhook_url: ""
+
+database:
+  host: "127.0.0.1"
+  port: 5435
+  user: "root"
+  password: "root"
+  dbname: "pluggy"
+  sslmode: "disable"
+

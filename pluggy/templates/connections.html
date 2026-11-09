@@ -1,0 +1,113 @@
+{{template "layout" .}}
+
+{{define "content"}}
+<div class="space-y-6">
+    <!-- Cabeçalho -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Conexões Pluggy (Items)</h1>
+            <p class="text-sm text-slate-500">Gerencie as instituições bancárias e corretoras sincronizadas na sua aplicação</p>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button 
+                type="button" 
+                onclick="openPluggyConnect()" 
+                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-blue-600 hover:bg-blue-700">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                Nova Conexão
+            </button>
+        </div>
+    </div>
+
+    <!-- Lista de Conexões (Container HTMX) -->
+    <div id="connections-list-container" class="space-y-4">
+        {{template "connections-list" .}}
+    </div>
+</div>
+{{end}}
+
+{{define "connections-list"}}
+{{if .Items}}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {{range .Items}}
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 flex flex-col justify-between hover:border-slate-300 transition">
+            <div>
+                <!-- Topo da Conexão -->
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex items-center space-x-3">
+                        {{if .ConnectorImageURL}}
+                        <img src="{{.ConnectorImageURL}}" alt="{{.ConnectorName}}" class="w-10 h-10 rounded-full border border-slate-200 object-contain p-1">
+                        {{else}}
+                        <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600">
+                            {{.ConnectorName}}
+                        </div>
+                        {{end}}
+                        <div>
+                            <h3 class="text-base font-bold text-slate-900">{{.ConnectorName}}</h3>
+                            <div class="text-xs text-slate-400">ID: <code class="text-slate-600 font-mono">{{.ID}}</code></div>
+                        </div>
+                    </div>
+                    <div>
+                        {{statusBadge .Status}}
+                    </div>
+                </div>
+
+                <!-- Detalhes e Métricas -->
+                <div class="grid grid-cols-3 gap-2 py-3 border-y border-slate-100 text-center text-xs my-3">
+                    <div>
+                        <div class="font-bold text-slate-900 text-sm">{{.AccountsCount}}</div>
+                        <div class="text-slate-400">Contas</div>
+                    </div>
+                    <div>
+                        <div class="font-bold text-slate-900 text-sm">{{.InvestmentsCount}}</div>
+                        <div class="text-slate-400">Investimentos</div>
+                    </div>
+                    <div>
+                        <div class="font-bold text-slate-900 text-sm">{{.TransactionsCount}}</div>
+                        <div class="text-slate-400">Transações</div>
+                    </div>
+                </div>
+
+                <div class="text-xs text-slate-500 space-y-1 my-3">
+                    <div>Última Atualização: <strong class="text-slate-700">{{formatDateTime .UpdatedAt}}</strong></div>
+                    {{if .LastUpdatedAt}}<div>Último Sync Pluggy: <strong class="text-slate-700">{{formatDateTimePtr .LastUpdatedAt}}</strong></div>{{end}}
+                    {{if .ErrorMessage}}
+                    <div class="p-2 rounded bg-rose-50 text-rose-700 font-mono text-[11px] mt-2">
+                        {{.ErrorCode}}: {{.ErrorMessage}}
+                    </div>
+                    {{end}}
+                </div>
+            </div>
+
+            <!-- Ações -->
+            <div class="flex items-center space-x-2 pt-4 border-t border-slate-100 mt-2">
+                <button 
+                    hx-post="/api/sync/item?id={{.ID}}" 
+                    hx-target="#global-alert-container"
+                    class="flex-1 inline-flex justify-center items-center px-3 py-1.5 border border-slate-300 shadow-sm text-xs font-semibold rounded-md text-slate-700 bg-white hover:bg-slate-50">
+                    Sincronizar
+                </button>
+                <button 
+                    hx-delete="/api/items?id={{.ID}}"
+                    hx-confirm="Tem certeza que deseja desconectar e apagar esta instituição e todos os seus extratos?"
+                    hx-target="#connections-list-container"
+                    class="inline-flex justify-center items-center px-3 py-1.5 border border-rose-200 text-xs font-semibold rounded-md text-rose-600 bg-rose-50 hover:bg-rose-100">
+                    Remover
+                </button>
+            </div>
+        </div>
+        {{end}}
+    </div>
+{{else}}
+    <div class="bg-white rounded-2xl border border-slate-200 p-12 text-center">
+        <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+        <h3 class="text-lg font-semibold text-slate-800">Nenhuma Conexão Cadastrada</h3>
+        <p class="text-sm text-slate-500 max-w-md mx-auto mt-2">
+            Conecte sua primeira conta via Pluggy Connect Widget. O ambiente de testes (Sandbox) fornece bancos fictícios (ex: Banco Sandbox) com transações e investimentos realistas.
+        </p>
+        <button onclick="openPluggyConnect()" class="mt-6 inline-flex items-center px-4 py-2 rounded-lg bg-blue-600 text-white font-medium text-sm hover:bg-blue-700 shadow">
+            Conectar Instituição Agora
+        </button>
+    </div>
+{{end}}
+{{end}}

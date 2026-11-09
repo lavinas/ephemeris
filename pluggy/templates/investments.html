@@ -1,0 +1,197 @@
+{{template "layout" .}}
+
+{{define "content"}}
+<div class="space-y-6">
+    <!-- Cabeçalho -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Carteira de Investimentos</h1>
+            <p class="text-sm text-slate-500">Aplicações financeiras, fundos, renda fixa, tesouro direto e ações</p>
+        </div>
+        <button 
+            hx-post="/api/sync/all" 
+            hx-target="#global-alert-container" 
+            hx-indicator="#inv-sync-spinner"
+            class="inline-flex items-center px-3.5 py-2 border border-slate-300 shadow-sm text-sm font-medium rounded-lg text-slate-700 bg-white hover:bg-slate-50">
+            <svg id="inv-sync-spinner" class="htmx-indicator animate-spin -ml-1 mr-2 h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+            </svg>
+            Sincronizar Carteira
+        </button>
+    </div>
+
+    <!-- Cards de Totais da Carteira -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+        <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Saldo Líquido Total</span>
+            <div class="text-2xl font-bold text-slate-900 mt-1">{{formatMoney .TotalBalance}}</div>
+            <div class="text-xs text-slate-400 mt-1">Disponível após tributação e taxas</div>
+        </div>
+        <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Valor Bruto Aplicado</span>
+            <div class="text-2xl font-bold text-indigo-600 mt-1">{{formatMoney .TotalAmount}}</div>
+            <div class="text-xs text-slate-400 mt-1">Posição bruta em custódia</div>
+        </div>
+        <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total de Ativos</span>
+            <div class="text-2xl font-bold text-slate-800 mt-1">{{len .Investments}}</div>
+            <div class="text-xs text-slate-400 mt-1">Produtos financeiros mapeados</div>
+        </div>
+    </div>
+
+    <!-- Filtro por Instituição -->
+    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div class="flex items-center space-x-3 w-full sm:w-72">
+            <label for="filter-inv-item" class="text-xs font-semibold text-slate-600 whitespace-nowrap">Instituição:</label>
+            <select 
+                id="filter-inv-item" 
+                name="itemId" 
+                hx-get="/investments" 
+                hx-target="#investments-table-container"
+                class="w-full rounded-lg border-slate-300 text-sm focus:ring-blue-500 focus:border-blue-500 bg-slate-50 py-1.5 px-3 border">
+                <option value="">Todas as Instituições</option>
+                {{range .Items}}
+                <option value="{{.ID}}" {{if eq .ID $.SelectedItem}}selected{{end}}>
+                    {{.ConnectorName}}
+                </option>
+                {{end}}
+            </select>
+        </div>
+    </div>
+
+    <!-- Tabela de Investimentos (Container HTMX) -->
+    <div id="investments-table-container" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        {{template "investments-table" .}}
+    </div>
+
+    <!-- Container do Modal de Movimentações -->
+    <div id="modal-container"></div>
+</div>
+{{end}}
+
+{{define "investments-table"}}
+<div class="overflow-x-auto">
+    <table class="w-full text-left border-collapse text-sm">
+        <thead>
+            <tr class="bg-slate-50 text-slate-500 text-xs font-semibold border-b border-slate-200">
+                <th class="py-3.5 px-4">Instituição</th>
+                <th class="py-3.5 px-4">Nome do Ativo</th>
+                <th class="py-3.5 px-4">Tipo / Categoria</th>
+                <th class="py-3.5 px-4">Código / ISIN</th>
+                <th class="py-3.5 px-4">Rentabilidade</th>
+                <th class="py-3.5 px-4">Vencimento</th>
+                <th class="py-3.5 px-4 text-right">Saldo Líquido</th>
+                <th class="py-3.5 px-4 text-right">Valor Bruto</th>
+                <th class="py-3.5 px-4 text-center">Ações</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+            {{if .Investments}}
+                {{range .Investments}}
+                <tr class="hover:bg-slate-50/80 transition">
+                    <td class="py-3.5 px-4 whitespace-nowrap text-xs font-medium text-slate-700">
+                        {{.InstitutionName}}
+                    </td>
+                    <td class="py-3.5 px-4">
+                        <div class="font-semibold text-slate-900">{{.Name}}</div>
+                        {{if .Subtype}}<div class="text-xs text-slate-400">{{.Subtype}}</div>{{end}}
+                    </td>
+                    <td class="py-3.5 px-4 whitespace-nowrap text-xs">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700">
+                            {{.Type}}
+                        </span>
+                    </td>
+                    <td class="py-3.5 px-4 whitespace-nowrap text-xs font-mono text-slate-500">
+                        {{if .Code}}{{.Code}}{{else if .ISIN}}{{.ISIN}}{{else}}-{{end}}
+                    </td>
+                    <td class="py-3.5 px-4 whitespace-nowrap text-xs text-slate-600">
+                        {{formatRate .Rate .RateType}}
+                    </td>
+                    <td class="py-3.5 px-4 whitespace-nowrap text-xs text-slate-500">
+                        {{formatDatePtr .DueDate}}
+                    </td>
+                    <td class="py-3.5 px-4 whitespace-nowrap text-right font-bold text-slate-900">
+                        {{formatMoney .Balance}}
+                    </td>
+                    <td class="py-3.5 px-4 whitespace-nowrap text-right text-xs font-medium text-slate-600">
+                        {{formatMoney .Amount}}
+                    </td>
+                    <td class="py-3.5 px-4 whitespace-nowrap text-center">
+                        <button 
+                            hx-get="/partials/investments/transactions?id={{.ID}}" 
+                            hx-target="#modal-container"
+                            class="px-2.5 py-1 text-xs font-medium text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 rounded-md transition">
+                            Movimentações
+                        </button>
+                    </td>
+                </tr>
+                {{end}}
+            {{else}}
+                <tr>
+                    <td colspan="9" class="py-12 text-center text-slate-400 text-sm">
+                        Nenhuma aplicação financeira encontrada.
+                    </td>
+                </tr>
+            {{end}}
+        </tbody>
+    </table>
+</div>
+{{end}}
+
+{{define "investment-transactions-modal"}}
+<div class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden border border-slate-200">
+        <div class="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+            <div>
+                <h3 class="text-base font-bold text-slate-900">Movimentações do Investimento</h3>
+                <p class="text-xs text-slate-500">Histórico de compras, resgates e rendimentos</p>
+            </div>
+            <button onclick="this.closest('.fixed').remove()" class="text-slate-400 hover:text-slate-600 text-lg">&times;</button>
+        </div>
+
+        <div class="p-6 overflow-y-auto max-h-[60vh]">
+            {{if .Transactions}}
+            <table class="w-full text-left border-collapse text-sm">
+                <thead>
+                    <tr class="bg-slate-50 text-slate-500 text-xs font-semibold">
+                        <th class="py-2.5 px-3">Data</th>
+                        <th class="py-2.5 px-3">Tipo</th>
+                        <th class="py-2.5 px-3">Qtd</th>
+                        <th class="py-2.5 px-3 text-right">Valor Unit.</th>
+                        <th class="py-2.5 px-3 text-right">Valor Bruto</th>
+                        <th class="py-2.5 px-3 text-right">Valor Líquido</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {{range .Transactions}}
+                    <tr class="hover:bg-slate-50 text-xs">
+                        <td class="py-2.5 px-3 text-slate-500">{{formatDate .Date}}</td>
+                        <td class="py-2.5 px-3">
+                            <span class="font-semibold {{if eq .Type "BUY"}}text-blue-600{{else if eq .Type "SELL"}}text-emerald-600{{else}}text-amber-600{{end}}">
+                                {{.Type}}
+                            </span>
+                        </td>
+                        <td class="py-2.5 px-3 text-slate-600">{{formatFloatPtr .Quantity "%.4f"}}</td>
+                        <td class="py-2.5 px-3 text-right text-slate-600">{{formatMoneyPtr .Value}}</td>
+                        <td class="py-2.5 px-3 text-right font-medium text-slate-800">{{formatMoney .Amount}}</td>
+                        <td class="py-2.5 px-3 text-right font-bold text-slate-900">{{formatMoneyPtr .NetAmount}}</td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+            {{else}}
+            <div class="py-8 text-center text-slate-400 text-xs">
+                Nenhuma movimentação detalhada registrada para este ativo na instituição.
+            </div>
+            {{end}}
+        </div>
+
+        <div class="p-4 bg-slate-50 border-t border-slate-200 text-right">
+            <button onclick="this.closest('.fixed').remove()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 rounded-lg text-xs font-semibold text-slate-700">
+                Fechar
+            </button>
+        </div>
+    </div>
+</div>
+{{end}}

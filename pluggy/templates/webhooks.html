@@ -1,0 +1,200 @@
+{{template "layout" .}}
+
+{{define "content"}}
+<div class="space-y-8">
+    <!-- Cabeçalho -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Webhooks & Exposição de Rede</h1>
+            <p class="text-sm text-slate-500">Recepção de notificações automáticas da Pluggy e túnel para rede caseira</p>
+        </div>
+        <button 
+            hx-get="/webhooks" 
+            hx-target="#webhooks-events-container"
+            class="inline-flex items-center px-3.5 py-2 border border-slate-300 shadow-sm text-sm font-medium rounded-lg text-slate-700 bg-white hover:bg-slate-50">
+            <svg class="w-4 h-4 mr-2 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            Atualizar Log
+        </button>
+    </div>
+
+    <!-- Guia de Túnel Público para Rede Doméstica (Wi-Fi) -->
+    <div class="bg-gradient-to-br from-slate-900 to-indigo-950 rounded-2xl p-6 sm:p-8 text-white shadow-lg border border-slate-800">
+        <div class="flex items-start space-x-4">
+            <div class="w-12 h-12 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-400 shrink-0">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            </div>
+            <div class="flex-1">
+                <h2 class="text-lg font-bold text-white">Como expor o Webhook da sua máquina em rede Wi-Fi caseira</h2>
+                <p class="text-sm text-slate-300 mt-1">
+                    Como a Pluggy precisa disparar chamadas HTTP POST públicas para notificar quando novos extratos ou transações são capturados, use um túnel HTTPS seguro apontando para a porta <strong>8085</strong>.
+                </p>
+
+                <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Opção 1: LocalTunnel (Já instalado na máquina) -->
+                    <div class="p-4 rounded-xl bg-white/5 border border-white/10">
+                        <div class="flex items-center justify-between text-xs font-semibold text-blue-300 mb-2">
+                            <span>OPÇÃO 1: LOCALTUNNEL (Já instalado)</span>
+                            <span class="px-2 py-0.5 rounded bg-blue-500/20 text-blue-200">Recomendado</span>
+                        </div>
+                        <p class="text-xs text-slate-300 mb-3">Abra um terminal e execute o comando abaixo (ou execute <code>./scripts/tunnel.sh</code>):</p>
+                        <div class="p-2.5 rounded-lg bg-black/50 font-mono text-xs text-emerald-400 overflow-x-auto select-all">
+                            lt --port 8085
+                        </div>
+                        <p class="text-[11px] text-slate-400 mt-2">
+                            Ele fornecerá uma URL como <code>https://xxx.loca.lt</code>. A URL final do seu webhook será <code>https://xxx.loca.lt/api/webhook</code>.
+                        </p>
+                    </div>
+
+                    <!-- Opção 2: Cloudflare Tunnel ou Ngrok -->
+                    <div class="p-4 rounded-xl bg-white/5 border border-white/10">
+                        <div class="text-xs font-semibold text-purple-300 mb-2">OPÇÃO 2: CLOUDFLARE TUNNEL OU NGROK</div>
+                        <p class="text-xs text-slate-300 mb-3">Com Cloudflared (grátis e sem expiração):</p>
+                        <div class="p-2.5 rounded-lg bg-black/50 font-mono text-xs text-purple-300 overflow-x-auto select-all mb-2">
+                            cloudflared tunnel --url http://localhost:8085
+                        </div>
+                        <p class="text-xs text-slate-300">Ou com ngrok:</p>
+                        <div class="p-2.5 rounded-lg bg-black/50 font-mono text-xs text-purple-300 overflow-x-auto select-all">
+                            ngrok http 8085
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulário: Registrar Webhook na Pluggy API -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+        <h2 class="text-base font-bold text-slate-900 mb-1">Registrar Webhook na Plataforma Pluggy</h2>
+        <p class="text-xs text-slate-500 mb-4">Insira a URL pública gerada pelo túnel para registrar o callback na Pluggy</p>
+
+        <form hx-post="/api/webhooks/register" hx-target="#webhook-feedback-container" class="space-y-4">
+            <div id="webhook-feedback-container"></div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="sm:col-span-2">
+                    <label for="url" class="block text-xs font-semibold text-slate-600 mb-1">URL Pública do Webhook</label>
+                    <input 
+                        type="url" 
+                        name="url" 
+                        id="url" 
+                        required 
+                        placeholder="https://seu-subdominio.loca.lt/api/webhook" 
+                        class="w-full rounded-lg border-slate-300 text-sm focus:ring-blue-500 focus:border-blue-500 bg-slate-50 py-2 px-3 border">
+                </div>
+                <div>
+                    <label for="event" class="block text-xs font-semibold text-slate-600 mb-1">Evento</label>
+                    <select 
+                        name="event" 
+                        id="event" 
+                        class="w-full rounded-lg border-slate-300 text-sm focus:ring-blue-500 focus:border-blue-500 bg-slate-50 py-2 px-3 border">
+                        <option value="all">all (Todos os Eventos)</option>
+                        <option value="item/created">item/created</option>
+                        <option value="item/updated">item/updated</option>
+                        <option value="transactions/created">transactions/created</option>
+                        <option value="transactions/updated">transactions/updated</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="text-right">
+                <button type="submit" class="inline-flex items-center px-4 py-2 rounded-lg bg-blue-600 text-white font-medium text-sm hover:bg-blue-700 shadow">
+                    Registrar na Pluggy
+                </button>
+            </div>
+        </form>
+
+        <!-- Webhooks Atualmente Cadastrados na Pluggy -->
+        {{if .PluggyWebhooks}}
+        <div class="mt-6 pt-6 border-t border-slate-100">
+            <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Webhooks Ativos na Pluggy</h3>
+            <div class="space-y-2">
+                {{range .PluggyWebhooks}}
+                <div class="p-3 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-between text-xs">
+                    <div>
+                        <div class="font-mono font-medium text-slate-800">{{.URL}}</div>
+                        <div class="text-slate-400 mt-0.5">Evento: <span class="text-blue-600 font-semibold">{{.Event}}</span> &bull; ID: {{.ID}}</div>
+                    </div>
+                    <button 
+                        hx-delete="/api/webhooks?id={{.ID}}"
+                        hx-confirm="Deseja remover este webhook da Pluggy?"
+                        hx-target="closest div"
+                        hx-swap="outerHTML"
+                        class="text-xs text-rose-600 hover:text-rose-800 font-medium px-2 py-1 bg-white rounded border border-rose-200">
+                        Remover
+                    </button>
+                </div>
+                {{end}}
+            </div>
+        </div>
+        {{end}}
+    </div>
+
+    <!-- Tabela de Logs de Webhook (Container HTMX com polling opcional) -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+            <div>
+                <h2 class="text-sm font-bold text-slate-900">Histórico de Eventos Recebidos (pluggy_webhook_event)</h2>
+                <p class="text-xs text-slate-500">Auditoria completa dos payloads recebidos no endpoint <code>POST /api/webhook</code></p>
+            </div>
+            <span class="text-xs text-slate-500">Auto-atualização periódica a cada 10s</span>
+        </div>
+
+        <div id="webhooks-events-container" hx-get="/webhooks" hx-trigger="every 10s" hx-target="#webhooks-events-container" hx-select="#webhooks-events-container > *">
+            {{template "webhooks-table" .}}
+        </div>
+    </div>
+</div>
+{{end}}
+
+{{define "webhooks-table"}}
+<div class="overflow-x-auto">
+    <table class="w-full text-left border-collapse text-sm">
+        <thead>
+            <tr class="bg-slate-50 text-slate-500 text-xs font-semibold border-b border-slate-100">
+                <th class="py-3 px-4">Recebido Em</th>
+                <th class="py-3 px-4">Evento</th>
+                <th class="py-3 px-4">Item ID</th>
+                <th class="py-3 px-4">Triggered By</th>
+                <th class="py-3 px-4">Status</th>
+                <th class="py-3 px-4">Payload</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+            {{if .Events}}
+                {{range .Events}}
+                <tr class="hover:bg-slate-50 transition text-xs">
+                    <td class="py-3 px-4 whitespace-nowrap text-slate-500 font-mono">
+                        {{formatDateTime .ReceivedAt}}
+                    </td>
+                    <td class="py-3 px-4 whitespace-nowrap font-semibold text-blue-700">
+                        {{.Event}}
+                    </td>
+                    <td class="py-3 px-4 whitespace-nowrap font-mono text-slate-600">
+                        {{if .ItemID}}{{.ItemID}}{{else}}-{{end}}
+                    </td>
+                    <td class="py-3 px-4 whitespace-nowrap text-slate-500">
+                        {{if .TriggeredBy}}{{.TriggeredBy}}{{else}}SYSTEM{{end}}
+                    </td>
+                    <td class="py-3 px-4 whitespace-nowrap">
+                        {{statusBadge .Status}}
+                    </td>
+                    <td class="py-3 px-4">
+                        <details class="cursor-pointer">
+                            <summary class="text-xs text-blue-600 hover:underline font-medium">Ver JSON bruto</summary>
+                            <pre class="mt-2 p-2 bg-slate-900 text-slate-100 rounded text-[11px] overflow-x-auto max-w-xl font-mono">{{.Payload}}</pre>
+                        </details>
+                    </td>
+                </tr>
+                {{end}}
+            {{else}}
+                <tr>
+                    <td colspan="6" class="py-10 text-center text-slate-400 text-xs">
+                        Nenhum evento registrado ainda.
+                    </td>
+                </tr>
+            {{end}}
+        </tbody>
+    </table>
+</div>
+{{end}}
+

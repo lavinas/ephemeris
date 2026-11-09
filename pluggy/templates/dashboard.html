@@ -1,0 +1,186 @@
+{{template "layout" .}}
+
+{{define "content"}}
+<div class="space-y-8">
+    <!-- Banner de Boas-Vindas -->
+    <div class="bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-900 rounded-2xl p-6 sm:p-8 text-white shadow-lg">
+        <div class="max-w-3xl">
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">Piloto Pluggy Open Finance</h1>
+            <p class="mt-2 text-blue-100 text-sm sm:text-base leading-relaxed">
+                Integração automática com a API Pluggy para captura e consolidação de extratos de contas correntes, faturas de cartão de crédito e carteira de investimentos no PostgreSQL (database <code>pluggy</code>).
+            </p>
+            <div class="mt-6 flex flex-wrap gap-3">
+                <button onclick="openPluggyConnect()" class="inline-flex items-center px-4 py-2 rounded-lg bg-white text-blue-700 font-semibold text-sm hover:bg-blue-50 shadow transition">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    Conectar Instituição Sandbox
+                </button>
+                <a href="/webhooks" class="inline-flex items-center px-4 py-2 rounded-lg bg-blue-600/50 hover:bg-blue-600 text-white font-medium text-sm border border-blue-400/30 transition">
+                    Configurar Webhook Público
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cards de Resumo Patrimonial (KPIs) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <!-- Saldo Bancário -->
+        <div class="bg-white rounded-xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between text-slate-500 mb-2">
+                <span class="text-xs font-semibold uppercase tracking-wider">Saldo Bancário</span>
+                <span class="p-2 rounded-lg bg-emerald-50 text-emerald-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+                </span>
+            </div>
+            <div>
+                <div class="text-2xl font-bold text-slate-900">{{formatMoney .Summary.TotalBankBalance}}</div>
+                <div class="text-xs text-slate-500 mt-1">{{.Summary.TotalBankAccounts}} contas cadastradas</div>
+            </div>
+            <a href="/statements" class="mt-4 text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center">
+                Ver extratos &rarr;
+            </a>
+        </div>
+
+        <!-- Faturas de Cartão -->
+        <div class="bg-white rounded-xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between text-slate-500 mb-2">
+                <span class="text-xs font-semibold uppercase tracking-wider">Cartão de Crédito</span>
+                <span class="p-2 rounded-lg bg-rose-50 text-rose-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+                </span>
+            </div>
+            <div>
+                <div class="text-2xl font-bold text-slate-900">{{formatMoney .Summary.TotalCreditSpent}}</div>
+                <div class="text-xs text-slate-500 mt-1">{{.Summary.TotalCreditCards}} cartões ativos</div>
+            </div>
+            <a href="/credit-cards" class="mt-4 text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center">
+                Ver faturas e limites &rarr;
+            </a>
+        </div>
+
+        <!-- Investimentos -->
+        <div class="bg-white rounded-xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between text-slate-500 mb-2">
+                <span class="text-xs font-semibold uppercase tracking-wider">Investimentos</span>
+                <span class="p-2 rounded-lg bg-indigo-50 text-indigo-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                </span>
+            </div>
+            <div>
+                <div class="text-2xl font-bold text-slate-900">{{formatMoney .Summary.TotalInvestmentsBalance}}</div>
+                <div class="text-xs text-slate-500 mt-1">{{.Summary.TotalInvestments}} ativos em carteira</div>
+            </div>
+            <a href="/investments" class="mt-4 text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center">
+                Ver carteira de ativos &rarr;
+            </a>
+        </div>
+
+        <!-- Conexões / Itens -->
+        <div class="bg-white rounded-xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between text-slate-500 mb-2">
+                <span class="text-xs font-semibold uppercase tracking-wider">Conexões Ativas</span>
+                <span class="p-2 rounded-lg bg-blue-50 text-blue-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                </span>
+            </div>
+            <div>
+                <div class="text-2xl font-bold text-slate-900">{{.Summary.TotalConnectedItems}}</div>
+                <div class="text-xs text-slate-500 mt-1">Instituições sincronizadas</div>
+            </div>
+            <a href="/connections" class="mt-4 text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center">
+                Gerenciar conexões &rarr;
+            </a>
+        </div>
+    </div>
+
+    <!-- Seções Lado a Lado: Últimas Transações e Atividades de Webhook -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Últimas Transações (2 colunas) -->
+        <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+                <div>
+                    <h2 class="text-base font-bold text-slate-900">Últimas Transações</h2>
+                    <p class="text-xs text-slate-500">Movimentações recentes consolidadas de contas e cartões</p>
+                </div>
+                <a href="/statements" class="text-xs font-medium text-blue-600 hover:text-blue-700">Ver todas</a>
+            </div>
+
+            {{if .RecentTxs}}
+            <div class="divide-y divide-slate-100 overflow-x-auto">
+                <table class="w-full text-left border-collapse text-sm">
+                    <thead>
+                        <tr class="bg-slate-50 text-slate-500 text-xs font-semibold">
+                            <th class="py-3 px-4">Data</th>
+                            <th class="py-3 px-4">Descrição</th>
+                            <th class="py-3 px-4">Conta / Banco</th>
+                            <th class="py-3 px-4 text-right">Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {{range .RecentTxs}}
+                        <tr class="hover:bg-slate-50 transition">
+                            <td class="py-3 px-4 whitespace-nowrap text-xs text-slate-500">{{formatDate .Date}}</td>
+                            <td class="py-3 px-4">
+                                <div class="font-medium text-slate-900">{{.Description}}</div>
+                                <div class="text-xs text-slate-400">{{.Category}}</div>
+                            </td>
+                            <td class="py-3 px-4 whitespace-nowrap text-xs text-slate-600">
+                                <div>{{.BankName}}</div>
+                                <div class="text-slate-400">{{.AccountName}}</div>
+                            </td>
+                            <td class="py-3 px-4 whitespace-nowrap text-right font-medium {{if isDebit .Type .Amount}}text-rose-600{{else}}text-emerald-600{{end}}">
+                                {{if isDebit .Type .Amount}}-{{else}}+{{end}}{{formatMoney .Amount}}
+                            </td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+            {{else}}
+            <div class="p-8 text-center text-slate-500 text-sm">
+                Nenhuma transação encontrada ainda. Clique em <strong>"Conectar Conta"</strong> acima para conectar um banco de testes (Sandbox) ou clique em <strong>"Sincronizar Tudo"</strong>.
+            </div>
+            {{end}}
+        </div>
+
+        <!-- Eventos de Webhook Recentes (1 coluna) -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+            <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+                <div>
+                    <h2 class="text-base font-bold text-slate-900">Eventos de Webhook</h2>
+                    <p class="text-xs text-slate-500">Notificações em tempo real da Pluggy</p>
+                </div>
+                <a href="/webhooks" class="text-xs font-medium text-blue-600 hover:text-blue-700">Ver log</a>
+            </div>
+
+            <div class="p-4 flex-1">
+                {{if .RecentWebhooks}}
+                <div class="space-y-3">
+                    {{range .RecentWebhooks}}
+                    <div class="p-3 rounded-lg border border-slate-100 bg-slate-50 text-xs">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="font-semibold text-blue-700">{{.Event}}</span>
+                            <span class="text-slate-400">{{formatDateTime .ReceivedAt}}</span>
+                        </div>
+                        <div class="text-slate-600 truncate">Item: <code class="text-slate-700">{{.ItemID}}</code></div>
+                    </div>
+                    {{end}}
+                </div>
+                {{else}}
+                <div class="h-48 flex flex-col items-center justify-center text-center text-slate-400 text-xs">
+                    <svg class="w-8 h-8 mb-2 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    Nenhum webhook recebido ainda.<br>
+                    Configure um túnel público para receber eventos automáticos.
+                </div>
+                {{end}}
+            </div>
+
+            <div class="p-4 bg-slate-50 border-t border-slate-100">
+                <a href="/webhooks" class="w-full inline-flex justify-center items-center px-3 py-2 border border-slate-300 shadow-sm text-xs font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50">
+                    Configurar Túnel & Webhook
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}
+
