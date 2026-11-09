@@ -10,6 +10,8 @@ import (
 	"net/url"
 	"sync"
 	"time"
+
+	"pluggy/internal/logger"
 )
 
 type Client struct {
@@ -17,13 +19,14 @@ type Client struct {
 	clientID     string
 	clientSecret string
 	httpClient   *http.Client
+	logger       *logger.Logger
 
 	mu        sync.RWMutex
 	apiKey    string
 	expiresAt time.Time
 }
 
-func NewClient(baseURL, clientID, clientSecret string) *Client {
+func NewClient(baseURL, clientID, clientSecret string, log *logger.Logger) *Client {
 	if baseURL == "" {
 		baseURL = "https://api.pluggy.ai"
 	}
@@ -31,6 +34,7 @@ func NewClient(baseURL, clientID, clientSecret string) *Client {
 		baseURL:      baseURL,
 		clientID:     clientID,
 		clientSecret: clientSecret,
+		logger:       log,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
@@ -63,6 +67,7 @@ func (c *Client) getAPIKey(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("erro ao serializar credenciais auth: %w", err)
 	}
 
+	start := time.Now()
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/auth", bytes.NewReader(authBody))
 	if err != nil {
 		return "", fmt.Errorf("erro ao criar requisição de auth: %w", err)
@@ -70,19 +75,31 @@ func (c *Client) getAPIKey(ctx context.Context) (string, error) {
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.httpClient.Do(req)
+	duration := time.Since(start)
 	if err != nil {
+		if c.logger != nil {
+			c.logger.LogAPICall(http.MethodPost, "/auth", 0, duration, 0, err)
+		}
 		return "", fmt.Errorf("falha na requisição de autenticação Pluggy: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		body, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("falha de autenticação Pluggy HTTP %d: %s", resp.StatusCode, string(body))
+		reqErr := fmt.Errorf("falha de autenticação Pluggy HTTP %d: %s", resp.StatusCode, string(body))
+		if c.logger != nil {
+			c.logger.LogAPICall(http.MethodPost, "/auth", resp.StatusCode, duration, 0, reqErr)
+		}
+		return "", reqErr
 	}
 
 	var authResp AuthResponse
 	if err := json.NewDecoder(resp.Body).Decode(&authResp); err != nil {
 		return "", fmt.Errorf("erro ao decodificar resposta de auth: %w", err)
+	}
+
+	if c.logger != nil {
+		c.logger.LogAPICall(http.MethodPost, "/auth", resp.StatusCode, duration, 1, nil)
 	}
 
 	c.apiKey = authResp.APIKey
@@ -91,7 +108,7 @@ func (c *Client) getAPIKey(ctx context.Context) (string, error) {
 	return c.apiKey, nil
 }
 
-// doRequest executa uma requisição HTTP autenticada com X-API-KEY
+// doRequest executa uma requisição HTTP autenticada com X-API-KEY e registra telemetria de log
 func (c *Client) doRequest(ctx context.Context, method, path string, body any, out any) error {
 	apiKey, err := c.getAPIKey(ctx)
 	if err != nil {
@@ -116,15 +133,25 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body any, o
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-API-KEY", apiKey)
 
+	start := time.Now()
 	resp, err := c.httpClient.Do(req)
+	duration := time.Since(start)
+
 	if err != nil {
+		if c.logger != nil {
+			c.logger.LogAPICall(method, path, 0, duration, 0, err)
+		}
 		return fmt.Errorf("erro ao executar requisição %s %s: %w", method, reqURL, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		respBody, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("erro na API Pluggy [%s %s] status %d: %s", method, path, resp.StatusCode, string(respBody))
+		reqErr := fmt.Errorf("erro na API Pluggy [%s %s] status %d: %s", method, path, resp.StatusCode, string(respBody))
+		if c.logger != nil {
+			c.logger.LogAPICall(method, path, resp.StatusCode, duration, 0, reqErr)
+		}
+		return reqErr
 	}
 
 	if out != nil {
@@ -133,7 +160,37 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body any, o
 		}
 	}
 
+	if c.logger != nil {
+		c.logger.LogAPICall(method, path, resp.StatusCode, duration, countResults(out), nil)
+	}
+
 	return nil
+}
+
+func countResults(out any) int {
+	if out == nil {
+		return 0
+	}
+	switch v := out.(type) {
+	case *AccountsResponse:
+		return len(v.Results)
+	case *TransactionsResponse:
+		return len(v.Results)
+	case *BillsResponse:
+		return len(v.Results)
+	case *InvestmentsResponse:
+		return len(v.Results)
+	case *InvestmentTransactionsResponse:
+		return len(v.Results)
+	case *WebhooksListResponse:
+		return len(v.Results)
+	case *Item:
+		return 1
+	case *WebhookRegistration:
+		return 1
+	default:
+		return 1
+	}
 }
 
 // CreateConnectToken gera um token temporário para inicializar o Pluggy Connect Widget
@@ -278,4 +335,3 @@ func (c *Client) CreateWebhook(ctx context.Context, webhookURL, event string) (*
 func (c *Client) DeleteWebhook(ctx context.Context, webhookID string) error {
 	return c.doRequest(ctx, http.MethodDelete, "/webhooks/"+url.PathEscape(webhookID), nil, nil)
 }
-

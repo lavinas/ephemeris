@@ -1,17 +1,17 @@
 package handler
 
 import (
-	"log"
 	"net/http"
 	"time"
 
 	"pluggy/internal/config"
 	"pluggy/internal/db"
+	"pluggy/internal/logger"
 	"pluggy/internal/pluggy"
 	"pluggy/internal/service"
 )
 
-func NewRouter(cfg *config.Config, database *db.DB, client *pluggy.Client, syncer *service.Syncer, templatesDir string) (http.Handler, error) {
+func NewRouter(cfg *config.Config, database *db.DB, client *pluggy.Client, syncer *service.Syncer, log *logger.Logger, templatesDir string) (http.Handler, error) {
 	mux := http.NewServeMux()
 
 	webHandler, err := NewWebHandler(cfg, database, client, syncer, templatesDir)
@@ -20,7 +20,7 @@ func NewRouter(cfg *config.Config, database *db.DB, client *pluggy.Client, synce
 	}
 
 	apiHandler := NewAPIHandler(database, client, syncer)
-	webhookHandler := NewWebhookHandler(database, syncer)
+	webhookHandler := NewWebhookHandler(database, syncer, log)
 
 	// Rotas da Interface Web HTMX
 	mux.HandleFunc("GET /", webHandler.RenderDashboard)
@@ -44,13 +44,14 @@ func NewRouter(cfg *config.Config, database *db.DB, client *pluggy.Client, synce
 	mux.HandleFunc("POST /api/webhook", webhookHandler.HandleWebhook)
 	mux.HandleFunc("POST /webhook", webhookHandler.HandleWebhook)
 
-	// Middleware simples de log
+	// Middleware estruturado de log HTTP
 	loggedMux := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		mux.ServeHTTP(w, r)
-		log.Printf("[%s] %s (%s)", r.Method, r.URL.Path, time.Since(start))
+		if log != nil {
+			log.Infof("[HTTP] %s %s (%dms)", r.Method, r.URL.Path, time.Since(start).Milliseconds())
+		}
 	})
 
 	return loggedMux, nil
 }
-

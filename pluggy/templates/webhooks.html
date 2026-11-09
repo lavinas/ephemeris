@@ -5,8 +5,8 @@
     <!-- Cabeçalho -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Webhooks & Exposição de Rede</h1>
-            <p class="text-sm text-slate-500">Recepção de notificações automáticas da Pluggy e túnel para rede caseira</p>
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Webhooks & Túnel</h1>
+            <p class="text-sm text-slate-500">Exposição de rede local e histórico de notificações da Pluggy</p>
         </div>
         <button 
             hx-get="/webhooks" 
@@ -136,10 +136,10 @@
                 <h2 class="text-sm font-bold text-slate-900">Histórico de Eventos Recebidos (pluggy_webhook_event)</h2>
                 <p class="text-xs text-slate-500">Auditoria completa dos payloads recebidos no endpoint <code>POST /api/webhook</code></p>
             </div>
-            <span class="text-xs text-slate-500">Auto-atualização periódica a cada 10s</span>
+            <span class="text-xs text-slate-400">Atualização manual via botão acima</span>
         </div>
 
-        <div id="webhooks-events-container" hx-get="/webhooks" hx-trigger="every 10s" hx-target="#webhooks-events-container" hx-select="#webhooks-events-container > *">
+        <div id="webhooks-events-container">
             {{template "webhooks-table" .}}
         </div>
     </div>

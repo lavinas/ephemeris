@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"log"
 	"net/http"
 	"time"
 
 	"pluggy/internal/db"
+	"pluggy/internal/logger"
 	"pluggy/internal/pluggy"
 	"pluggy/internal/service"
 )
@@ -16,12 +16,14 @@ import (
 type WebhookHandler struct {
 	db     *db.DB
 	syncer *service.Syncer
+	logger *logger.Logger
 }
 
-func NewWebhookHandler(database *db.DB, syncer *service.Syncer) *WebhookHandler {
+func NewWebhookHandler(database *db.DB, syncer *service.Syncer, log *logger.Logger) *WebhookHandler {
 	return &WebhookHandler{
 		db:     database,
 		syncer: syncer,
+		logger: log,
 	}
 }
 
@@ -41,14 +43,18 @@ func (h *WebhookHandler) HandleWebhook(w http.ResponseWriter, r *http.Request) {
 
 	var payload pluggy.WebhookPayload
 	if err := json.Unmarshal(bodyBytes, &payload); err != nil {
-		log.Printf("[Webhook] Payload JSON inválido recebido: %s", string(bodyBytes))
+		if h.logger != nil {
+			h.logger.Errorf("[Webhook] Payload JSON inválido recebido: %s (%v)", string(bodyBytes), err)
+		}
 		_ = h.db.SaveWebhookEvent(r.Context(), "unknown", "", "", "", "", string(bodyBytes), "ERROR", err.Error())
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
-	log.Printf("[Webhook] Evento recebido: %s (Item: %s, EventID: %s, TriggeredBy: %s)",
-		payload.Event, payload.ItemID, payload.EventID, payload.TriggeredBy)
+	if h.logger != nil {
+		h.logger.Infof("[Webhook] Evento recebido: %s (Item: %s, EventID: %s, TriggeredBy: %s)",
+			payload.Event, payload.ItemID, payload.EventID, payload.TriggeredBy)
+	}
 
 	// Salva o evento no histórico de auditoria
 	err = h.db.SaveWebhookEvent(
@@ -62,28 +68,24 @@ func (h *WebhookHandler) HandleWebhook(w http.ResponseWriter, r *http.Request) {
 		"PROCESSED",
 		"",
 	)
-	if err != nil {
-		log.Printf("[Webhook] Erro ao gravar evento no banco: %v", err)
+	if err != nil && h.logger != nil {
+		h.logger.Errorf("[Webhook] Erro ao gravar evento no banco: %v", err)
 	}
 
-	// Processamento assíncrono com base no tipo de evento
+	// Processamento automático assíncrono desativado (aguardando nova especificação do sistema).
+	// O evento é apenas registrado no banco de dados para auditoria em pluggy_webhook_event.
 	if payload.ItemID != "" {
 		switch payload.Event {
 		case "item/created", "item/updated", "transactions/created", "transactions/updated", "investments/created", "investments/updated":
-			go func(itemID string) {
-				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-				defer cancel()
-				if _, err := h.syncer.SyncItem(ctx, itemID); err != nil {
-					log.Printf("[Webhook] Erro no sync disparado por webhook para item %s: %v", itemID, err)
-				}
-			}(payload.ItemID)
-
+			if h.logger != nil {
+				h.logger.Infof("[Webhook] Evento %s recebido para item %s (sincronismo automático desativado)", payload.Event, payload.ItemID)
+			}
 		case "item/deleted":
 			go func(itemID string) {
 				ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 				defer cancel()
-				if err := h.db.DeleteItem(ctx, itemID); err != nil {
-					log.Printf("[Webhook] Erro ao deletar item %s após webhook: %v", itemID, err)
+				if err := h.db.DeleteItem(ctx, itemID); err != nil && h.logger != nil {
+					h.logger.Errorf("[Webhook] Erro ao deletar item local %s após webhook: %v", itemID, err)
 				}
 			}(payload.ItemID)
 		}

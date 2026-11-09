@@ -10,8 +10,14 @@ import (
 
 type Config struct {
 	Server   ServerConfig   `yaml:"server"`
+	Log      LogConfig      `yaml:"log"`
 	Pluggy   PluggyConfig   `yaml:"pluggy"`
 	Database DatabaseConfig `yaml:"database"`
+}
+
+type LogConfig struct {
+	Output string `yaml:"output"`
+	Level  int    `yaml:"level"`
 }
 
 type ServerConfig struct {
@@ -44,6 +50,10 @@ func LoadConfig(path string) (*Config, error) {
 		Server: ServerConfig{
 			Port: 8085,
 		},
+		Log: LogConfig{
+			Output: "./log/pluggy.log",
+			Level:  0,
+		},
 		Pluggy: PluggyConfig{
 			BaseURL: "https://api.pluggy.ai",
 		},
@@ -67,6 +77,14 @@ func LoadConfig(path string) (*Config, error) {
 	if portStr := os.Getenv("SERVER_PORT"); portStr != "" {
 		if p, err := strconv.Atoi(portStr); err == nil {
 			cfg.Server.Port = p
+		}
+	}
+	if logOut := os.Getenv("LOG_OUTPUT"); logOut != "" {
+		cfg.Log.Output = logOut
+	}
+	if logLvl := os.Getenv("LOG_LEVEL"); logLvl != "" {
+		if lvl, err := strconv.Atoi(logLvl); err == nil {
+			cfg.Log.Level = lvl
 		}
 	}
 	if cid := os.Getenv("PLUGGY_CLIENT_ID"); cid != "" {

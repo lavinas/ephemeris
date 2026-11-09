@@ -184,18 +184,16 @@ func (w *WebHandler) RenderDashboard(rw http.ResponseWriter, r *http.Request) {
 		summary = &db.PortfolioSummary{}
 	}
 
-	recentTxs, _, _ := w.db.ListTransactions(ctx, "", "", "", 8, 0)
+	recentTxs, _, _ := w.db.ListTransactions(ctx, "", "", "", 15, 0)
 	items, _ := w.db.ListItems(ctx)
-	recentWebhooks, _ := w.db.ListWebhookEvents(ctx, 5)
 
 	data := map[string]any{
-		"Title":          "Dashboard",
-		"ActiveTab":      "dashboard",
-		"Summary":        summary,
-		"RecentTxs":      recentTxs,
-		"Items":          items,
-		"RecentWebhooks": recentWebhooks,
-		"Config":         w.cfg,
+		"Title":     "Dashboard",
+		"ActiveTab": "dashboard",
+		"Summary":   summary,
+		"RecentTxs": recentTxs,
+		"Items":     items,
+		"Config":    w.cfg,
 	}
 
 	w.render(rw, r, "dashboard.html", data)
@@ -346,9 +344,26 @@ func (w *WebHandler) RenderConnections(rw http.ResponseWriter, r *http.Request) 
 func (w *WebHandler) RenderWebhooks(rw http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	events, _ := w.db.ListWebhookEvents(ctx, 50)
-	pluggyWebhooks, err := w.client.ListWebhooks(ctx)
-	if err != nil {
-		log.Printf("[Web] Aviso ao listar webhooks cadastrados na Pluggy: %v", err)
+
+	// Se for requisição parcial do HTMX para a tabela de eventos, retorna diretamente sem chamar APIs externas
+	if r.Header.Get("HX-Request") == "true" && r.Header.Get("HX-Target") == "webhooks-events-container" {
+		data := map[string]any{
+			"Events": events,
+		}
+		w.renderFragment(rw, "webhooks-table", data)
+		return
+	}
+
+	var pluggyWebhooks []pluggy.WebhookRegistration
+	// Chamadas recorrentes desativadas para evitar requisições desnecessárias à API da Pluggy.
+	// Só consulta a Pluggy se expressamente solicitado via query param ?fetch_remote=true
+	if r.URL.Query().Get("fetch_remote") == "true" {
+		remoteWebhooks, err := w.client.ListWebhooks(ctx)
+		if err != nil {
+			log.Printf("[Web] Aviso ao listar webhooks cadastrados na Pluggy: %v", err)
+		} else {
+			pluggyWebhooks = remoteWebhooks
+		}
 	}
 
 	data := map[string]any{
@@ -357,11 +372,6 @@ func (w *WebHandler) RenderWebhooks(rw http.ResponseWriter, r *http.Request) {
 		"Events":         events,
 		"PluggyWebhooks": pluggyWebhooks,
 		"Config":         w.cfg,
-	}
-
-	if r.Header.Get("HX-Request") == "true" && r.Header.Get("HX-Target") == "webhooks-events-container" {
-		w.renderFragment(rw, "webhooks-table", data)
-		return
 	}
 
 	w.render(rw, r, "webhooks.html", data)

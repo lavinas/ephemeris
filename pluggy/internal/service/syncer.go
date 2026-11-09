@@ -4,16 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"time"
 
 	"pluggy/internal/db"
+	"pluggy/internal/logger"
 	"pluggy/internal/pluggy"
 )
 
 type Syncer struct {
 	db     *db.DB
 	client *pluggy.Client
+	logger *logger.Logger
 }
 
 type SyncStats struct {
@@ -25,28 +26,37 @@ type SyncStats struct {
 	InvestmentTransactionsCount int `json:"investment_transactions_count"`
 }
 
-func NewSyncer(database *db.DB, client *pluggy.Client) *Syncer {
+func NewSyncer(database *db.DB, client *pluggy.Client, log *logger.Logger) *Syncer {
 	return &Syncer{
 		db:     database,
 		client: client,
+		logger: log,
 	}
 }
 
 // SyncAll sincroniza todos os itens conhecidos no banco de dados
 func (s *Syncer) SyncAll(ctx context.Context) (*SyncStats, error) {
+	if s.logger != nil {
+		s.logger.Info("[Syncer] Iniciando sincronização em lote de todas as instituições...")
+	}
 	items, err := s.db.ListItems(ctx)
 	if err != nil {
+		if s.logger != nil {
+			s.logger.Errorf("[Syncer] Erro ao listar itens para sincronização: %v", err)
+		}
 		return nil, fmt.Errorf("erro ao listar itens para sincronização: %w", err)
 	}
 
 	totalStats := &SyncStats{}
 	for _, item := range items {
-		// Opcional: dispara solicitação de sync no pluggy
-		_, _ = s.client.SyncItem(ctx, item.ID)
+		// Chamada externa ativa de forçar refresh no Pluggy desativada temporariamente.
+		// _, _ = s.client.SyncItem(ctx, item.ID)
 
 		stats, err := s.SyncItem(ctx, item.ID)
 		if err != nil {
-			log.Printf("[Syncer] Erro ao sincronizar item %s (%s): %v", item.ID, item.ConnectorName, err)
+			if s.logger != nil {
+				s.logger.Errorf("[Syncer] Erro ao sincronizar item %s (%s): %v", item.ID, item.ConnectorName, err)
+			}
 			continue
 		}
 		totalStats.ItemsCount++
@@ -57,17 +67,26 @@ func (s *Syncer) SyncAll(ctx context.Context) (*SyncStats, error) {
 		totalStats.InvestmentTransactionsCount += stats.InvestmentTransactionsCount
 	}
 
+	if s.logger != nil {
+		s.logger.Infof("[Syncer] Sincronização em lote finalizada com sucesso: %+v", totalStats)
+	}
 	return totalStats, nil
 }
 
 // SyncItem baixa e persiste dados completos de uma conexão (contas, extratos, cartões, faturas, investimentos)
 func (s *Syncer) SyncItem(ctx context.Context, itemID string) (*SyncStats, error) {
-	log.Printf("[Syncer] Iniciando sincronização do Item ID: %s", itemID)
+	syncStart := time.Now()
+	if s.logger != nil {
+		s.logger.Infof("[Syncer] Iniciando sincronização do Item ID: %s", itemID)
+	}
 	stats := &SyncStats{}
 
 	// 1. Obter dados da instituição e status do item
 	item, err := s.client.GetItem(ctx, itemID)
 	if err != nil {
+		if s.logger != nil {
+			s.logger.Errorf("[Syncer] Falha ao consultar item %s na API Pluggy: %v", itemID, err)
+		}
 		return nil, fmt.Errorf("falha ao consultar item na API Pluggy: %w", err)
 	}
 
@@ -95,6 +114,9 @@ func (s *Syncer) SyncItem(ctx context.Context, itemID string) (*SyncStats, error
 	}
 
 	if err := s.db.UpsertItem(ctx, dbItem); err != nil {
+		if s.logger != nil {
+			s.logger.Errorf("[Syncer] Erro ao salvar item %s no banco: %v", itemID, err)
+		}
 		return nil, fmt.Errorf("erro ao salvar item no banco: %w", err)
 	}
 	stats.ItemsCount = 1
@@ -102,12 +124,16 @@ func (s *Syncer) SyncItem(ctx context.Context, itemID string) (*SyncStats, error
 	// 2. Buscar Contas Correntes, Poupanças e Cartões de Crédito
 	accounts, err := s.client.GetAccounts(ctx, itemID)
 	if err != nil {
-		log.Printf("[Syncer] Aviso ao buscar contas do item %s: %v", itemID, err)
+		if s.logger != nil {
+			s.logger.Warnf("[Syncer] Aviso ao buscar contas do item %s: %v", itemID, err)
+		}
 	} else {
 		for _, acc := range accounts {
 			dbAcc := s.mapAccount(&acc)
 			if err := s.db.UpsertAccount(ctx, dbAcc); err != nil {
-				log.Printf("[Syncer] Erro ao salvar conta %s: %v", acc.ID, err)
+				if s.logger != nil {
+					s.logger.Errorf("[Syncer] Erro ao salvar conta %s: %v", acc.ID, err)
+				}
 				continue
 			}
 			stats.AccountsCount++
@@ -115,12 +141,16 @@ func (s *Syncer) SyncItem(ctx context.Context, itemID string) (*SyncStats, error
 			// 2.1 Buscar Transações Bancárias ou de Cartão
 			txs, err := s.client.GetTransactions(ctx, acc.ID, "", "")
 			if err != nil {
-				log.Printf("[Syncer] Erro ao buscar transações da conta %s: %v", acc.ID, err)
+				if s.logger != nil {
+					s.logger.Errorf("[Syncer] Erro ao buscar transações da conta %s: %v", acc.ID, err)
+				}
 			} else {
 				for _, tx := range txs {
 					dbTx := s.mapTransaction(&tx, itemID)
 					if err := s.db.UpsertTransaction(ctx, dbTx); err != nil {
-						log.Printf("[Syncer] Erro ao salvar transação %s: %v", tx.ID, err)
+						if s.logger != nil {
+							s.logger.Errorf("[Syncer] Erro ao salvar transação %s: %v", tx.ID, err)
+						}
 						continue
 					}
 					stats.TransactionsCount++
@@ -131,12 +161,16 @@ func (s *Syncer) SyncItem(ctx context.Context, itemID string) (*SyncStats, error
 			if acc.Type == "CREDIT" {
 				bills, err := s.client.GetBills(ctx, acc.ID)
 				if err != nil {
-					log.Printf("[Syncer] Aviso ao buscar faturas do cartão %s: %v", acc.ID, err)
+					if s.logger != nil {
+						s.logger.Warnf("[Syncer] Aviso ao buscar faturas do cartão %s: %v", acc.ID, err)
+					}
 				} else {
 					for _, bill := range bills {
 						dbBill := s.mapCreditCardBill(&bill, acc.ID)
 						if err := s.db.UpsertCreditCardBill(ctx, dbBill); err != nil {
-							log.Printf("[Syncer] Erro ao salvar fatura %s: %v", bill.ID, err)
+							if s.logger != nil {
+								s.logger.Errorf("[Syncer] Erro ao salvar fatura %s: %v", bill.ID, err)
+							}
 							continue
 						}
 						stats.CreditCardBillsCount++
@@ -149,12 +183,16 @@ func (s *Syncer) SyncItem(ctx context.Context, itemID string) (*SyncStats, error
 	// 3. Buscar Carteira de Investimentos
 	investments, err := s.client.GetInvestments(ctx, itemID)
 	if err != nil {
-		log.Printf("[Syncer] Aviso ao buscar investimentos do item %s: %v", itemID, err)
+		if s.logger != nil {
+			s.logger.Warnf("[Syncer] Aviso ao buscar investimentos do item %s: %v", itemID, err)
+		}
 	} else {
 		for _, inv := range investments {
 			dbInv := s.mapInvestment(&inv, itemID)
 			if err := s.db.UpsertInvestment(ctx, dbInv); err != nil {
-				log.Printf("[Syncer] Erro ao salvar investimento %s: %v", inv.ID, err)
+				if s.logger != nil {
+					s.logger.Errorf("[Syncer] Erro ao salvar investimento %s: %v", inv.ID, err)
+				}
 				continue
 			}
 			stats.InvestmentsCount++
@@ -162,12 +200,16 @@ func (s *Syncer) SyncItem(ctx context.Context, itemID string) (*SyncStats, error
 			// 3.1 Buscar movimentações do investimento
 			invTxs, err := s.client.GetInvestmentTransactions(ctx, inv.ID)
 			if err != nil {
-				log.Printf("[Syncer] Aviso ao buscar transações do investimento %s: %v", inv.ID, err)
+				if s.logger != nil {
+					s.logger.Warnf("[Syncer] Aviso ao buscar transações do investimento %s: %v", inv.ID, err)
+				}
 			} else {
 				for _, it := range invTxs {
 					dbIt := s.mapInvestmentTransaction(&it, inv.ID)
 					if err := s.db.UpsertInvestmentTransaction(ctx, dbIt); err != nil {
-						log.Printf("[Syncer] Erro ao salvar movimentação de investimento %s: %v", it.ID, err)
+						if s.logger != nil {
+							s.logger.Errorf("[Syncer] Erro ao salvar movimentação de investimento %s: %v", it.ID, err)
+						}
 						continue
 					}
 					stats.InvestmentTransactionsCount++
@@ -176,7 +218,10 @@ func (s *Syncer) SyncItem(ctx context.Context, itemID string) (*SyncStats, error
 		}
 	}
 
-	log.Printf("[Syncer] Sincronização concluída para item %s: %+v", itemID, stats)
+	if s.logger != nil {
+		s.logger.Infof("[Syncer] Sincronização do Item %s (%s) concluída em %dms: %+v",
+			itemID, item.Connector.Name, time.Since(syncStart).Milliseconds(), stats)
+	}
 	return stats, nil
 }
 

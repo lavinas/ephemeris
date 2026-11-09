@@ -1,6 +1,10 @@
 server:
   port: 8085
 
+log:
+  output: "./log/pluggy.log"
+  level: 0
+
 pluggy:
   base_url: "https://api.pluggy.ai"
   client_id: "1fe09f72-ca31-4139-904b-5fa9172767ce"

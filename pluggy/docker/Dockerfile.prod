@@ -20,7 +20,7 @@ RUN apk add --no-cache ca-certificates tzdata
 WORKDIR /app
 
 RUN adduser -D -u 1000 -g '' appuser && \
-    mkdir -p /app/templates /app/migration && \
+    mkdir -p /app/templates /app/migration /app/log && \
     chown -R appuser:appuser /app
 
 COPY --from=builder /app/main .

@@ -14,8 +14,8 @@
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                     Conectar Instituição Sandbox
                 </button>
-                <a href="/webhooks" class="inline-flex items-center px-4 py-2 rounded-lg bg-blue-600/50 hover:bg-blue-600 text-white font-medium text-sm border border-blue-400/30 transition">
-                    Configurar Webhook Público
+                <a href="/statements" class="inline-flex items-center px-4 py-2 rounded-lg bg-blue-600/50 hover:bg-blue-600 text-white font-medium text-sm border border-blue-400/30 transition">
+                    Ver Extratos Completos
                 </a>
             </div>
         </div>
@@ -92,95 +92,72 @@
         </div>
     </div>
 
-    <!-- Seções Lado a Lado: Últimas Transações e Atividades de Webhook -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- Últimas Transações (2 colunas) -->
-        <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            <div class="p-5 border-b border-slate-100 flex items-center justify-between">
-                <div>
-                    <h2 class="text-base font-bold text-slate-900">Últimas Transações</h2>
-                    <p class="text-xs text-slate-500">Movimentações recentes consolidadas de contas e cartões</p>
-                </div>
-                <a href="/statements" class="text-xs font-medium text-blue-600 hover:text-blue-700">Ver todas</a>
+    <!-- Histórico de Transações Consolidado (Largura Total - Entra diretamente com o histórico) -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+            <div>
+                <h2 class="text-base font-bold text-slate-900">Histórico Recente de Movimentações</h2>
+                <p class="text-xs text-slate-500">Últimos lançamentos consolidados de contas correntes e cartões de crédito</p>
             </div>
-
-            {{if .RecentTxs}}
-            <div class="divide-y divide-slate-100 overflow-x-auto">
-                <table class="w-full text-left border-collapse text-sm">
-                    <thead>
-                        <tr class="bg-slate-50 text-slate-500 text-xs font-semibold">
-                            <th class="py-3 px-4">Data</th>
-                            <th class="py-3 px-4">Descrição</th>
-                            <th class="py-3 px-4">Conta / Banco</th>
-                            <th class="py-3 px-4 text-right">Valor</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        {{range .RecentTxs}}
-                        <tr class="hover:bg-slate-50 transition">
-                            <td class="py-3 px-4 whitespace-nowrap text-xs text-slate-500">{{formatDate .Date}}</td>
-                            <td class="py-3 px-4">
-                                <div class="font-medium text-slate-900">{{.Description}}</div>
-                                <div class="text-xs text-slate-400">{{.Category}}</div>
-                            </td>
-                            <td class="py-3 px-4 whitespace-nowrap text-xs text-slate-600">
-                                <div>{{.BankName}}</div>
-                                <div class="text-slate-400">{{.AccountName}}</div>
-                            </td>
-                            <td class="py-3 px-4 whitespace-nowrap text-right font-medium {{if isDebit .Type .Amount}}text-rose-600{{else}}text-emerald-600{{end}}">
-                                {{if isDebit .Type .Amount}}-{{else}}+{{end}}{{formatMoney .Amount}}
-                            </td>
-                        </tr>
-                        {{end}}
-                    </tbody>
-                </table>
+            <div class="flex items-center space-x-3">
+                <a href="/statements" class="text-xs font-medium text-blue-600 hover:text-blue-700">Ver extratos completos &rarr;</a>
             </div>
-            {{else}}
-            <div class="p-8 text-center text-slate-500 text-sm">
-                Nenhuma transação encontrada ainda. Clique em <strong>"Conectar Conta"</strong> acima para conectar um banco de testes (Sandbox) ou clique em <strong>"Sincronizar Tudo"</strong>.
-            </div>
-            {{end}}
         </div>
 
-        <!-- Eventos de Webhook Recentes (1 coluna) -->
-        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-            <div class="p-5 border-b border-slate-100 flex items-center justify-between">
-                <div>
-                    <h2 class="text-base font-bold text-slate-900">Eventos de Webhook</h2>
-                    <p class="text-xs text-slate-500">Notificações em tempo real da Pluggy</p>
-                </div>
-                <a href="/webhooks" class="text-xs font-medium text-blue-600 hover:text-blue-700">Ver log</a>
-            </div>
-
-            <div class="p-4 flex-1">
-                {{if .RecentWebhooks}}
-                <div class="space-y-3">
-                    {{range .RecentWebhooks}}
-                    <div class="p-3 rounded-lg border border-slate-100 bg-slate-50 text-xs">
-                        <div class="flex items-center justify-between mb-1">
-                            <span class="font-semibold text-blue-700">{{.Event}}</span>
-                            <span class="text-slate-400">{{formatDateTime .ReceivedAt}}</span>
-                        </div>
-                        <div class="text-slate-600 truncate">Item: <code class="text-slate-700">{{.ItemID}}</code></div>
-                    </div>
+        {{if .RecentTxs}}
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-sm">
+                <thead>
+                    <tr class="bg-slate-50 text-slate-500 text-xs font-semibold border-b border-slate-200">
+                        <th class="py-3 px-4">Data</th>
+                        <th class="py-3 px-4">Descrição da Operação</th>
+                        <th class="py-3 px-4">Instituição / Conta</th>
+                        <th class="py-3 px-4">Categoria</th>
+                        <th class="py-3 px-4">Status</th>
+                        <th class="py-3 px-4 text-right">Valor</th>
+                        <th class="py-3 px-4 text-right">Saldo Resultante</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {{range .RecentTxs}}
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="py-3 px-4 whitespace-nowrap text-xs text-slate-500">{{formatDate .Date}}</td>
+                        <td class="py-3 px-4">
+                            <div class="font-medium text-slate-900">{{.Description}}</div>
+                            {{if .MerchantName}}
+                            <div class="text-xs text-slate-400">{{.MerchantName}}</div>
+                            {{end}}
+                        </td>
+                        <td class="py-3 px-4 whitespace-nowrap text-xs text-slate-600">
+                            <div class="font-medium text-slate-800">{{.BankName}}</div>
+                            <div class="text-slate-400">{{.AccountName}}</div>
+                        </td>
+                        <td class="py-3 px-4 whitespace-nowrap text-xs">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700">
+                                {{.Category}}
+                            </span>
+                        </td>
+                        <td class="py-3 px-4 whitespace-nowrap text-xs">
+                            {{statusBadge .Status}}
+                        </td>
+                        <td class="py-3 px-4 whitespace-nowrap text-right font-medium {{if isDebit .Type .Amount}}text-rose-600{{else}}text-emerald-600{{end}}">
+                            {{if isDebit .Type .Amount}}-{{else}}+{{end}}{{formatMoney .Amount}}
+                        </td>
+                        <td class="py-3 px-4 whitespace-nowrap text-right text-xs text-slate-500">
+                            {{formatMoneyPtr .Balance}}
+                        </td>
+                    </tr>
                     {{end}}
-                </div>
-                {{else}}
-                <div class="h-48 flex flex-col items-center justify-center text-center text-slate-400 text-xs">
-                    <svg class="w-8 h-8 mb-2 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                    Nenhum webhook recebido ainda.<br>
-                    Configure um túnel público para receber eventos automáticos.
-                </div>
-                {{end}}
-            </div>
-
-            <div class="p-4 bg-slate-50 border-t border-slate-100">
-                <a href="/webhooks" class="w-full inline-flex justify-center items-center px-3 py-2 border border-slate-300 shadow-sm text-xs font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50">
-                    Configurar Túnel & Webhook
-                </a>
-            </div>
+                </tbody>
+            </table>
         </div>
+        {{else}}
+        <div class="p-12 text-center text-slate-500 text-sm">
+            <svg class="w-12 h-12 mx-auto text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <p class="font-medium text-slate-700">Nenhuma movimentação registrada</p>
+            <p class="text-xs text-slate-400 mt-1">Conecte uma instituição ou clique em <strong>"Sincronizar Tudo"</strong> para carregar o histórico financeiro.</p>
+        </div>
+        {{end}}
     </div>
 </div>
 {{end}}
-

@@ -13,6 +13,8 @@ RUN go mod download
 
 COPY . .
 
+RUN mkdir -p /app/log
+
 EXPOSE 8085
 
 CMD ["air"]
