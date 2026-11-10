@@ -249,3 +249,5 @@ SELECT
     (SELECT COUNT(*) FROM pluggy_account WHERE type = 'CREDIT') AS total_credit_cards,
     (SELECT COUNT(*) FROM pluggy_investment) AS total_investments;
 
+
+

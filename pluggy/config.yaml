@@ -8,9 +8,8 @@ log:
 pluggy:
   base_url: "https://api.pluggy.ai"
   client_id: "1fe09f72-ca31-4139-904b-5fa9172767ce"
-  client_secret: "VzBM_pWK1Z7hPtqu_SYfiXJoAhvIS4Cw0xZ1c5kSX1I"
-  webhook_url: "" # preenchido quando usar túnel (ex: https://meu-tunel.loca.lt/api/webhook)
-
+  client_secret: "BSH8yKgOZmeCfpkzBYjsMQijOMQeA-KyxujQmNiZ-jU"
+  webhook_url: "https://weak-squids-matter.loca.lt/api/webhook"
 database:
   host: "127.0.0.1"
   port: 5435
