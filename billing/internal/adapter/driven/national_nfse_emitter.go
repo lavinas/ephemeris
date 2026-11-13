@@ -362,6 +362,9 @@ func (e *NationalNfseEmitter) post(ctx context.Context, tlsCert *tls.Certificate
 		transport = &http.Transport{TLSClientConfig: &tls.Config{
 			Certificates: []tls.Certificate{*tlsCert},
 			MinVersion:   tls.VersionTLS12,
+			// The Sefin Nacional (IIS) requests the client certificate through a TLS 1.2
+			// renegotiation; Go refuses it by default ("tls: no renegotiation").
+			Renegotiation: tls.RenegotiateOnceAsClient,
 		}}
 	}
 	client := &http.Client{
