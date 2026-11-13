@@ -3,6 +3,7 @@ package driven
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -33,8 +34,8 @@ func TestSPNfseEmitter_BuildPedidoEnvioRPSXML(t *testing.T) {
 	nbs := int64(10101010)
 
 	invoice := &domain.Invoice{
-		ID:       1,
-		Amount:   150.00,
+		ID:     1,
+		Amount: 150.00,
 		Vendor: domain.Vendor{
 			Document:    "27928875000104",
 			TaxDocument: "57278881",
@@ -232,5 +233,27 @@ func TestSPNfseEmitter_BuildPedidoEnvioRPSXML_Layout1(t *testing.T) {
 	}
 	if emitter.legacyEndpointURL != "https://nfe.prefeitura.sp.gov.br/ws/lotenfe.asmx" {
 		t.Errorf("expected default legacyEndpointURL to be https://nfe.prefeitura.sp.gov.br/ws/lotenfe.asmx, got %s", emitter.legacyEndpointURL)
+	}
+}
+
+func TestIsSimplesNacionalLayoutDeadlock(t *testing.T) {
+	e641 := fmt.Errorf("rejeição pela Prefeitura de SP: [641] Contribuinte cadastrado como Simples Nacional na data informada. Deverá ser utilizado o leiaute 1.")
+	e632 := fmt.Errorf("rejeição pela Prefeitura de SP: [632] Emissões de Simples Nacional com fato gerador a partir de 01/11/2026 deverão utilizar o leiaute 2.")
+	other := fmt.Errorf("rejeição pela Prefeitura de SP: [1206] Assinatura inválida")
+
+	cases := []struct {
+		name         string
+		errV2, errV1 error
+		want         bool
+	}{
+		{"641 then 632", e641, e632, true},
+		{"641 then other", e641, other, false},
+		{"other then 632", other, e632, false},
+		{"nil v1", e641, nil, false},
+	}
+	for _, c := range cases {
+		if got := isSimplesNacionalLayoutDeadlock(c.errV2, c.errV1); got != c.want {
+			t.Errorf("%s: got %v, want %v", c.name, got, c.want)
+		}
 	}
 }

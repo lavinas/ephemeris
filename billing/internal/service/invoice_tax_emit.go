@@ -66,13 +66,13 @@ func (s *InvoiceTaxEmit) Run(inDTO port.InDTO) port.OutDTO {
 	emissionItem, err := s.emitter.EmitSingle(ctx, invoice, nextRPS)
 	if err != nil {
 		s.logger.IPrintf(1, "TaxEmitter error for invoice ID %d: %v", invoice.ID, err)
-		return dto.NewInvoiceTaxEmitResponse(400, "error", fmt.Sprintf("Falha ao emitir NFS-e na Prefeitura: %v", err), nil, nil, nil, nextRPS)
+		return dto.NewInvoiceTaxEmitResponse(400, "error", fmt.Sprintf("Falha ao emitir NFS-e: %v", err), nil, nil, nil, nextRPS)
 	}
 
 	// Persist the emission and update invoice & vendor in a database transaction
 	if err := s.saveTaxEmission(vendor, invoice, emissionItem, nextRPS); err != nil {
 		s.logger.IPrintf(1, "Failed to save tax emission for invoice ID %d: %v", invoice.ID, err)
-		return dto.NewInvoiceTaxEmitResponse(500, "error", fmt.Sprintf("Nota emitida com sucesso na prefeitura (NFe #%d), mas ocorreu erro ao salvar no banco local: %v", *emissionItem.NFENumber, err), emissionItem.NFENumber, emissionItem.NFEVerification, nil, nextRPS)
+		return dto.NewInvoiceTaxEmitResponse(500, "error", fmt.Sprintf("Nota emitida com sucesso (NFe #%d, chave/verificação %s), mas ocorreu erro ao salvar no banco local: %v", *emissionItem.NFENumber, *emissionItem.NFEVerification, err), emissionItem.NFENumber, emissionItem.NFEVerification, nil, nextRPS)
 	}
 
 	nowStr := emissionItem.NFEDatetime.Format("2006-01-02 15:04:05")

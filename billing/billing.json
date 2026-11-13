@@ -32,7 +32,7 @@
         "schedules": []
     },
     "tax": {
-        "environment": "homologation",
+        "environment": "production",
         "certificate_path": "config/certs/estudio_amelia.pfx",
         "certificate_password": "pwd22Adm*",
         "service_code": 5762,
@@ -42,6 +42,16 @@
         "c_loc_prestacao": "3550308",
         "cst_ibs_cbs": "499",
         "c_classif_trib": "499001",
-        "c_ind_op": "100301"
+        "c_ind_op": "100301",
+        "provider": "national",
+        "national": {
+            "serie": "1",
+            "c_trib_nac": "080201",
+            "c_trib_mun": "003",
+            "op_simp_nac": 3,
+            "reg_ap_trib_sn": 1,
+            "reg_esp_trib": 0,
+            "include_im": false
+        }
     }
 }

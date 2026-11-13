@@ -45,10 +45,16 @@ func main() {
 	taxer := driven.NewTaxer()
 	// TaxEmitter initialization
 	taxEnv, certPath, certPassword, serviceCode, aliquot, serie, taxTimeout, taxURL := cfg.GetTaxData()
-	taxEmitter := driven.NewSPNfseEmitter(logger, taxEnv, certPath, certPassword, serviceCode, aliquot, serie, taxTimeout, taxURL)
-	cLoc, cst, cClassif := cfg.GetTaxIBSCBSData()
-	taxEmitter.SetIBSCBS(cLoc, cst, cClassif)
-	taxEmitter.SetCIndOp(cfg.GetTaxCIndOp())
+	var taxEmitter port.TaxEmitter
+	if cfg.GetTaxProvider() == "sp" {
+		spEmitter := driven.NewSPNfseEmitter(logger, taxEnv, certPath, certPassword, serviceCode, aliquot, serie, taxTimeout, taxURL)
+		cLoc, cst, cClassif := cfg.GetTaxIBSCBSData()
+		spEmitter.SetIBSCBS(cLoc, cst, cClassif)
+		spEmitter.SetCIndOp(cfg.GetTaxCIndOp())
+		taxEmitter = spEmitter
+	} else {
+		taxEmitter = driven.NewNationalNfseEmitter(logger, cfg.GetNationalNfseConfig())
+	}
 	// Pixer initialization
 	pixer := driven.NewPixer(logger)
 	// Issuer initialization

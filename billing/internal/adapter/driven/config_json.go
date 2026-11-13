@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 )
 
 type JsonConfig struct {
@@ -166,6 +167,61 @@ type JsonTaxConfig struct {
 	CSTIBSCBS           string  `json:"cst_ibs_cbs"`
 	CClassifTrib        string  `json:"c_classif_trib"`
 	CIndOp              string  `json:"c_ind_op"`
+	// Provider selects the emitter: "national" (NFS-e Nacional / Sefin Nacional) or "sp" (WebService PMSP)
+	Provider string             `json:"provider"`
+	National JsonNationalConfig `json:"national"`
+}
+
+// JsonNationalConfig holds the NFS-e Nacional (Sefin Nacional) settings
+type JsonNationalConfig struct {
+	ProductionURL   string `json:"production_url"`
+	HomologationURL string `json:"homologation_url"`
+	DPSVersion      string `json:"dps_version"`
+	Serie           string `json:"serie"`
+	CLocEmi         string `json:"c_loc_emi"`
+	CTribNac        string `json:"c_trib_nac"`
+	CTribMun        string `json:"c_trib_mun"`
+	OpSimpNac       int    `json:"op_simp_nac"`
+	RegApTribSN     int    `json:"reg_ap_trib_sn"`
+	RegEspTrib      int    `json:"reg_esp_trib"`
+	IncludeIM       bool   `json:"include_im"`
+}
+
+// GetTaxProvider returns the configured NFS-e provider ("national" by default)
+func (v *JsonConfig) GetTaxProvider() string {
+	p := strings.ToLower(strings.TrimSpace(v.Tax.Provider))
+	if p == "" {
+		return "national"
+	}
+	return p
+}
+
+// GetNationalNfseConfig returns the NFS-e Nacional emitter configuration
+func (v *JsonConfig) GetNationalNfseConfig() NationalNfseConfig {
+	env, certPath, certPassword, _, _, _, timeoutSeconds, _ := v.GetTaxData()
+	n := v.Tax.National
+	baseURL := n.HomologationURL
+	if env == "production" {
+		baseURL = n.ProductionURL
+	}
+	cLocPrestacao, _, _ := v.GetTaxIBSCBSData()
+	return NationalNfseConfig{
+		Env:            env,
+		CertPath:       certPath,
+		CertPassword:   certPassword,
+		BaseURL:        baseURL,
+		TimeoutSeconds: timeoutSeconds,
+		DPSVersion:     n.DPSVersion,
+		Serie:          n.Serie,
+		CLocEmi:        n.CLocEmi,
+		CLocPrestacao:  cLocPrestacao,
+		CTribNac:       n.CTribNac,
+		CTribMun:       n.CTribMun,
+		OpSimpNac:      n.OpSimpNac,
+		RegApTribSN:    n.RegApTribSN,
+		RegEspTrib:     n.RegEspTrib,
+		IncludeIM:      n.IncludeIM,
+	}
 }
 
 // GetTaxCIndOp returns the Leiaute 2 operation indicator code (cIndOp, IBSCBS group)

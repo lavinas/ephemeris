@@ -11,6 +11,7 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -33,6 +34,23 @@ const (
 	defaultSPNFSeEndpoint = "https://nfews.prefeitura.sp.gov.br/lotenfe.asmx"
 	legacySPNFSeEndpoint  = "https://nfe.prefeitura.sp.gov.br/ws/lotenfe.asmx"
 )
+
+// ErrSimplesNacionalRequiresNationalNFSe signals that PMSP rejected both layouts for a Simples Nacional
+// vendor ([641] on Leiaute 2 and [632] on Leiaute 1). Per IN SF/SUREM 13/2026, ME/EPP optantes pelo
+// Simples Nacional must issue NFS-e through the Emissor Nacional (nfse.gov.br) from 01/11/2026.
+var ErrSimplesNacionalRequiresNationalNFSe = errors.New(
+	"prestador optante pelo Simples Nacional: a partir de 01/11/2026 a NFS-e deve ser emitida exclusivamente " +
+		"pelo Emissor Nacional (IN SF/SUREM 13/2026); o WebService da Prefeitura de SP rejeita ambos os leiautes " +
+		"([641] no Leiaute 2 e [632] no Leiaute 1)")
+
+// isSimplesNacionalLayoutDeadlock reports whether the Leiaute 2 and Leiaute 1 errors form the
+// PMSP 641/632 loop, in which each layout points to the other.
+func isSimplesNacionalLayoutDeadlock(errV2, errV1 error) bool {
+	if errV2 == nil || errV1 == nil {
+		return false
+	}
+	return strings.Contains(errV2.Error(), "[641]") && strings.Contains(errV1.Error(), "[632]")
+}
 
 // SPNfseEmitter handles single RPS submission to São Paulo's municipal web service (Leiaute 2 with Leiaute 1 fallback)
 type SPNfseEmitter struct {
@@ -164,6 +182,16 @@ func (e *SPNfseEmitter) EmitSingle(ctx context.Context, invoice *domain.Invoice,
 		return itemV1, nil
 	}
 
+	// Layout deadlock: [641] on Leiaute 2 + [632] on Leiaute 1 is a business rule, not a transient
+	// failure. Since IN SF/SUREM 13/2026 (DOM-SP 05/11/2026), ME/EPP optantes pelo Simples Nacional
+	// must issue NFS-e exclusively through the Emissor Nacional (from 01/11/2026); the PMSP
+	// web service rejects both layouts. Retrying on the legacy endpoint cannot succeed.
+	if isSimplesNacionalLayoutDeadlock(errV2, errV1) {
+		e.logger.IPrintf(1, "Invoice ID %d (RPS #%d): PMSP layout deadlock detected ([641] on Leiaute 2, [632] on Leiaute 1). Skipping legacy endpoint.",
+			invoice.ID, rpsNumber)
+		return nil, fmt.Errorf("%w: [Leiaute 2] %v | [Fallback Leiaute 1] %v", ErrSimplesNacionalRequiresNationalNFSe, errV2, errV1)
+	}
+
 	// 3. Fallback attempt 2: Leiaute 1 on legacy endpoint (nfe.prefeitura.sp.gov.br/ws/lotenfe.asmx)
 	if e.legacyEndpointURL != "" && e.legacyEndpointURL != e.endpointURL {
 		e.logger.IPrintf(1, "Fallback Leiaute 1 on primary endpoint failed for Invoice ID %d (RPS #%d): %v. Attempting fallback to Leiaute 1 on legacy endpoint (%s)...",
@@ -293,14 +321,19 @@ func (e *SPNfseEmitter) emitWithLayoutCCMWidthAndEndpoint(
 }
 
 func (e *SPNfseEmitter) loadCertificates() (*tls.Certificate, *rsa.PrivateKey, *x509.Certificate, error) {
-	password := e.certPassword
+	return loadA1Certificate(e.certPath, e.certPassword)
+}
+
+// loadA1Certificate reads an A1 (.pfx) certificate, falling back to BILLING_TAX_CERT_PASSWORD for the password
+func loadA1Certificate(certPath, certPassword string) (*tls.Certificate, *rsa.PrivateKey, *x509.Certificate, error) {
+	password := certPassword
 	if password == "" {
 		password = os.Getenv("BILLING_TAX_CERT_PASSWORD")
 	}
 
-	pfxData, err := os.ReadFile(e.certPath)
+	pfxData, err := os.ReadFile(certPath)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("arquivo de certificado não encontrado em %s: %w", e.certPath, err)
+		return nil, nil, nil, fmt.Errorf("arquivo de certificado não encontrado em %s: %w", certPath, err)
 	}
 
 	privKey, cert, caCerts, err := pkcs12.DecodeChain(pfxData, password)
