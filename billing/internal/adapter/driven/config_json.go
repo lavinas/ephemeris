@@ -174,17 +174,18 @@ type JsonTaxConfig struct {
 
 // JsonNationalConfig holds the NFS-e Nacional (Sefin Nacional) settings
 type JsonNationalConfig struct {
-	ProductionURL   string `json:"production_url"`
-	HomologationURL string `json:"homologation_url"`
-	DPSVersion      string `json:"dps_version"`
-	Serie           string `json:"serie"`
-	CLocEmi         string `json:"c_loc_emi"`
-	CTribNac        string `json:"c_trib_nac"`
-	CTribMun        string `json:"c_trib_mun"`
-	OpSimpNac       int    `json:"op_simp_nac"`
-	RegApTribSN     int    `json:"reg_ap_trib_sn"`
-	RegEspTrib      int    `json:"reg_esp_trib"`
-	IncludeIM       bool   `json:"include_im"`
+	ProductionURL   string  `json:"production_url"`
+	HomologationURL string  `json:"homologation_url"`
+	DPSVersion      string  `json:"dps_version"`
+	Serie           string  `json:"serie"`
+	CLocEmi         string  `json:"c_loc_emi"`
+	CTribNac        string  `json:"c_trib_nac"`
+	CTribMun        string  `json:"c_trib_mun"`
+	OpSimpNac       int     `json:"op_simp_nac"`
+	RegApTribSN     int     `json:"reg_ap_trib_sn"`
+	RegEspTrib      int     `json:"reg_esp_trib"`
+	IncludeIM       bool    `json:"include_im"`
+	PTotTribSN      float64 `json:"p_tot_trib_sn"`
 }
 
 // GetTaxProvider returns the configured NFS-e provider ("national" by default)
@@ -221,6 +222,7 @@ func (v *JsonConfig) GetNationalNfseConfig() NationalNfseConfig {
 		RegApTribSN:    n.RegApTribSN,
 		RegEspTrib:     n.RegEspTrib,
 		IncludeIM:      n.IncludeIM,
+		PTotTribSN:     n.PTotTribSN,
 	}
 }
 

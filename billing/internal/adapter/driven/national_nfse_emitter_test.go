@@ -66,7 +66,7 @@ func testTLSCert(t *testing.T) *tls.Certificate {
 }
 
 func testNationalEmitter(baseURL string) *NationalNfseEmitter {
-	e := NewNationalNfseEmitter(&dummyLogger{}, NationalNfseConfig{BaseURL: baseURL, CTribNac: "080201", CTribMun: "003"})
+	e := NewNationalNfseEmitter(&dummyLogger{}, NationalNfseConfig{BaseURL: baseURL, CTribNac: "080201", CTribMun: "003", PTotTribSN: 6})
 	e.now = func() time.Time { return time.Date(2026, 11, 13, 10, 0, 0, 0, spLocation()) }
 	return e
 }
@@ -93,11 +93,19 @@ func TestNationalNfse_BuildDPSXML(t *testing.T) {
 		`<xNome>Maria &amp; Filhos &lt;Teste&gt;</xNome>`,
 		`<cTribNac>080201</cTribNac><cTribMun>003</cTribMun><xDescServ>1x Aula de canto</xDescServ><cNBS>122051900</cNBS>`,
 		`<vServ>150.50</vServ>`,
-		`<tribMun><tribISSQN>1</tribISSQN><tpRetISSQN>1</tpRetISSQN></tribMun>`,
+		`<tribMun><tribISSQN>1</tribISSQN><tpRetISSQN>1</tpRetISSQN></tribMun><totTrib><pTotTribSN>6.00</pTotTribSN></totTrib>`,
 	} {
 		if !strings.Contains(xmlStr, s) {
 			t.Errorf("DPS XML missing %s\n%s", s, xmlStr)
 		}
+	}
+	if strings.Contains(xmlStr, "indTotTrib") {
+		t.Errorf("indTotTrib must not be sent for ME/EPP [E0712]")
+	}
+	missing := testNationalEmitter("")
+	missing.cfg.PTotTribSN = 0
+	if _, _, err := missing.buildDPSXML(testNationalInvoice(), 1, missing.now()); err == nil {
+		t.Errorf("expected error when p_tot_trib_sn is missing for ME/EPP")
 	}
 	if strings.Contains(xmlStr, "<IM>") {
 		t.Errorf("IM must be omitted unless IncludeIM is set")

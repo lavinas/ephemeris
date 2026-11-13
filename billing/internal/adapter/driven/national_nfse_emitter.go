@@ -43,16 +43,17 @@ type NationalNfseConfig struct {
 	CertPassword   string
 	BaseURL        string // e.g. https://sefin.nfse.gov.br/SefinNacional (the emitter posts to BaseURL + "/nfse")
 	TimeoutSeconds int
-	DPSVersion     string // DPS layout version attribute (default 1.00)
-	Serie          string // numeric DPS series, 1..99999 (default 1)
-	CLocEmi        string // IBGE code of the issuer municipality (default 3550308 - São Paulo)
-	CLocPrestacao  string // IBGE code of the place of service (default = CLocEmi)
-	CTribNac       string // 6-digit national taxation code (e.g. 080201)
-	CTribMun       string // 3-digit municipal breakdown of cTribNac (e.g. 003 for 08.02.01.003 in São Paulo); optional
-	OpSimpNac      int    // 1 = não optante, 2 = MEI, 3 = ME/EPP (default 3)
-	RegApTribSN    int    // apuração for ME/EPP: 1 = tributos federais e municipal pelo SN (default 1)
-	RegEspTrib     int    // regime especial de tributação (default 0 = nenhum)
-	IncludeIM      bool   // send the vendor's municipal registration (prest/IM)
+	DPSVersion     string  // DPS layout version attribute (default 1.00)
+	Serie          string  // numeric DPS series, 1..99999 (default 1)
+	CLocEmi        string  // IBGE code of the issuer municipality (default 3550308 - São Paulo)
+	CLocPrestacao  string  // IBGE code of the place of service (default = CLocEmi)
+	CTribNac       string  // 6-digit national taxation code (e.g. 080201)
+	CTribMun       string  // 3-digit municipal breakdown of cTribNac (e.g. 003 for 08.02.01.003 in São Paulo); optional
+	OpSimpNac      int     // 1 = não optante, 2 = MEI, 3 = ME/EPP (default 3)
+	RegApTribSN    int     // apuração for ME/EPP: 1 = tributos federais e municipal pelo SN (default 1)
+	RegEspTrib     int     // regime especial de tributação (default 0 = nenhum)
+	IncludeIM      bool    // send the vendor's municipal registration (prest/IM)
+	PTotTribSN     float64 // approximate total tax rate (%) of the Simples Nacional; required for ME/EPP (opSimpNac 3)
 }
 
 // NationalNfseEmitter issues a single NFS-e through the Sefin Nacional API (DPS -> NFS-e).
@@ -166,6 +167,9 @@ func (e *NationalNfseEmitter) buildDPSXML(invoice *domain.Invoice, nDPS int64, n
 	if cTribMun != "" && len(cTribMun) != 3 {
 		return "", "", fmt.Errorf("código de tributação municipal (cTribMun) deve ter 3 dígitos; configurado: %q", e.cfg.CTribMun)
 	}
+	if e.cfg.OpSimpNac == 3 && (e.cfg.PTotTribSN <= 0 || e.cfg.PTotTribSN >= 100) {
+		return "", "", fmt.Errorf("para ME/EPP do Simples Nacional informe o percentual aproximado de tributos (tax.national.p_tot_trib_sn); configurado: %.2f", e.cfg.PTotTribSN)
+	}
 	customerDoc := ""
 	if invoice.Customer.Document != nil {
 		customerDoc = onlyDigits.ReplaceAllString(*invoice.Customer.Document, "")
@@ -262,7 +266,12 @@ func (e *NationalNfseEmitter) buildDPSXML(invoice *domain.Invoice, nDPS int64, n
 	add(tribMun, "tribISSQN", "1")  // 1 = operação tributável
 	add(tribMun, "tpRetISSQN", "1") // 1 = não retido
 	totTrib := add(trib, "totTrib", "")
-	add(totTrib, "indTotTrib", "0") // não informar valor estimado dos tributos (Decreto 8.264/2014)
+	if e.cfg.OpSimpNac == 3 {
+		// [E0712] ME/EPP cannot use indTotTrib; inform the approximate Simples Nacional rate instead
+		add(totTrib, "pTotTribSN", fmt.Sprintf("%.2f", e.cfg.PTotTribSN))
+	} else {
+		add(totTrib, "indTotTrib", "0") // não informar valor estimado dos tributos (Decreto 8.264/2014)
+	}
 
 	doc.WriteSettings.CanonicalText = true
 	out, err := doc.WriteToString()

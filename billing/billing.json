@@ -51,7 +51,8 @@
             "op_simp_nac": 3,
             "reg_ap_trib_sn": 1,
             "reg_esp_trib": 0,
-            "include_im": false
+            "include_im": false,
+            "p_tot_trib_sn": 7.32
         }
     }
 }
